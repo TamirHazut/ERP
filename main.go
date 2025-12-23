@@ -1,0 +1,4 @@
+package erp
+
+func main() {
+}
