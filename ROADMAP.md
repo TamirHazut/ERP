@@ -7,7 +7,7 @@ This roadmap outlines the development order for building the multi-tenant ERP sy
 
 Before starting service development, we need to set up foundational infrastructure that all services will depend on.
 
-**Status:** 🟡 In Progress (gRPC ✅, JWT ✅, Error Handling ⬜, Service Structure ⬜, Build Tooling ⬜)
+**Status:** 🟡 In Progress (gRPC ✅, JWT ✅, Error Handling ✅, Service Structure ⬜, Build Tooling ⬜)
 
 ### 1. gRPC Infrastructure (Critical) 📡
 **Status:** ✅ Completed
@@ -71,17 +71,26 @@ internal/
 ---
 
 ### 3. Error Handling Patterns (Important) ⚠️
-**Status:** ⬜ Not Started
+**Status:** ✅ Completed
 
 **Why Third:** Standardized error handling ensures consistency across services.
 
 **What to Build:**
-- [ ] Define gRPC error codes mapping
-- [ ] Create error handling utilities
-- [ ] Document error response format
-- [ ] Create common error types
+- [x] Define gRPC error codes mapping
+  - [x] `internal/errors/grpc.go` - ToGRPCError/FromGRPCError functions
+  - [x] Category to gRPC code mapping (AUTH → Unauthenticated, VALIDATION → InvalidArgument, etc.)
+- [x] Create error handling utilities
+  - [x] `internal/errors/errors.go` - AppError type with constructors
+  - [x] Helper functions: New(), Wrap(), Auth(), Validation(), NotFound(), Conflict(), Business(), Internal()
+- [x] Document error response format
+  - [x] Updated `proto/common/common.proto` with ErrorCategory enum and enhanced Error message
+- [x] Create common error types
+  - [x] `internal/errors/codes.go` - Categorized error codes (AUTH, VALIDATION, NOT_FOUND, CONFLICT, BUSINESS, INTERNAL)
 
-**Note:** Can be refined as we build services, but good to have a baseline.
+**Files Created:**
+- `internal/errors/errors.go` - Core error types and constructors
+- `internal/errors/codes.go` - Error code definitions by category
+- `internal/errors/grpc.go` - gRPC status code mapping
 
 ---
 
