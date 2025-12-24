@@ -1,0 +1,7 @@
+# Config Service Proto Definitions
+
+This directory contains protobuf definitions for the Config service.
+
+## Files
+- `config.proto` - Configuration management service definitions
+

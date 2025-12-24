@@ -29,6 +29,9 @@ Doc: [Click Here](./docs/gateway/README.md)
 ### 7. WebUI
 Doc: [Click Here](./docs/webui/README.md)
 
+### 8. Proto
+Doc: [Click Here](./docs/proto/README.md)
+
 ## Flows
 
 ### 1. User Login Flow

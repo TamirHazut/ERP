@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "erp.localhost/proto/common";
+
+// Common error response
+message Error {
+  string code = 1;
+  string message = 2;
+  string details = 3;
+}
+
+// Common response wrapper
+message Response {
+  bool success = 1;
+  Error error = 2;
+}
+
+// Pagination parameters
+message PaginationRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+// Pagination response
+message PaginationResponse {
+  int32 page = 1;
+  int32 page_size = 2;
+  int64 total_items = 3;
+  int32 total_pages = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+

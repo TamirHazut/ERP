@@ -3,7 +3,7 @@ package redis
 import (
 	"time"
 
-	mongo "erp.localhost/db/mongo/models"
+	mongo "erp.localhost/internal/db/mongo/models"
 )
 
 // ============================================================================

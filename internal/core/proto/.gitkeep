@@ -1,0 +1,7 @@
+# Core Service Proto Definitions
+
+This directory contains protobuf definitions for the Core service.
+
+## Files
+- `core.proto` - Business logic service definitions (Orders, Products, Vendors, etc.)
+

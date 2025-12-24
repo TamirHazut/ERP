@@ -7,36 +7,66 @@ This roadmap outlines the development order for building the multi-tenant ERP sy
 
 Before starting service development, we need to set up foundational infrastructure that all services will depend on.
 
-**Status:** 🟡 In Progress
+**Status:** 🟡 In Progress (gRPC ✅, JWT ✅, Error Handling ⬜, Service Structure ⬜, Build Tooling ⬜)
 
 ### 1. gRPC Infrastructure (Critical) 📡
-**Status:** 🟡 In Progress
+**Status:** ✅ Completed
 
 **Why First:** All inter-service communication uses gRPC. Must be set up before any service development.
 
 **What to Build:**
 - [x] Create proto files directory structure (service-specific proto dirs + `proto/common/`)
-- [ ] Add gRPC Go dependencies to `go.mod`
-  - [ ] `google.golang.org/grpc`
-  - [ ] `google.golang.org/protobuf`
-  - [ ] `github.com/golang/protobuf/protoc-gen-go`
-- [ ] Set up proto code generation (Makefile or script)
-- [ ] Create proto file template/structure for services
-- [ ] Document proto generation workflow
+  - [x] `proto/common/` - Shared types
+  - [x] `internal/auth/proto/` - Auth service proto files
+  - [x] `internal/config/proto/` - Config service proto files
+  - [x] `internal/core/proto/` - Core service proto files
+  - [x] `internal/gateway/proto/` - Gateway service proto files (if needed)
+  - [x] `internal/events/proto/` - Events service proto files (if needed)
+- [x] Add gRPC Go dependencies to `go.mod`
+  - [x] `google.golang.org/grpc`
+  - [x] `google.golang.org/protobuf`
+  - [x] `google.golang.org/protobuf/cmd/protoc-gen-go`
+  - [x] `google.golang.org/grpc/cmd/protoc-gen-go-grpc`
+- [x] Set up proto code generation (Makefile or script)
+  - [x] Makefile for Linux/Mac
+  - [x] PowerShell script for Windows (`scripts/generate-proto.ps1`)
+  - [x] Bash script for Linux/Mac (`scripts/generate-proto.sh`)
+- [x] Create proto file template/structure for services
+  - [x] Common proto file (`proto/common/common.proto`)
+  - [x] Template documentation in `docs/proto/README.md`
+- [x] Document proto generation workflow
 
 **Note:** Proto definitions for each service will be created as part of that service's development.
+
+**Directory Structure:**
+```
+proto/
+├── common/              # Shared types (errors, base messages)
+
+internal/
+├── auth/proto/          # Auth service proto files
+├── config/proto/        # Config service proto files
+├── core/proto/          # Core service proto files
+├── gateway/proto/       # Gateway service proto files
+└── events/proto/        # Events service proto files
+```
 
 ---
 
 ### 2. JWT Library (Critical for Auth) 🔑
-**Status:** ⬜ Not Started
+**Status:** ✅ Completed
 
 **Why Second:** Required for Auth Service. Should be added early.
 
 **What to Build:**
-- [ ] Add JWT library to `go.mod`
-  - [ ] `github.com/golang-jwt/jwt/v5` (or similar)
-- [ ] Create JWT utility package/helpers (optional, can be done in Auth service)
+- [x] Add JWT library to `go.mod`
+  - [x] `github.com/golang-jwt/jwt/v5`
+- [x] Create JWT utility package/helpers
+  - [x] JWTManager struct (`internal/auth/jwt.go`)
+  - [x] GenerateToken method (with userID and tenantID)
+  - [x] VerifyToken method
+  - [x] RefreshToken method
+  - [x] RevokeToken method
 
 ---
 
@@ -110,8 +140,13 @@ Before starting service development, we need to set up foundational infrastructu
 - [ ] gRPC server implementation
 - [ ] Auth service proto definitions (`.proto` files)
 - [ ] User repository using generic Repository pattern (MongoDB: `auth_db.users`)
-- [ ] JWT generation/validation library integration
-- [ ] JWT claims structure (include tenant ID)
+- [x] JWT generation/validation library integration
+  - [x] JWTManager implementation (`internal/auth/jwt.go`)
+  - [x] GenerateToken with tenantID support
+  - [x] VerifyToken implementation
+  - [x] RefreshToken implementation
+- [x] JWT claims structure (include tenant ID)
+  - [x] Claims include `sub` (userID), `tenant_id`, and `exp`
 - [ ] Password hashing (bcrypt)
 - [ ] Login endpoint (`Authenticate()` gRPC method)
 - [ ] Session management (Redis: `sessions:{session_id}`)

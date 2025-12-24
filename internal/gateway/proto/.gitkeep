@@ -1,0 +1,6 @@
+# Gateway Proto Definitions
+
+This directory contains protobuf definitions for the Gateway service (if needed).
+
+Note: Gateway primarily uses GraphQL, but may need proto definitions for inter-service communication.
+
