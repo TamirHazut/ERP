@@ -15,22 +15,22 @@
         <mxCell id="oRGmgSkQep3pDsrG_rZN-1" value="&lt;font style=&quot;&quot;&gt;&lt;u style=&quot;&quot;&gt;&lt;span style=&quot;font-size: 15px;&quot;&gt;WebUI (React)&lt;br&gt;&lt;/span&gt;&lt;div style=&quot;font-size: 15px; text-align: center;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); text-align: left; font-size: 12px;&quot;&gt;Port: 3000&lt;/span&gt;&lt;/div&gt;&lt;/u&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="30" y="30" width="150" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="oRGmgSkQep3pDsrG_rZN-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-3" target="oRGmgSkQep3pDsrG_rZN-6">
+        <mxCell id="oRGmgSkQep3pDsrG_rZN-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-3" target="oRGmgSkQep3pDsrG_rZN-6">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="oRGmgSkQep3pDsrG_rZN-13" value="gRPC" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="oRGmgSkQep3pDsrG_rZN-9">
           <mxGeometry x="0.179" relative="1" as="geometry">
-            <mxPoint as="offset" />
+            <mxPoint x="23" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="oRGmgSkQep3pDsrG_rZN-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-3" target="oRGmgSkQep3pDsrG_rZN-8">
+        <mxCell id="oRGmgSkQep3pDsrG_rZN-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.75;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-3" target="oRGmgSkQep3pDsrG_rZN-8">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="620" y="250" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="oRGmgSkQep3pDsrG_rZN-12" value="gRPC" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="oRGmgSkQep3pDsrG_rZN-10">
           <mxGeometry x="0.3132" y="1" relative="1" as="geometry">
-            <mxPoint as="offset" />
+            <mxPoint x="-31" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="oRGmgSkQep3pDsrG_rZN-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-3" target="oRGmgSkQep3pDsrG_rZN-7">
@@ -38,7 +38,7 @@
         </mxCell>
         <mxCell id="oRGmgSkQep3pDsrG_rZN-14" value="gRPC" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="oRGmgSkQep3pDsrG_rZN-11">
           <mxGeometry x="0.3" y="3" relative="1" as="geometry">
-            <mxPoint as="offset" />
+            <mxPoint x="-3" y="-21" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="oRGmgSkQep3pDsrG_rZN-3" value="&lt;font style=&quot;&quot;&gt;&lt;u style=&quot;&quot;&gt;&lt;span style=&quot;font-size: 15px;&quot;&gt;API Gateway (Go)&lt;br&gt;&lt;/span&gt;&lt;div style=&quot;font-size: 15px; text-align: center;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); text-align: left; font-size: 12px;&quot;&gt;Port: 4000&lt;/span&gt;&lt;/div&gt;&lt;/u&gt;&lt;/font&gt;&lt;div&gt;&lt;ul&gt;&lt;li style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;GraphQL endpoint&lt;/span&gt;&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Auth middleware&lt;/span&gt;&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Rate limit&lt;/span&gt;&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Request Routing&lt;/span&gt;&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Response Aggregatopm&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
@@ -50,7 +50,7 @@
         <mxCell id="oRGmgSkQep3pDsrG_rZN-6" value="&lt;font style=&quot;&quot;&gt;&lt;span style=&quot;text-decoration-line: underline; font-size: 15px;&quot;&gt;Auth Service (Go)&lt;br&gt;&lt;/span&gt;&lt;div style=&quot;text-decoration-line: underline; font-size: 15px; text-align: center;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); text-align: left; font-size: 12px;&quot;&gt;Port: 5000&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;font-size: 15px;&quot;&gt;&lt;ul style=&quot;&quot;&gt;&lt;li style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); font-size: 12px;&quot;&gt;Login&lt;br&gt;&lt;/span&gt;&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); font-size: 12px;&quot;&gt;JWT&lt;/span&gt;&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); font-size: 12px;&quot;&gt;RBAC&lt;/span&gt;&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); font-size: 12px;&quot;&gt;Sessions&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="60" y="370" width="150" height="150" as="geometry" />
         </mxCell>
-        <mxCell id="oRGmgSkQep3pDsrG_rZN-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-7" target="oRGmgSkQep3pDsrG_rZN-17">
+        <mxCell id="oRGmgSkQep3pDsrG_rZN-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-7" target="oRGmgSkQep3pDsrG_rZN-17">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="610" y="630" as="targetPoint" />
           </mxGeometry>
@@ -63,7 +63,7 @@
         <mxCell id="oRGmgSkQep3pDsrG_rZN-7" value="&lt;font style=&quot;&quot;&gt;&lt;span style=&quot;text-decoration-line: underline; font-size: 15px;&quot;&gt;Core Service (Go)&lt;br&gt;&lt;/span&gt;&lt;div style=&quot;text-decoration-line: underline; font-size: 15px; text-align: center;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); text-align: left; font-size: 12px;&quot;&gt;Port: 5001&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;ul style=&quot;&quot;&gt;&lt;li style=&quot;font-size: 15px; text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); font-size: 12px;&quot;&gt;Users&lt;/span&gt;&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;Vendors&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;Products&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;Orders&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="339" y="370" width="150" height="150" as="geometry" />
         </mxCell>
-        <mxCell id="oRGmgSkQep3pDsrG_rZN-31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-8" target="oRGmgSkQep3pDsrG_rZN-17">
+        <mxCell id="oRGmgSkQep3pDsrG_rZN-31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-8" target="oRGmgSkQep3pDsrG_rZN-17">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="oRGmgSkQep3pDsrG_rZN-34" value="Producer" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="oRGmgSkQep3pDsrG_rZN-31">
@@ -107,6 +107,18 @@
         </mxCell>
         <mxCell id="oRGmgSkQep3pDsrG_rZN-25" value="&lt;ul&gt;&lt;li&gt;&lt;font style=&quot;font-size: 13px;&quot;&gt;auth_db (tenants, users, roles, permissions)&lt;/font&gt;&lt;/li&gt;&lt;li&gt;&lt;font style=&quot;font-size: 13px;&quot;&gt;core_db (products, orders, vendors, inventory)&lt;/font&gt;&lt;/li&gt;&lt;li&gt;&lt;font style=&quot;font-size: 13px;&quot;&gt;config_db (configurations, environment_settings, feature_flags)&lt;/font&gt;&lt;/li&gt;&lt;/ul&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
           <mxGeometry x="107.5" y="860" width="410" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="oRGmgSkQep3pDsrG_rZN-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.855;entryY=0;entryDx=0;entryDy=4.35;entryPerimeter=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-8" target="oRGmgSkQep3pDsrG_rZN-22">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="445" />
+              <mxPoint x="570" y="550" />
+              <mxPoint x="357" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oRGmgSkQep3pDsrG_rZN-42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.145;entryY=0;entryDx=0;entryDy=4.35;entryPerimeter=0;" edge="1" parent="1" source="oRGmgSkQep3pDsrG_rZN-6" target="oRGmgSkQep3pDsrG_rZN-22">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

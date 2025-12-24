@@ -56,3 +56,7 @@ Doc: [Click Here](./docs/webui/README.md)
 4. Config → Redis: Invalidate cache
 5. Config: Broadcast update to all services
 6. Services: Reload configuration
+
+## Roadmap
+
+Doc: [Click Here](./ROADMAP.md)
