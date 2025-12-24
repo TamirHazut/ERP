@@ -82,9 +82,14 @@ var (
 // ============================================================================
 
 var (
-	ValidationRequiredField = ErrorDef{
-		Code:     "VALIDATION_REQUIRED_FIELD",
-		Message:  "This field is required",
+	ValidationTryToChangeRestrictedFields = ErrorDef{
+		Code:     "VALIDATION_TRY_TO_CHANGE_RESTRICTED_FIELDS",
+		Message:  "You are trying to change restricted fields",
+		Category: CategoryValidation,
+	}
+	ValidationRequiredFields = ErrorDef{
+		Code:     "VALIDATION_REQUIRED_FIELDS",
+		Message:  "These fields are required",
 		Category: CategoryValidation,
 	}
 	ValidationInvalidFormat = ErrorDef{

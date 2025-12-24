@@ -1,4 +1,4 @@
-package mongo
+package models
 
 import (
 	"time"
@@ -7,7 +7,7 @@ import (
 )
 
 // ============================================================================
-// CONFIG_DB MODELS
+// CONFIG MODELS
 // ============================================================================
 
 // ServiceConfig represents configuration for a service
@@ -78,3 +78,4 @@ type FeatureFlagMetadata struct {
 	OwnerTeam        string `bson:"owner_team,omitempty" json:"owner_team,omitempty"`
 	DocumentationURL string `bson:"documentation_url,omitempty" json:"documentation_url,omitempty"`
 }
+

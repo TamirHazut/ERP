@@ -3,7 +3,9 @@ package redis
 import (
 	"time"
 
-	mongo "erp.localhost/internal/db/mongo/models"
+	auth "erp.localhost/internal/auth/models"
+	config "erp.localhost/internal/config/models"
+	core "erp.localhost/internal/core/models"
 )
 
 // ============================================================================
@@ -181,40 +183,40 @@ type QueryCache struct {
 // Key: user_cache:{user_id}
 // TTL: 10 minutes
 type UserCache struct {
-	UserID   string            `json:"user_id"`
-	TenantID string            `json:"tenant_id"`
-	Email    string            `json:"email"`
-	Username string            `json:"username"`
-	Profile  mongo.UserProfile `json:"profile"`
-	Status   string            `json:"status"`
-	Roles    []string          `json:"roles"`
-	CachedAt time.Time         `json:"cached_at"`
+	UserID   string           `json:"user_id"`
+	TenantID string           `json:"tenant_id"`
+	Email    string           `json:"email"`
+	Username string           `json:"username"`
+	Profile  auth.UserProfile `json:"profile"`
+	Status   string           `json:"status"`
+	Roles    []string         `json:"roles"`
+	CachedAt time.Time        `json:"cached_at"`
 }
 
 // TenantCache represents cached tenant data
 // Key: tenant_cache:{tenant_id}
 // TTL: 30 minutes
 type TenantCache struct {
-	TenantID     string               `json:"tenant_id"`
-	Name         string               `json:"name"`
-	Status       string               `json:"status"`
-	Subscription mongo.Subscription   `json:"subscription"`
-	Settings     mongo.TenantSettings `json:"settings"`
-	CachedAt     time.Time            `json:"cached_at"`
+	TenantID     string              `json:"tenant_id"`
+	Name         string              `json:"name"`
+	Status       string              `json:"status"`
+	Subscription auth.Subscription   `json:"subscription"`
+	Settings     auth.TenantSettings `json:"settings"`
+	CachedAt     time.Time           `json:"cached_at"`
 }
 
 // ProductCache represents cached product data
 // Key: product_cache:{product_id}
 // TTL: 15 minutes
 type ProductCache struct {
-	ProductID string                 `json:"product_id"`
-	TenantID  string                 `json:"tenant_id"`
-	SKU       string                 `json:"sku"`
-	Name      string                 `json:"name"`
-	Price     float64                `json:"price"`
-	Inventory mongo.ProductInventory `json:"inventory"`
-	Status    string                 `json:"status"`
-	CachedAt  time.Time              `json:"cached_at"`
+	ProductID string                `json:"product_id"`
+	TenantID  string                `json:"tenant_id"`
+	SKU       string                `json:"sku"`
+	Name      string                `json:"name"`
+	Price     float64               `json:"price"`
+	Inventory core.ProductInventory `json:"inventory"`
+	Status    string                `json:"status"`
+	CachedAt  time.Time             `json:"cached_at"`
 }
 
 // OrderCache represents cached order data
@@ -326,7 +328,7 @@ type ActiveUser struct {
 type FeatureFlagCache struct {
 	FlagKey  string               `json:"flag_key"`
 	Enabled  bool                 `json:"enabled"`
-	Rollout  mongo.FeatureRollout `json:"rollout"`
+	Rollout  config.FeatureRollout `json:"rollout"`
 	CachedAt time.Time            `json:"cached_at"`
 	Version  int                  `json:"version"`
 }
@@ -335,10 +337,10 @@ type FeatureFlagCache struct {
 // Key: tenant_features:{tenant_id}
 // TTL: 10 minutes
 type TenantFeatures struct {
-	TenantID string                   `json:"tenant_id"`
-	Features map[string]bool          `json:"features"` // feature_key -> enabled
-	Limits   mongo.SubscriptionLimits `json:"limits"`
-	CachedAt time.Time                `json:"cached_at"`
+	TenantID string                  `json:"tenant_id"`
+	Features map[string]bool         `json:"features"` // feature_key -> enabled
+	Limits   auth.SubscriptionLimits `json:"limits"`
+	CachedAt time.Time               `json:"cached_at"`
 }
 
 // ServiceConfigCache represents cached service configuration

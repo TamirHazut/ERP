@@ -1,8 +1,9 @@
-package mongo
+package models
 
 import (
 	"time"
 
+	erp_errors "erp.localhost/internal/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -35,13 +36,12 @@ const (
 )
 
 // ============================================================================
-// AUTH_DB MODELS
+// AUTH MODELS
 // ============================================================================
 
 // Tenant represents an organization/company in the system
 type Tenant struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	TenantID     string             `bson:"tenant_id" json:"tenant_id"`
 	Name         string             `bson:"name" json:"name"`
 	Slug         string             `bson:"slug" json:"slug"`
 	Domain       string             `bson:"domain,omitempty" json:"domain,omitempty"`
@@ -54,6 +54,28 @@ type Tenant struct {
 	UpdatedAt    time.Time          `bson:"updated_at" json:"updated_at"`
 	CreatedBy    string             `bson:"created_by" json:"created_by"`
 	Metadata     TenantMetadata     `bson:"metadata,omitempty" json:"metadata,omitempty"`
+}
+
+func (t *Tenant) Validate(createOperation bool) error {
+	missingFields := []string{}
+	if !createOperation {
+		if t.ID == primitive.NilObjectID {
+			missingFields = append(missingFields, "ID")
+		}
+	}
+	if t.Name == "" {
+		missingFields = append(missingFields, "Name")
+	}
+	if t.Status == "" {
+		missingFields = append(missingFields, "Status")
+	}
+	if t.CreatedBy == "" {
+		missingFields = append(missingFields, "CreatedBy")
+	}
+	if len(missingFields) > 0 {
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields)
+	}
+	return nil
 }
 
 type Subscription struct {
@@ -113,7 +135,6 @@ type TenantMetadata struct {
 // User represents a user in the system
 type User struct {
 	ID                    primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	UserID                string             `bson:"user_id" json:"user_id"`
 	TenantID              string             `bson:"tenant_id" json:"tenant_id"`
 	Email                 string             `bson:"email" json:"email"`
 	Username              string             `bson:"username" json:"username"`
@@ -137,6 +158,37 @@ type User struct {
 	CreatedBy             string             `bson:"created_by" json:"created_by"`
 	LastActivity          time.Time          `bson:"last_activity" json:"last_activity"`
 	LoginHistory          []LoginRecord      `bson:"login_history,omitempty" json:"login_history,omitempty"`
+}
+
+func (u *User) Validate(createOperation bool) error {
+	missingFields := []string{}
+	if !createOperation {
+		if u.ID == primitive.NilObjectID {
+			missingFields = append(missingFields, "ID")
+		}
+	}
+	if u.TenantID == "" {
+		missingFields = append(missingFields, "TenantID")
+	}
+	if u.Email == "" {
+		missingFields = append(missingFields, "Email")
+	}
+	if u.PasswordHash == "" {
+		missingFields = append(missingFields, "PasswordHash")
+	}
+	if u.Status == "" {
+		missingFields = append(missingFields, "Status")
+	}
+	if u.CreatedBy == "" {
+		missingFields = append(missingFields, "CreatedBy")
+	}
+	if u.Roles == nil {
+		missingFields = append(missingFields, "Roles")
+	}
+	if len(missingFields) > 0 {
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields)
+	}
+	return nil
 }
 
 type UserProfile struct {
@@ -181,7 +233,6 @@ type LoginRecord struct {
 // Role represents a role with permissions
 type Role struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	RoleID       string             `bson:"role_id" json:"role_id"`
 	TenantID     string             `bson:"tenant_id,omitempty" json:"tenant_id,omitempty"` // null for system-wide
 	Name         string             `bson:"name" json:"name"`
 	Slug         string             `bson:"slug" json:"slug"`
@@ -197,6 +248,34 @@ type Role struct {
 	CreatedBy    string             `bson:"created_by" json:"created_by"`
 }
 
+func (r *Role) Validate(createOperation bool) error {
+	missingFields := []string{}
+	if !createOperation {
+		if r.ID == primitive.NilObjectID {
+			missingFields = append(missingFields, "ID")
+		}
+	}
+	if r.TenantID == "" {
+		missingFields = append(missingFields, "TenantID")
+	}
+	if r.Name == "" {
+		missingFields = append(missingFields, "Name")
+	}
+	if r.Status == "" {
+		missingFields = append(missingFields, "Status")
+	}
+	if r.CreatedBy == "" {
+		missingFields = append(missingFields, "CreatedBy")
+	}
+	if r.Permissions == nil {
+		missingFields = append(missingFields, "Permissions")
+	}
+	if len(missingFields) > 0 {
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields)
+	}
+	return nil
+}
+
 type RoleMetadata struct {
 	Color         string `bson:"color,omitempty" json:"color,omitempty"`
 	Icon          string `bson:"icon,omitempty" json:"icon,omitempty"`
@@ -206,7 +285,7 @@ type RoleMetadata struct {
 // Permission represents a system permission
 type Permission struct {
 	ID               primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	PermissionID     string             `bson:"permission_id" json:"permission_id"`
+	TenantID         string             `bson:"tenant_id" json:"tenant_id"`
 	Resource         string             `bson:"resource" json:"resource"`
 	Action           string             `bson:"action" json:"action"`
 	PermissionString string             `bson:"permission_string" json:"permission_string"`
@@ -217,7 +296,40 @@ type Permission struct {
 	RequiresApproval bool               `bson:"requires_approval" json:"requires_approval"`
 	Dependencies     []string           `bson:"dependencies,omitempty" json:"dependencies,omitempty"`
 	CreatedAt        time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt        time.Time          `bson:"updated_at" json:"updated_at"`
+	CreatedBy        string             `bson:"created_by" json:"created_by"`
 	Metadata         PermissionMetadata `bson:"metadata,omitempty" json:"metadata,omitempty"`
+}
+
+func (p *Permission) Validate(createOperation bool) error {
+	missingFields := []string{}
+	if !createOperation {
+		if p.ID == primitive.NilObjectID {
+			missingFields = append(missingFields, "ID")
+		}
+	}
+	if p.TenantID == "" {
+		missingFields = append(missingFields, "TenantID")
+	}
+	if p.Resource == "" {
+		missingFields = append(missingFields, "Resource")
+	}
+	if p.Action == "" {
+		missingFields = append(missingFields, "Action")
+	}
+	if p.CreatedBy == "" {
+		missingFields = append(missingFields, "CreatedBy")
+	}
+	if p.DisplayName == "" {
+		missingFields = append(missingFields, "DisplayName")
+	}
+	if p.PermissionString == "" {
+		missingFields = append(missingFields, "PermissionString")
+	}
+	if len(missingFields) > 0 {
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields)
+	}
+	return nil
 }
 
 type PermissionMetadata struct {
@@ -282,3 +394,4 @@ type AuditMetadata struct {
 	SessionID  string `bson:"session_id,omitempty" json:"session_id,omitempty"`
 	APIVersion string `bson:"api_version,omitempty" json:"api_version,omitempty"`
 }
+

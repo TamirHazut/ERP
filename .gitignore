@@ -1,3 +1,15 @@
 .vscode
 
 vendor
+
+# Build output
+bin/
+
+# Test coverage
+coverage.out
+coverage.html
+
+# IDE
+.idea/
+*.swp
+*.swo

@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	db "erp.localhost/internal/db"
@@ -81,6 +82,12 @@ func (m *MongoDBManager) Create(collectionName string, data any) (string, error)
 
 func (m *MongoDBManager) Find(collectionName string, filter map[string]any) ([]any, error) {
 	collection := m.db.Collection(collectionName)
+	if filter == nil {
+		return nil, errors.New("filter is required and cannot be nil")
+	}
+	if _, ok := filter["tenant_id"]; !ok {
+		return nil, errors.New("tenant id is required")
+	}
 	cursor, err := collection.Find(context.Background(), filter)
 	if err != nil {
 		return nil, err
@@ -92,18 +99,18 @@ func (m *MongoDBManager) Find(collectionName string, filter map[string]any) ([]a
 	return results, nil
 }
 
-func (m *MongoDBManager) Update(collectionName string, id string, data any) error {
+func (m *MongoDBManager) Update(collectionName string, filter map[string]any, data any) error {
 	collection := m.db.Collection(collectionName)
-	_, err := collection.UpdateOne(context.Background(), bson.M{"_id": id}, bson.M{"$set": data})
+	_, err := collection.UpdateOne(context.Background(), filter, bson.M{"$set": data})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *MongoDBManager) Delete(collectionName string, id string) error {
+func (m *MongoDBManager) Delete(collectionName string, filter map[string]any) error {
 	collection := m.db.Collection(collectionName)
-	_, err := collection.DeleteOne(context.Background(), bson.M{"_id": id})
+	_, err := collection.DeleteOne(context.Background(), filter)
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,7 @@ This roadmap outlines the development order for building the multi-tenant ERP sy
 
 Before starting service development, we need to set up foundational infrastructure that all services will depend on.
 
-**Status:** 🟡 In Progress (gRPC ✅, JWT ✅, Error Handling ✅, Service Structure ⬜, Build Tooling ⬜)
+**Status:** ✅ Completed (gRPC ✅, JWT ✅, Error Handling ✅, Service Structure ⏭️, Build Tooling ✅, Models ✅)
 
 ### 1. gRPC Infrastructure (Critical) 📡
 **Status:** ✅ Completed
@@ -95,7 +95,7 @@ internal/
 ---
 
 ### 4. Service Structure & Lifecycle (Helpful) 🔄
-**Status:** ⬜ Not Started
+**Status:** ⏭️ Skipped (will evolve as we build services)
 
 **Why Fourth:** Establishes patterns for how services are organized and started.
 
@@ -105,24 +105,81 @@ internal/
 - [ ] Add health check endpoint pattern
 - [ ] Create service main entry point template
 
-**Note:** Can evolve as we build services, but good to have a starting pattern.
+**Note:** Skipped for now. Will evolve organically as we build the Auth service.
 
 ---
 
 ### 5. Build Tooling (Helpful) 🛠️
-**Status:** ⬜ Not Started
+**Status:** ✅ Completed
 
 **Why Last:** Helpful for development workflow, but not blocking.
 
 **What to Build:**
-- [ ] Create Makefile with common tasks:
-  - [ ] `make proto` - Generate proto code
-  - [ ] `make build` - Build services
-  - [ ] `make run-auth` - Run auth service
-  - [ ] `make test` - Run tests
-- [ ] Or create build scripts (`.sh` or `.bat`)
+- [x] Create Makefile with common tasks:
+  - [x] `make proto` - Generate proto code
+  - [x] `make build` / `make build-auth` / `make build-config` / `make build-core` - Build services
+  - [x] `make run-auth` / `make run-config` / `make run-core` - Run services
+  - [x] `make test` / `make test-coverage` - Run tests
+  - [x] `make lint` - Run linter
+  - [x] `make clean` - Clean artifacts
+  - [x] `make tidy` - Update dependencies
+- [x] Create PowerShell scripts for Windows:
+  - [x] `scripts/build.ps1` - Build script
+  - [x] `scripts/run.ps1` - Run services script
+  - [x] `scripts/generate-proto.ps1` - Proto generation script
+
+**Files:**
+- `Makefile` - Linux/Mac build automation
+- `docker-compose.yml` - MongoDB and Redis containers
+- `scripts/build.ps1` - Windows build script
+- `scripts/run.ps1` - Windows service runner
+- `scripts/generate-proto.ps1` - Windows proto generation
+- `scripts/generate-proto.sh` - Linux/Mac proto generation
+
+**Docker Commands:**
+- `make docker-up` or `.\scripts\build.ps1 -Target docker-up` - Start containers
+- `make docker-down` or `.\scripts\build.ps1 -Target docker-down` - Stop containers
+- `make docker-logs` - View logs
+- `make docker-ps` - List containers
 
 **Note:** MongoDB and Redis connection URIs are currently hardcoded. Will be moved to environment configuration later.
+
+---
+
+### 6. Model Organization (Completed) 📦
+**Status:** ✅ Completed
+
+**What was Built:**
+- [x] Organized models by service for future microservice separation
+- [x] `internal/auth/models/models.go` - Auth models (Tenant, User, Role, Permission, UserGroup, AuditLog)
+- [x] `internal/core/models/models.go` - Core models (Product, Order, Vendor, Customer, Inventory, Warehouse, Category)
+- [x] `internal/config/models/models.go` - Config models (ServiceConfig, FeatureFlag)
+- [x] Updated Redis cache models to reference new locations
+- [x] Validation methods on all models (`Validate(createOperation bool)`)
+- [x] Removed deprecated `internal/db/models.go` and `internal/db/mongo/models/`
+
+**Directory Structure:**
+```
+internal/
+├── auth/
+│   ├── models/
+│   │   └── models.go      # Tenant, User, Role, Permission
+│   └── repository/
+│       ├── users_repo.go
+│       ├── roles_repo.go
+│       ├── permissions_repo.go
+│       └── tenants_repo.go
+├── core/
+│   └── models/
+│       └── models.go      # Product, Order, Vendor, Customer, etc.
+├── config/
+│   └── models/
+│       └── models.go      # ServiceConfig, FeatureFlag
+└── db/
+    └── redis/
+        └── models/
+            └── models.go  # Session, TokenMetadata, caches
+```
 
 ---
 
@@ -131,7 +188,7 @@ internal/
 ### Phase 1: Foundation ⚙️
 
 #### 1. Auth Service (Priority 1) 🔐
-**Status:** ⬜ Not Started
+**Status:** 🟡 In Progress (Repositories ✅, gRPC Server ⬜)
 
 **Why First:** Required by all other services for authentication/authorization. Foundation for the entire system.
 
@@ -148,7 +205,10 @@ internal/
 **What to Build:**
 - [ ] gRPC server implementation
 - [ ] Auth service proto definitions (`.proto` files)
-- [ ] User repository using generic Repository pattern (MongoDB: `auth_db.users`)
+- [x] User repository using generic Repository pattern (MongoDB: `auth_db.users`)
+  - [x] `internal/auth/repository/users_repo.go`
+  - [x] CRUD operations with tenant isolation
+  - [x] `GetUsersByTenantID`, `GetUsersByRoleID` methods
 - [x] JWT generation/validation library integration
   - [x] JWTManager implementation (`internal/auth/jwt.go`)
   - [x] GenerateToken with tenantID support
@@ -164,9 +224,17 @@ internal/
 - [ ] Token refresh endpoint
 - [ ] RBAC permission checking logic
 - [ ] Permission checking endpoint (`CheckPermission()` gRPC method)
-- [ ] Role repository (MongoDB: `auth_db.roles`)
-- [ ] Permission repository (MongoDB: `auth_db.permissions`)
-- [ ] Tenant repository (MongoDB: `auth_db.tenants`)
+- [x] Role repository (MongoDB: `auth_db.roles`)
+  - [x] `internal/auth/repository/roles_repo.go`
+  - [x] CRUD operations with tenant isolation
+  - [x] `GetRolesByTenantID`, `GetRolesByPermissionsIDs` methods
+- [x] Permission repository (MongoDB: `auth_db.permissions`)
+  - [x] `internal/auth/repository/permissions_repo.go`
+  - [x] CRUD operations with tenant isolation
+  - [x] `GetPermissionsByTenantID`, `GetPermissionsByResource`, `GetPermissionsByAction` methods
+- [x] Tenant repository (MongoDB: `auth_db.tenants`)
+  - [x] `internal/auth/repository/tenants_repo.go`
+  - [x] CRUD operations
 
 **Key Endpoints:**
 - `POST /auth/login` → gRPC `Authenticate()`
@@ -409,6 +477,11 @@ internal/
 ### Code Organization
 - ✅ Starting as monorepo with multiple packages
 - ✅ Will break down to microservices and shared Go modules later
+- ✅ Models organized by service for easy future separation:
+  - `internal/auth/models/` - Auth models (Tenant, User, Role, Permission, UserGroup, AuditLog)
+  - `internal/core/models/` - Core models (Product, Order, Vendor, Customer, Inventory, etc.)
+  - `internal/config/models/` - Config models (ServiceConfig, FeatureFlag)
+  - `internal/db/redis/models/` - Redis cache models (Session, TokenMetadata, caches)
 
 ### Infrastructure Notes
 - ⚠️ MongoDB and Redis connection URIs are currently hardcoded in `internal/db/mongo/mongo.go` and `internal/db/redis/redis.go`

@@ -1,4 +1,4 @@
-package mongo
+package models
 
 import (
 	"time"
@@ -46,8 +46,17 @@ const (
 )
 
 // ============================================================================
-// CORE_DB MODELS
+// CORE MODELS
 // ============================================================================
+
+// Address is a common address type used across core models
+type Address struct {
+	Street  string `bson:"street" json:"street"`
+	City    string `bson:"city" json:"city"`
+	State   string `bson:"state" json:"state"`
+	Zip     string `bson:"zip" json:"zip"`
+	Country string `bson:"country" json:"country"`
+}
 
 // Product represents a product in the system
 type Product struct {
@@ -325,3 +334,4 @@ type Category struct {
 	CreatedAt        time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt        time.Time          `bson:"updated_at" json:"updated_at"`
 }
+
