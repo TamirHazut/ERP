@@ -1,85 +1,26 @@
-# Internal Event Bus
+# Events Service
 
-This is the decoupling mechanism.
+## Properties
+- Port: 5003
 
-## Characteristics
+## Responsibilities:
+- Event ingestion from Kafka
+- Event processing & routing
+- Notifications (Email, SMS, Push)
+- Audit logging
+- Alerting & monitoring
+- Observability metrics
 
-* In-process
-* Asynchronous
-* Fire-and-forget (initially)
+## Tech Stack:
+- Go
+- Kafka consumer (sarama/confluent-kafka-go)
+- OpenTelemetry
+- Prometheus metrics
+- Integration with notification providers
 
-## Frameworks
-
-* Kafka
-* Go Lang
-    * Confluent Kafka
-
-## Dependencies
-
-* Config
-* Core
-* DB
-* Logging
-
-# Side-effect modules (event consumers)
-
-## Observability Module
-
-### Purpose
-
-* Business metrics
-* Usage statistics
-* Performance counters
-
-### Frameworks
-
-* Go Lang
-    * prometheus/client_golang
-    * OpenTelemetry
-
-### Consumes
-
-* Domain events
-* Request metadata
-
-### Produces
-
-* Aggregates
-* Time-series data
-* Dashboards inputs
-
-## Alarms / Thresholds Module
-
-### Purpose
-
-* Inventory alerts
-* SLA violations
-* Config-based triggers
-
-### Consumes
-
-* Inventory events
-* Config thresholds
-
-### Produces
-
-* AlarmRaised events
-
-## Notifications & Webhooks Module
-
-### Purpose
-
-* Email notifications
-* Webhook callbacks
-* External callbacks
-
-### Consumes
-
-* AlarmRaised
-* InventoryRestocked
-
-### Rules
-
-* Retry-safe
-* Idempotent
-* Never blocks core logic
+## Event Types:
+- user.created
+- order.placed
+- product.updated
+- vendor.approved
+- system.alert

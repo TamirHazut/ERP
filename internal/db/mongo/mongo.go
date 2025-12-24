@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	db "erp.localhost/db"
-	logging "erp.localhost/logging"
+	db "erp.localhost/internal/db"
+	logging "erp.localhost/internal/logging"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

@@ -1,21 +1,26 @@
-# Core Module
+# Core Service
 
-## Purpose
+## Properties
+- Database: MongoDB
+- Port: 5001
 
-* Inventory
-* Vendors
-* Clients
-* Personnel
-* Business rules
-* Multi-tenancy enforcement
+## Responsibilities:
+- Business logic implementation
+- Domain models (Users, Vendors, Products, Orders)
+- CRUD operations
+- Business rules enforcement
+- Transaction management
+- Event publishing
 
-## Rules
+## Tech Stack:
+- Go
+- MongoDB driver
+- gRPC & REST APIs
+- Domain-Driven Design patterns
 
-* The only module allowed to mutate core business data
-* Owns domain models and invariants
-* Emits domain events
-
-## Dependencies
-
-* DB
-* Config
+## Modules:
+- Users module
+- Vendors module
+- Products module
+- Orders module
+- Inventory module

@@ -1,19 +1,25 @@
-# Config Module
+# Config Service
 
-## Purpose
+## Properties
+- Database: MongoDB (Collection: config_db)
+- Port: 5002
 
-* Tenant configuration
-* Feature flags
-* Thresholds (inventory alerts)
-* UI behavior toggles
+## Responsibilities:
+- Centralized configuration management
+- Feature flags
+- Environment-specific configs
+- Dynamic configuration updates
+- Config versioning
+- Config validation
 
-## Key characteristic
+## Tech Stack:
+- Go
+- MongoDB for persistence
+- Redis for caching
+- gRPC API
 
-* Read-heavy
-* Rare writes
-* Cached aggressively
-
-## Dependencies
-
-* Core
-* DB
+## Config Structure:
+- Service-specific configs
+- Global settings
+- Feature flags
+- Environment variables

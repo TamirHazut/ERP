@@ -1,31 +1,17 @@
-# Gateway API Layer
+# Gateway API Service
 
-## Purpose
+## Properties
+- Port: 4000
 
-* Single entry point
-* Schema definition
-* Field-level RBAC enforcement
-* Request → domain orchestration
+## Responsibilities:
+- Single entry point for WebUI
+- Query/Mutation routing
+- Authentication middleware
+- Rate limiting & throttling
+- Response caching (Redis)
+- Request aggregation
 
-## Frameworks
-
-* Go Lang
-    * gqlgen
-    * chi
-    * dataloader
-
-## Rules
-
-* No business logic
-* No DB access
-* Thin resolvers only
-
-## Features
-
-* GraphQL API
-
-## Dependencies
-
-* Auth
-* Config
-* Core
+## Tech Stack:
+- gqlgen (Go GraphQL library)
+- Chi/Gin router
+- Redis for caching

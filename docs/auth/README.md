@@ -1,31 +1,26 @@
-# Auth / RBAC Module
+# Auth / RBAC Service
 
-## Purpose
+## Properties
+- Database: Redis  
+- Port: 5000
 
-* Authentication (users, tokens, sessions)
-* Authorization (roles, permissions, policies)
-* Tenant resolution
+## Responsibilities:
+- User authentication (login/logout)
+- JWT token generation & validation
+- Permission checking
+- Role management
+- Session management
+- Password hashing (bcrypt)
 
-## Frameworks
+## Tech Stack:
+- Go
+- JWT-go library
+- Redis for sessions/tokens
+- gRPC for inter-service communication
 
-* Go Lang
-    * jwt-go
-    * casbin
-
-## Data
-
-* Redis → sessions, tokens, rate limits
-* MongoDB → users, roles, policies
-
-## Features
-
-* JWT
-* Rate limiting
-* Tenant resolution
-
-## Dependencies
-
-* Config
-* DB
-
-This module is pure infrastructure.
+## Key Endpoints:
+- POST /auth/login
+- POST /auth/logout
+- POST /auth/refresh
+- GET /auth/verify
+- POST /rbac/check-permission

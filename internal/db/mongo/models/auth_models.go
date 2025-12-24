@@ -30,8 +30,8 @@ const (
 
 // Role types
 const (
-	RoleTypeSystem = "system"
-	RoleTypeCustom = "custom"
+	RoleSystemAdmin = "system_admin"
+	RoleTenantAdmin = "tenant_admin"
 )
 
 // ============================================================================
@@ -151,6 +151,7 @@ type UserProfile struct {
 
 type UserRole struct {
 	RoleID     string     `bson:"role_id" json:"role_id"`
+	TenantID   string     `bson:"tenant_id" json:"tenant_id"`
 	AssignedAt time.Time  `bson:"assigned_at" json:"assigned_at"`
 	AssignedBy string     `bson:"assigned_by" json:"assigned_by"`
 	ExpiresAt  *time.Time `bson:"expires_at,omitempty" json:"expires_at,omitempty"`

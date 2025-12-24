@@ -1,27 +1,32 @@
-# DB Module
+# MongoDB
 
-## MongoDB
+## Structure
 
-### Purpose
+### Collection: auth_db 
+- tenants
+- users
+- roles
+- permissions
+### Collection: core_db
+- products
+- orders
+- vendors
+- inventory
+### Collection: config_db
+- configurations
+- environment_settings
+- feature_flags
 
-* Config
-* Tenant Data (Users, Roles, Policies, Inventory)
+# Redis
 
-### Frameworks
+## Structure
 
-* Go Lang
-    * go-mongo
+### Auth:
+- sessions:{session_id} → user data
+- tokens:{token_id} → token metadata
+- refresh_tokens:{user_id} → refresh token
 
-## Redis
-
-### Purpose
-
-* Sessions
-* Tokens
-* Rate limits
-
-### Frameworks
-
-* Go Lang
-    * go-redis
+### Gateway (caching):
+- query_cache:{query_hash} → response
+- rate_limit:{user_id} → request count
 

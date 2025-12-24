@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	logging "erp.localhost/logging"
+	logging "erp.localhost/internal/logging"
 	redis "github.com/redis/go-redis/v9"
 )
 
