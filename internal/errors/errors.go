@@ -91,7 +91,7 @@ func Auth(def ErrorDef) *AppError {
 }
 
 // Validation creates a validation error with optional field information
-func Validation(def ErrorDef, fields []string) *AppError {
+func Validation(def ErrorDef, fields ...string) *AppError {
 	if def.Category == "" {
 		def.Category = CategoryValidation
 	}
