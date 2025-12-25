@@ -73,7 +73,7 @@ func (t *Tenant) Validate(createOperation bool) error {
 		missingFields = append(missingFields, "CreatedBy")
 	}
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields)
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
 	}
 	return nil
 }
@@ -186,7 +186,7 @@ func (u *User) Validate(createOperation bool) error {
 		missingFields = append(missingFields, "Roles")
 	}
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields)
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
 	}
 	return nil
 }
@@ -271,7 +271,7 @@ func (r *Role) Validate(createOperation bool) error {
 		missingFields = append(missingFields, "Permissions")
 	}
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields)
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
 	}
 	return nil
 }
@@ -327,7 +327,7 @@ func (p *Permission) Validate(createOperation bool) error {
 		missingFields = append(missingFields, "PermissionString")
 	}
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields)
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
 	}
 	return nil
 }
@@ -394,4 +394,3 @@ type AuditMetadata struct {
 	SessionID  string `bson:"session_id,omitempty" json:"session_id,omitempty"`
 	APIVersion string `bson:"api_version,omitempty" json:"api_version,omitempty"`
 }
-

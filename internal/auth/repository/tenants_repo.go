@@ -36,7 +36,7 @@ func (r *TenantRepository) CreateTenant(tenant models.Tenant) (string, error) {
 
 func (r *TenantRepository) GetTenantByID(tenantID string) (models.Tenant, error) {
 	if tenantID == "" {
-		return models.Tenant{}, erp_errors.Validation(erp_errors.ValidationRequiredFields, []string{"TenantID"})
+		return models.Tenant{}, erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID")
 	}
 	filter := map[string]any{
 		"_id": tenantID,
@@ -65,7 +65,7 @@ func (r *TenantRepository) UpdateTenant(tenant models.Tenant) error {
 		return err
 	}
 	if tenant.CreatedAt != currentTenant.CreatedAt {
-		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, []string{"CreatedAt"})
+		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "CreatedAt")
 	}
 	tenant.UpdatedAt = time.Now()
 	return r.repository.Update(filter, tenant)
@@ -73,7 +73,7 @@ func (r *TenantRepository) UpdateTenant(tenant models.Tenant) error {
 
 func (r *TenantRepository) DeleteTenant(tenantID string) error {
 	if tenantID == "" {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, []string{"TenantID"})
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID")
 	}
 	filter := map[string]any{
 		"_id": tenantID,

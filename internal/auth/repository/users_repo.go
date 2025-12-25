@@ -103,7 +103,7 @@ func (r *UserRepository) UpdateUser(user models.User) error {
 	}
 	if user.Username != currentUser.Username ||
 		user.CreatedAt != currentUser.CreatedAt {
-		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, []string{"Username", "CreatedAt"})
+		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "Username", "CreatedAt")
 	}
 	filter := map[string]any{
 		"tenant_id": user.TenantID,
@@ -115,7 +115,7 @@ func (r *UserRepository) UpdateUser(user models.User) error {
 
 func (r *UserRepository) DeleteUser(tenantID, userID string) error {
 	if tenantID == "" || userID == "" {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, []string{"TenantID", "UserID"})
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID", "UserID")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,

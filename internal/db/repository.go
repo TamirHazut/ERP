@@ -44,7 +44,7 @@ func (r *Repository[T]) Find(filter map[string]any) ([]T, error) {
 
 func (r *Repository[T]) Update(filter map[string]any, item T) error {
 	if filter == nil {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, []string{"filter"})
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "filter")
 	}
 	r.logger.Debug("Updating item", "dbName", r.dbName, "filter", filter)
 	err := r.dbHandler.Update(r.dbName, filter, item)
@@ -56,7 +56,7 @@ func (r *Repository[T]) Update(filter map[string]any, item T) error {
 
 func (r *Repository[T]) Delete(filter map[string]any) error {
 	if filter == nil {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, []string{"filter"})
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "filter")
 	}
 	r.logger.Debug("Deleting items", "dbName", r.dbName, "filter", filter)
 	err := r.dbHandler.Delete(r.dbName, filter)

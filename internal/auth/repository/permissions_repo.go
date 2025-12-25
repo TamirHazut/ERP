@@ -116,7 +116,7 @@ func (r *PermissionRepository) UpdatePermission(permission models.Permission) er
 		return err
 	}
 	if permission.CreatedAt != currentPermission.CreatedAt {
-		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, []string{"CreatedAt"})
+		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "CreatedAt")
 	}
 	permission.UpdatedAt = time.Now()
 	return r.repository.Update(filter, permission)
@@ -124,7 +124,7 @@ func (r *PermissionRepository) UpdatePermission(permission models.Permission) er
 
 func (r *PermissionRepository) DeletePermission(tenantID, permissionID string) error {
 	if tenantID == "" || permissionID == "" {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, []string{"TenantID", "PermissionID"})
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID", "PermissionID")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,

@@ -107,7 +107,7 @@ func (r *RoleRepository) UpdateRole(role models.Role) error {
 		return err
 	}
 	if role.CreatedAt != currentRole.CreatedAt {
-		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, []string{"CreatedAt"})
+		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "CreatedAt")
 	}
 	role.UpdatedAt = time.Now()
 	return r.repository.Update(filter, role)
@@ -115,7 +115,7 @@ func (r *RoleRepository) UpdateRole(role models.Role) error {
 
 func (r *RoleRepository) DeleteRole(tenantID, roleID string) error {
 	if tenantID == "" || roleID == "" {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, []string{"TenantID", "RoleID"})
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID", "RoleID")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
