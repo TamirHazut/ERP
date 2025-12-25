@@ -489,6 +489,26 @@ internal/
 
 ---
 
+---
+
+## Future Features (To Be Planned)
+
+### Data Import from Files 📁
+**Status:** 📝 Planned (not yet designed)
+
+Import data from external files (CSV, JSON, Excel, etc.) into the ERP system.
+
+**Potential scope:**
+- Products import
+- Vendors import
+- Customers import
+- Inventory import
+- Orders import (historical)
+
+*Details to be planned when we reach this phase.*
+
+---
+
 ## Notes
 - Update status checkboxes (⬜ → ✅) as items are completed
 - Add notes or blockers in the relevant sections
