@@ -91,6 +91,7 @@ internal/
 - `internal/errors/errors.go` - Core error types and constructors
 - `internal/errors/codes.go` - Error code definitions by category
 - `internal/errors/grpc.go` - gRPC status code mapping
+- `internal/errors/errors_test.go` - Unit tests for error handling
 
 ---
 
@@ -209,14 +210,20 @@ internal/
   - [x] `internal/auth/repository/users_repo.go`
   - [x] CRUD operations with tenant isolation
   - [x] `GetUsersByTenantID`, `GetUsersByRoleID` methods
+  - [x] Model validation tests (`internal/auth/models/models_test.go`)
+  - [x] Unit tests (`internal/auth/repository/users_repo_test.go`)
 - [x] JWT generation/validation library integration
   - [x] JWTManager implementation (`internal/auth/jwt.go`)
   - [x] GenerateToken with tenantID support
   - [x] VerifyToken implementation
   - [x] RefreshToken implementation
+  - [x] Unit tests (`internal/auth/jwt_test.go`)
 - [x] JWT claims structure (include tenant ID)
   - [x] Claims include `sub` (userID), `tenant_id`, and `exp`
-- [ ] Password hashing (bcrypt)
+- [x] Password hashing (bcrypt)
+  - [x] `internal/auth/hash.go` - HashPassword, VerifyPassword functions
+  - [x] Password strength validation
+  - [x] Unit tests (`internal/auth/hash_test.go`)
 - [ ] Login endpoint (`Authenticate()` gRPC method)
 - [ ] Session management (Redis: `sessions:{session_id}`)
 - [ ] Token management (Redis: `tokens:{token_id}`, `refresh_tokens:{user_id}`)
@@ -228,13 +235,16 @@ internal/
   - [x] `internal/auth/repository/roles_repo.go`
   - [x] CRUD operations with tenant isolation
   - [x] `GetRolesByTenantID`, `GetRolesByPermissionsIDs` methods
+  - [x] Unit tests (`internal/auth/repository/roles_repo_test.go`)
 - [x] Permission repository (MongoDB: `auth_db.permissions`)
   - [x] `internal/auth/repository/permissions_repo.go`
   - [x] CRUD operations with tenant isolation
   - [x] `GetPermissionsByTenantID`, `GetPermissionsByResource`, `GetPermissionsByAction` methods
+  - [x] Unit tests (`internal/auth/repository/permissions_repo_test.go`)
 - [x] Tenant repository (MongoDB: `auth_db.tenants`)
   - [x] `internal/auth/repository/tenants_repo.go`
   - [x] CRUD operations
+  - [x] Unit tests (`internal/auth/repository/tenants_repo_test.go`)
 
 **Key Endpoints:**
 - `POST /auth/login` → gRPC `Authenticate()`
@@ -509,9 +519,43 @@ Import data from external files (CSV, JSON, Excel, etc.) into the ERP system.
 
 ---
 
+## Development Standards
+
+### Unit Testing Requirements 🧪
+**Every feature/component must include unit tests with:**
+- ✅ Positive test cases (expected successful behavior)
+- ✅ Negative test cases (error handling, edge cases, invalid inputs)
+- ✅ Table-driven tests where applicable
+- ✅ Use `testify` for assertions (`assert`, `require`)
+
+**Test file naming:** `<filename>_test.go` in the same package
+
+**Example structure:**
+```go
+func TestFunctionName(t *testing.T) {
+    testCases := []struct {
+        name    string
+        input   InputType
+        want    OutputType
+        wantErr bool
+    }{
+        {name: "valid input", input: ..., want: ..., wantErr: false},
+        {name: "invalid input", input: ..., want: ..., wantErr: true},
+    }
+    for _, tc := range testCases {
+        t.Run(tc.name, func(t *testing.T) {
+            // test implementation
+        })
+    }
+}
+```
+
+---
+
 ## Notes
 - Update status checkboxes (⬜ → ✅) as items are completed
 - Add notes or blockers in the relevant sections
 - Update this roadmap as architecture evolves
 - Infrastructure setup (Pre-Phase) should be completed before starting Phase 1 services
+- **All new code must include unit tests before marking as complete**
 

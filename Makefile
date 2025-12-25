@@ -174,10 +174,10 @@ run-core: ## Run core service
 # TEST TARGETS
 # ============================================================================
 
-test: ## Run all tests
-	@echo "Running tests..."
-	@go test -v ./...
-	@echo "✓ Tests complete"
+test: ## Run all tests from all services
+	@echo "Running all tests..."
+	@go test -v -count=1 ./...
+	@echo "✓ All tests complete"
 
 test-coverage: ## Run tests with coverage
 	@echo "Running tests with coverage..."

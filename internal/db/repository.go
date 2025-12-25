@@ -16,7 +16,7 @@ func NewRepository[T any](dbHandler DBHandler, dbName string, logger *logging.Lo
 	return &Repository[T]{
 		dbHandler: dbHandler,
 		dbName:    dbName,
-		logger:    logging.NewLogger(logging.ModuleDB),
+		logger:    logger,
 	}
 }
 

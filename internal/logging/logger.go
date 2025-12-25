@@ -2,10 +2,11 @@ package logging
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -29,7 +30,7 @@ type Logger struct {
 
 // NewLogger creates a new logger for each module.
 func NewLogger(module Module) *Logger {
-	baseLogger := zerolog.New(newConsoleWriter(module)).
+	baseLogger := zerolog.New(newConsoleWriter()).
 		With().
 		Timestamp().
 		Str("module", string(module)).
@@ -40,48 +41,69 @@ func NewLogger(module Module) *Logger {
 	}
 }
 
-// newConsoleWriter creates a console writer for the logger.
-func newConsoleWriter(module Module) zerolog.ConsoleWriter {
-	w := zerolog.ConsoleWriter{
-		Out:        os.Stdout,
-		TimeFormat: time.RFC3339,
-		NoColor:    false,
+// pipeFormatter is a custom writer that formats zerolog JSON output with pipe separators
+type pipeFormatter struct {
+	w io.Writer
+}
+
+func (f *pipeFormatter) Write(p []byte) (n int, err error) {
+	var logData map[string]interface{}
+	if err := json.Unmarshal(p, &logData); err != nil {
+		// If it's not JSON, write as-is
+		return f.w.Write(p)
 	}
 
-	w.FormatTimestamp = func(i interface{}) string {
-		return i.(string)
+	var buf bytes.Buffer
+
+	// Extract and format timestamp
+	if ts, ok := logData[zerolog.TimestampFieldName]; ok {
+		buf.WriteString(fmt.Sprintf("%v", ts))
+		delete(logData, zerolog.TimestampFieldName)
+	}
+	buf.WriteString(" | ")
+
+	// Extract and format level
+	if level, ok := logData[zerolog.LevelFieldName]; ok {
+		buf.WriteString(strings.ToUpper(fmt.Sprintf("%v", level)))
+		delete(logData, zerolog.LevelFieldName)
+	}
+	buf.WriteString(" | ")
+
+	// Extract and format module
+	if module, ok := logData["module"]; ok {
+		buf.WriteString(fmt.Sprintf("%v", module))
+		delete(logData, "module")
+	}
+	buf.WriteString(" | ")
+
+	// Extract and format message
+	if msg, ok := logData[zerolog.MessageFieldName]; ok {
+		buf.WriteString(fmt.Sprintf("%v", msg))
+		delete(logData, zerolog.MessageFieldName)
 	}
 
-	w.FormatLevel = func(i interface{}) string {
-		return strings.ToUpper(i.(string))
-	}
+	// Add remaining fields in key=value format
+	for k, v := range logData {
+		buf.WriteString(" | ")
+		buf.WriteString(k)
+		buf.WriteString("=")
 
-	w.FormatMessage = func(i interface{}) string {
-		return i.(string)
-	}
-
-	w.FormatFieldName = func(i interface{}) string { return "" }
-	w.FormatFieldValue = func(i interface{}) string { return i.(string) }
-
-	w.FormatExtra = func(m map[string]interface{}, b *bytes.Buffer) error {
-		// module first
-		if v, ok := m["module"]; ok {
-			b.WriteString(" | ")
-			b.WriteString(v.(string))
-			delete(m, "module")
+		// Format the value
+		if str, ok := v.(string); ok {
+			buf.WriteString(str)
+		} else {
+			buf.WriteString(fmt.Sprint(v))
 		}
-
-		for k, v := range m {
-			b.WriteString(" | ")
-			b.WriteString(k)
-			b.WriteString("=")
-			b.WriteString(fmt.Sprint(v))
-		}
-
-		return nil
 	}
 
-	return w
+	buf.WriteString("\n")
+	_, err = f.w.Write(buf.Bytes())
+	return len(p), err
+}
+
+// newConsoleWriter creates a console writer for the logger with custom pipe-separated format.
+func newConsoleWriter() io.Writer {
+	return &pipeFormatter{w: os.Stdout}
 }
 
 func (l *Logger) Trace(msg string, extraFields ...any) {
