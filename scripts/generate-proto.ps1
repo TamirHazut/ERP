@@ -8,9 +8,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Get the directory where this script is located and change to project root
+$SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
+$PROJECT_ROOT = Split-Path -Parent $SCRIPT_DIR
+Set-Location $PROJECT_ROOT
+
 # Configuration
 $MODULE = "erp.localhost"
-$PROTO_OUT = "internal"
+$PROTO_OUT = "."  # Output to project root (protoc will use go_package path relative to module)
 $PROTO_COMMON = "proto/common"
 $PROTO_AUTH = "internal/auth/proto"
 $PROTO_CONFIG = "internal/config/proto"

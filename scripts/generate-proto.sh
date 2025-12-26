@@ -3,9 +3,15 @@
 
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Change to project root (parent of scripts directory)
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
+
 # Configuration
 MODULE="erp.localhost"
-PROTO_OUT="internal"
+PROTO_OUT="."  # Output to project root (protoc will use go_package path relative to module)
 PROTO_COMMON="proto/common"
 PROTO_AUTH="internal/auth/proto"
 PROTO_CONFIG="internal/config/proto"

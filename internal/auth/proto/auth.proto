@@ -1,44 +1,84 @@
-syntax = proto3;
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "erp.localhost/internal/auth/proto/v1;authv1";
+
+message UserAuth {
+    string tenant_id = 1;
+    string email = 2;
+    string username = 3;
+}
+
+message UserIdentifier {
+    string tenant_id = 1;
+    string user_id = 2;
+}
+
+message Tokens {
+    string access_token = 1;
+    string refresh_token = 2;
+}
+
+message PermissionResponse {
+    string permission = 1;
+    bool has_permission = 2;
+}
 
 message AuthenticateRequest {
-    string email = 1;
+    UserAuth user = 1;
     string password = 2;
 }
 
 message AuthenticateResponse {
-    string jwt_token = 1;
+    UserIdentifier user = 1;
+    Tokens tokens = 2;
 }
 
 message VerifyTokenRequest {
-    string jwt_token = 1;
+    string access_token = 1;
 }
 
 message VerifyTokenResponse {
-    bool is_valid = 1;
+    bool valid = 1;
 }
 
 message RefreshTokenRequest {
-    string jwt_token = 1;
+    string refresh_token = 1;
 }
 
 message RefreshTokenResponse {
-    string jwt_token = 1;
+    UserIdentifier user = 1;
+    Tokens tokens = 2;
+    int64 expires_in = 3;
 }
 
 message RevokeTokenRequest {
-    string jwt_token = 1;
+    Tokens tokens = 1;
 }
 
 message RevokeTokenResponse {
-    bool is_revoked = 1;
+    UserIdentifier user = 1;
+    bool revoked = 2;
 }
 
 message LogoutRequest {
-    string jwt_token = 1;
+    Tokens tokens = 1;
 }
 
 message LogoutResponse {
-    bool is_logged_out = 1;
+    bool success = 1;
+    string message = 2;
+}
+
+message CheckPermissionsRequest {
+    UserIdentifier user = 1;
+    repeated string permissions = 2;
+}
+
+message CheckPermissionsResponse {
+    UserIdentifier user = 1;
+    repeated PermissionResponse permissions = 2;
 }
 
 service AuthService {
@@ -47,5 +87,5 @@ service AuthService {
     rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
     rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
     rpc Logout(LogoutRequest) returns (LogoutResponse);
-    rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+    rpc CheckPermissions(CheckPermissionsRequest) returns (CheckPermissionsResponse);
 }
