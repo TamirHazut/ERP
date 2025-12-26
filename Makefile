@@ -7,13 +7,6 @@
         test test-coverage lint clean tidy help \
         docker-up docker-down docker-logs docker-ps
 
-# Proto generation output directories
-PROTO_OUT := internal
-PROTO_COMMON := proto/common
-
-# Go module path
-MODULE := erp.localhost
-
 # Binary output directory
 BIN_DIR := bin
 
@@ -65,18 +58,7 @@ help: ## Show this help message
 proto: proto-common proto-auth proto-config proto-core ## Generate all proto files
 
 proto-common: ## Generate common proto files
-	@echo "Generating common proto files..."
-	@if [ -f "$(PROTO_COMMON)/common.proto" ]; then \
-		protoc --go_out=$(PROTO_OUT) \
-			--go_opt=module=$(MODULE) \
-			--go-grpc_out=$(PROTO_OUT) \
-			--go-grpc_opt=module=$(MODULE) \
-			-I=proto \
-			$(PROTO_COMMON)/common.proto; \
-		echo "✓ Common proto files generated"; \
-	else \
-		echo "⚠ No common.proto file found, skipping..."; \
-	fi
+	@bash scripts/generate-proto.sh common
 
 proto-auth: ## Generate auth service proto files
 	@$(MAKE) -C internal/auth proto

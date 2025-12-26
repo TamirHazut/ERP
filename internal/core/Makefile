@@ -9,12 +9,6 @@ BIN_DIR := ../../bin
 CMD_DIR := ../../cmd/$(SERVICE_NAME)
 INTERNAL_DIR := .
 
-# Proto generation
-PROTO_OUT := ../..
-PROTO_DIR := $(INTERNAL_DIR)/proto
-PROTO_COMMON := ../../proto/common
-MODULE := erp.localhost
-
 help: ## Show this help message
 	@echo "Core Service - Available targets:"
 	@echo ""
@@ -28,19 +22,7 @@ help: ## Show this help message
 	@echo ""
 
 proto: ## Generate core service proto files
-	@echo "Generating core service proto files..."
-	@if [ -f "$(PROTO_DIR)/core.proto" ]; then \
-		protoc --go_out=$(PROTO_OUT) \
-			--go_opt=module=$(MODULE) \
-			--go-grpc_out=$(PROTO_OUT) \
-			--go-grpc_opt=module=$(MODULE) \
-			-I=../../proto \
-			-I=$(PROTO_DIR) \
-			$(PROTO_DIR)/*.proto; \
-		echo "✓ Core proto files generated"; \
-	else \
-		echo "⚠ No core.proto file found, skipping..."; \
-	fi
+	@bash ../../scripts/generate-proto.sh core
 
 build: ## Build core service
 	@echo "Building core service..."
