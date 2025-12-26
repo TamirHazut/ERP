@@ -11,13 +11,13 @@ import (
 )
 
 type TenantRepository struct {
-	repository *db.Repository[models.Tenant]
+	repository *mongo.CollectionHandler[models.Tenant]
 	logger     *logging.Logger
 }
 
 func NewTenantRepository(dbHandler db.DBHandler) *TenantRepository {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	repository := db.NewRepository[models.Tenant](dbHandler, string(mongo.TenantsCollection), logger)
+	repository := mongo.NewCollectionHandler[models.Tenant](dbHandler, string(mongo.TenantsCollection), logger)
 	return &TenantRepository{
 		repository: repository,
 		logger:     logger,

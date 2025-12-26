@@ -23,6 +23,11 @@ var (
 		Message:  "Your session has expired. Please log in again",
 		Category: CategoryAuth,
 	}
+	AuthTokenRevoked = ErrorDef{
+		Code:     "AUTH_TOKEN_REVOKED",
+		Message:  "Your session has been revoked. Please log in again",
+		Category: CategoryAuth,
+	}
 	AuthTokenInvalid = ErrorDef{
 		Code:     "AUTH_TOKEN_INVALID",
 		Message:  "Invalid authentication token",
@@ -211,6 +216,11 @@ var (
 // ============================================================================
 
 var (
+	ConflictDuplicateResource = ErrorDef{
+		Code:     "CONFLICT_DUPLICATE_RESOURCE",
+		Message:  "A resource with this identifier already exists",
+		Category: CategoryConflict,
+	}
 	ConflictDuplicateEmail = ErrorDef{
 		Code:     "CONFLICT_DUPLICATE_EMAIL",
 		Message:  "An account with this email already exists",

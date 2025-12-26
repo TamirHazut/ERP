@@ -26,7 +26,7 @@ func TestPermissionRepository_CreatePermission(t *testing.T) {
 	testCases := []struct {
 		name      string
 		permission models.Permission
-		mockFunc  func(db string, data any) (string, error)
+		mockFunc  func(collection string, data any) (string, error)
 		wantID    string
 		wantErr   bool
 	}{
@@ -40,7 +40,7 @@ func TestPermissionRepository_CreatePermission(t *testing.T) {
 				DisplayName:     "Read Products",
 				CreatedBy:       "admin",
 			},
-			mockFunc: func(db string, data any) (string, error) {
+			mockFunc: func(collection string, data any) (string, error) {
 				return "permission-id-123", nil
 			},
 			wantID:  "permission-id-123",
@@ -55,7 +55,7 @@ func TestPermissionRepository_CreatePermission(t *testing.T) {
 				DisplayName:     "Read Products",
 				CreatedBy:       "admin",
 			},
-			mockFunc: func(db string, data any) (string, error) {
+			mockFunc: func(collection string, data any) (string, error) {
 				return "", nil
 			},
 			wantID:  "",
@@ -71,7 +71,7 @@ func TestPermissionRepository_CreatePermission(t *testing.T) {
 				DisplayName:     "Read Products",
 				CreatedBy:       "admin",
 			},
-			mockFunc: func(db string, data any) (string, error) {
+			mockFunc: func(collection string, data any) (string, error) {
 				return "", errors.New("database connection failed")
 			},
 			wantID:  "",
@@ -103,14 +103,14 @@ func TestPermissionRepository_GetPermissionByID(t *testing.T) {
 		name      string
 		tenantID  string
 		permissionID string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantErr   bool
 	}{
 		{
 			name:     "successful get by id",
 			tenantID: "tenant1",
 			permissionID: "permission-id-123",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				permissionID, _ := primitive.ObjectIDFromHex("permission-id-123")
 				return []any{
 					models.Permission{
@@ -127,7 +127,7 @@ func TestPermissionRepository_GetPermissionByID(t *testing.T) {
 			name:     "permission not found",
 			tenantID: "tenant1",
 			permissionID: "permission-id-123",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
 			wantErr: true,
@@ -136,7 +136,7 @@ func TestPermissionRepository_GetPermissionByID(t *testing.T) {
 			name:     "database error",
 			tenantID: "tenant1",
 			permissionID: "permission-id-123",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantErr: true,
@@ -171,14 +171,14 @@ func TestPermissionRepository_GetPermissionByName(t *testing.T) {
 		name      string
 		tenantID  string
 		permissionName string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantErr   bool
 	}{
 		{
 			name:     "successful get by name",
 			tenantID: "tenant1",
 			permissionName: "Read Products",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Permission{
 						TenantID:    "tenant1",
@@ -194,7 +194,7 @@ func TestPermissionRepository_GetPermissionByName(t *testing.T) {
 			name:     "permission not found",
 			tenantID: "tenant1",
 			permissionName: "Nonexistent",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
 			wantErr: true,
@@ -203,7 +203,7 @@ func TestPermissionRepository_GetPermissionByName(t *testing.T) {
 			name:     "database error",
 			tenantID: "tenant1",
 			permissionName: "Read Products",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantErr: true,
@@ -232,14 +232,14 @@ func TestPermissionRepository_GetPermissionsByTenantID(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantCount int
 		wantErr   bool
 	}{
 		{
 			name:     "successful get permissions by tenant",
 			tenantID: "tenant1",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
 					models.Permission{TenantID: "tenant1", Resource: "products", Action: "write"},
@@ -251,7 +251,7 @@ func TestPermissionRepository_GetPermissionsByTenantID(t *testing.T) {
 		{
 			name:     "no permissions found",
 			tenantID: "tenant1",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
 			wantCount: 0,
@@ -260,7 +260,7 @@ func TestPermissionRepository_GetPermissionsByTenantID(t *testing.T) {
 		{
 			name:     "database error",
 			tenantID: "tenant1",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantCount: 0,
@@ -291,7 +291,7 @@ func TestPermissionRepository_GetPermissionsByResource(t *testing.T) {
 		name      string
 		tenantID  string
 		resource  string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantCount int
 		wantErr   bool
 	}{
@@ -299,7 +299,7 @@ func TestPermissionRepository_GetPermissionsByResource(t *testing.T) {
 			name:     "successful get permissions by resource",
 			tenantID: "tenant1",
 			resource: "products",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
 					models.Permission{TenantID: "tenant1", Resource: "products", Action: "write"},
@@ -312,7 +312,7 @@ func TestPermissionRepository_GetPermissionsByResource(t *testing.T) {
 			name:     "database error",
 			tenantID: "tenant1",
 			resource: "products",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantCount: 0,
@@ -343,7 +343,7 @@ func TestPermissionRepository_GetPermissionsByAction(t *testing.T) {
 		name      string
 		tenantID  string
 		action    string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantCount int
 		wantErr   bool
 	}{
@@ -351,7 +351,7 @@ func TestPermissionRepository_GetPermissionsByAction(t *testing.T) {
 			name:     "successful get permissions by action",
 			tenantID: "tenant1",
 			action:   "read",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
 					models.Permission{TenantID: "tenant1", Resource: "orders", Action: "read"},
@@ -364,7 +364,7 @@ func TestPermissionRepository_GetPermissionsByAction(t *testing.T) {
 			name:     "database error",
 			tenantID: "tenant1",
 			action:   "read",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantCount: 0,
@@ -396,7 +396,7 @@ func TestPermissionRepository_GetPermissionsByResourceAndAction(t *testing.T) {
 		tenantID  string
 		resource  string
 		action    string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantCount int
 		wantErr   bool
 	}{
@@ -405,7 +405,7 @@ func TestPermissionRepository_GetPermissionsByResourceAndAction(t *testing.T) {
 			tenantID: "tenant1",
 			resource: "products",
 			action:   "read",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
 				}, nil
@@ -418,7 +418,7 @@ func TestPermissionRepository_GetPermissionsByResourceAndAction(t *testing.T) {
 			tenantID: "tenant1",
 			resource: "products",
 			action:   "read",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantCount: 0,
@@ -451,8 +451,8 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 	testCases := []struct {
 		name        string
 		permission  models.Permission
-		mockFind    func(db string, filter map[string]any) ([]any, error)
-		mockUpdate  func(db string, filter map[string]any, data any) error
+		mockFind    func(collection string, filter map[string]any) ([]any, error)
+		mockUpdate  func(collection string, filter map[string]any, data any) error
 		wantErr     bool
 	}{
 		{
@@ -467,7 +467,7 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 				CreatedBy:       "admin",
 				CreatedAt:       createdAt,
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Permission{
 						ID:        permissionID,
@@ -476,7 +476,7 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 					},
 				}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: false,
@@ -486,10 +486,10 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 			permission: models.Permission{
 				TenantID: "tenant1",
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: true,
@@ -506,10 +506,10 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 				CreatedBy:       "admin",
 				CreatedAt:       createdAt,
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: true,
@@ -526,7 +526,7 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 				CreatedBy:       "admin",
 				CreatedAt:       time.Now(),
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Permission{
 						ID:        permissionID,
@@ -535,7 +535,7 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 					},
 				}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: true,
@@ -552,7 +552,7 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 				CreatedBy:       "admin",
 				CreatedAt:       createdAt,
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Permission{
 						ID:        permissionID,
@@ -561,7 +561,7 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 					},
 				}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,
@@ -591,14 +591,14 @@ func TestPermissionRepository_DeletePermission(t *testing.T) {
 		name       string
 		tenantID   string
 		permissionID string
-		mockFunc   func(db string, filter map[string]any) error
+		mockFunc   func(collection string, filter map[string]any) error
 		wantErr    bool
 	}{
 		{
 			name:     "successful delete",
 			tenantID: "tenant1",
 			permissionID: "permission-id-123",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -607,7 +607,7 @@ func TestPermissionRepository_DeletePermission(t *testing.T) {
 			name:     "delete with empty tenant ID",
 			tenantID: "",
 			permissionID: "permission-id-123",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -616,7 +616,7 @@ func TestPermissionRepository_DeletePermission(t *testing.T) {
 			name:     "delete with empty permission ID",
 			tenantID: "tenant1",
 			permissionID: "",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -625,7 +625,7 @@ func TestPermissionRepository_DeletePermission(t *testing.T) {
 			name:     "delete with database error",
 			tenantID: "tenant1",
 			permissionID: "permission-id-123",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return errors.New("delete failed")
 			},
 			wantErr: true,

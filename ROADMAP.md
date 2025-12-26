@@ -62,11 +62,13 @@ internal/
 - [x] Add JWT library to `go.mod`
   - [x] `github.com/golang-jwt/jwt/v5`
 - [x] Create JWT utility package/helpers
-  - [x] JWTManager struct (`internal/auth/jwt.go`)
-  - [x] GenerateToken method (with userID and tenantID)
-  - [x] VerifyToken method
-  - [x] RefreshToken method
-  - [x] RevokeToken method
+  - [x] TokenManager struct (`internal/auth/token_manager.go`) - Unified JWT and Redis token management
+  - [x] GenerateAccessToken method (with userID, tenantID, role, permissions)
+  - [x] VerifyAccessToken method
+  - [x] GenerateRefreshToken method
+  - [x] VerifyRefreshToken method
+  - [x] Token storage in Redis (AccessTokenKeyHandler, RefreshTokenKeyHandler)
+  - [x] Token revocation and management (Revoke, RevokeAll)
 
 ---
 
@@ -213,20 +215,37 @@ internal/
   - [x] Model validation tests (`internal/auth/models/models_test.go`)
   - [x] Unit tests (`internal/auth/repository/users_repo_test.go`)
 - [x] JWT generation/validation library integration
-  - [x] JWTManager implementation (`internal/auth/jwt.go`)
-  - [x] GenerateToken with tenantID support
-  - [x] VerifyToken implementation
-  - [x] RefreshToken implementation
-  - [x] Unit tests (`internal/auth/jwt_test.go`)
+  - [x] TokenManager implementation (`internal/auth/token_manager.go`) - Unified JWT and Redis token management
+  - [x] GenerateAccessToken with tenantID support
+  - [x] VerifyAccessToken implementation
+  - [x] GenerateRefreshToken implementation
+  - [x] VerifyRefreshToken implementation
+  - [x] Unit tests (`internal/auth/token_manager_test.go`)
 - [x] JWT claims structure (include tenant ID)
-  - [x] Claims include `sub` (userID), `tenant_id`, and `exp`
+  - [x] Claims include `sub` (userID), `tenant_id`, `username`, `role`, `permissions`, and `exp`
 - [x] Password hashing (bcrypt)
   - [x] `internal/auth/hash.go` - HashPassword, VerifyPassword functions
   - [x] Password strength validation
   - [x] Unit tests (`internal/auth/hash_test.go`)
+- [x] Token management infrastructure (Redis: `tokens:{tenant_id}:{token_id}`, `refresh_tokens:{tenant_id}:{user_id}:{token_id}`)
+  - [x] AccessTokenKeyHandler (`internal/auth/keys_handlers/access_token.go`)
+    - [x] Store, Get, Validate, Revoke, RevokeAll, Delete methods
+    - [x] Unit tests (`internal/auth/keys_handlers/access_token_test.go`)
+  - [x] RefreshTokenKeyHandler (`internal/auth/keys_handlers/refresh_token.go`)
+    - [x] Store, Get, Validate, Revoke, RevokeAll, UpdateLastUsed, Delete methods
+    - [x] Unit tests (`internal/auth/keys_handlers/refresh_token_test.go`)
+  - [x] TokenIndex (`internal/auth/keys_handlers/token_index.go`)
+    - [x] Redis Sets for efficient RevokeAll operations
+    - [x] Indexes access and refresh tokens per tenant+user
+    - [x] Unit tests (`internal/auth/keys_handlers/token_index_test.go`)
+  - [x] TokenManager (`internal/auth/token_manager.go`)
+    - [x] Unified interface for JWT operations and Redis storage
+    - [x] StoreTokens, ValidateAccessTokenFromRedis, ValidateRefreshTokenFromRedis
+    - [x] RefreshTokens (with token rotation), RevokeAllTokens
+    - [x] Unit tests (`internal/auth/token_manager_test.go`)
+  - [x] Documentation (`docs/auth/TOKEN_INFRASTRUCTURE.md`)
 - [ ] Login endpoint (`Authenticate()` gRPC method)
 - [ ] Session management (Redis: `sessions:{session_id}`)
-- [ ] Token management (Redis: `tokens:{token_id}`, `refresh_tokens:{user_id}`)
 - [ ] Logout endpoint
 - [ ] Token refresh endpoint
 - [ ] RBAC permission checking logic

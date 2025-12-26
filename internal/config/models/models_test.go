@@ -2,6 +2,7 @@ package models
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -81,8 +82,15 @@ func TestAuthServiceConfig_Initialization(t *testing.T) {
 		{
 			name: "config with values",
 			config: AuthServiceConfig{
-				JWTExpiryMinutes:    60,
-				RefreshTokenDays:    7,
+				TokenConfig: TokenConfig{
+					AccessTokenDuration:  15 * time.Minute,
+					RefreshTokenDuration: 7 * 24 * time.Hour,
+					JWTSecret:            "your-secret-key",
+					JWTIssuer:            "your-issuer",
+					AllowRefreshRotation: true,
+					StrictIPCheck:        true,
+					MaxActiveSessions:    10,
+				},
 				MFARequired:         true,
 				MaxLoginAttempts:    5,
 				LockoutDurationMins: 30,
@@ -107,10 +115,10 @@ func TestAuthServiceConfig_Initialization(t *testing.T) {
 
 func TestPasswordPolicy_Initialization(t *testing.T) {
 	testCases := []struct {
-		name     string
-		policy   PasswordPolicy
-		wantMin  int
-		wantExp  int
+		name    string
+		policy  PasswordPolicy
+		wantMin int
+		wantExp int
 	}{
 		{
 			name:    "empty policy",
@@ -230,4 +238,3 @@ func TestFeatureFlagMetadata_Initialization(t *testing.T) {
 		})
 	}
 }
-

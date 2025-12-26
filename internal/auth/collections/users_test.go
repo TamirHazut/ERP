@@ -26,7 +26,7 @@ func TestUserRepository_CreateUser(t *testing.T) {
 	testCases := []struct {
 		name      string
 		user      models.User
-		mockFunc  func(db string, data any) (string, error)
+		mockFunc  func(collection string, data any) (string, error)
 		wantID    string
 		wantErr   bool
 		wantError error
@@ -42,9 +42,9 @@ func TestUserRepository_CreateUser(t *testing.T) {
 				CreatedBy:    "admin",
 				Roles:        []models.UserRole{},
 			},
-			mockFunc: func(db string, data any) (string, error) {
-				return "user-id-123", nil
-			},
+		mockFunc: func(collection string, data any) (string, error) {
+			return "user-id-123", nil
+		},
 			wantID:  "user-id-123",
 			wantErr: false,
 		},
@@ -58,9 +58,9 @@ func TestUserRepository_CreateUser(t *testing.T) {
 				CreatedBy:    "admin",
 				Roles:        []models.UserRole{},
 			},
-			mockFunc: func(db string, data any) (string, error) {
-				return "", nil
-			},
+		mockFunc: func(collection string, data any) (string, error) {
+			return "", nil
+		},
 			wantID:  "",
 			wantErr: true,
 		},
@@ -75,9 +75,9 @@ func TestUserRepository_CreateUser(t *testing.T) {
 				CreatedBy:    "admin",
 				Roles:        []models.UserRole{},
 			},
-			mockFunc: func(db string, data any) (string, error) {
-				return "", errors.New("database connection failed")
-			},
+		mockFunc: func(collection string, data any) (string, error) {
+			return "", errors.New("database connection failed")
+		},
 			wantID:  "",
 			wantErr: true,
 		},
@@ -107,7 +107,7 @@ func TestUserRepository_GetUserByID(t *testing.T) {
 		name      string
 		tenantID  string
 		userID    string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantUser  models.User
 		wantErr   bool
 		wantError error
@@ -116,7 +116,7 @@ func TestUserRepository_GetUserByID(t *testing.T) {
 			name:     "successful get by id",
 			tenantID: "tenant1",
 			userID:   "user-id-123",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				userID, _ := primitive.ObjectIDFromHex("user-id-123")
 				return []any{
 					models.User{
@@ -133,7 +133,7 @@ func TestUserRepository_GetUserByID(t *testing.T) {
 			name:     "user not found",
 			tenantID: "tenant1",
 			userID:   "user-id-123",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
 			wantErr: true,
@@ -142,7 +142,7 @@ func TestUserRepository_GetUserByID(t *testing.T) {
 			name:     "database error",
 			tenantID: "tenant1",
 			userID:   "user-id-123",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantErr: true,
@@ -177,7 +177,7 @@ func TestUserRepository_GetUserByUsername(t *testing.T) {
 		name      string
 		tenantID  string
 		username  string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantErr   bool
 		wantError error
 	}{
@@ -185,7 +185,7 @@ func TestUserRepository_GetUserByUsername(t *testing.T) {
 			name:     "successful get by username",
 			tenantID: "tenant1",
 			username: "testuser",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.User{
 						TenantID: "tenant1",
@@ -200,7 +200,7 @@ func TestUserRepository_GetUserByUsername(t *testing.T) {
 			name:     "user not found",
 			tenantID: "tenant1",
 			username: "nonexistent",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
 			wantErr: true,
@@ -209,7 +209,7 @@ func TestUserRepository_GetUserByUsername(t *testing.T) {
 			name:     "database error",
 			tenantID: "tenant1",
 			username: "testuser",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantErr: true,
@@ -238,14 +238,14 @@ func TestUserRepository_GetUsersByTenantID(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantCount int
 		wantErr   bool
 	}{
 		{
 			name:     "successful get users by tenant",
 			tenantID: "tenant1",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.User{TenantID: "tenant1", Username: "user1"},
 					models.User{TenantID: "tenant1", Username: "user2"},
@@ -257,7 +257,7 @@ func TestUserRepository_GetUsersByTenantID(t *testing.T) {
 		{
 			name:     "no users found",
 			tenantID: "tenant1",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
 			wantCount: 0,
@@ -266,7 +266,7 @@ func TestUserRepository_GetUsersByTenantID(t *testing.T) {
 		{
 			name:     "database error",
 			tenantID: "tenant1",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantCount: 0,
@@ -297,7 +297,7 @@ func TestUserRepository_GetUsersByRoleID(t *testing.T) {
 		name      string
 		tenantID  string
 		roleID    string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantCount int
 		wantErr   bool
 	}{
@@ -305,7 +305,7 @@ func TestUserRepository_GetUsersByRoleID(t *testing.T) {
 			name:     "successful get users by role",
 			tenantID: "tenant1",
 			roleID:   "role1",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.User{TenantID: "tenant1", Username: "user1"},
 				}, nil
@@ -317,7 +317,7 @@ func TestUserRepository_GetUsersByRoleID(t *testing.T) {
 			name:     "database error",
 			tenantID: "tenant1",
 			roleID:   "role1",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantCount: 0,
@@ -350,8 +350,8 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 	testCases := []struct {
 		name      string
 		user      models.User
-		mockFind  func(db string, filter map[string]any) ([]any, error)
-		mockUpdate func(db string, filter map[string]any, data any) error
+		mockFind  func(collection string, filter map[string]any) ([]any, error)
+		mockUpdate func(collection string, filter map[string]any, data any) error
 		wantErr   bool
 	}{
 		{
@@ -367,7 +367,7 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 				CreatedAt:    createdAt,
 				Roles:        []models.UserRole{},
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.User{
 						ID:        userID,
@@ -377,7 +377,7 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 					},
 				}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: false,
@@ -387,10 +387,10 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 			user: models.User{
 				TenantID: "tenant1",
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: true,
@@ -408,10 +408,10 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 				CreatedAt:    createdAt,
 				Roles:        []models.UserRole{},
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: true,
@@ -429,7 +429,7 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 				CreatedAt:    createdAt,
 				Roles:        []models.UserRole{},
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.User{
 						ID:        userID,
@@ -439,7 +439,7 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 					},
 				}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: true,
@@ -457,7 +457,7 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 				CreatedAt:    createdAt,
 				Roles:        []models.UserRole{},
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.User{
 						ID:        userID,
@@ -467,7 +467,7 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 					},
 				}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,
@@ -497,14 +497,14 @@ func TestUserRepository_DeleteUser(t *testing.T) {
 		name       string
 		tenantID   string
 		userID     string
-		mockFunc   func(db string, filter map[string]any) error
+		mockFunc   func(collection string, filter map[string]any) error
 		wantErr    bool
 	}{
 		{
 			name:     "successful delete",
 			tenantID: "tenant1",
 			userID:   "user-id-123",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -513,7 +513,7 @@ func TestUserRepository_DeleteUser(t *testing.T) {
 			name:     "delete with empty tenant ID",
 			tenantID: "",
 			userID:   "user-id-123",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -522,7 +522,7 @@ func TestUserRepository_DeleteUser(t *testing.T) {
 			name:     "delete with empty user ID",
 			tenantID: "tenant1",
 			userID:   "",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -531,7 +531,7 @@ func TestUserRepository_DeleteUser(t *testing.T) {
 			name:     "delete with database error",
 			tenantID: "tenant1",
 			userID:   "user-id-123",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return errors.New("delete failed")
 			},
 			wantErr: true,

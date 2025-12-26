@@ -1,9 +1,10 @@
-package db
+package mongo
 
 import (
 	"errors"
 	"testing"
 
+	db "erp.localhost/internal/db"
 	"erp.localhost/internal/db/mock"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
@@ -11,59 +12,59 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestModel is a simple test model for repository tests
+// TestModel is a simple test model for collection handler tests
 type TestModel struct {
 	ID   string `bson:"_id,omitempty" json:"id"`
 	Name string `bson:"name" json:"name"`
 }
 
-func TestNewRepository(t *testing.T) {
+func TestNewCollectionHandler(t *testing.T) {
 	mockHandler := &mock.MockDBHandler{}
 	logger := logging.NewLogger(logging.ModuleDB)
 
 	testCases := []struct {
-		name    string
-		handler DBHandler
-		dbName  string
-		logger  *logging.Logger
-		wantErr bool
+		name       string
+		handler    db.DBHandler
+		collection string
+		logger     *logging.Logger
+		wantErr    bool
 	}{
 		{
-			name:    "valid repository",
-			handler: mockHandler,
-			dbName:  "test_db",
-			logger:  logger,
-			wantErr: false,
+			name:       "valid collection handler",
+			handler:    mockHandler,
+			collection: "test_collection",
+			logger:     logger,
+			wantErr:    false,
 		},
 		{
-			name:    "nil handler",
-			handler: nil,
-			dbName:  "test_db",
-			logger:  logger,
-			wantErr: false, // Repository creation doesn't validate handler
+			name:       "nil handler",
+			handler:    nil,
+			collection: "test_collection",
+			logger:     logger,
+			wantErr:    false, // Collection creation doesn't validate handler
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			repo := NewRepository[TestModel](tc.handler, tc.dbName, tc.logger)
+			repo := NewCollectionHandler[TestModel](tc.handler, tc.collection, tc.logger)
 			if tc.wantErr {
 				assert.Nil(t, repo)
 			} else {
 				assert.NotNil(t, repo)
 				if repo != nil {
-					assert.Equal(t, tc.dbName, repo.dbName)
+					assert.Equal(t, tc.collection, repo.collection)
 				}
 			}
 		})
 	}
 }
 
-func TestRepository_Create(t *testing.T) {
+func TestCollection_Create(t *testing.T) {
 	testCases := []struct {
 		name      string
 		item      TestModel
-		mockFunc  func(db string, data any) (string, error)
+		mockFunc  func(collection string, data any) (string, error)
 		wantID    string
 		wantErr   bool
 		wantError error
@@ -71,7 +72,7 @@ func TestRepository_Create(t *testing.T) {
 		{
 			name: "successful create",
 			item: TestModel{Name: "test"},
-			mockFunc: func(db string, data any) (string, error) {
+			mockFunc: func(collection string, data any) (string, error) {
 				return "created-id", nil
 			},
 			wantID:  "created-id",
@@ -80,7 +81,7 @@ func TestRepository_Create(t *testing.T) {
 		{
 			name: "create with database error",
 			item: TestModel{Name: "test"},
-			mockFunc: func(db string, data any) (string, error) {
+			mockFunc: func(collection string, data any) (string, error) {
 				return "", errors.New("database connection failed")
 			},
 			wantID:  "",
@@ -94,7 +95,7 @@ func TestRepository_Create(t *testing.T) {
 				CreateFunc: tc.mockFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleDB)
-			repo := NewRepository[TestModel](mockHandler, "test_db", logger)
+			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
 
 			id, err := repo.Create(tc.item)
 			if tc.wantErr {
@@ -111,18 +112,18 @@ func TestRepository_Create(t *testing.T) {
 	}
 }
 
-func TestRepository_Find(t *testing.T) {
+func TestCollection_Find(t *testing.T) {
 	testCases := []struct {
 		name     string
 		filter   map[string]any
-		mockFunc func(db string, filter map[string]any) ([]any, error)
+		mockFunc func(collection string, filter map[string]any) ([]any, error)
 		wantLen  int
 		wantErr  bool
 	}{
 		{
 			name:   "successful find with results",
 			filter: map[string]any{"name": "test"},
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					TestModel{ID: "1", Name: "test1"},
 					TestModel{ID: "2", Name: "test2"},
@@ -134,7 +135,7 @@ func TestRepository_Find(t *testing.T) {
 		{
 			name:   "successful find with no results",
 			filter: map[string]any{"name": "nonexistent"},
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
 			wantLen: 0,
@@ -143,7 +144,7 @@ func TestRepository_Find(t *testing.T) {
 		{
 			name:   "find with database error",
 			filter: map[string]any{"name": "test"},
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantLen: 0,
@@ -157,7 +158,7 @@ func TestRepository_Find(t *testing.T) {
 				FindFunc: tc.mockFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleDB)
-			repo := NewRepository[TestModel](mockHandler, "test_db", logger)
+			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
 
 			results, err := repo.Find(tc.filter)
 			if tc.wantErr {
@@ -171,19 +172,19 @@ func TestRepository_Find(t *testing.T) {
 	}
 }
 
-func TestRepository_Update(t *testing.T) {
+func TestCollection_Update(t *testing.T) {
 	testCases := []struct {
 		name     string
 		filter   map[string]any
 		item     TestModel
-		mockFunc func(db string, filter map[string]any, data any) error
+		mockFunc func(collection string, filter map[string]any, data any) error
 		wantErr  bool
 	}{
 		{
 			name:   "successful update",
 			filter: map[string]any{"_id": "1"},
 			item:   TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(db string, filter map[string]any, data any) error {
+			mockFunc: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: false,
@@ -192,7 +193,7 @@ func TestRepository_Update(t *testing.T) {
 			name:   "update with nil filter",
 			filter: nil,
 			item:   TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(db string, filter map[string]any, data any) error {
+			mockFunc: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: true,
@@ -201,7 +202,7 @@ func TestRepository_Update(t *testing.T) {
 			name:   "update with database error",
 			filter: map[string]any{"_id": "1"},
 			item:   TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(db string, filter map[string]any, data any) error {
+			mockFunc: func(collection string, filter map[string]any, data any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,
@@ -214,7 +215,7 @@ func TestRepository_Update(t *testing.T) {
 				UpdateFunc: tc.mockFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleDB)
-			repo := NewRepository[TestModel](mockHandler, "test_db", logger)
+			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
 
 			err := repo.Update(tc.filter, tc.item)
 			if tc.wantErr {
@@ -226,17 +227,17 @@ func TestRepository_Update(t *testing.T) {
 	}
 }
 
-func TestRepository_Delete(t *testing.T) {
+func TestCollection_Delete(t *testing.T) {
 	testCases := []struct {
 		name     string
 		filter   map[string]any
-		mockFunc func(db string, filter map[string]any) error
+		mockFunc func(collection string, filter map[string]any) error
 		wantErr  bool
 	}{
 		{
 			name:   "successful delete",
 			filter: map[string]any{"_id": "1"},
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -244,7 +245,7 @@ func TestRepository_Delete(t *testing.T) {
 		{
 			name:   "delete with nil filter",
 			filter: nil,
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -252,7 +253,7 @@ func TestRepository_Delete(t *testing.T) {
 		{
 			name:   "delete with database error",
 			filter: map[string]any{"_id": "1"},
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return errors.New("delete failed")
 			},
 			wantErr: true,
@@ -265,7 +266,7 @@ func TestRepository_Delete(t *testing.T) {
 				DeleteFunc: tc.mockFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleDB)
-			repo := NewRepository[TestModel](mockHandler, "test_db", logger)
+			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
 
 			err := repo.Delete(tc.filter)
 			if tc.wantErr {

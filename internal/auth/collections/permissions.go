@@ -11,13 +11,13 @@ import (
 )
 
 type PermissionRepository struct {
-	repository *db.Repository[models.Permission]
+	repository *mongo.CollectionHandler[models.Permission]
 	logger     *logging.Logger
 }
 
 func NewPermissionRepository(dbHandler db.DBHandler) *PermissionRepository {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	repository := db.NewRepository[models.Permission](dbHandler, string(mongo.PermissionsCollection), logger)
+	repository := mongo.NewCollectionHandler[models.Permission](dbHandler, string(mongo.PermissionsCollection), logger)
 	return &PermissionRepository{
 		repository: repository,
 		logger:     logger,

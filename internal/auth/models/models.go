@@ -4,6 +4,7 @@ import (
 	"time"
 
 	erp_errors "erp.localhost/internal/errors"
+	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -393,4 +394,147 @@ type AuditMetadata struct {
 	RequestID  string `bson:"request_id,omitempty" json:"request_id,omitempty"`
 	SessionID  string `bson:"session_id,omitempty" json:"session_id,omitempty"`
 	APIVersion string `bson:"api_version,omitempty" json:"api_version,omitempty"`
+}
+
+// ============================================================================
+// TOKEN CLAIMS
+// ============================================================================
+
+// AccessTokenClaims - Full user information for API requests
+type AccessTokenClaims struct {
+	UserID               string   `json:"sub"`                 // Subject (user ID)
+	TenantID             string   `json:"tenant_id"`           // Tenant ID
+	Username             string   `json:"username"`            // Username
+	Role                 string   `json:"role"`                // User role (admin, user, etc.)
+	Permissions          []string `json:"permissions"`         // Granular permissions
+	TokenType            string   `json:"type"`                // "access"
+	SessionID            string   `json:"sid,omitempty"`       // Session ID (optional)
+	DeviceID             string   `json:"device_id,omitempty"` // Device identifier
+	jwt.RegisteredClaims          // Standard JWT claims (exp, iat, iss, sub, etc.)
+}
+
+// Validate - Validates access token claims
+func (c *AccessTokenClaims) Validate() error {
+	missingFields := []string{}
+	if c.UserID == "" {
+		missingFields = append(missingFields, "UserID")
+	}
+	if c.TenantID == "" {
+		missingFields = append(missingFields, "TenantID")
+	}
+	if c.Username == "" {
+		missingFields = append(missingFields, "Username")
+	}
+	if c.Permissions == nil {
+		missingFields = append(missingFields, "Permissions")
+	}
+	if c.Role == "" {
+		missingFields = append(missingFields, "Role")
+	}
+
+	if c.TokenType != "access" {
+		missingFields = append(missingFields, "TokenType")
+	}
+	// Validate expiration
+	if c.ExpiresAt == nil {
+		missingFields = append(missingFields, "ExpiresAt")
+	}
+	if len(missingFields) > 0 {
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+	}
+	if c.IsExpired() {
+		return erp_errors.Auth(erp_errors.AuthTokenExpired)
+	}
+	return nil
+}
+
+func (c *AccessTokenClaims) IsExpired() bool {
+	return time.Now().After(c.ExpiresAt.Time)
+}
+
+// RefreshTokenClaims - Minimal information for token refresh
+type RefreshTokenClaims struct {
+	UserID               string `json:"sub"`                 // Subject (user ID)
+	TokenType            string `json:"type"`                // "refresh"
+	SessionID            string `json:"sid,omitempty"`       // Session ID for tracking
+	DeviceID             string `json:"device_id,omitempty"` // Device identifier
+	jwt.RegisteredClaims        // Standard JWT claims (exp, iat, jti, etc.)
+}
+
+// Validate - Validates refresh token claims
+func (c *RefreshTokenClaims) Validate() error {
+	missingFields := []string{}
+	if c.UserID == "" {
+		missingFields = append(missingFields, "UserID")
+	}
+	if c.TokenType != "refresh" {
+		missingFields = append(missingFields, "TokenType")
+	}
+	// Validate expiration
+	if c.ExpiresAt == nil {
+		missingFields = append(missingFields, "ExpiresAt")
+	}
+	if time.Now().After(c.ExpiresAt.Time) {
+		missingFields = append(missingFields, "ExpiresAt")
+	}
+	if len(missingFields) > 0 {
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+	}
+	return nil
+}
+
+// ============================================================================
+// REFRESH TOKEN STORAGE MODEL
+// ============================================================================
+
+// RefreshToken - Refresh token stored in database/Redis
+type RefreshToken struct {
+	Token      string    `bson:"token" json:"token"`                                   // The actual token string
+	UserID     string    `bson:"user_id" json:"user_id"`                               // Owner of the token
+	TenantID   string    `bson:"tenant_id" json:"tenant_id"`                           // Tenant ID
+	SessionID  string    `bson:"session_id" json:"session_id"`                         // Session ID
+	DeviceID   string    `bson:"device_id,omitempty" json:"device_id,omitempty"`       // Device identifier
+	IPAddress  string    `bson:"ip_address,omitempty" json:"ip_address,omitempty"`     // IP when token was created
+	UserAgent  string    `bson:"user_agent,omitempty" json:"user_agent,omitempty"`     // Browser/app info
+	ExpiresAt  time.Time `bson:"expires_at" json:"expires_at"`                         // When token expires
+	CreatedAt  time.Time `bson:"created_at" json:"created_at"`                         // When token was created
+	LastUsedAt time.Time `bson:"last_used_at,omitempty" json:"last_used_at,omitempty"` // Last time token was used
+	RevokedAt  time.Time `bson:"revoked_at,omitempty" json:"revoked_at,omitempty"`     // When token was revoked
+	IsRevoked  bool      `bson:"is_revoked" json:"is_revoked"`                         // Quick check if revoked
+}
+
+func (r *RefreshToken) Validate() error {
+	missingFields := []string{}
+	if r.Token == "" {
+		missingFields = append(missingFields, "Token")
+	}
+	if r.TenantID == "" {
+		missingFields = append(missingFields, "TenantID")
+	}
+	if r.UserID == "" {
+		missingFields = append(missingFields, "UserID")
+	}
+	if r.ExpiresAt.IsZero() {
+		missingFields = append(missingFields, "ExpiresAt")
+	}
+	if r.CreatedAt.IsZero() {
+		missingFields = append(missingFields, "CreatedAt")
+	}
+	if len(missingFields) > 0 {
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+	}
+	if r.IsExpired() {
+		return erp_errors.Auth(erp_errors.AuthRefreshTokenExpired)
+	}
+	return nil
+}
+
+// IsValid - Check if refresh token is still valid
+func (rt *RefreshToken) IsValid() bool {
+	return !rt.IsRevoked && !rt.IsExpired()
+}
+
+// IsExpired - Check if token is expired
+func (rt *RefreshToken) IsExpired() bool {
+	return rt.ExpiresAt.IsZero() || time.Now().After(rt.ExpiresAt)
 }

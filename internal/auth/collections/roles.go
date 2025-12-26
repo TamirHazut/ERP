@@ -11,13 +11,13 @@ import (
 )
 
 type RoleRepository struct {
-	repository *db.Repository[models.Role]
+	repository *mongo.CollectionHandler[models.Role]
 	logger     *logging.Logger
 }
 
 func NewRoleRepository(dbHandler db.DBHandler) *RoleRepository {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	repository := db.NewRepository[models.Role](dbHandler, string(mongo.RolesCollection), logger)
+	repository := mongo.NewCollectionHandler[models.Role](dbHandler, string(mongo.RolesCollection), logger)
 	return &RoleRepository{
 		repository: repository,
 		logger:     logger,

@@ -2,31 +2,32 @@ package redis
 
 import (
 	"context"
-	"sync"
+	"fmt"
 
+	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
 	redis "github.com/redis/go-redis/v9"
 )
 
 var (
-	initRedisOnce sync.Once
-	redisHandler  *RedisHandler
-	redisContext  = context.Background()
+	redisContext = context.Background()
 )
 
 type RedisHandler struct {
-	client *redis.Client
-	logger *logging.Logger
+	client    *redis.Client
+	logger    *logging.Logger
+	keyPrefix KeyPrefix
 }
 
-func GetRedisHandler() *RedisHandler {
-	initRedisOnce.Do(func() {
-		redisHandler = &RedisHandler{}
-		err := redisHandler.init()
-		if err != nil {
-			redisHandler = nil
-		}
-	})
+func NewRedisHandler(keyPrefix KeyPrefix) *RedisHandler {
+	redisHandler := &RedisHandler{
+		logger:    logging.NewLogger(logging.ModuleDB),
+		keyPrefix: keyPrefix,
+	}
+	if err := redisHandler.init(); err != nil {
+		redisHandler.logger.Error("Failed to initialize Redis", "error", err)
+		return nil
+	}
 	return redisHandler
 }
 
@@ -35,13 +36,11 @@ func (r *RedisHandler) init() error {
 	uri := "redis://:supersecretredis@localhost:6379"
 	options, err := redis.ParseURL(uri)
 	if err != nil {
-		r.logger.Error("Failed to parse Redis URL", "error", err)
 		return err
 	}
 
 	client := redis.NewClient(options)
 	if err := client.Ping(redisContext).Err(); err != nil {
-		r.logger.Error("Failed to ping Redis", "error", err)
 		return err
 	}
 	r.client = client
@@ -53,18 +52,40 @@ func (r *RedisHandler) Close() error {
 	return r.client.Close()
 }
 
-func (r *RedisHandler) Create(key string, value any) error {
-	return r.client.Set(redisContext, key, value, 0).Err()
+func (r *RedisHandler) Create(key string, value any) (string, error) {
+	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
+	if _, err := r.Find(key, nil); err == nil {
+		return "", erp_errors.Conflict(erp_errors.ConflictDuplicateResource)
+	}
+	result := r.client.Set(redisContext, formattedKey, value, 0)
+	if result.Err() != nil {
+		return "", result.Err()
+	}
+	return result.Val(), nil
 }
 
-func (r *RedisHandler) Get(key string) (string, error) {
-	return r.client.Get(redisContext, key).Result()
+func (r *RedisHandler) Find(key string, filter map[string]any) ([]any, error) {
+	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
+	values, err := r.client.SMembers(redisContext, formattedKey).Result()
+	if err != nil {
+		return nil, err
+	}
+	var results []any
+	for _, value := range values {
+		results = append(results, value)
+	}
+	return results, nil
 }
 
-func (r *RedisHandler) Update(key string, value any) error {
-	return r.client.Set(redisContext, key, value, 0).Err()
+func (r *RedisHandler) Update(key string, filter map[string]any, value any) error {
+	_, err := r.Create(key, value)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (r *RedisHandler) Delete(key string) error {
-	return r.client.Del(redisContext, key).Err()
+func (r *RedisHandler) Delete(key string, filter map[string]any) error {
+	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
+	return r.client.Del(redisContext, formattedKey).Err()
 }

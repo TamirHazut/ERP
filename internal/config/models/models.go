@@ -34,10 +34,19 @@ type CoreServiceConfig struct {
 	AutoApproveVendors bool   `json:"auto_approve_vendors"`
 }
 
+type TokenConfig struct {
+	AccessTokenDuration  time.Duration // Default: 15 minutes
+	RefreshTokenDuration time.Duration // Default: 7 days
+	JWTSecret            string        // Secret key for signing
+	JWTIssuer            string        // Token issuer name
+	AllowRefreshRotation bool          // Rotate refresh token on each use (RECOMMENDED)
+	StrictIPCheck        bool          // Check if IP changes (optional)
+	MaxActiveSessions    int           // Max concurrent sessions per user (0 = unlimited)
+}
+
 // AuthServiceConfig represents specific config for Auth service
 type AuthServiceConfig struct {
-	JWTExpiryMinutes    int            `json:"jwt_expiry_minutes"`
-	RefreshTokenDays    int            `json:"refresh_token_days"`
+	TokenConfig         TokenConfig    `json:"token_config"`
 	MFARequired         bool           `json:"mfa_required"`
 	PasswordPolicy      PasswordPolicy `json:"password_policy"`
 	MaxLoginAttempts    int            `json:"max_login_attempts"`
@@ -78,4 +87,3 @@ type FeatureFlagMetadata struct {
 	OwnerTeam        string `bson:"owner_team,omitempty" json:"owner_team,omitempty"`
 	DocumentationURL string `bson:"documentation_url,omitempty" json:"documentation_url,omitempty"`
 }
-

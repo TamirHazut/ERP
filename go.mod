@@ -4,9 +4,11 @@ go 1.25.0
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
+	github.com/wagslane/go-password-validator v0.3.0
 	go.mongodb.org/mongo-driver v1.17.6
 	golang.org/x/crypto v0.44.0
 	google.golang.org/grpc v1.68.0
@@ -23,7 +25,6 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/wagslane/go-password-validator v0.3.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect

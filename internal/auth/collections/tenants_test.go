@@ -26,7 +26,7 @@ func TestTenantRepository_CreateTenant(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenant    models.Tenant
-		mockFunc  func(db string, data any) (string, error)
+		mockFunc  func(collection string, data any) (string, error)
 		wantID    string
 		wantErr   bool
 	}{
@@ -37,7 +37,7 @@ func TestTenantRepository_CreateTenant(t *testing.T) {
 				Status:    models.TenantStatusActive,
 				CreatedBy: "admin",
 			},
-			mockFunc: func(db string, data any) (string, error) {
+			mockFunc: func(collection string, data any) (string, error) {
 				return "tenant-id-123", nil
 			},
 			wantID:  "tenant-id-123",
@@ -49,7 +49,7 @@ func TestTenantRepository_CreateTenant(t *testing.T) {
 				Status:    models.TenantStatusActive,
 				CreatedBy: "admin",
 			},
-			mockFunc: func(db string, data any) (string, error) {
+			mockFunc: func(collection string, data any) (string, error) {
 				return "", nil
 			},
 			wantID:  "",
@@ -62,7 +62,7 @@ func TestTenantRepository_CreateTenant(t *testing.T) {
 				Status:    models.TenantStatusActive,
 				CreatedBy: "admin",
 			},
-			mockFunc: func(db string, data any) (string, error) {
+			mockFunc: func(collection string, data any) (string, error) {
 				return "", errors.New("database connection failed")
 			},
 			wantID:  "",
@@ -93,13 +93,13 @@ func TestTenantRepository_GetTenantByID(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
-		mockFunc  func(db string, filter map[string]any) ([]any, error)
+		mockFunc  func(collection string, filter map[string]any) ([]any, error)
 		wantErr   bool
 	}{
 		{
 			name:     "successful get by id",
 			tenantID: "507f1f77bcf86cd799439011",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				tenantID, _ := primitive.ObjectIDFromHex("507f1f77bcf86cd799439011")
 				return []any{
 					models.Tenant{
@@ -114,7 +114,7 @@ func TestTenantRepository_GetTenantByID(t *testing.T) {
 		{
 			name:     "tenant not found",
 			tenantID: "507f1f77bcf86cd799439011",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
 			wantErr: true,
@@ -122,7 +122,7 @@ func TestTenantRepository_GetTenantByID(t *testing.T) {
 		{
 			name:     "get with empty tenant ID",
 			tenantID: "",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, nil
 			},
 			wantErr: true,
@@ -130,7 +130,7 @@ func TestTenantRepository_GetTenantByID(t *testing.T) {
 		{
 			name:     "database error",
 			tenantID: "507f1f77bcf86cd799439011",
-			mockFunc: func(db string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantErr: true,
@@ -167,8 +167,8 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 	testCases := []struct {
 		name        string
 		tenant      models.Tenant
-		mockFind    func(db string, filter map[string]any) ([]any, error)
-		mockUpdate  func(db string, filter map[string]any, data any) error
+		mockFind    func(collection string, filter map[string]any) ([]any, error)
+		mockUpdate  func(collection string, filter map[string]any, data any) error
 		wantErr     bool
 	}{
 		{
@@ -180,7 +180,7 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Tenant{
 						ID:        tenantID,
@@ -190,7 +190,7 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 					},
 				}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: false,
@@ -200,10 +200,10 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 			tenant: models.Tenant{
 				ID: tenantID,
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: true,
@@ -217,10 +217,10 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: true,
@@ -234,7 +234,7 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 				CreatedBy: "admin",
 				CreatedAt: time.Now(),
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Tenant{
 						ID:        tenantID,
@@ -242,7 +242,7 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 					},
 				}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
 			},
 			wantErr: true,
@@ -256,7 +256,7 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
-			mockFind: func(db string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) ([]any, error) {
 				return []any{
 					models.Tenant{
 						ID:        tenantID,
@@ -264,7 +264,7 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 					},
 				}, nil
 			},
-			mockUpdate: func(db string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,
@@ -293,13 +293,13 @@ func TestTenantRepository_DeleteTenant(t *testing.T) {
 	testCases := []struct {
 		name       string
 		tenantID   string
-		mockFunc   func(db string, filter map[string]any) error
+		mockFunc   func(collection string, filter map[string]any) error
 		wantErr    bool
 	}{
 		{
 			name:     "successful delete",
 			tenantID: "507f1f77bcf86cd799439011",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -307,7 +307,7 @@ func TestTenantRepository_DeleteTenant(t *testing.T) {
 		{
 			name:     "delete with empty tenant ID",
 			tenantID: "",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -315,7 +315,7 @@ func TestTenantRepository_DeleteTenant(t *testing.T) {
 		{
 			name:     "delete with database error",
 			tenantID: "507f1f77bcf86cd799439011",
-			mockFunc: func(db string, filter map[string]any) error {
+			mockFunc: func(collection string, filter map[string]any) error {
 				return errors.New("delete failed")
 			},
 			wantErr: true,

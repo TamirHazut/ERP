@@ -1,0 +1,51 @@
+syntax = proto3;
+
+message AuthenticateRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message AuthenticateResponse {
+    string jwt_token = 1;
+}
+
+message VerifyTokenRequest {
+    string jwt_token = 1;
+}
+
+message VerifyTokenResponse {
+    bool is_valid = 1;
+}
+
+message RefreshTokenRequest {
+    string jwt_token = 1;
+}
+
+message RefreshTokenResponse {
+    string jwt_token = 1;
+}
+
+message RevokeTokenRequest {
+    string jwt_token = 1;
+}
+
+message RevokeTokenResponse {
+    bool is_revoked = 1;
+}
+
+message LogoutRequest {
+    string jwt_token = 1;
+}
+
+message LogoutResponse {
+    bool is_logged_out = 1;
+}
+
+service AuthService {
+    rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+    rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+    rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+    rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+    rpc Logout(LogoutRequest) returns (LogoutResponse);
+    rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+}
