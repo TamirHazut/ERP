@@ -118,26 +118,42 @@ internal/
 **Why Last:** Helpful for development workflow, but not blocking.
 
 **What to Build:**
-- [x] Create Makefile with common tasks:
-  - [x] `make proto` - Generate proto code
-  - [x] `make build` / `make build-auth` / `make build-config` / `make build-core` - Build services
-  - [x] `make run-auth` / `make run-config` / `make run-core` - Run services
-  - [x] `make test` / `make test-coverage` - Run tests
-  - [x] `make lint` - Run linter
-  - [x] `make clean` - Clean artifacts
+- [x] Create root Makefile with common tasks:
+  - [x] `make proto` - Generate proto code (delegates to service Makefiles)
+  - [x] `make build` / `make build-auth` / `make build-config` / `make build-core` - Build services (delegates to service Makefiles)
+  - [x] `make run-auth` / `make run-config` / `make run-core` - Run services (delegates to service Makefiles)
+  - [x] `make test` / `make test-coverage` - Run tests (delegates to service Makefiles)
+  - [x] `make lint` - Run linter (delegates to service Makefiles)
+  - [x] `make clean` - Clean artifacts (delegates to service Makefiles)
   - [x] `make tidy` - Update dependencies
+  - [x] `make proto-common` - Generate common proto files
+- [x] Create service-specific Makefiles (independent, can be run standalone):
+  - [x] `internal/auth/Makefile` - Auth service targets (proto, build, run, test, lint, clean)
+  - [x] `internal/config/Makefile` - Config service targets (proto, build, run, test, lint, clean)
+  - [x] `internal/core/Makefile` - Core service targets (proto, build, run, test, lint, clean)
+  - [ ] `internal/gateway/Makefile` - Gateway service targets (to be created when Gateway service is developed)
+  - [ ] `internal/events/Makefile` - Events service targets (to be created when Events service is developed)
+  - [ ] `internal/webui/Makefile` - WebUI service targets (to be created when WebUI service is developed)
 - [x] Create PowerShell scripts for Windows:
   - [x] `scripts/build.ps1` - Build script
   - [x] `scripts/run.ps1` - Run services script
   - [x] `scripts/generate-proto.ps1` - Proto generation script
 
 **Files:**
-- `Makefile` - Linux/Mac build automation
+- `Makefile` - Root Makefile (delegates to service Makefiles, handles shared targets like docker, tidy, proto-common)
+- `internal/{service}/Makefile` - Service-specific Makefiles (independent, can be run from service directory)
 - `docker-compose.yml` - MongoDB and Redis containers
 - `scripts/build.ps1` - Windows build script
 - `scripts/run.ps1` - Windows service runner
 - `scripts/generate-proto.ps1` - Windows proto generation
 - `scripts/generate-proto.sh` - Linux/Mac proto generation
+
+**Makefile Structure:**
+- **Root Makefile**: Delegates service-specific targets to service Makefiles using `make -C internal/{service} {target}`
+- **Service Makefiles**: Independent Makefiles in each service directory with targets: `proto`, `build`, `run`, `test`, `test-coverage`, `lint`, `clean`, `help`
+- **Usage**: 
+  - From root: `make build-auth` (delegates to `internal/auth/Makefile`)
+  - From service: `cd internal/auth && make build` (runs independently)
 
 **Docker Commands:**
 - `make docker-up` or `.\scripts\build.ps1 -Target docker-up` - Start containers
@@ -374,6 +390,7 @@ internal/
 - Redis (caching, rate limiting)
 
 **What to Build:**
+- [ ] Create service Makefile (`internal/gateway/Makefile`) - Independent Makefile with proto, build, run, test, lint, clean targets
 - [ ] GraphQL server setup (gqlgen)
 - [ ] GraphQL schema definitions
 - [ ] Auth middleware (JWT validation via Auth service gRPC)
@@ -401,6 +418,7 @@ internal/
 - Kafka (consumer)
 
 **What to Build:**
+- [ ] Create service Makefile (`internal/events/Makefile`) - Independent Makefile with proto, build, run, test, lint, clean targets
 - [ ] Kafka consumer setup (sarama/confluent-kafka-go)
 - [ ] Event handlers for different event types
 - [ ] Notification system (Email, SMS, Push)
@@ -429,6 +447,7 @@ internal/
 - Gateway (GraphQL API)
 
 **What to Build:**
+- [ ] Create service Makefile (`internal/webui/Makefile`) - Independent Makefile with build, run, test, lint, clean targets (may not need proto if using GraphQL)
 - [ ] React 18+ project setup
 - [ ] TypeScript configuration
 - [ ] Apollo Client setup (GraphQL client)

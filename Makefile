@@ -1,4 +1,5 @@
-# ERP System Makefile
+# ERP System Root Makefile
+# Delegates to service-specific Makefiles
 
 .PHONY: proto proto-auth proto-config proto-core proto-common \
         build build-auth build-config build-core \
@@ -9,17 +10,9 @@
 # Proto generation output directories
 PROTO_OUT := internal
 PROTO_COMMON := proto/common
-PROTO_AUTH := internal/auth/proto
-PROTO_CONFIG := internal/config/proto
-PROTO_CORE := internal/core/proto
 
 # Go module path
 MODULE := erp.localhost
-
-# Service ports
-AUTH_PORT := 5000
-CONFIG_PORT := 5002
-CORE_PORT := 5001
 
 # Binary output directory
 BIN_DIR := bin
@@ -41,14 +34,14 @@ help: ## Show this help message
 	@echo "  make build-core     - Build core service"
 	@echo ""
 	@echo "Run:"
-	@echo "  make run-auth       - Run auth service (port $(AUTH_PORT))"
-	@echo "  make run-config     - Run config service (port $(CONFIG_PORT))"
-	@echo "  make run-core       - Run core service (port $(CORE_PORT))"
+	@echo "  make run-auth       - Run auth service"
+	@echo "  make run-config     - Run config service"
+	@echo "  make run-core       - Run core service"
 	@echo ""
 	@echo "Test & Quality:"
 	@echo "  make test           - Run all tests"
 	@echo "  make test-coverage  - Run tests with coverage"
-	@echo "  make lint           - Run linter"
+	@echo "  make lint           - Run linter on all services"
 	@echo ""
 	@echo "Docker:"
 	@echo "  make docker-up      - Start MongoDB and Redis containers"
@@ -58,7 +51,16 @@ help: ## Show this help message
 	@echo ""
 	@echo "Utilities:"
 	@echo "  make tidy           - Run go mod tidy"
-	@echo "  make clean          - Clean build artifacts"
+	@echo "  make clean          - Clean build artifacts from all services"
+	@echo ""
+	@echo "Service-specific help:"
+	@echo "  make -C internal/auth help    - Show auth service targets"
+	@echo "  make -C internal/config help  - Show config service targets"
+	@echo "  make -C internal/core help    - Show core service targets"
+
+# ============================================================================
+# PROTO GENERATION TARGETS
+# ============================================================================
 
 proto: proto-common proto-auth proto-config proto-core ## Generate all proto files
 
@@ -77,98 +79,42 @@ proto-common: ## Generate common proto files
 	fi
 
 proto-auth: ## Generate auth service proto files
-	@echo "Generating auth service proto files..."
-	@if [ -f "$(PROTO_AUTH)/auth.proto" ]; then \
-		protoc --go_out=$(PROTO_OUT) \
-			--go_opt=module=$(MODULE) \
-			--go-grpc_out=$(PROTO_OUT) \
-			--go-grpc_opt=module=$(MODULE) \
-			-I=proto \
-			-I=$(PROTO_AUTH) \
-			$(PROTO_AUTH)/*.proto; \
-		echo "✓ Auth proto files generated"; \
-	else \
-		echo "⚠ No auth.proto file found, skipping..."; \
-	fi
+	@$(MAKE) -C internal/auth proto
 
 proto-config: ## Generate config service proto files
-	@echo "Generating config service proto files..."
-	@if [ -f "$(PROTO_CONFIG)/config.proto" ]; then \
-		protoc --go_out=$(PROTO_OUT) \
-			--go_opt=module=$(MODULE) \
-			--go-grpc_out=$(PROTO_OUT) \
-			--go-grpc_opt=module=$(MODULE) \
-			-I=proto \
-			-I=$(PROTO_CONFIG) \
-			$(PROTO_CONFIG)/*.proto; \
-		echo "✓ Config proto files generated"; \
-	else \
-		echo "⚠ No config.proto file found, skipping..."; \
-	fi
+	@$(MAKE) -C internal/config proto
 
 proto-core: ## Generate core service proto files
-	@echo "Generating core service proto files..."
-	@if [ -f "$(PROTO_CORE)/core.proto" ]; then \
-		protoc --go_out=$(PROTO_OUT) \
-			--go_opt=module=$(MODULE) \
-			--go-grpc_out=$(PROTO_OUT) \
-			--go-grpc_opt=module=$(MODULE) \
-			-I=proto \
-			-I=$(PROTO_CORE) \
-			$(PROTO_CORE)/*.proto; \
-		echo "✓ Core proto files generated"; \
-	else \
-		echo "⚠ No core.proto file found, skipping..."; \
-	fi
-
-tidy: ## Run go mod tidy
-	@echo "Running go mod tidy..."
-	@go mod tidy
-	@echo "✓ Dependencies updated"
+	@$(MAKE) -C internal/core proto
 
 # ============================================================================
 # BUILD TARGETS
 # ============================================================================
 
-build: ## Build all services
-	@echo "Building all services..."
-	@mkdir -p $(BIN_DIR)
-	@go build -o $(BIN_DIR)/ ./...
-	@echo "✓ Build complete"
+build: build-auth build-config build-core ## Build all services
+	@echo "✓ All services built"
 
 build-auth: ## Build auth service
-	@echo "Building auth service..."
-	@mkdir -p $(BIN_DIR)
-	@go build -o $(BIN_DIR)/auth ./cmd/auth
-	@echo "✓ Auth service built"
+	@$(MAKE) -C internal/auth build
 
 build-config: ## Build config service
-	@echo "Building config service..."
-	@mkdir -p $(BIN_DIR)
-	@go build -o $(BIN_DIR)/config ./cmd/config
-	@echo "✓ Config service built"
+	@$(MAKE) -C internal/config build
 
 build-core: ## Build core service
-	@echo "Building core service..."
-	@mkdir -p $(BIN_DIR)
-	@go build -o $(BIN_DIR)/core ./cmd/core
-	@echo "✓ Core service built"
+	@$(MAKE) -C internal/core build
 
 # ============================================================================
 # RUN TARGETS
 # ============================================================================
 
 run-auth: ## Run auth service
-	@echo "Starting auth service on port $(AUTH_PORT)..."
-	@go run ./cmd/auth
+	@$(MAKE) -C internal/auth run
 
 run-config: ## Run config service
-	@echo "Starting config service on port $(CONFIG_PORT)..."
-	@go run ./cmd/config
+	@$(MAKE) -C internal/config run
 
 run-core: ## Run core service
-	@echo "Starting core service on port $(CORE_PORT)..."
-	@go run ./cmd/core
+	@$(MAKE) -C internal/core run
 
 # ============================================================================
 # TEST TARGETS
@@ -176,7 +122,9 @@ run-core: ## Run core service
 
 test: ## Run all tests from all services
 	@echo "Running all tests..."
-	@go test -v -count=1 ./...
+	@$(MAKE) -C internal/auth test
+	@$(MAKE) -C internal/config test
+	@$(MAKE) -C internal/core test
 	@echo "✓ All tests complete"
 
 test-coverage: ## Run tests with coverage
@@ -189,19 +137,29 @@ test-coverage: ## Run tests with coverage
 # QUALITY TARGETS
 # ============================================================================
 
-lint: ## Run linter (requires golangci-lint)
-	@echo "Running linter..."
-	@golangci-lint run ./...
-	@echo "✓ Linting complete"
+lint: ## Run linter on all services
+	@echo "Running linter on all services..."
+	@$(MAKE) -C internal/auth lint
+	@$(MAKE) -C internal/config lint
+	@$(MAKE) -C internal/core lint
+	@echo "✓ All linting complete"
 
 # ============================================================================
 # UTILITY TARGETS
 # ============================================================================
 
-clean: ## Clean build artifacts
-	@echo "Cleaning build artifacts..."
+tidy: ## Run go mod tidy
+	@echo "Running go mod tidy..."
+	@go mod tidy
+	@echo "✓ Dependencies updated"
+
+clean: ## Clean build artifacts from all services
+	@echo "Cleaning all build artifacts..."
 	@rm -rf $(BIN_DIR)
 	@rm -f coverage.out coverage.html
+	@$(MAKE) -C internal/auth clean
+	@$(MAKE) -C internal/config clean
+	@$(MAKE) -C internal/core clean
 	@echo "✓ Clean complete"
 
 # ============================================================================
@@ -227,4 +185,3 @@ docker-logs: ## View container logs
 
 docker-ps: ## List running containers
 	@docker compose ps
-
