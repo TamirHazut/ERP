@@ -202,12 +202,114 @@ internal/
 
 ---
 
+## Code Quality Initiative: Model Reorganization 📦
+
+**Status:** 🟡 In Progress (Phase 1: 90% ✅, Phases 2-5: ⬜)
+
+**Why Important:** Monolithic `models.go` files (500+ lines) are hard to navigate, test, and maintain. Breaking them down improves code organization and developer productivity.
+
+**What Was Done:**
+
+### ✅ Phase 1: Auth Models (90% Complete)
+
+**Domain Models Breakdown:**
+- [x] Split `internal/auth/models/models.go` (534 lines) into 9 focused files:
+  - [x] `constants.go` - All status constants, role types, permission formats
+  - [x] `tenant.go` - Tenant + 7 related structs + `Validate()` method
+  - [x] `user.go` - User + 5 related structs + `Validate()` method
+  - [x] `role.go` - Role + RoleMetadata + `Validate()` method
+  - [x] `permission.go` - Permission + PermissionMetadata + `Validate()` method
+  - [x] `user_group.go` - UserGroup + GroupMember
+  - [x] `audit.go` - AuditLog + 3 related structs
+  - [x] `token_claims.go` - AccessTokenClaims + RefreshTokenClaims + validation methods
+  - [x] `refresh_token.go` - RefreshToken + validation methods
+
+**Unit Tests:**
+- [x] Created 6 comprehensive test files with table-driven tests:
+  - [x] `tenant_test.go` - Tests for Tenant.Validate()
+  - [x] `user_test.go` - Tests for User.Validate()
+  - [x] `role_test.go` - Tests for Role.Validate()
+  - [x] `permission_test.go` - Tests for Permission.Validate()
+  - [x] `token_claims_test.go` - Tests for Claims validation and IsExpired()
+  - [x] `refresh_token_test.go` - Tests for RefreshToken validation and helper methods
+
+**Cache Models (Moved from Redis):**
+- [x] Created `internal/auth/models/cache/` subdirectory
+- [x] Moved 14 auth-related cache models from `internal/db/redis/models/`:
+  - [x] `session.go` - Session + DeviceInfo
+  - [x] `token.go` - TokenMetadata + RevokedToken
+  - [x] `rbac.go` - UserPermissionsCache, UserRolesCache, RoleSummary, RolePermissionsCache
+  - [x] `password.go` - PasswordResetToken
+  - [x] `verification.go` - EmailVerificationToken
+  - [x] `mfa.go` - MFACode
+  - [x] `invitation.go` - InviteToken
+  - [x] `security.go` - LoginAttempts
+  - [x] `presence.go` - ActiveUser
+
+**Remaining Tasks (Phase 1 - 10%):**
+- [ ] Update imports in auth service files:
+  - [ ] `internal/auth/keys_handlers/access_token.go`
+  - [ ] `internal/auth/keys_handlers/refresh_token.go`
+  - [ ] `internal/auth/token/token_manager.go`
+  - [ ] `internal/auth/service/auth.go`
+- [ ] Delete old `internal/auth/models/models.go` (after import verification)
+- [ ] Delete old `internal/auth/models/models_test.go`
+- [ ] Delete moved cache models from `internal/db/redis/models/models.go`
+- [ ] Run tests to verify everything works
+
+### ⬜ Phase 2: Gateway Cache Models (Not Started)
+- [ ] Create `internal/gateway/models/cache/` directory
+- [ ] Move 4 gateway-related cache models from Redis:
+  - [ ] `rate_limit.go` - RateLimitInfo, TenantRateLimit, IPRateLimit
+  - [ ] `query_cache.go` - QueryCache
+
+### ⬜ Phase 3: Config Models (Not Started)
+- [ ] Break down `internal/config/models/models.go` into:
+  - [ ] `service_config.go` - 5 structs
+  - [ ] `feature_flag.go` - 3 structs
+- [ ] Create `internal/config/models/cache/` directory
+- [ ] Move 3 config-related cache models from Redis:
+  - [ ] `feature_flags.go` - FeatureFlagCache, TenantFeatures
+  - [ ] `service_config.go` - ServiceConfigCache
+
+### ⬜ Phase 4: Core Models (Not Started)
+- [ ] Break down `internal/core/models/models.go` into:
+  - [ ] `constants.go` - All status/type constants
+  - [ ] `product.go` - 5 structs
+  - [ ] `vendor.go` - 4 structs
+  - [ ] `order.go` - 6 structs
+  - [ ] `customer.go` - 4 structs
+  - [ ] `inventory.go` - 2 structs
+  - [ ] `warehouse.go` - 3 structs
+  - [ ] `category.go` - 1 struct
+
+### ⬜ Phase 5: Redis Infrastructure Cleanup (Not Started)
+- [ ] Create `internal/db/redis/types.go` - Generic infrastructure types (RedisKeyOptions, CacheEntry, DistributedLock)
+- [ ] Create `internal/db/redis/cross_service_cache.go` - Cross-service caches (UserCache, TenantCache, ProductCache, OrderCache)
+- [ ] Delete `internal/db/redis/models/models.go` (after all moves complete)
+
+**Documentation:**
+- [x] `MODEL_BREAKDOWN_PLAN.md` - Complete reorganization plan
+- [x] `MODEL_REORGANIZATION.md` - Cache model relocation strategy
+- [x] `DUPLICATES_ANALYSIS.md` - Duplicate code analysis
+- [x] `IMPLEMENTATION_STATUS.md` - Current progress tracking
+- [x] Updated `CLAUDE.md` - Model organization guidelines
+
+**Benefits Achieved:**
+- ✅ Better code organization (27 focused files vs 1 monolithic file)
+- ✅ Easier navigation (find User model in `user.go` instead of searching 534-line file)
+- ✅ Improved testing (colocated test files, comprehensive coverage)
+- ✅ Reduced merge conflicts (different developers work on different entity files)
+- ✅ Clear ownership (each service owns its models and caches)
+
+---
+
 ## Development Phases
 
 ### Phase 1: Foundation ⚙️
 
 #### 1. Auth Service (Priority 1) 🔐
-**Status:** 🟡 In Progress (Repositories ✅, gRPC Server ⬜)
+**Status:** 🟡 In Progress (Repositories ✅, Models ✅, gRPC Server ⬜)
 
 **Why First:** Required by all other services for authentication/authorization. Foundation for the entire system.
 

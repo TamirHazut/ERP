@@ -8,12 +8,14 @@ import (
 )
 
 // ============================================================================
-// REDIS MODELS
+// CROSS-SERVICE CACHE MODELS
+// These are cache models used by multiple services or for service-to-service caching
 // ============================================================================
 
 // UserCache represents cached user data
 // Key: user_cache:{user_id}
 // TTL: 10 minutes
+// Used by: Gateway (for auth checks), Core (for user lookups), Events (for notifications)
 type UserCache struct {
 	UserID   string           `json:"user_id"`
 	TenantID string           `json:"tenant_id"`
@@ -28,6 +30,7 @@ type UserCache struct {
 // TenantCache represents cached tenant data
 // Key: tenant_cache:{tenant_id}
 // TTL: 30 minutes
+// Used by: All services for tenant validation and settings
 type TenantCache struct {
 	TenantID     string              `json:"tenant_id"`
 	Name         string              `json:"name"`
@@ -40,6 +43,7 @@ type TenantCache struct {
 // ProductCache represents cached product data
 // Key: product_cache:{product_id}
 // TTL: 15 minutes
+// Used by: Core (product lookups), Gateway (GraphQL resolvers), Events (inventory updates)
 type ProductCache struct {
 	ProductID string                `json:"product_id"`
 	TenantID  string                `json:"tenant_id"`
@@ -54,6 +58,7 @@ type ProductCache struct {
 // OrderCache represents cached order data
 // Key: order_cache:{order_id}
 // TTL: 5 minutes
+// Used by: Core (order lookups), Gateway (GraphQL resolvers), Events (order status updates)
 type OrderCache struct {
 	OrderID     string    `json:"order_id"`
 	TenantID    string    `json:"tenant_id"`
@@ -62,38 +67,4 @@ type OrderCache struct {
 	Status      string    `json:"status"`
 	Total       float64   `json:"total"`
 	CachedAt    time.Time `json:"cached_at"`
-}
-
-// DistributedLock represents a distributed lock
-// Key: lock:{resource_id}
-// TTL: 30 seconds (should be short)
-type DistributedLock struct {
-	ResourceID string            `json:"resource_id"`
-	LockID     string            `json:"lock_id"`  // Unique identifier for this lock instance
-	OwnerID    string            `json:"owner_id"` // Service/process that owns the lock
-	AcquiredAt time.Time         `json:"acquired_at"`
-	ExpiresAt  time.Time         `json:"expires_at"`
-	Metadata   map[string]string `json:"metadata,omitempty"`
-}
-
-// ============================================================================
-// REDIS HELPER TYPES
-// ============================================================================
-
-// RedisKeyOptions represents options for building Redis keys
-type RedisKeyOptions struct {
-	Prefix    string
-	Separator string
-	TTL       time.Duration
-}
-
-// CacheEntry is a generic cache entry wrapper
-type CacheEntry struct {
-	Key       string      `json:"key"`
-	Value     interface{} `json:"value"`
-	TTL       int         `json:"ttl"` // seconds
-	CachedAt  time.Time   `json:"cached_at"`
-	ExpiresAt time.Time   `json:"expires_at"`
-	Version   int         `json:"version,omitempty"`
-	Tags      []string    `json:"tags,omitempty"` // For cache invalidation
 }

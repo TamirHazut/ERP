@@ -33,15 +33,6 @@ type FeatureFlagMetadata struct {
 	DocumentationURL string `bson:"documentation_url,omitempty" json:"documentation_url,omitempty"`
 }
 
-// FeatureFlagCache represents a cached feature flag
-type FeatureFlagCache struct {
-	FlagKey  string         `json:"flag_key"`
-	Enabled  bool           `json:"enabled"`
-	Rollout  FeatureRollout `json:"rollout"`
-	CachedAt time.Time      `json:"cached_at"`
-	Version  int            `json:"version"`
-}
-
 // TenantFeatures represents cached tenant-specific features
 type TenantFeatures struct {
 	TenantID string                           `json:"tenant_id"`
