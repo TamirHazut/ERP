@@ -1,4 +1,4 @@
-package repository
+package collection
 
 import (
 	"errors"
@@ -13,16 +13,16 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func TestNewUserRepository(t *testing.T) {
+func TestNewUserCollection(t *testing.T) {
 	mockHandler := &mock.MockDBHandler{}
-	repo := NewUserRepository(mockHandler)
+	repo := NewUserCollection(mockHandler)
 
 	require.NotNil(t, repo)
-	assert.NotNil(t, repo.repository)
+	assert.NotNil(t, repo.collection)
 	assert.NotNil(t, repo.logger)
 }
 
-func TestUserRepository_CreateUser(t *testing.T) {
+func TestUserCollection_CreateUser(t *testing.T) {
 	testCases := []struct {
 		name      string
 		user      models.User
@@ -88,7 +88,7 @@ func TestUserRepository_CreateUser(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				CreateFunc: tc.mockFunc,
 			}
-			repo := NewUserRepository(mockHandler)
+			repo := NewUserCollection(mockHandler)
 
 			id, err := repo.CreateUser(tc.user)
 			if tc.wantErr {
@@ -102,7 +102,7 @@ func TestUserRepository_CreateUser(t *testing.T) {
 	}
 }
 
-func TestUserRepository_GetUserByID(t *testing.T) {
+func TestUserCollection_GetUserByID(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
@@ -152,7 +152,7 @@ func TestUserRepository_GetUserByID(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindOneFunc: tc.mockFunc,
 			}
-			repo := NewUserRepository(mockHandler)
+			repo := NewUserCollection(mockHandler)
 
 			user, err := repo.GetUserByID(tc.tenantID, tc.userID)
 			if tc.wantErr {
@@ -170,7 +170,7 @@ func TestUserRepository_GetUserByID(t *testing.T) {
 	}
 }
 
-func TestUserRepository_GetUserByUsername(t *testing.T) {
+func TestUserCollection_GetUserByUsername(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
@@ -217,7 +217,7 @@ func TestUserRepository_GetUserByUsername(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindOneFunc: tc.mockFunc,
 			}
-			repo := NewUserRepository(mockHandler)
+			repo := NewUserCollection(mockHandler)
 
 			user, err := repo.GetUserByUsername(tc.tenantID, tc.username)
 			if tc.wantErr {
@@ -230,7 +230,7 @@ func TestUserRepository_GetUserByUsername(t *testing.T) {
 	}
 }
 
-func TestUserRepository_GetUsersByTenantID(t *testing.T) {
+func TestUserCollection_GetUsersByTenantID(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
@@ -275,7 +275,7 @@ func TestUserRepository_GetUsersByTenantID(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindAllFunc: tc.mockFunc,
 			}
-			repo := NewUserRepository(mockHandler)
+			repo := NewUserCollection(mockHandler)
 
 			users, err := repo.GetUsersByTenantID(tc.tenantID)
 			if tc.wantErr {
@@ -292,7 +292,7 @@ func TestUserRepository_GetUsersByTenantID(t *testing.T) {
 	}
 }
 
-func TestUserRepository_GetUsersByRoleID(t *testing.T) {
+func TestUserCollection_GetUsersByRoleID(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
@@ -330,7 +330,7 @@ func TestUserRepository_GetUsersByRoleID(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindAllFunc: tc.mockFunc,
 			}
-			repo := NewUserRepository(mockHandler)
+			repo := NewUserCollection(mockHandler)
 
 			users, err := repo.GetUsersByRoleID(tc.tenantID, tc.roleID)
 			if tc.wantErr {
@@ -343,7 +343,7 @@ func TestUserRepository_GetUsersByRoleID(t *testing.T) {
 	}
 }
 
-func TestUserRepository_UpdateUser(t *testing.T) {
+func TestUserCollection_UpdateUser(t *testing.T) {
 	userID := primitive.NewObjectID()
 	createdAt := time.Now().Add(-24 * time.Hour)
 
@@ -474,7 +474,7 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 				FindOneFunc: tc.mockFind,
 				UpdateFunc:  tc.mockUpdate,
 			}
-			repo := NewUserRepository(mockHandler)
+			repo := NewUserCollection(mockHandler)
 
 			err := repo.UpdateUser(tc.user)
 			if tc.wantErr {
@@ -486,7 +486,7 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 	}
 }
 
-func TestUserRepository_DeleteUser(t *testing.T) {
+func TestUserCollection_DeleteUser(t *testing.T) {
 	testCases := []struct {
 		name     string
 		tenantID string
@@ -537,7 +537,7 @@ func TestUserRepository_DeleteUser(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				DeleteFunc: tc.mockFunc,
 			}
-			repo := NewUserRepository(mockHandler)
+			repo := NewUserCollection(mockHandler)
 
 			err := repo.DeleteUser(tc.tenantID, tc.userID)
 			if tc.wantErr {

@@ -1,4 +1,4 @@
-package repository
+package collection
 
 import (
 	"time"
@@ -10,31 +10,31 @@ import (
 	"erp.localhost/internal/logging"
 )
 
-type TenantRepository struct {
-	repository *mongo.CollectionHandler[models.Tenant]
+type TenantCollection struct {
+	collection *mongo.CollectionHandler[models.Tenant]
 	logger     *logging.Logger
 }
 
-func NewTenantRepository(dbHandler db.DBHandler) *TenantRepository {
+func NewTenantCollection(dbHandler db.DBHandler) *TenantCollection {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	repository := mongo.NewCollectionHandler[models.Tenant](dbHandler, string(mongo.TenantsCollection), logger)
-	return &TenantRepository{
-		repository: repository,
+	collection := mongo.NewCollectionHandler[models.Tenant](dbHandler, string(mongo.TenantsCollection), logger)
+	return &TenantCollection{
+		collection: collection,
 		logger:     logger,
 	}
 }
 
-func (r *TenantRepository) CreateTenant(tenant models.Tenant) (string, error) {
+func (r *TenantCollection) CreateTenant(tenant models.Tenant) (string, error) {
 	if err := tenant.Validate(true); err != nil {
 		return "", err
 	}
 	tenant.CreatedAt = time.Now()
 	tenant.UpdatedAt = time.Now()
 	r.logger.Debug("Creating tenant", "tenant", tenant)
-	return r.repository.Create(tenant)
+	return r.collection.Create(tenant)
 }
 
-func (r *TenantRepository) GetTenantByID(tenantID string) (*models.Tenant, error) {
+func (r *TenantCollection) GetTenantByID(tenantID string) (*models.Tenant, error) {
 	if tenantID == "" {
 		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID")
 	}
@@ -42,14 +42,14 @@ func (r *TenantRepository) GetTenantByID(tenantID string) (*models.Tenant, error
 		"_id": tenantID,
 	}
 	r.logger.Debug("Getting tenant by id", "filter", filter)
-	tenant, err := r.repository.FindOne(filter)
+	tenant, err := r.collection.FindOne(filter)
 	if err != nil {
 		return nil, err
 	}
 	return tenant, nil
 }
 
-func (r *TenantRepository) UpdateTenant(tenant models.Tenant) error {
+func (r *TenantCollection) UpdateTenant(tenant models.Tenant) error {
 	if err := tenant.Validate(false); err != nil {
 		return err
 	}
@@ -65,10 +65,10 @@ func (r *TenantRepository) UpdateTenant(tenant models.Tenant) error {
 		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "CreatedAt")
 	}
 	tenant.UpdatedAt = time.Now()
-	return r.repository.Update(filter, tenant)
+	return r.collection.Update(filter, tenant)
 }
 
-func (r *TenantRepository) DeleteTenant(tenantID string) error {
+func (r *TenantCollection) DeleteTenant(tenantID string) error {
 	if tenantID == "" {
 		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID")
 	}
@@ -76,5 +76,5 @@ func (r *TenantRepository) DeleteTenant(tenantID string) error {
 		"_id": tenantID,
 	}
 	r.logger.Debug("Deleting tenant", "filter", filter)
-	return r.repository.Delete(filter)
+	return r.collection.Delete(filter)
 }

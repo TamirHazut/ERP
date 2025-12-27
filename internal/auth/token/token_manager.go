@@ -22,10 +22,7 @@ const (
 	TokenTypeAccess  = "access"
 	TokenTypeRefresh = "refresh"
 
-	refreshTokenDuration = 7 * 24 * time.Hour
-	accessTokenDuration  = 1 * time.Hour
-
-	issuer = "erp.localhost"
+	Issuer = "erp.localhost"
 )
 
 // TokenManager coordinates all token operations including JWT generation/verification and Redis storage
@@ -88,12 +85,15 @@ func NewTokenManager(secretKey string, tokenDuration time.Duration, refreshToken
 	logger := logging.NewLogger(logging.ModuleAuth)
 	if secretKey == "" {
 		logger.Fatal("secret key is required")
+		return nil
 	}
 	if tokenDuration <= 0 {
 		logger.Fatal("token duration must be greater than 0")
+		return nil
 	}
 	if refreshTokenDuration <= 0 {
 		logger.Fatal("refresh token duration must be greater than 0")
+		return nil
 	}
 
 	return &TokenManager{
@@ -116,7 +116,7 @@ func (tm *TokenManager) GenerateAccessToken(input *GenerateAccessTokenInput) (st
 		return "", err
 	}
 	currentTimestamp := time.Now().Unix()
-	expiresAt := time.Now().Add(accessTokenDuration)
+	expiresAt := time.Now().Add(tm.tokenDuration)
 	claims := &models.AccessTokenClaims{
 		UserID:      input.UserID,
 		TenantID:    input.TenantID,
@@ -131,7 +131,7 @@ func (tm *TokenManager) GenerateAccessToken(input *GenerateAccessTokenInput) (st
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(time.Unix(currentTimestamp, 0)),
 			NotBefore: jwt.NewNumericDate(time.Unix(currentTimestamp, 0)),
-			Issuer:    issuer,
+			Issuer:    Issuer,
 			Subject:   input.UserID,
 			Audience:  []string{uuid.New().String()},
 		},

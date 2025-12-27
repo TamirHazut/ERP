@@ -1,4 +1,4 @@
-package repository
+package collection
 
 import (
 	"time"
@@ -10,31 +10,31 @@ import (
 	"erp.localhost/internal/logging"
 )
 
-type RoleRepository struct {
-	repository *mongo.CollectionHandler[models.Role]
+type RolesCollection struct {
+	collection *mongo.CollectionHandler[models.Role]
 	logger     *logging.Logger
 }
 
-func NewRoleRepository(dbHandler db.DBHandler) *RoleRepository {
+func NewRoleCollection(dbHandler db.DBHandler) *RolesCollection {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	repository := mongo.NewCollectionHandler[models.Role](dbHandler, string(mongo.RolesCollection), logger)
-	return &RoleRepository{
-		repository: repository,
+	collection := mongo.NewCollectionHandler[models.Role](dbHandler, string(mongo.RolesCollection), logger)
+	return &RolesCollection{
+		collection: collection,
 		logger:     logger,
 	}
 }
 
-func (r *RoleRepository) CreateRole(role models.Role) (string, error) {
+func (r *RolesCollection) CreateRole(role models.Role) (string, error) {
 	if err := role.Validate(true); err != nil {
 		return "", err
 	}
 	role.CreatedAt = time.Now()
 	role.UpdatedAt = time.Now()
 	r.logger.Debug("Creating role", "role", role)
-	return r.repository.Create(role)
+	return r.collection.Create(role)
 }
 
-func (r *RoleRepository) GetRoleByID(tenantID, roleID string) (*models.Role, error) {
+func (r *RolesCollection) GetRoleByID(tenantID, roleID string) (*models.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       roleID,
@@ -43,7 +43,7 @@ func (r *RoleRepository) GetRoleByID(tenantID, roleID string) (*models.Role, err
 	return r.findRoleByFilter(filter)
 }
 
-func (r *RoleRepository) GetRoleByName(tenantID, name string) (*models.Role, error) {
+func (r *RolesCollection) GetRoleByName(tenantID, name string) (*models.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"name":      name,
@@ -52,7 +52,7 @@ func (r *RoleRepository) GetRoleByName(tenantID, name string) (*models.Role, err
 	return r.findRoleByFilter(filter)
 }
 
-func (r *RoleRepository) GetRolesByTenantID(tenantID string) ([]models.Role, error) {
+func (r *RolesCollection) GetRolesByTenantID(tenantID string) ([]models.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
@@ -60,7 +60,7 @@ func (r *RoleRepository) GetRolesByTenantID(tenantID string) ([]models.Role, err
 	return r.findRolesByFilter(filter)
 }
 
-func (r *RoleRepository) GetRolesByPermissionsIDs(tenantID string, permissionsIDs []string) ([]models.Role, error) {
+func (r *RolesCollection) GetRolesByPermissionsIDs(tenantID string, permissionsIDs []string) ([]models.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"permissions": map[string]any{
@@ -71,7 +71,7 @@ func (r *RoleRepository) GetRolesByPermissionsIDs(tenantID string, permissionsID
 	return r.findRolesByFilter(filter)
 }
 
-func (r *RoleRepository) UpdateRole(role models.Role) error {
+func (r *RolesCollection) UpdateRole(role models.Role) error {
 	if err := role.Validate(false); err != nil {
 		return err
 	}
@@ -88,10 +88,10 @@ func (r *RoleRepository) UpdateRole(role models.Role) error {
 		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "CreatedAt")
 	}
 	role.UpdatedAt = time.Now()
-	return r.repository.Update(filter, role)
+	return r.collection.Update(filter, role)
 }
 
-func (r *RoleRepository) DeleteRole(tenantID, roleID string) error {
+func (r *RolesCollection) DeleteRole(tenantID, roleID string) error {
 	if tenantID == "" || roleID == "" {
 		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID", "RoleID")
 	}
@@ -100,19 +100,19 @@ func (r *RoleRepository) DeleteRole(tenantID, roleID string) error {
 		"_id":       roleID,
 	}
 	r.logger.Debug("Deleting role", "filter", filter)
-	return r.repository.Delete(filter)
+	return r.collection.Delete(filter)
 }
 
-func (r *RoleRepository) findRoleByFilter(filter map[string]any) (*models.Role, error) {
-	role, err := r.repository.FindOne(filter)
+func (r *RolesCollection) findRoleByFilter(filter map[string]any) (*models.Role, error) {
+	role, err := r.collection.FindOne(filter)
 	if err != nil {
 		return nil, err
 	}
 	return role, nil
 }
 
-func (r *RoleRepository) findRolesByFilter(filter map[string]any) ([]models.Role, error) {
-	roles, err := r.repository.FindAll(filter)
+func (r *RolesCollection) findRolesByFilter(filter map[string]any) ([]models.Role, error) {
+	roles, err := r.collection.FindAll(filter)
 	if err != nil {
 		return nil, err
 	}

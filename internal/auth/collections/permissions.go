@@ -1,4 +1,4 @@
-package repository
+package collection
 
 import (
 	"time"
@@ -10,31 +10,31 @@ import (
 	"erp.localhost/internal/logging"
 )
 
-type PermissionRepository struct {
-	repository *mongo.CollectionHandler[models.Permission]
+type PermissionsCollection struct {
+	collection *mongo.CollectionHandler[models.Permission]
 	logger     *logging.Logger
 }
 
-func NewPermissionRepository(dbHandler db.DBHandler) *PermissionRepository {
+func NewPermissionCollection(dbHandler db.DBHandler) *PermissionsCollection {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	repository := mongo.NewCollectionHandler[models.Permission](dbHandler, string(mongo.PermissionsCollection), logger)
-	return &PermissionRepository{
-		repository: repository,
+	collection := mongo.NewCollectionHandler[models.Permission](dbHandler, string(mongo.PermissionsCollection), logger)
+	return &PermissionsCollection{
+		collection: collection,
 		logger:     logger,
 	}
 }
 
-func (r *PermissionRepository) CreatePermission(permission models.Permission) (string, error) {
+func (r *PermissionsCollection) CreatePermission(permission models.Permission) (string, error) {
 	if err := permission.Validate(true); err != nil {
 		return "", err
 	}
 	permission.CreatedAt = time.Now()
 	permission.UpdatedAt = time.Now()
 	r.logger.Debug("Creating permission", "permission", permission)
-	return r.repository.Create(permission)
+	return r.collection.Create(permission)
 }
 
-func (r *PermissionRepository) GetPermissionByID(tenantID, permissionID string) (*models.Permission, error) {
+func (r *PermissionsCollection) GetPermissionByID(tenantID, permissionID string) (*models.Permission, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       permissionID,
@@ -43,7 +43,7 @@ func (r *PermissionRepository) GetPermissionByID(tenantID, permissionID string) 
 	return r.findPermissionByFilter(filter)
 }
 
-func (r *PermissionRepository) GetPermissionByName(tenantID, name string) (*models.Permission, error) {
+func (r *PermissionsCollection) GetPermissionByName(tenantID, name string) (*models.Permission, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"name":      name,
@@ -52,7 +52,7 @@ func (r *PermissionRepository) GetPermissionByName(tenantID, name string) (*mode
 	return r.findPermissionByFilter(filter)
 }
 
-func (r *PermissionRepository) GetPermissionsByTenantID(tenantID string) ([]models.Permission, error) {
+func (r *PermissionsCollection) GetPermissionsByTenantID(tenantID string) ([]models.Permission, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
@@ -60,7 +60,7 @@ func (r *PermissionRepository) GetPermissionsByTenantID(tenantID string) ([]mode
 	return r.findPermissionsByFilter(filter)
 }
 
-func (r *PermissionRepository) GetPermissionsByResource(tenantID, resource string) ([]models.Permission, error) {
+func (r *PermissionsCollection) GetPermissionsByResource(tenantID, resource string) ([]models.Permission, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"resource":  resource,
@@ -69,7 +69,7 @@ func (r *PermissionRepository) GetPermissionsByResource(tenantID, resource strin
 	return r.findPermissionsByFilter(filter)
 }
 
-func (r *PermissionRepository) GetPermissionsByAction(tenantID, action string) ([]models.Permission, error) {
+func (r *PermissionsCollection) GetPermissionsByAction(tenantID, action string) ([]models.Permission, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"action":    action,
@@ -78,7 +78,7 @@ func (r *PermissionRepository) GetPermissionsByAction(tenantID, action string) (
 	return r.findPermissionsByFilter(filter)
 }
 
-func (r *PermissionRepository) GetPermissionsByResourceAndAction(tenantID, resource, action string) ([]models.Permission, error) {
+func (r *PermissionsCollection) GetPermissionsByResourceAndAction(tenantID, resource, action string) ([]models.Permission, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"resource":  resource,
@@ -88,7 +88,7 @@ func (r *PermissionRepository) GetPermissionsByResourceAndAction(tenantID, resou
 	return r.findPermissionsByFilter(filter)
 }
 
-func (r *PermissionRepository) UpdatePermission(permission models.Permission) error {
+func (r *PermissionsCollection) UpdatePermission(permission models.Permission) error {
 	if err := permission.Validate(false); err != nil {
 		return err
 	}
@@ -105,10 +105,10 @@ func (r *PermissionRepository) UpdatePermission(permission models.Permission) er
 		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "CreatedAt")
 	}
 	permission.UpdatedAt = time.Now()
-	return r.repository.Update(filter, permission)
+	return r.collection.Update(filter, permission)
 }
 
-func (r *PermissionRepository) DeletePermission(tenantID, permissionID string) error {
+func (r *PermissionsCollection) DeletePermission(tenantID, permissionID string) error {
 	if tenantID == "" || permissionID == "" {
 		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID", "PermissionID")
 	}
@@ -117,19 +117,19 @@ func (r *PermissionRepository) DeletePermission(tenantID, permissionID string) e
 		"_id":       permissionID,
 	}
 	r.logger.Debug("Deleting permission", "filter", filter)
-	return r.repository.Delete(filter)
+	return r.collection.Delete(filter)
 }
 
-func (r *PermissionRepository) findPermissionByFilter(filter map[string]any) (*models.Permission, error) {
-	permission, err := r.repository.FindOne(filter)
+func (r *PermissionsCollection) findPermissionByFilter(filter map[string]any) (*models.Permission, error) {
+	permission, err := r.collection.FindOne(filter)
 	if err != nil {
 		return nil, err
 	}
 	return permission, nil
 }
 
-func (r *PermissionRepository) findPermissionsByFilter(filter map[string]any) ([]models.Permission, error) {
-	permissions, err := r.repository.FindAll(filter)
+func (r *PermissionsCollection) findPermissionsByFilter(filter map[string]any) ([]models.Permission, error) {
+	permissions, err := r.collection.FindAll(filter)
 	if err != nil {
 		return nil, err
 	}

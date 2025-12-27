@@ -1,4 +1,4 @@
-package repository
+package collection
 
 import (
 	"errors"
@@ -13,16 +13,16 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func TestNewPermissionRepository(t *testing.T) {
+func TestNewPermissionCollection(t *testing.T) {
 	mockHandler := &mock.MockDBHandler{}
-	repo := NewPermissionRepository(mockHandler)
+	repo := NewPermissionCollection(mockHandler)
 
 	require.NotNil(t, repo)
-	assert.NotNil(t, repo.repository)
+	assert.NotNil(t, repo.collection)
 	assert.NotNil(t, repo.logger)
 }
 
-func TestPermissionRepository_CreatePermission(t *testing.T) {
+func TestPermissionCollection_CreatePermission(t *testing.T) {
 	testCases := []struct {
 		name       string
 		permission models.Permission
@@ -84,7 +84,7 @@ func TestPermissionRepository_CreatePermission(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				CreateFunc: tc.mockFunc,
 			}
-			repo := NewPermissionRepository(mockHandler)
+			repo := NewPermissionCollection(mockHandler)
 
 			id, err := repo.CreatePermission(tc.permission)
 			if tc.wantErr {
@@ -98,7 +98,7 @@ func TestPermissionRepository_CreatePermission(t *testing.T) {
 	}
 }
 
-func TestPermissionRepository_GetPermissionByID(t *testing.T) {
+func TestPermissionCollection_GetPermissionByID(t *testing.T) {
 	testCases := []struct {
 		name         string
 		tenantID     string
@@ -146,7 +146,7 @@ func TestPermissionRepository_GetPermissionByID(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindOneFunc: tc.mockFunc,
 			}
-			repo := NewPermissionRepository(mockHandler)
+			repo := NewPermissionCollection(mockHandler)
 
 			permission, err := repo.GetPermissionByID(tc.tenantID, tc.permissionID)
 			if tc.wantErr {
@@ -164,7 +164,7 @@ func TestPermissionRepository_GetPermissionByID(t *testing.T) {
 	}
 }
 
-func TestPermissionRepository_GetPermissionByName(t *testing.T) {
+func TestPermissionCollection_GetPermissionByName(t *testing.T) {
 	testCases := []struct {
 		name           string
 		tenantID       string
@@ -211,7 +211,7 @@ func TestPermissionRepository_GetPermissionByName(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindOneFunc: tc.mockFunc,
 			}
-			repo := NewPermissionRepository(mockHandler)
+			repo := NewPermissionCollection(mockHandler)
 
 			permission, err := repo.GetPermissionByName(tc.tenantID, tc.permissionName)
 			if tc.wantErr {
@@ -224,7 +224,7 @@ func TestPermissionRepository_GetPermissionByName(t *testing.T) {
 	}
 }
 
-func TestPermissionRepository_GetPermissionsByTenantID(t *testing.T) {
+func TestPermissionCollection_GetPermissionsByTenantID(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
@@ -269,7 +269,7 @@ func TestPermissionRepository_GetPermissionsByTenantID(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindAllFunc: tc.mockFunc,
 			}
-			repo := NewPermissionRepository(mockHandler)
+			repo := NewPermissionCollection(mockHandler)
 
 			permissions, err := repo.GetPermissionsByTenantID(tc.tenantID)
 			if tc.wantErr {
@@ -282,7 +282,7 @@ func TestPermissionRepository_GetPermissionsByTenantID(t *testing.T) {
 	}
 }
 
-func TestPermissionRepository_GetPermissionsByResource(t *testing.T) {
+func TestPermissionCollection_GetPermissionsByResource(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
@@ -321,7 +321,7 @@ func TestPermissionRepository_GetPermissionsByResource(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindAllFunc: tc.mockFunc,
 			}
-			repo := NewPermissionRepository(mockHandler)
+			repo := NewPermissionCollection(mockHandler)
 
 			permissions, err := repo.GetPermissionsByResource(tc.tenantID, tc.resource)
 			if tc.wantErr {
@@ -334,7 +334,7 @@ func TestPermissionRepository_GetPermissionsByResource(t *testing.T) {
 	}
 }
 
-func TestPermissionRepository_GetPermissionsByAction(t *testing.T) {
+func TestPermissionCollection_GetPermissionsByAction(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
@@ -373,7 +373,7 @@ func TestPermissionRepository_GetPermissionsByAction(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindAllFunc: tc.mockFunc,
 			}
-			repo := NewPermissionRepository(mockHandler)
+			repo := NewPermissionCollection(mockHandler)
 
 			permissions, err := repo.GetPermissionsByAction(tc.tenantID, tc.action)
 			if tc.wantErr {
@@ -386,7 +386,7 @@ func TestPermissionRepository_GetPermissionsByAction(t *testing.T) {
 	}
 }
 
-func TestPermissionRepository_GetPermissionsByResourceAndAction(t *testing.T) {
+func TestPermissionCollection_GetPermissionsByResourceAndAction(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
@@ -427,7 +427,7 @@ func TestPermissionRepository_GetPermissionsByResourceAndAction(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindAllFunc: tc.mockFunc,
 			}
-			repo := NewPermissionRepository(mockHandler)
+			repo := NewPermissionCollection(mockHandler)
 
 			permissions, err := repo.GetPermissionsByResourceAndAction(tc.tenantID, tc.resource, tc.action)
 			if tc.wantErr {
@@ -440,7 +440,7 @@ func TestPermissionRepository_GetPermissionsByResourceAndAction(t *testing.T) {
 	}
 }
 
-func TestPermissionRepository_UpdatePermission(t *testing.T) {
+func TestPermissionCollection_UpdatePermission(t *testing.T) {
 	permissionID := primitive.NewObjectID()
 	createdAt := time.Now().Add(-24 * time.Hour)
 
@@ -564,7 +564,7 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 				FindOneFunc: tc.mockFind,
 				UpdateFunc:  tc.mockUpdate,
 			}
-			repo := NewPermissionRepository(mockHandler)
+			repo := NewPermissionCollection(mockHandler)
 
 			err := repo.UpdatePermission(tc.permission)
 			if tc.wantErr {
@@ -576,7 +576,7 @@ func TestPermissionRepository_UpdatePermission(t *testing.T) {
 	}
 }
 
-func TestPermissionRepository_DeletePermission(t *testing.T) {
+func TestPermissionCollection_DeletePermission(t *testing.T) {
 	testCases := []struct {
 		name         string
 		tenantID     string
@@ -627,7 +627,7 @@ func TestPermissionRepository_DeletePermission(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				DeleteFunc: tc.mockFunc,
 			}
-			repo := NewPermissionRepository(mockHandler)
+			repo := NewPermissionCollection(mockHandler)
 
 			err := repo.DeletePermission(tc.tenantID, tc.permissionID)
 			if tc.wantErr {

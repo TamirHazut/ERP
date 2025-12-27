@@ -2,11 +2,14 @@ package service
 
 import (
 	"context"
+	"time"
 
-	repository "erp.localhost/internal/auth/collections"
+	collection "erp.localhost/internal/auth/collections"
 	"erp.localhost/internal/auth/models"
 	auth_proto "erp.localhost/internal/auth/proto/v1"
+	"erp.localhost/internal/auth/rbac"
 	token "erp.localhost/internal/auth/token"
+	"erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
 	"google.golang.org/grpc/codes"
@@ -16,19 +19,40 @@ import (
 const (
 	authTypeEmail    string = "email"
 	authTypeUsername string = "username"
+
+	// TODO: Get secret key and durations from environment variable
+	secretKey            = "secret"
+	tokenDuration        = 1 * time.Hour
+	refreshTokenDuration = 7 * 24 * time.Hour
 )
 
 type AuthService struct {
 	logger         *logging.Logger
-	userRepository *repository.UserRepository
+	userCollection *collection.UserCollection
 	tokenManager   *token.TokenManager
+	rbacManager    *rbac.RBACManager
 	auth_proto.UnimplementedAuthServiceServer
 }
 
 func NewAuthService() *AuthService {
 	logger := logging.NewLogger(logging.ModuleAuth)
+	dbHandler := mongo.NewMongoDBManager(mongo.AuthDB)
+	userCollection := collection.NewUserCollection(dbHandler)
+	tokenManager := token.NewTokenManager(secretKey, tokenDuration, refreshTokenDuration)
+	if tokenManager == nil {
+		logger.Fatal("failed to create token manager")
+		return nil
+	}
+	rbacManager := rbac.NewRBACManager()
+	if rbacManager == nil {
+		logger.Fatal("failed to create rbac manager")
+		return nil
+	}
 	return &AuthService{
-		logger: logger,
+		logger:         logger,
+		userCollection: userCollection,
+		tokenManager:   tokenManager,
+		rbacManager:    rbacManager,
 	}
 }
 
@@ -53,13 +77,13 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 	var err error
 	if authEmail {
 		s.logger.Info("Authenticating user", "email", email)
-		user, err = s.userRepository.GetUserByEmail(tenantID, email)
+		user, err = s.userCollection.GetUserByEmail(tenantID, email)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		s.logger.Info("Authenticating user", "username", username)
-		user, err = s.userRepository.GetUserByUsername(tenantID, username)
+		user, err = s.userCollection.GetUserByUsername(tenantID, username)
 		if err != nil {
 			return nil, err
 		}
@@ -109,18 +133,56 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 	}, nil
 }
 
-func (s *AuthService) VerifyToken(context.Context, *auth_proto.VerifyTokenRequest) (*auth_proto.VerifyTokenResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method VerifyToken not implemented")
+func (s *AuthService) VerifyToken(ctx context.Context, req *auth_proto.VerifyTokenRequest) (*auth_proto.VerifyTokenResponse, error) {
+	token := req.AccessToken
+	if token == "" {
+		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "access_token")
+	}
+	_, err := s.tokenManager.VerifyAccessToken(token)
+	return &auth_proto.VerifyTokenResponse{
+		Valid: err == nil,
+	}, nil
 }
-func (s *AuthService) RefreshToken(context.Context, *auth_proto.RefreshTokenRequest) (*auth_proto.RefreshTokenResponse, error) {
+func (s *AuthService) RefreshToken(ctx context.Context, req *auth_proto.RefreshTokenRequest) (*auth_proto.RefreshTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshToken not implemented")
 }
-func (s *AuthService) RevokeToken(context.Context, *auth_proto.RevokeTokenRequest) (*auth_proto.RevokeTokenResponse, error) {
+func (s *AuthService) RevokeToken(ctx context.Context, req *auth_proto.RevokeTokenRequest) (*auth_proto.RevokeTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RevokeToken not implemented")
 }
-func (s *AuthService) Logout(context.Context, *auth_proto.LogoutRequest) (*auth_proto.LogoutResponse, error) {
+func (s *AuthService) Logout(ctx context.Context, req *auth_proto.LogoutRequest) (*auth_proto.LogoutResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
 }
-func (s *AuthService) CheckPermissions(context.Context, *auth_proto.CheckPermissionsRequest) (*auth_proto.CheckPermissionsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CheckPermissions not implemented")
+func (s *AuthService) CheckPermissions(ctx context.Context, req *auth_proto.CheckPermissionsRequest) (*auth_proto.CheckPermissionsResponse, error) {
+	tenantID := req.User.TenantId
+	if tenantID == "" {
+		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id")
+	}
+	userID := req.User.UserId
+	if userID == "" {
+		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "user_id")
+	}
+	// Validate permissions
+	permissions := req.Permissions
+	if len(permissions) == 0 {
+		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "permissions")
+	}
+
+	permissionsCheckResponse, err := s.rbacManager.CheckUserPermissions(tenantID, userID, permissions)
+	if err != nil {
+		return nil, err
+	}
+	permissionsResponses := make([]*auth_proto.PermissionResponse, 0)
+	for permission, hasPermission := range permissionsCheckResponse {
+		permissionsResponses = append(permissionsResponses, &auth_proto.PermissionResponse{
+			Permission:    permission,
+			HasPermission: hasPermission,
+		})
+	}
+	return &auth_proto.CheckPermissionsResponse{
+		User: &auth_proto.UserIdentifier{
+			TenantId: tenantID,
+			UserId:   userID,
+		},
+		Permissions: permissionsResponses,
+	}, err
 }

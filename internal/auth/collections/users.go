@@ -1,4 +1,4 @@
-package repository
+package collection
 
 import (
 	"time"
@@ -10,31 +10,31 @@ import (
 	"erp.localhost/internal/logging"
 )
 
-type UserRepository struct {
-	repository *mongo.CollectionHandler[models.User]
+type UserCollection struct {
+	collection *mongo.CollectionHandler[models.User]
 	logger     *logging.Logger
 }
 
-func NewUserRepository(dbHandler db.DBHandler) *UserRepository {
+func NewUserCollection(dbHandler db.DBHandler) *UserCollection {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	repository := mongo.NewCollectionHandler[models.User](dbHandler, string(mongo.UsersCollection), logger)
-	return &UserRepository{
-		repository: repository,
+	collection := mongo.NewCollectionHandler[models.User](dbHandler, string(mongo.UsersCollection), logger)
+	return &UserCollection{
+		collection: collection,
 		logger:     logger,
 	}
 }
 
-func (r *UserRepository) CreateUser(user models.User) (string, error) {
+func (r *UserCollection) CreateUser(user models.User) (string, error) {
 	if err := user.Validate(true); err != nil {
 		return "", err
 	}
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 	r.logger.Debug("Creating user", "user", user)
-	return r.repository.Create(user)
+	return r.collection.Create(user)
 }
 
-func (r *UserRepository) GetUserByID(tenantID, userID string) (*models.User, error) {
+func (r *UserCollection) GetUserByID(tenantID, userID string) (*models.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       userID,
@@ -43,7 +43,7 @@ func (r *UserRepository) GetUserByID(tenantID, userID string) (*models.User, err
 	return r.findUserByFilter(filter)
 }
 
-func (r *UserRepository) GetUserByEmail(tenantID, email string) (*models.User, error) {
+func (r *UserCollection) GetUserByEmail(tenantID, email string) (*models.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"email":     email,
@@ -52,7 +52,7 @@ func (r *UserRepository) GetUserByEmail(tenantID, email string) (*models.User, e
 	return r.findUserByFilter(filter)
 }
 
-func (r *UserRepository) GetUserByUsername(tenantID, username string) (*models.User, error) {
+func (r *UserCollection) GetUserByUsername(tenantID, username string) (*models.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"username":  username,
@@ -61,7 +61,7 @@ func (r *UserRepository) GetUserByUsername(tenantID, username string) (*models.U
 	return r.findUserByFilter(filter)
 }
 
-func (r *UserRepository) GetUsersByTenantID(tenantID string) ([]models.User, error) {
+func (r *UserCollection) GetUsersByTenantID(tenantID string) ([]models.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
@@ -69,7 +69,7 @@ func (r *UserRepository) GetUsersByTenantID(tenantID string) ([]models.User, err
 	return r.findUsersByFilter(filter)
 }
 
-func (r *UserRepository) GetUsersByRoleID(tenantID, roleID string) ([]models.User, error) {
+func (r *UserCollection) GetUsersByRoleID(tenantID, roleID string) ([]models.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"role_id":   roleID,
@@ -78,7 +78,7 @@ func (r *UserRepository) GetUsersByRoleID(tenantID, roleID string) ([]models.Use
 	return r.findUsersByFilter(filter)
 }
 
-func (r *UserRepository) UpdateUser(user models.User) error {
+func (r *UserCollection) UpdateUser(user models.User) error {
 	if err := user.Validate(false); err != nil {
 		return err
 	}
@@ -97,10 +97,10 @@ func (r *UserRepository) UpdateUser(user models.User) error {
 		"_id":       user.ID,
 	}
 	user.UpdatedAt = time.Now()
-	return r.repository.Update(filter, user)
+	return r.collection.Update(filter, user)
 }
 
-func (r *UserRepository) DeleteUser(tenantID, userID string) error {
+func (r *UserCollection) DeleteUser(tenantID, userID string) error {
 	if tenantID == "" || userID == "" {
 		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID", "UserID")
 	}
@@ -109,19 +109,19 @@ func (r *UserRepository) DeleteUser(tenantID, userID string) error {
 		"_id":       userID,
 	}
 	r.logger.Debug("Deleting user", "filter", filter)
-	return r.repository.Delete(filter)
+	return r.collection.Delete(filter)
 }
 
-func (r *UserRepository) findUserByFilter(filter map[string]any) (*models.User, error) {
-	user, err := r.repository.FindOne(filter)
+func (r *UserCollection) findUserByFilter(filter map[string]any) (*models.User, error) {
+	user, err := r.collection.FindOne(filter)
 	if err != nil {
 		return nil, err
 	}
 	return user, nil
 }
 
-func (r *UserRepository) findUsersByFilter(filter map[string]any) ([]models.User, error) {
-	users, err := r.repository.FindAll(filter)
+func (r *UserCollection) findUsersByFilter(filter map[string]any) ([]models.User, error) {
+	users, err := r.collection.FindAll(filter)
 	if err != nil {
 		return nil, err
 	}

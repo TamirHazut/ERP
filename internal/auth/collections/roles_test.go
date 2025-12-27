@@ -1,4 +1,4 @@
-package repository
+package collection
 
 import (
 	"errors"
@@ -13,16 +13,16 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func TestNewRoleRepository(t *testing.T) {
+func TestNewRoleCollection(t *testing.T) {
 	mockHandler := &mock.MockDBHandler{}
-	repo := NewRoleRepository(mockHandler)
+	repo := NewRoleCollection(mockHandler)
 
 	require.NotNil(t, repo)
-	assert.NotNil(t, repo.repository)
+	assert.NotNil(t, repo.collection)
 	assert.NotNil(t, repo.logger)
 }
 
-func TestRoleRepository_CreateRole(t *testing.T) {
+func TestRoleCollection_CreateRole(t *testing.T) {
 	testCases := []struct {
 		name     string
 		role     models.Role
@@ -81,7 +81,7 @@ func TestRoleRepository_CreateRole(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				CreateFunc: tc.mockFunc,
 			}
-			repo := NewRoleRepository(mockHandler)
+			repo := NewRoleCollection(mockHandler)
 
 			id, err := repo.CreateRole(tc.role)
 			if tc.wantErr {
@@ -95,7 +95,7 @@ func TestRoleRepository_CreateRole(t *testing.T) {
 	}
 }
 
-func TestRoleRepository_GetRoleByID(t *testing.T) {
+func TestRoleCollection_GetRoleByID(t *testing.T) {
 	testCases := []struct {
 		name     string
 		tenantID string
@@ -142,7 +142,7 @@ func TestRoleRepository_GetRoleByID(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindOneFunc: tc.mockFunc,
 			}
-			repo := NewRoleRepository(mockHandler)
+			repo := NewRoleCollection(mockHandler)
 
 			role, err := repo.GetRoleByID(tc.tenantID, tc.roleID)
 			if tc.wantErr {
@@ -160,7 +160,7 @@ func TestRoleRepository_GetRoleByID(t *testing.T) {
 	}
 }
 
-func TestRoleRepository_GetRoleByName(t *testing.T) {
+func TestRoleCollection_GetRoleByName(t *testing.T) {
 	testCases := []struct {
 		name     string
 		tenantID string
@@ -205,7 +205,7 @@ func TestRoleRepository_GetRoleByName(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindOneFunc: tc.mockFunc,
 			}
-			repo := NewRoleRepository(mockHandler)
+			repo := NewRoleCollection(mockHandler)
 
 			role, err := repo.GetRoleByName(tc.tenantID, tc.roleName)
 			if tc.wantErr {
@@ -218,7 +218,7 @@ func TestRoleRepository_GetRoleByName(t *testing.T) {
 	}
 }
 
-func TestRoleRepository_GetRolesByTenantID(t *testing.T) {
+func TestRoleCollection_GetRolesByTenantID(t *testing.T) {
 	testCases := []struct {
 		name      string
 		tenantID  string
@@ -263,7 +263,7 @@ func TestRoleRepository_GetRolesByTenantID(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindAllFunc: tc.mockFunc,
 			}
-			repo := NewRoleRepository(mockHandler)
+			repo := NewRoleCollection(mockHandler)
 
 			roles, err := repo.GetRolesByTenantID(tc.tenantID)
 			if tc.wantErr {
@@ -276,7 +276,7 @@ func TestRoleRepository_GetRolesByTenantID(t *testing.T) {
 	}
 }
 
-func TestRoleRepository_GetRolesByPermissionsIDs(t *testing.T) {
+func TestRoleCollection_GetRolesByPermissionsIDs(t *testing.T) {
 	testCases := []struct {
 		name           string
 		tenantID       string
@@ -314,7 +314,7 @@ func TestRoleRepository_GetRolesByPermissionsIDs(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindAllFunc: tc.mockFunc,
 			}
-			repo := NewRoleRepository(mockHandler)
+			repo := NewRoleCollection(mockHandler)
 
 			roles, err := repo.GetRolesByPermissionsIDs(tc.tenantID, tc.permissionsIDs)
 			if tc.wantErr {
@@ -327,7 +327,7 @@ func TestRoleRepository_GetRolesByPermissionsIDs(t *testing.T) {
 	}
 }
 
-func TestRoleRepository_UpdateRole(t *testing.T) {
+func TestRoleCollection_UpdateRole(t *testing.T) {
 	roleID := primitive.NewObjectID()
 	createdAt := time.Now().Add(-24 * time.Hour)
 
@@ -448,7 +448,7 @@ func TestRoleRepository_UpdateRole(t *testing.T) {
 				FindOneFunc: tc.mockFind,
 				UpdateFunc:  tc.mockUpdate,
 			}
-			repo := NewRoleRepository(mockHandler)
+			repo := NewRoleCollection(mockHandler)
 
 			err := repo.UpdateRole(tc.role)
 			if tc.wantErr {
@@ -460,7 +460,7 @@ func TestRoleRepository_UpdateRole(t *testing.T) {
 	}
 }
 
-func TestRoleRepository_DeleteRole(t *testing.T) {
+func TestRoleCollection_DeleteRole(t *testing.T) {
 	testCases := []struct {
 		name     string
 		tenantID string
@@ -511,7 +511,7 @@ func TestRoleRepository_DeleteRole(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				DeleteFunc: tc.mockFunc,
 			}
-			repo := NewRoleRepository(mockHandler)
+			repo := NewRoleCollection(mockHandler)
 
 			err := repo.DeleteRole(tc.tenantID, tc.roleID)
 			if tc.wantErr {

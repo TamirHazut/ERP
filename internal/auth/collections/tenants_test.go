@@ -1,4 +1,4 @@
-package repository
+package collection
 
 import (
 	"errors"
@@ -13,16 +13,16 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func TestNewTenantRepository(t *testing.T) {
+func TestNewTenantCollection(t *testing.T) {
 	mockHandler := &mock.MockDBHandler{}
-	repo := NewTenantRepository(mockHandler)
+	repo := NewTenantCollection(mockHandler)
 
 	require.NotNil(t, repo)
-	assert.NotNil(t, repo.repository)
+	assert.NotNil(t, repo.collection)
 	assert.NotNil(t, repo.logger)
 }
 
-func TestTenantRepository_CreateTenant(t *testing.T) {
+func TestTenantCollection_CreateTenant(t *testing.T) {
 	testCases := []struct {
 		name     string
 		tenant   models.Tenant
@@ -75,7 +75,7 @@ func TestTenantRepository_CreateTenant(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				CreateFunc: tc.mockFunc,
 			}
-			repo := NewTenantRepository(mockHandler)
+			repo := NewTenantCollection(mockHandler)
 
 			id, err := repo.CreateTenant(tc.tenant)
 			if tc.wantErr {
@@ -89,7 +89,7 @@ func TestTenantRepository_CreateTenant(t *testing.T) {
 	}
 }
 
-func TestTenantRepository_GetTenantByID(t *testing.T) {
+func TestTenantCollection_GetTenantByID(t *testing.T) {
 	testCases := []struct {
 		name     string
 		tenantID string
@@ -140,7 +140,7 @@ func TestTenantRepository_GetTenantByID(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				FindOneFunc: tc.mockFunc,
 			}
-			repo := NewTenantRepository(mockHandler)
+			repo := NewTenantCollection(mockHandler)
 
 			tenant, err := repo.GetTenantByID(tc.tenantID)
 			if tc.wantErr {
@@ -158,7 +158,7 @@ func TestTenantRepository_GetTenantByID(t *testing.T) {
 	}
 }
 
-func TestTenantRepository_UpdateTenant(t *testing.T) {
+func TestTenantCollection_UpdateTenant(t *testing.T) {
 	tenantID := primitive.NewObjectID()
 	createdAt := time.Now().Add(-24 * time.Hour)
 
@@ -269,7 +269,7 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 				FindOneFunc: tc.mockFind,
 				UpdateFunc:  tc.mockUpdate,
 			}
-			repo := NewTenantRepository(mockHandler)
+			repo := NewTenantCollection(mockHandler)
 
 			err := repo.UpdateTenant(tc.tenant)
 			if tc.wantErr {
@@ -281,7 +281,7 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 	}
 }
 
-func TestTenantRepository_DeleteTenant(t *testing.T) {
+func TestTenantCollection_DeleteTenant(t *testing.T) {
 	testCases := []struct {
 		name     string
 		tenantID string
@@ -319,7 +319,7 @@ func TestTenantRepository_DeleteTenant(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
 				DeleteFunc: tc.mockFunc,
 			}
-			repo := NewTenantRepository(mockHandler)
+			repo := NewTenantCollection(mockHandler)
 
 			err := repo.DeleteTenant(tc.tenantID)
 			if tc.wantErr {

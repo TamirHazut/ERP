@@ -260,7 +260,7 @@ internal/
     - [x] RefreshTokens (with token rotation), RevokeAllTokens
     - [x] Unit tests (`internal/auth/token_manager_test.go`)
   - [x] Documentation (`docs/auth/TOKEN_INFRASTRUCTURE.md`)
-- [ ] Login endpoint (`Authenticate()` gRPC method)
+- [x] Login endpoint (`Authenticate()` gRPC method)
 - [ ] Session management (Redis: `sessions:{session_id}`)
 - [ ] Logout endpoint
 - [ ] Token refresh endpoint

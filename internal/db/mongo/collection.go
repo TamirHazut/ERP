@@ -8,7 +8,7 @@ import (
 	"erp.localhost/internal/logging"
 )
 
-// Generic Repository
+// Generic Collection
 type CollectionHandler[T any] struct {
 	dbHandler  db.DBHandler
 	collection string
