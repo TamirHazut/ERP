@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	common_models "erp.localhost/internal/common/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -48,15 +49,6 @@ const (
 // ============================================================================
 // CORE MODELS
 // ============================================================================
-
-// Address is a common address type used across core models
-type Address struct {
-	Street  string `bson:"street" json:"street"`
-	City    string `bson:"city" json:"city"`
-	State   string `bson:"state" json:"state"`
-	Zip     string `bson:"zip" json:"zip"`
-	Country string `bson:"country" json:"country"`
-}
 
 // Product represents a product in the system
 type Product struct {
@@ -112,21 +104,21 @@ type ProductMetadata struct {
 
 // Vendor represents a vendor/supplier
 type Vendor struct {
-	ID               primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	VendorID         string             `bson:"vendor_id" json:"vendor_id"`
-	TenantID         string             `bson:"tenant_id" json:"tenant_id"`
-	Name             string             `bson:"name" json:"name"`
-	Code             string             `bson:"code" json:"code"`
-	Contact          VendorContact      `bson:"contact" json:"contact"`
-	Address          Address            `bson:"address" json:"address"`
-	PaymentTerms     PaymentTerms       `bson:"payment_terms" json:"payment_terms"`
-	Rating           float64            `bson:"rating" json:"rating"`
-	Status           string             `bson:"status" json:"status"` // active, inactive, pending_approval
-	ProductsSupplied []string           `bson:"products_supplied,omitempty" json:"products_supplied,omitempty"`
-	Metadata         VendorMetadata     `bson:"metadata,omitempty" json:"metadata,omitempty"`
-	CreatedAt        time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt        time.Time          `bson:"updated_at" json:"updated_at"`
-	CreatedBy        string             `bson:"created_by" json:"created_by"`
+	ID               primitive.ObjectID    `bson:"_id,omitempty" json:"id"`
+	VendorID         string                `bson:"vendor_id" json:"vendor_id"`
+	TenantID         string                `bson:"tenant_id" json:"tenant_id"`
+	Name             string                `bson:"name" json:"name"`
+	Code             string                `bson:"code" json:"code"`
+	Contact          VendorContact         `bson:"contact" json:"contact"`
+	Address          common_models.Address `bson:"address" json:"address"`
+	PaymentTerms     PaymentTerms          `bson:"payment_terms" json:"payment_terms"`
+	Rating           float64               `bson:"rating" json:"rating"`
+	Status           string                `bson:"status" json:"status"` // active, inactive, pending_approval
+	ProductsSupplied []string              `bson:"products_supplied,omitempty" json:"products_supplied,omitempty"`
+	Metadata         VendorMetadata        `bson:"metadata,omitempty" json:"metadata,omitempty"`
+	CreatedAt        time.Time             `bson:"created_at" json:"created_at"`
+	UpdatedAt        time.Time             `bson:"updated_at" json:"updated_at"`
+	CreatedBy        string                `bson:"created_by" json:"created_by"`
 }
 
 type VendorContact struct {
@@ -150,25 +142,25 @@ type VendorMetadata struct {
 
 // Order represents an order
 type Order struct {
-	ID              primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
-	OrderID         string               `bson:"order_id" json:"order_id"`
-	TenantID        string               `bson:"tenant_id" json:"tenant_id"`
-	OrderNumber     string               `bson:"order_number" json:"order_number"`
-	OrderType       string               `bson:"order_type" json:"order_type"` // sales, purchase, transfer
-	CustomerID      string               `bson:"customer_id,omitempty" json:"customer_id,omitempty"`
-	VendorID        string               `bson:"vendor_id,omitempty" json:"vendor_id,omitempty"`
-	Status          string               `bson:"status" json:"status"` // draft, pending, confirmed, shipped, delivered, cancelled
-	Items           []string             `bson:"items" json:"items"`   // References to order_items
-	Totals          OrderTotals          `bson:"totals" json:"totals"`
-	ShippingAddress Address              `bson:"shipping_address" json:"shipping_address"`
-	BillingAddress  Address              `bson:"billing_address" json:"billing_address"`
-	Payment         PaymentInfo          `bson:"payment" json:"payment"`
-	Fulfillment     FulfillmentInfo      `bson:"fulfillment,omitempty" json:"fulfillment,omitempty"`
-	Notes           string               `bson:"notes,omitempty" json:"notes,omitempty"`
-	CreatedAt       time.Time            `bson:"created_at" json:"created_at"`
-	UpdatedAt       time.Time            `bson:"updated_at" json:"updated_at"`
-	CreatedBy       string               `bson:"created_by" json:"created_by"`
-	Timeline        []OrderTimelineEvent `bson:"timeline,omitempty" json:"timeline,omitempty"`
+	ID              primitive.ObjectID    `bson:"_id,omitempty" json:"id"`
+	OrderID         string                `bson:"order_id" json:"order_id"`
+	TenantID        string                `bson:"tenant_id" json:"tenant_id"`
+	OrderNumber     string                `bson:"order_number" json:"order_number"`
+	OrderType       string                `bson:"order_type" json:"order_type"` // sales, purchase, transfer
+	CustomerID      string                `bson:"customer_id,omitempty" json:"customer_id,omitempty"`
+	VendorID        string                `bson:"vendor_id,omitempty" json:"vendor_id,omitempty"`
+	Status          string                `bson:"status" json:"status"` // draft, pending, confirmed, shipped, delivered, cancelled
+	Items           []string              `bson:"items" json:"items"`   // References to order_items
+	Totals          OrderTotals           `bson:"totals" json:"totals"`
+	ShippingAddress common_models.Address `bson:"shipping_address" json:"shipping_address"`
+	BillingAddress  common_models.Address `bson:"billing_address" json:"billing_address"`
+	Payment         PaymentInfo           `bson:"payment" json:"payment"`
+	Fulfillment     FulfillmentInfo       `bson:"fulfillment,omitempty" json:"fulfillment,omitempty"`
+	Notes           string                `bson:"notes,omitempty" json:"notes,omitempty"`
+	CreatedAt       time.Time             `bson:"created_at" json:"created_at"`
+	UpdatedAt       time.Time             `bson:"updated_at" json:"updated_at"`
+	CreatedBy       string                `bson:"created_by" json:"created_by"`
+	Timeline        []OrderTimelineEvent  `bson:"timeline,omitempty" json:"timeline,omitempty"`
 }
 
 type OrderTotals struct {
@@ -293,17 +285,17 @@ type InventoryLocation struct {
 
 // Warehouse represents a warehouse/storage location
 type Warehouse struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	WarehouseID string             `bson:"warehouse_id" json:"warehouse_id"`
-	TenantID    string             `bson:"tenant_id" json:"tenant_id"`
-	Name        string             `bson:"name" json:"name"`
-	Code        string             `bson:"code" json:"code"`
-	Address     Address            `bson:"address" json:"address"`
-	Contact     WarehouseContact   `bson:"contact" json:"contact"`
-	Capacity    WarehouseCapacity  `bson:"capacity" json:"capacity"`
-	Status      string             `bson:"status" json:"status"` // active, inactive, maintenance
-	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
+	ID          primitive.ObjectID    `bson:"_id,omitempty" json:"id"`
+	WarehouseID string                `bson:"warehouse_id" json:"warehouse_id"`
+	TenantID    string                `bson:"tenant_id" json:"tenant_id"`
+	Name        string                `bson:"name" json:"name"`
+	Code        string                `bson:"code" json:"code"`
+	Address     common_models.Address `bson:"address" json:"address"`
+	Contact     WarehouseContact      `bson:"contact" json:"contact"`
+	Capacity    WarehouseCapacity     `bson:"capacity" json:"capacity"`
+	Status      string                `bson:"status" json:"status"` // active, inactive, maintenance
+	CreatedAt   time.Time             `bson:"created_at" json:"created_at"`
+	UpdatedAt   time.Time             `bson:"updated_at" json:"updated_at"`
 }
 
 type WarehouseContact struct {
@@ -334,4 +326,3 @@ type Category struct {
 	CreatedAt        time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt        time.Time          `bson:"updated_at" json:"updated_at"`
 }
-

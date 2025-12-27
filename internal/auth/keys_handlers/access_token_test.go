@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	auth_models "erp.localhost/internal/auth/models/cache"
 	db "erp.localhost/internal/db"
 	"erp.localhost/internal/db/mock"
 	"erp.localhost/internal/db/redis"
-	redis_models "erp.localhost/internal/db/redis/models"
 	"erp.localhost/internal/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ func newAccessTokenKeyHandlerWithMock(mockHandler db.DBHandler, logger *logging.
 	if logger == nil {
 		logger = logging.NewLogger(logging.ModuleAuth)
 	}
-	keyHandler := redis.NewKeyHandlerWithMockForTest[redis_models.TokenMetadata](mockHandler, logger)
+	keyHandler := redis.NewKeyHandlerWithMockForTest[auth_models.TokenMetadata](mockHandler, logger)
 	return &AccessTokenKeyHandler{
 		keyHandler: keyHandler,
 		tokenIndex: nil, // Don't use real token index in tests
@@ -34,7 +34,7 @@ func TestNewAccessTokenKeyHandler(t *testing.T) {
 }
 
 func TestAccessTokenKeyHandler_Store(t *testing.T) {
-	validMetadata := redis_models.TokenMetadata{
+	validMetadata := auth_models.TokenMetadata{
 		TokenID:   "token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -49,7 +49,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 		tenantID string
 		userID   string
 		tokenID  string
-		metadata redis_models.TokenMetadata
+		metadata auth_models.TokenMetadata
 		mockFunc func(key string, data any) (string, error)
 		wantErr  bool
 	}{
@@ -69,7 +69,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			metadata: redis_models.TokenMetadata{
+			metadata: auth_models.TokenMetadata{
 				UserID:    "user-123",
 				TenantID:  "tenant-123",
 				TokenType: "access",
@@ -85,7 +85,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			metadata: redis_models.TokenMetadata{
+			metadata: auth_models.TokenMetadata{
 				TokenID:   "token-123",
 				UserID:    "user-123",
 				TenantID:  "wrong-tenant",
@@ -128,7 +128,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 }
 
 func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
-	validMetadata := redis_models.TokenMetadata{
+	validMetadata := auth_models.TokenMetadata{
 		TokenID:   "token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -144,7 +144,7 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 		userID    string
 		tokenID   string
 		mockFunc  func(db string, filter map[string]any) (any, error)
-		wantToken *redis_models.TokenMetadata
+		wantToken *auth_models.TokenMetadata
 		wantErr   bool
 	}{
 		{
@@ -164,7 +164,7 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 			userID:   "user-123",
 			tokenID:  "token-123",
 			mockFunc: func(db string, filter map[string]any) (any, error) {
-				return redis_models.TokenMetadata{}, errors.New("token not found")
+				return auth_models.TokenMetadata{}, errors.New("token not found")
 			},
 			wantToken: nil,
 			wantErr:   true,
@@ -175,7 +175,7 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 			userID:   "user-123",
 			tokenID:  "token-123",
 			mockFunc: func(db string, filter map[string]any) (any, error) {
-				return redis_models.TokenMetadata{}, errors.New("database query failed")
+				return auth_models.TokenMetadata{}, errors.New("database query failed")
 			},
 			wantToken: nil,
 			wantErr:   true,
@@ -202,7 +202,7 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 }
 
 func TestAccessTokenKeyHandler_GetAll(t *testing.T) {
-	validMetadata := redis_models.TokenMetadata{
+	validMetadata := auth_models.TokenMetadata{
 		TokenID:   "token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -217,7 +217,7 @@ func TestAccessTokenKeyHandler_GetAll(t *testing.T) {
 		tenantID  string
 		userID    string
 		mockFunc  func(key string, filter map[string]any) ([]any, error)
-		wantToken *redis_models.TokenMetadata
+		wantToken *auth_models.TokenMetadata
 		wantErr   bool
 	}{
 		{
@@ -280,7 +280,7 @@ func TestAccessTokenKeyHandler_GetAll(t *testing.T) {
 }
 
 func TestAccessTokenKeyHandler_Validate(t *testing.T) {
-	validMetadata := redis_models.TokenMetadata{
+	validMetadata := auth_models.TokenMetadata{
 		TokenID:   "token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -289,7 +289,7 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 		ExpiresAt: time.Now().Add(time.Hour),
 		Revoked:   false,
 	}
-	expiredMetadata := redis_models.TokenMetadata{
+	expiredMetadata := auth_models.TokenMetadata{
 		TokenID:   "token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -298,7 +298,7 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 		ExpiresAt: time.Now().Add(-time.Hour), // Expired
 		Revoked:   false,
 	}
-	revokedMetadata := redis_models.TokenMetadata{
+	revokedMetadata := auth_models.TokenMetadata{
 		TokenID:   "token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -379,7 +379,7 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 }
 
 func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
-	validMetadata := redis_models.TokenMetadata{
+	validMetadata := auth_models.TokenMetadata{
 		TokenID:   "token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -463,7 +463,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 }
 
 func TestAccessTokenKeyHandler_Delete(t *testing.T) {
-	validMetadata := redis_models.TokenMetadata{
+	validMetadata := auth_models.TokenMetadata{
 		TokenID:   "token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",

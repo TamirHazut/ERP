@@ -11,8 +11,8 @@ import (
 
 	keyshandlers "erp.localhost/internal/auth/keys_handlers"
 	"erp.localhost/internal/auth/models"
+	auth_models "erp.localhost/internal/auth/models/cache"
 	"erp.localhost/internal/db/redis"
-	redis_models "erp.localhost/internal/db/redis/models"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
 	"github.com/google/uuid"
@@ -151,7 +151,7 @@ func (tm *TokenManager) GenerateAccessToken(input *GenerateAccessTokenInput) (st
 }
 
 // VerifyAccessToken verifies if the given JWT token is a valid access token
-func (tm *TokenManager) VerifyAccessToken(tokenString string) (*redis_models.TokenMetadata, error) {
+func (tm *TokenManager) VerifyAccessToken(tokenString string) (*auth_models.TokenMetadata, error) {
 	if tokenString == "" {
 		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("token is required"))
 	}
@@ -284,7 +284,7 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 
 // StoreTokens stores both access and refresh tokens in Redis
 // This is typically called after successful authentication
-func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenID string, refreshTokenID string, accessTokenMetadata redis_models.TokenMetadata, refreshToken models.RefreshToken) error {
+func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenID string, refreshTokenID string, accessTokenMetadata auth_models.TokenMetadata, refreshToken models.RefreshToken) error {
 	// Store access token
 	if err := tm.accessTokenHandler.Store(tenantID, userID, accessTokenID, accessTokenMetadata); err != nil {
 		tm.logger.Error("Failed to store access token", "error", err, "tenantID", tenantID, "userID", userID)
@@ -304,7 +304,7 @@ func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenI
 }
 
 // ValidateAccessTokenFromRedis validates an access token from Redis
-func (tm *TokenManager) ValidateAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*redis_models.TokenMetadata, error) {
+func (tm *TokenManager) ValidateAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
 	return tm.accessTokenHandler.Validate(tenantID, userID, tokenID)
 }
 
@@ -314,7 +314,7 @@ func (tm *TokenManager) ValidateRefreshTokenFromRedis(tenantID string, userID st
 }
 
 // RefreshTokens generates new tokens and revokes old refresh token (token rotation)
-func (tm *TokenManager) RefreshTokens(tenantID string, userID string, oldRefreshTokenID string, newAccessTokenID string, newRefreshTokenID string, newAccessTokenMetadata redis_models.TokenMetadata, newRefreshToken models.RefreshToken) error {
+func (tm *TokenManager) RefreshTokens(tenantID string, userID string, oldRefreshTokenID string, newAccessTokenID string, newRefreshTokenID string, newAccessTokenMetadata auth_models.TokenMetadata, newRefreshToken models.RefreshToken) error {
 	// Validate old refresh token
 	_, err := tm.refreshTokenHandler.Validate(tenantID, userID, oldRefreshTokenID)
 	if err != nil {
@@ -376,12 +376,12 @@ func (tm *TokenManager) RevokeAllTokens(tenantID string, userID string, revokedB
 }
 
 // GetAccessTokenFromRedis retrieves access token metadata from Redis
-func (tm *TokenManager) GetAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*redis_models.TokenMetadata, error) {
+func (tm *TokenManager) GetAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
 	return tm.accessTokenHandler.GetOne(tenantID, userID, tokenID)
 }
 
 // GetAllAccessTokensFromRedis retrieves all access tokens from Redis
-func (tm *TokenManager) GetAllAccessTokensFromRedis(tenantID string, userID string) ([]redis_models.TokenMetadata, error) {
+func (tm *TokenManager) GetAllAccessTokensFromRedis(tenantID string, userID string) ([]auth_models.TokenMetadata, error) {
 	return tm.accessTokenHandler.GetAll(tenantID, userID)
 }
 
@@ -457,7 +457,7 @@ func (tm *TokenManager) RevokeAllUserRefreshTokens(tenantID string, userID strin
 	return nil
 }
 
-func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*redis_models.TokenMetadata, error) {
+func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*auth_models.TokenMetadata, error) {
 	claims := &models.AccessTokenClaims{}
 
 	token, err := jwt.Parse(accessTokenString, func(token *jwt.Token) (interface{}, error) {

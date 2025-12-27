@@ -8,11 +8,11 @@ import (
 
 	collection "erp.localhost/internal/auth/collections"
 	"erp.localhost/internal/auth/models"
+	auth_models "erp.localhost/internal/auth/models/cache"
 	auth_proto "erp.localhost/internal/auth/proto/v1"
 	"erp.localhost/internal/auth/rbac"
 	token "erp.localhost/internal/auth/token"
 	mongo "erp.localhost/internal/db/mongo"
-	redis_models "erp.localhost/internal/db/redis/models"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
 	"google.golang.org/grpc/codes"
@@ -115,7 +115,7 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 	hashedAccessToken := sha256.Sum256([]byte(accessToken))
 	accessTokenID := hex.EncodeToString(hashedAccessToken[:])
 
-	accessTokenMetadata := redis_models.TokenMetadata{
+	accessTokenMetadata := auth_models.TokenMetadata{
 		TokenID:   accessTokenID,
 		JTI:       accessToken,
 		UserID:    user.ID.String(),

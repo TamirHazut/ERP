@@ -1,42 +1,40 @@
 package mocks
 
-import (
-	redis_models "erp.localhost/internal/db/redis/models"
-)
+import auth_models "erp.localhost/internal/auth/models/cache"
 
 // MockAccessTokenKeyHandler is a mock implementation of AccessTokenKeyHandler for testing
 type MockAccessTokenKeyHandler struct {
-	StoreFunc     func(tenantID string, userID string, tokenID string, metadata redis_models.TokenMetadata) error
-	GetOneFunc    func(tenantID string, userID string, tokenID string) (*redis_models.TokenMetadata, error)
-	GetAllFunc    func(tenantID string, userID string) ([]redis_models.TokenMetadata, error)
-	ValidateFunc  func(tenantID string, userID string, tokenID string) (*redis_models.TokenMetadata, error)
+	StoreFunc     func(tenantID string, userID string, tokenID string, metadata auth_models.TokenMetadata) error
+	GetOneFunc    func(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error)
+	GetAllFunc    func(tenantID string, userID string) ([]auth_models.TokenMetadata, error)
+	ValidateFunc  func(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error)
 	RevokeFunc    func(tenantID string, userID string, tokenID string, revokedBy string) error
 	RevokeAllFunc func(tenantID string, userID string, revokedBy string) error
 	DeleteFunc    func(tenantID string, userID string, tokenID string) error
 }
 
-func (m *MockAccessTokenKeyHandler) Store(tenantID string, userID string, tokenID string, metadata redis_models.TokenMetadata) error {
+func (m *MockAccessTokenKeyHandler) Store(tenantID string, userID string, tokenID string, metadata auth_models.TokenMetadata) error {
 	if m.StoreFunc != nil {
 		return m.StoreFunc(tenantID, userID, tokenID, metadata)
 	}
 	return nil
 }
 
-func (m *MockAccessTokenKeyHandler) GetOne(tenantID string, userID string, tokenID string) (*redis_models.TokenMetadata, error) {
+func (m *MockAccessTokenKeyHandler) GetOne(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
 	if m.GetOneFunc != nil {
 		return m.GetOneFunc(tenantID, userID, tokenID)
 	}
 	return nil, nil
 }
 
-func (m *MockAccessTokenKeyHandler) GetAll(tenantID string, userID string) ([]redis_models.TokenMetadata, error) {
+func (m *MockAccessTokenKeyHandler) GetAll(tenantID string, userID string) ([]auth_models.TokenMetadata, error) {
 	if m.GetAllFunc != nil {
 		return m.GetAllFunc(tenantID, userID)
 	}
 	return nil, nil
 }
 
-func (m *MockAccessTokenKeyHandler) Validate(tenantID string, userID string, tokenID string) (*redis_models.TokenMetadata, error) {
+func (m *MockAccessTokenKeyHandler) Validate(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
 	if m.ValidateFunc != nil {
 		return m.ValidateFunc(tenantID, userID, tokenID)
 	}

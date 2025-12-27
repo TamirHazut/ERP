@@ -7,7 +7,7 @@ import (
 
 	"erp.localhost/internal/auth/mocks"
 	"erp.localhost/internal/auth/models"
-	redis_models "erp.localhost/internal/db/redis/models"
+	auth_models "erp.localhost/internal/auth/models/cache"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +30,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 		userID              string
 		accessTokenID       string
 		refreshTokenID      string
-		accessTokenMetadata redis_models.TokenMetadata
+		accessTokenMetadata auth_models.TokenMetadata
 		refreshToken        models.RefreshToken
 		wantErr             bool
 	}{
@@ -38,7 +38,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			name: "successful store",
 			setupMocks: func() (AccessTokenHandler, RefreshTokenHandler) {
 				var accessMock AccessTokenHandler = &mocks.MockAccessTokenKeyHandler{
-					StoreFunc: func(tenantID, userID, tokenID string, metadata redis_models.TokenMetadata) error {
+					StoreFunc: func(tenantID, userID, tokenID string, metadata auth_models.TokenMetadata) error {
 						return nil
 					},
 				}
@@ -53,7 +53,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			userID:         "user-1",
 			accessTokenID:  "token-1",
 			refreshTokenID: "refresh-1",
-			accessTokenMetadata: redis_models.TokenMetadata{
+			accessTokenMetadata: auth_models.TokenMetadata{
 				TokenID:  "token-1",
 				UserID:   "user-1",
 				TenantID: "tenant-1",
@@ -71,7 +71,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			name: "access token store fails",
 			setupMocks: func() (AccessTokenHandler, RefreshTokenHandler) {
 				var accessMock AccessTokenHandler = &mocks.MockAccessTokenKeyHandler{
-					StoreFunc: func(tenantID, userID, tokenID string, metadata redis_models.TokenMetadata) error {
+					StoreFunc: func(tenantID, userID, tokenID string, metadata auth_models.TokenMetadata) error {
 						return errors.New("store failed")
 					},
 				}
@@ -82,7 +82,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			userID:         "user-1",
 			accessTokenID:  "token-1",
 			refreshTokenID: "refresh-1",
-			accessTokenMetadata: redis_models.TokenMetadata{
+			accessTokenMetadata: auth_models.TokenMetadata{
 				TokenID:  "token-1",
 				UserID:   "user-1",
 				TenantID: "tenant-1",
@@ -100,7 +100,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			name: "refresh token store fails - access token cleaned up",
 			setupMocks: func() (AccessTokenHandler, RefreshTokenHandler) {
 				var accessMock AccessTokenHandler = &mocks.MockAccessTokenKeyHandler{
-					StoreFunc: func(tenantID, userID, tokenID string, metadata redis_models.TokenMetadata) error {
+					StoreFunc: func(tenantID, userID, tokenID string, metadata auth_models.TokenMetadata) error {
 						return nil
 					},
 					DeleteFunc: func(tenantID, userID, tokenID string) error {
@@ -118,7 +118,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			userID:         "user-1",
 			accessTokenID:  "token-1",
 			refreshTokenID: "refresh-1",
-			accessTokenMetadata: redis_models.TokenMetadata{
+			accessTokenMetadata: auth_models.TokenMetadata{
 				TokenID:  "token-1",
 				UserID:   "user-1",
 				TenantID: "tenant-1",
@@ -171,8 +171,8 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 			name: "valid token",
 			setupMock: func() *mocks.MockAccessTokenKeyHandler {
 				return &mocks.MockAccessTokenKeyHandler{
-					ValidateFunc: func(tenantID, userID, tokenID string) (*redis_models.TokenMetadata, error) {
-						return &redis_models.TokenMetadata{
+					ValidateFunc: func(tenantID, userID, tokenID string) (*auth_models.TokenMetadata, error) {
+						return &auth_models.TokenMetadata{
 							TokenID:   tokenID,
 							TenantID:  tenantID,
 							UserID:    userID,
@@ -191,7 +191,7 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 			name: "invalid token",
 			setupMock: func() *mocks.MockAccessTokenKeyHandler {
 				return &mocks.MockAccessTokenKeyHandler{
-					ValidateFunc: func(tenantID, userID, tokenID string) (*redis_models.TokenMetadata, error) {
+					ValidateFunc: func(tenantID, userID, tokenID string) (*auth_models.TokenMetadata, error) {
 						return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid)
 					},
 				}
