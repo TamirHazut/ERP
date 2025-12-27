@@ -54,7 +54,7 @@ func (r *RedisHandler) Close() error {
 
 func (r *RedisHandler) Create(key string, value any) (string, error) {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
-	if _, err := r.Find(key, nil); err == nil {
+	if _, err := r.FindOne(key, nil); err == nil {
 		return "", erp_errors.Conflict(erp_errors.ConflictDuplicateResource)
 	}
 	result := r.client.Set(redisContext, formattedKey, value, 0)
@@ -64,7 +64,16 @@ func (r *RedisHandler) Create(key string, value any) (string, error) {
 	return result.Val(), nil
 }
 
-func (r *RedisHandler) Find(key string, filter map[string]any) ([]any, error) {
+func (r *RedisHandler) FindOne(key string, filter map[string]any) (any, error) {
+	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
+	value, err := r.client.Get(redisContext, formattedKey).Result()
+	if err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+func (r *RedisHandler) FindAll(key string, filter map[string]any) ([]any, error) {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
 	values, err := r.client.SMembers(redisContext, formattedKey).Result()
 	if err != nil {

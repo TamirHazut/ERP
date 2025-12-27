@@ -34,36 +34,31 @@ func (r *UserRepository) CreateUser(user models.User) (string, error) {
 	return r.repository.Create(user)
 }
 
-func (r *UserRepository) GetUserByID(tenantID, userID string) (models.User, error) {
+func (r *UserRepository) GetUserByID(tenantID, userID string) (*models.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       userID,
 	}
 	r.logger.Debug("Getting user by id", "filter", filter)
-	users, err := r.repository.Find(filter)
-	if err != nil {
-		return models.User{}, erp_errors.NotFound(erp_errors.NotFoundUser, "User", userID)
-	}
-	if len(users) == 0 {
-		return models.User{}, erp_errors.NotFound(erp_errors.NotFoundUser, "User", userID)
-	}
-	return users[0], nil
+	return r.findUserByFilter(filter)
 }
 
-func (r *UserRepository) GetUserByUsername(tenantID, username string) (models.User, error) {
+func (r *UserRepository) GetUserByEmail(tenantID, email string) (*models.User, error) {
+	filter := map[string]any{
+		"tenant_id": tenantID,
+		"email":     email,
+	}
+	r.logger.Debug("Getting user by email", "filter", filter)
+	return r.findUserByFilter(filter)
+}
+
+func (r *UserRepository) GetUserByUsername(tenantID, username string) (*models.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"username":  username,
 	}
 	r.logger.Debug("Getting user by username", "filter", filter)
-	users, err := r.repository.Find(filter)
-	if err != nil {
-		return models.User{}, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
-	}
-	if len(users) == 0 {
-		return models.User{}, erp_errors.NotFound(erp_errors.NotFoundUser, "User", username)
-	}
-	return users[0], nil
+	return r.findUserByFilter(filter)
 }
 
 func (r *UserRepository) GetUsersByTenantID(tenantID string) ([]models.User, error) {
@@ -71,11 +66,7 @@ func (r *UserRepository) GetUsersByTenantID(tenantID string) ([]models.User, err
 		"tenant_id": tenantID,
 	}
 	r.logger.Debug("Getting users by tenant id", "filter", filter)
-	users, err := r.repository.Find(filter)
-	if err != nil {
-		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
-	}
-	return users, nil
+	return r.findUsersByFilter(filter)
 }
 
 func (r *UserRepository) GetUsersByRoleID(tenantID, roleID string) ([]models.User, error) {
@@ -84,11 +75,7 @@ func (r *UserRepository) GetUsersByRoleID(tenantID, roleID string) ([]models.Use
 		"role_id":   roleID,
 	}
 	r.logger.Debug("Getting users by role id", "filter", filter)
-	users, err := r.repository.Find(filter)
-	if err != nil {
-		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
-	}
-	return users, nil
+	return r.findUsersByFilter(filter)
 }
 
 func (r *UserRepository) UpdateUser(user models.User) error {
@@ -123,4 +110,20 @@ func (r *UserRepository) DeleteUser(tenantID, userID string) error {
 	}
 	r.logger.Debug("Deleting user", "filter", filter)
 	return r.repository.Delete(filter)
+}
+
+func (r *UserRepository) findUserByFilter(filter map[string]any) (*models.User, error) {
+	user, err := r.repository.FindOne(filter)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (r *UserRepository) findUsersByFilter(filter map[string]any) ([]models.User, error) {
+	users, err := r.repository.FindAll(filter)
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
 }

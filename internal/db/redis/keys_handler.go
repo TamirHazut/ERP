@@ -18,6 +18,7 @@ func NewKeyHandler[T any](keyPrefix KeyPrefix, logger *logging.Logger) *KeyHandl
 	if logger == nil {
 		logger = logging.NewLogger(logging.ModuleDB)
 	}
+	// Currently only redis is supported
 	dbHandler := NewRedisHandler(keyPrefix)
 	if dbHandler == nil {
 		logger.Fatal("Failed to create redis handler")
@@ -39,15 +40,27 @@ func (k *KeyHandler[T]) Set(tenantID string, key string, value any) error {
 	return nil
 }
 
-func (k *KeyHandler[T]) Get(tenantID string, key string) ([]T, error) {
+func (k *KeyHandler[T]) GetOne(tenantID string, key string) (*T, error) {
 	k.logger.Debug("Getting key", "tenantID", tenantID, "key", key)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
-	values, err := k.dbHandler.Find(formattedKey, nil)
+	value, err := k.dbHandler.FindOne(formattedKey, nil)
 	if err != nil {
 		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 	}
-	if len(values) == 0 {
-		return nil, erp_errors.NotFound(erp_errors.NotFoundResource, key, nil)
+	var result T
+	err = json.Unmarshal([]byte(value.(string)), &result)
+	if err != nil {
+		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+	}
+	return &result, nil
+}
+
+func (k *KeyHandler[T]) GetAll(tenantID string, userID string) ([]T, error) {
+	k.logger.Debug("Getting key", "tenantID", tenantID, "userID", userID)
+	formattedKey := fmt.Sprintf("%s:%s", tenantID, userID)
+	values, err := k.dbHandler.FindAll(formattedKey, nil)
+	if err != nil {
+		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 	}
 	var results []T
 	for _, value := range values {
@@ -57,9 +70,6 @@ func (k *KeyHandler[T]) Get(tenantID string, key string) ([]T, error) {
 			return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 		}
 		results = append(results, result)
-	}
-	if err != nil {
-		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 	}
 	return results, nil
 }

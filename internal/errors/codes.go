@@ -330,6 +330,11 @@ var (
 		Message:  "Service is temporarily unavailable. Please try again later",
 		Category: CategoryInternal,
 	}
+	InternalGRPCError = ErrorDef{
+		Code:     "INTERNAL_GRPC_ERROR",
+		Message:  "A gRPC error occurred. Please try again later",
+		Category: CategoryInternal,
+	}
 	InternalUnexpectedError = ErrorDef{
 		Code:     "INTERNAL_UNEXPECTED_ERROR",
 		Message:  "An unexpected error occurred. Please try again later",

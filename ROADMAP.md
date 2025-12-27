@@ -223,7 +223,7 @@ internal/
 
 **What to Build:**
 - [ ] gRPC server implementation
-- [ ] Auth service proto definitions (`.proto` files)
+- [x] Auth service proto definitions (`.proto` files)
 - [x] User repository using generic Repository pattern (MongoDB: `auth_db.users`)
   - [x] `internal/auth/repository/users_repo.go`
   - [x] CRUD operations with tenant isolation

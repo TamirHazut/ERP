@@ -1,11 +1,14 @@
 package mock
 
+import "errors"
+
 // MockDBHandler is a mock implementation of DBHandler for testing
 type MockDBHandler struct {
-	CreateFunc func(db string, data any) (string, error)
-	FindFunc   func(db string, filter map[string]any) ([]any, error)
-	UpdateFunc func(db string, filter map[string]any, data any) error
-	DeleteFunc func(db string, filter map[string]any) error
+	CreateFunc  func(db string, data any) (string, error)
+	FindOneFunc func(db string, filter map[string]any) (any, error)
+	FindAllFunc func(db string, filter map[string]any) ([]any, error)
+	UpdateFunc  func(db string, filter map[string]any, data any) error
+	DeleteFunc  func(db string, filter map[string]any) error
 }
 
 func (m *MockDBHandler) Create(db string, data any) (string, error) {
@@ -15,9 +18,16 @@ func (m *MockDBHandler) Create(db string, data any) (string, error) {
 	return "mock-id", nil
 }
 
-func (m *MockDBHandler) Find(db string, filter map[string]any) ([]any, error) {
-	if m.FindFunc != nil {
-		return m.FindFunc(db, filter)
+func (m *MockDBHandler) FindOne(db string, filter map[string]any) (any, error) {
+	if m.FindOneFunc != nil {
+		return m.FindOneFunc(db, filter)
+	}
+	return nil, errors.New("not implemented")
+}
+
+func (m *MockDBHandler) FindAll(db string, filter map[string]any) ([]any, error) {
+	if m.FindAllFunc != nil {
+		return m.FindAllFunc(db, filter)
 	}
 	return []any{}, nil
 }

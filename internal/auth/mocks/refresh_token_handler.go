@@ -6,13 +6,14 @@ import (
 
 // MockRefreshTokenKeyHandler is a mock implementation of RefreshTokenKeyHandler for testing
 type MockRefreshTokenKeyHandler struct {
-	StoreFunc         func(tenantID string, userID string, tokenID string, refreshToken models.RefreshToken) error
-	GetFunc           func(tenantID string, userID string, tokenID string) (*models.RefreshToken, error)
-	ValidateFunc      func(tenantID string, userID string, tokenID string) (*models.RefreshToken, error)
-	RevokeFunc        func(tenantID string, userID string, tokenID string) error
-	RevokeAllFunc     func(tenantID string, userID string) error
+	StoreFunc          func(tenantID string, userID string, tokenID string, refreshToken models.RefreshToken) error
+	GetOneFunc         func(tenantID string, userID string, tokenID string) (*models.RefreshToken, error)
+	GetAllFunc         func(tenantID string, userID string) ([]models.RefreshToken, error)
+	ValidateFunc       func(tenantID string, userID string, tokenID string) (*models.RefreshToken, error)
+	RevokeFunc         func(tenantID string, userID string, tokenID string) error
+	RevokeAllFunc      func(tenantID string, userID string) error
 	UpdateLastUsedFunc func(tenantID string, userID string, tokenID string) error
-	DeleteFunc        func(tenantID string, userID string, tokenID string) error
+	DeleteFunc         func(tenantID string, userID string, tokenID string) error
 }
 
 func (m *MockRefreshTokenKeyHandler) Store(tenantID string, userID string, tokenID string, refreshToken models.RefreshToken) error {
@@ -22,9 +23,16 @@ func (m *MockRefreshTokenKeyHandler) Store(tenantID string, userID string, token
 	return nil
 }
 
-func (m *MockRefreshTokenKeyHandler) Get(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
-	if m.GetFunc != nil {
-		return m.GetFunc(tenantID, userID, tokenID)
+func (m *MockRefreshTokenKeyHandler) GetOne(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
+	if m.GetOneFunc != nil {
+		return m.GetOneFunc(tenantID, userID, tokenID)
+	}
+	return nil, nil
+}
+
+func (m *MockRefreshTokenKeyHandler) GetAll(tenantID string, userID string) ([]models.RefreshToken, error) {
+	if m.GetAllFunc != nil {
+		return m.GetAllFunc(tenantID, userID)
 	}
 	return nil, nil
 }
@@ -63,4 +71,3 @@ func (m *MockRefreshTokenKeyHandler) Delete(tenantID string, userID string, toke
 	}
 	return nil
 }
-

@@ -37,12 +37,12 @@ func TestNewRefreshTokenKeyHandler(t *testing.T) {
 
 func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 	validToken := models.RefreshToken{
-		Token:      "refresh-token-123",
-		UserID:     "user-123",
-		TenantID:   "tenant-123",
-		ExpiresAt:  time.Now().Add(24 * time.Hour),
-		CreatedAt:  time.Now(),
-		IsRevoked:  false,
+		Token:     "refresh-token-123",
+		UserID:    "user-123",
+		TenantID:  "tenant-123",
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		CreatedAt: time.Now(),
+		IsRevoked: false,
 	}
 
 	testCases := []struct {
@@ -132,7 +132,84 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 	}
 }
 
-func TestRefreshTokenKeyHandler_Get(t *testing.T) {
+func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
+	validToken := models.RefreshToken{
+		Token:     "refresh-token-123",
+		UserID:    "user-123",
+		TenantID:  "tenant-123",
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		CreatedAt: time.Now(),
+		IsRevoked: false,
+	}
+	jsonData, _ := json.Marshal(validToken)
+
+	testCases := []struct {
+		name      string
+		tenantID  string
+		userID    string
+		tokenID   string
+		mockFunc  func(key string, filter map[string]any) (any, error)
+		wantToken *models.RefreshToken
+		wantErr   bool
+	}{
+		{
+			name:     "successful get",
+			tenantID: "tenant-123",
+			userID:   "user-123",
+			tokenID:  "token-123",
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return string(jsonData), nil
+			},
+			wantToken: &validToken,
+			wantErr:   false,
+		},
+		{
+			name:     "token not found",
+			tenantID: "tenant-123",
+			userID:   "user-123",
+			tokenID:  "token-123",
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return any(nil), nil
+			},
+			wantToken: nil,
+			wantErr:   true,
+		},
+		{
+			name:     "database error",
+			tenantID: "tenant-123",
+			userID:   "user-123",
+			tokenID:  "token-123",
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return any(nil), errors.New("database query failed")
+			},
+			wantToken: nil,
+			wantErr:   true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockHandler := &mock.MockDBHandler{
+				FindOneFunc: tc.mockFunc,
+			}
+			logger := logging.NewLogger(logging.ModuleAuth)
+			handler := newRefreshTokenKeyHandlerWithMock(mockHandler, logger)
+
+			result, err := handler.GetOne(tc.tenantID, tc.userID, tc.tokenID)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.Equal(t, tc.wantToken.Token, result.Token)
+				assert.Equal(t, tc.wantToken.UserID, result.UserID)
+			}
+		})
+	}
+}
+
+func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
 	validToken := models.RefreshToken{
 		Token:     "refresh-token-123",
 		UserID:    "user-123",
@@ -190,12 +267,12 @@ func TestRefreshTokenKeyHandler_Get(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc: tc.mockFunc,
+				FindAllFunc: tc.mockFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleAuth)
 			handler := newRefreshTokenKeyHandlerWithMock(mockHandler, logger)
 
-			result, err := handler.Get(tc.tenantID, tc.userID, tc.tokenID)
+			result, err := handler.GetOne(tc.tenantID, tc.userID, tc.tokenID)
 			if tc.wantErr {
 				require.Error(t, err)
 				assert.Nil(t, result)
@@ -240,20 +317,20 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 	revokedJSON, _ := json.Marshal(revokedToken)
 
 	testCases := []struct {
-		name      string
-		tenantID   string
-		userID    string
-		tokenID   string
-		mockFunc  func(key string, filter map[string]any) ([]any, error)
-		wantErr   bool
+		name     string
+		tenantID string
+		userID   string
+		tokenID  string
+		mockFunc func(key string, filter map[string]any) (any, error)
+		wantErr  bool
 	}{
 		{
 			name:     "valid token",
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			mockFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(validJSON)}, nil
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return string(validJSON), nil
 			},
 			wantErr: false,
 		},
@@ -262,8 +339,8 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			mockFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(expiredJSON)}, nil
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return string(expiredJSON), nil
 			},
 			wantErr: true,
 		},
@@ -272,8 +349,8 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			mockFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(revokedJSON)}, nil
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return string(revokedJSON), nil
 			},
 			wantErr: true,
 		},
@@ -282,8 +359,8 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			mockFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{}, nil
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return any(nil), nil
 			},
 			wantErr: true,
 		},
@@ -292,7 +369,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc: tc.mockFunc,
+				FindOneFunc: tc.mockFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleAuth)
 			handler := newRefreshTokenKeyHandlerWithMock(mockHandler, logger)
@@ -321,21 +398,21 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 	jsonData, _ := json.Marshal(validToken)
 
 	testCases := []struct {
-		name     string
-		tenantID string
-		userID   string
-		tokenID  string
-		getFunc  func(key string, filter map[string]any) ([]any, error)
+		name       string
+		tenantID   string
+		userID     string
+		tokenID    string
+		getFunc    func(key string, filter map[string]any) (any, error)
 		updateFunc func(key string, filter map[string]any, data any) error
-		wantErr  bool
+		wantErr    bool
 	}{
 		{
 			name:     "successful revoke",
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			getFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(jsonData)}, nil
+			getFunc: func(key string, filter map[string]any) (any, error) {
+				return string(jsonData), nil
 			},
 			updateFunc: func(key string, filter map[string]any, data any) error {
 				return nil
@@ -347,8 +424,8 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			getFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{}, nil
+			getFunc: func(key string, filter map[string]any) (any, error) {
+				return any(nil), nil
 			},
 			updateFunc: func(key string, filter map[string]any, data any) error {
 				return nil
@@ -360,8 +437,8 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			getFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(jsonData)}, nil
+			getFunc: func(key string, filter map[string]any) (any, error) {
+				return string(jsonData), nil
 			},
 			updateFunc: func(key string, filter map[string]any, data any) error {
 				return errors.New("update failed")
@@ -373,8 +450,8 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc:   tc.getFunc,
-				UpdateFunc: tc.updateFunc,
+				FindOneFunc: tc.getFunc,
+				UpdateFunc:  tc.updateFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleAuth)
 			handler := newRefreshTokenKeyHandlerWithMock(mockHandler, logger)
@@ -391,12 +468,12 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 
 func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 	testCases := []struct {
-		name      string
-		tenantID  string
-		userID    string
-		tokenID   string
-		mockFunc  func(key string, filter map[string]any) error
-		wantErr   bool
+		name     string
+		tenantID string
+		userID   string
+		tokenID  string
+		mockFunc func(key string, filter map[string]any) error
+		wantErr  bool
 	}{
 		{
 			name:     "successful delete",

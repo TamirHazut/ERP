@@ -47,6 +47,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 	testCases := []struct {
 		name     string
 		tenantID string
+		userID   string
 		tokenID  string
 		metadata redis_models.TokenMetadata
 		mockFunc func(key string, data any) (string, error)
@@ -55,6 +56,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 		{
 			name:     "successful store",
 			tenantID: "tenant-123",
+			userID:   "user-123",
 			tokenID:  "token-123",
 			metadata: validMetadata,
 			mockFunc: func(key string, data any) (string, error) {
@@ -65,6 +67,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 		{
 			name:     "store with missing tokenID",
 			tenantID: "tenant-123",
+			userID:   "user-123",
 			tokenID:  "token-123",
 			metadata: redis_models.TokenMetadata{
 				UserID:    "user-123",
@@ -80,6 +83,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 		{
 			name:     "store with tenant_id mismatch",
 			tenantID: "tenant-123",
+			userID:   "user-123",
 			tokenID:  "token-123",
 			metadata: redis_models.TokenMetadata{
 				TokenID:   "token-123",
@@ -113,7 +117,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			logger := logging.NewLogger(logging.ModuleAuth)
 			handler := newAccessTokenKeyHandlerWithMock(mockHandler, logger)
 
-			err := handler.Store(tc.tenantID, tc.tokenID, tc.metadata)
+			err := handler.Store(tc.tenantID, tc.userID, tc.tokenID, tc.metadata)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -123,7 +127,81 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 	}
 }
 
-func TestAccessTokenKeyHandler_Get(t *testing.T) {
+func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
+	validMetadata := redis_models.TokenMetadata{
+		TokenID:   "token-123",
+		UserID:    "user-123",
+		TenantID:  "tenant-123",
+		TokenType: "access",
+		IssuedAt:  time.Now(),
+		ExpiresAt: time.Now().Add(time.Hour),
+		Revoked:   false,
+	}
+
+	testCases := []struct {
+		name      string
+		tenantID  string
+		userID    string
+		tokenID   string
+		mockFunc  func(db string, filter map[string]any) (any, error)
+		wantToken *redis_models.TokenMetadata
+		wantErr   bool
+	}{
+		{
+			name:     "successful get",
+			tenantID: "tenant-123",
+			userID:   "user-123",
+			tokenID:  "token-123",
+			mockFunc: func(db string, filter map[string]any) (any, error) {
+				return validMetadata, nil
+			},
+			wantToken: &validMetadata,
+			wantErr:   false,
+		},
+		{
+			name:     "token not found",
+			tenantID: "tenant-123",
+			userID:   "user-123",
+			tokenID:  "token-123",
+			mockFunc: func(db string, filter map[string]any) (any, error) {
+				return redis_models.TokenMetadata{}, errors.New("token not found")
+			},
+			wantToken: nil,
+			wantErr:   true,
+		},
+		{
+			name:     "database error",
+			tenantID: "tenant-123",
+			userID:   "user-123",
+			tokenID:  "token-123",
+			mockFunc: func(db string, filter map[string]any) (any, error) {
+				return redis_models.TokenMetadata{}, errors.New("database query failed")
+			},
+			wantToken: nil,
+			wantErr:   true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockHandler := &mock.MockDBHandler{
+				FindOneFunc: tc.mockFunc,
+			}
+			logger := logging.NewLogger(logging.ModuleAuth)
+			handler := newAccessTokenKeyHandlerWithMock(mockHandler, logger)
+
+			result, err := handler.GetOne(tc.tenantID, tc.userID, tc.tokenID)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.wantToken.TokenID, result.TokenID)
+			}
+		})
+	}
+}
+
+func TestAccessTokenKeyHandler_GetAll(t *testing.T) {
 	validMetadata := redis_models.TokenMetadata{
 		TokenID:   "token-123",
 		UserID:    "user-123",
@@ -134,11 +212,10 @@ func TestAccessTokenKeyHandler_Get(t *testing.T) {
 		Revoked:   false,
 	}
 	jsonData, _ := json.Marshal(validMetadata)
-
 	testCases := []struct {
 		name      string
 		tenantID  string
-		tokenID   string
+		userID    string
 		mockFunc  func(key string, filter map[string]any) ([]any, error)
 		wantToken *redis_models.TokenMetadata
 		wantErr   bool
@@ -146,7 +223,7 @@ func TestAccessTokenKeyHandler_Get(t *testing.T) {
 		{
 			name:     "successful get",
 			tenantID: "tenant-123",
-			tokenID:  "token-123",
+			userID:   "user-123",
 			mockFunc: func(key string, filter map[string]any) ([]any, error) {
 				return []any{string(jsonData)}, nil
 			},
@@ -156,17 +233,17 @@ func TestAccessTokenKeyHandler_Get(t *testing.T) {
 		{
 			name:     "token not found",
 			tenantID: "tenant-123",
-			tokenID:  "token-123",
+			userID:   "user-123",
 			mockFunc: func(key string, filter map[string]any) ([]any, error) {
 				return []any{}, nil
 			},
 			wantToken: nil,
-			wantErr:   true,
+			wantErr:   false,
 		},
 		{
 			name:     "database error",
 			tenantID: "tenant-123",
-			tokenID:  "token-123",
+			userID:   "user-123",
 			mockFunc: func(key string, filter map[string]any) ([]any, error) {
 				return nil, errors.New("database query failed")
 			},
@@ -178,20 +255,25 @@ func TestAccessTokenKeyHandler_Get(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc: tc.mockFunc,
+				FindAllFunc: tc.mockFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleAuth)
 			handler := newAccessTokenKeyHandlerWithMock(mockHandler, logger)
 
-			result, err := handler.Get(tc.tenantID, tc.tokenID)
+			tokens, err := handler.GetAll(tc.tenantID, tc.userID)
 			if tc.wantErr {
 				require.Error(t, err)
-				assert.Nil(t, result)
+				assert.Empty(t, tokens)
 			} else {
 				require.NoError(t, err)
-				require.NotNil(t, result)
-				assert.Equal(t, tc.wantToken.TokenID, result.TokenID)
-				assert.Equal(t, tc.wantToken.UserID, result.UserID)
+				if tc.wantToken == nil {
+					assert.Empty(t, tokens)
+				} else {
+					require.NotEmpty(t, tokens)
+					token := tokens[0]
+					assert.Equal(t, tc.wantToken.TokenID, token.TokenID)
+					assert.Equal(t, tc.wantToken.UserID, token.UserID)
+				}
 			}
 		})
 	}
@@ -226,50 +308,51 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 		Revoked:   true,
 	}
 
-	validJSON, _ := json.Marshal(validMetadata)
-	expiredJSON, _ := json.Marshal(expiredMetadata)
-	revokedJSON, _ := json.Marshal(revokedMetadata)
-
 	testCases := []struct {
 		name     string
 		tenantID string
+		userID   string
 		tokenID  string
-		mockFunc func(key string, filter map[string]any) ([]any, error)
+		mockFunc func(key string, filter map[string]any) (any, error)
 		wantErr  bool
 	}{
 		{
 			name:     "valid token",
 			tenantID: "tenant-123",
+			userID:   "user-123",
 			tokenID:  "token-123",
-			mockFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(validJSON)}, nil
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return validMetadata, nil
 			},
 			wantErr: false,
 		},
 		{
 			name:     "expired token",
 			tenantID: "tenant-123",
+			userID:   "user-123",
 			tokenID:  "token-123",
-			mockFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(expiredJSON)}, nil
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return expiredMetadata, nil
 			},
 			wantErr: true,
 		},
 		{
 			name:     "revoked token",
 			tenantID: "tenant-123",
+			userID:   "user-123",
 			tokenID:  "token-123",
-			mockFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(revokedJSON)}, nil
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return revokedMetadata, nil
 			},
 			wantErr: true,
 		},
 		{
 			name:     "token not found",
 			tenantID: "tenant-123",
+			userID:   "user-123",
 			tokenID:  "token-123",
-			mockFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{}, nil
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return nil, errors.New("token not found")
 			},
 			wantErr: true,
 		},
@@ -278,12 +361,12 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc: tc.mockFunc,
+				FindOneFunc: tc.mockFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleAuth)
 			handler := newAccessTokenKeyHandlerWithMock(mockHandler, logger)
 
-			result, err := handler.Validate(tc.tenantID, tc.tokenID)
+			result, err := handler.Validate(tc.tenantID, tc.userID, tc.tokenID)
 			if tc.wantErr {
 				require.Error(t, err)
 				assert.Nil(t, result)
@@ -305,24 +388,25 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 		ExpiresAt: time.Now().Add(time.Hour),
 		Revoked:   false,
 	}
-	jsonData, _ := json.Marshal(validMetadata)
 
 	testCases := []struct {
 		name       string
 		tenantID   string
+		userID     string
 		tokenID    string
 		revokedBy  string
-		getFunc    func(key string, filter map[string]any) ([]any, error)
+		getFunc    func(key string, filter map[string]any) (any, error)
 		updateFunc func(key string, filter map[string]any, data any) error
 		wantErr    bool
 	}{
 		{
 			name:      "successful revoke",
 			tenantID:  "tenant-123",
+			userID:    "user-123",
 			tokenID:   "token-123",
 			revokedBy: "admin",
-			getFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(jsonData)}, nil
+			getFunc: func(key string, filter map[string]any) (any, error) {
+				return validMetadata, nil
 			},
 			updateFunc: func(key string, filter map[string]any, data any) error {
 				return nil
@@ -332,10 +416,11 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 		{
 			name:      "token not found",
 			tenantID:  "tenant-123",
+			userID:    "user-123",
 			tokenID:   "token-123",
 			revokedBy: "admin",
-			getFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{}, nil
+			getFunc: func(key string, filter map[string]any) (any, error) {
+				return nil, errors.New("token not found")
 			},
 			updateFunc: func(key string, filter map[string]any, data any) error {
 				return nil
@@ -345,10 +430,11 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 		{
 			name:      "update fails",
 			tenantID:  "tenant-123",
+			userID:    "user-123",
 			tokenID:   "token-123",
 			revokedBy: "admin",
-			getFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(jsonData)}, nil
+			getFunc: func(key string, filter map[string]any) (any, error) {
+				return validMetadata, nil
 			},
 			updateFunc: func(key string, filter map[string]any, data any) error {
 				return errors.New("update failed")
@@ -360,13 +446,13 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc:   tc.getFunc,
-				UpdateFunc: tc.updateFunc,
+				FindOneFunc: tc.getFunc,
+				UpdateFunc:  tc.updateFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleAuth)
 			handler := newAccessTokenKeyHandlerWithMock(mockHandler, logger)
 
-			err := handler.Revoke(tc.tenantID, tc.tokenID, tc.revokedBy)
+			err := handler.Revoke(tc.tenantID, tc.userID, tc.tokenID, tc.revokedBy)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -386,22 +472,23 @@ func TestAccessTokenKeyHandler_Delete(t *testing.T) {
 		ExpiresAt: time.Now().Add(time.Hour),
 		Revoked:   false,
 	}
-	jsonData, _ := json.Marshal(validMetadata)
 
 	testCases := []struct {
 		name       string
 		tenantID   string
+		userID     string
 		tokenID    string
-		getFunc    func(key string, filter map[string]any) ([]any, error)
+		getFunc    func(key string, filter map[string]any) (any, error)
 		deleteFunc func(key string, filter map[string]any) error
 		wantErr    bool
 	}{
 		{
 			name:     "successful delete",
 			tenantID: "tenant-123",
+			userID:   "user-123",
 			tokenID:  "token-123",
-			getFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(jsonData)}, nil
+			getFunc: func(key string, filter map[string]any) (any, error) {
+				return validMetadata, nil
 			},
 			deleteFunc: func(key string, filter map[string]any) error {
 				return nil
@@ -411,9 +498,10 @@ func TestAccessTokenKeyHandler_Delete(t *testing.T) {
 		{
 			name:     "delete with database error",
 			tenantID: "tenant-123",
+			userID:   "user-123",
 			tokenID:  "token-123",
-			getFunc: func(key string, filter map[string]any) ([]any, error) {
-				return []any{string(jsonData)}, nil
+			getFunc: func(key string, filter map[string]any) (any, error) {
+				return validMetadata, nil
 			},
 			deleteFunc: func(key string, filter map[string]any) error {
 				return errors.New("delete failed")
@@ -425,13 +513,13 @@ func TestAccessTokenKeyHandler_Delete(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc:   tc.getFunc,
-				DeleteFunc: tc.deleteFunc,
+				FindOneFunc: tc.getFunc,
+				DeleteFunc:  tc.deleteFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleAuth)
 			handler := newAccessTokenKeyHandlerWithMock(mockHandler, logger)
 
-			err := handler.Delete(tc.tenantID, tc.tokenID)
+			err := handler.Delete(tc.tenantID, tc.userID, tc.tokenID)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {

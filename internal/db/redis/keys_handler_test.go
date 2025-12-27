@@ -90,7 +90,69 @@ func TestKeyHandler_Set(t *testing.T) {
 	}
 }
 
-func TestKeyHandler_Get(t *testing.T) {
+func TestKeyHandler_GetOne(t *testing.T) {
+	testModel := TestModel{ID: "1", Name: "test"}
+	jsonData, _ := json.Marshal(testModel)
+
+	testCases := []struct {
+		name      string
+		tenantID  string
+		key       string
+		mockFunc  func(key string, filter map[string]any) (any, error)
+		wantModel TestModel
+		wantErr   bool
+	}{
+		{
+			name:     "successful get one",
+			tenantID: "1",
+			key:      "test-key",
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return string(jsonData), nil
+			},
+			wantModel: testModel,
+			wantErr:   false,
+		},
+		{
+			name:     "get one with error",
+			tenantID: "1",
+			key:      "test-key",
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return nil, errors.New("get one failed")
+			},
+			wantErr: true,
+		},
+		{
+			name:     "get one with error incompatible type",
+			tenantID: "1",
+			key:      "test-key",
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return "invalid json", nil
+			},
+			wantErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockHandler := &mock.MockDBHandler{
+				FindOneFunc: tc.mockFunc,
+			}
+			logger := logging.NewLogger(logging.ModuleDB)
+			handler := newKeyHandlerWithMock[TestModel](mockHandler, logger)
+			result, err := handler.GetOne(tc.tenantID, tc.key)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.Equal(t, tc.wantModel.ID, result.ID)
+				assert.Equal(t, tc.wantModel.Name, result.Name)
+			}
+		})
+	}
+}
+
+func TestKeyHandler_GetAll(t *testing.T) {
 	testModel := TestModel{ID: "1", Name: "test"}
 	jsonData, _ := json.Marshal(testModel)
 
@@ -120,7 +182,7 @@ func TestKeyHandler_Get(t *testing.T) {
 				return []any{}, nil
 			},
 			wantModel: nil,
-			wantErr:   true,
+			wantErr:   false,
 		},
 		{
 			name:     "database error",
@@ -147,12 +209,12 @@ func TestKeyHandler_Get(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc: tc.mockFunc,
+				FindAllFunc: tc.mockFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleDB)
 			handler := newKeyHandlerWithMock[TestModel](mockHandler, logger)
 
-			result, err := handler.Get(tc.tenantID, tc.key)
+			result, err := handler.GetAll(tc.tenantID, tc.key)
 			if tc.wantErr {
 				require.Error(t, err)
 				assert.Nil(t, result)
@@ -163,9 +225,14 @@ func TestKeyHandler_Get(t *testing.T) {
 				}
 			} else {
 				require.NoError(t, err)
-				require.NotNil(t, result)
-				assert.Equal(t, tc.wantModel.ID, result[0].ID)
-				assert.Equal(t, tc.wantModel.Name, result[0].Name)
+				if tc.wantModel == nil {
+					require.Empty(t, result)
+				} else {
+					require.NotEmpty(t, result)
+					model := result[0]
+					assert.Equal(t, tc.wantModel.ID, model.ID)
+					assert.Equal(t, tc.wantModel.Name, model.Name)
+				}
 			}
 		})
 	}

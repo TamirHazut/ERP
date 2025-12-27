@@ -34,36 +34,22 @@ func (r *RoleRepository) CreateRole(role models.Role) (string, error) {
 	return r.repository.Create(role)
 }
 
-func (r *RoleRepository) GetRoleByID(tenantID, roleID string) (models.Role, error) {
+func (r *RoleRepository) GetRoleByID(tenantID, roleID string) (*models.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       roleID,
 	}
 	r.logger.Debug("Getting role by id", "filter", filter)
-	roles, err := r.repository.Find(filter)
-	if err != nil {
-		return models.Role{}, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
-	}
-	if len(roles) == 0 {
-		return models.Role{}, erp_errors.NotFound(erp_errors.NotFoundRole, "Role", roleID)
-	}
-	return roles[0], nil
+	return r.findRoleByFilter(filter)
 }
 
-func (r *RoleRepository) GetRoleByName(tenantID, name string) (models.Role, error) {
+func (r *RoleRepository) GetRoleByName(tenantID, name string) (*models.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"name":      name,
 	}
 	r.logger.Debug("Getting role by name", "filter", filter)
-	roles, err := r.repository.Find(filter)
-	if err != nil {
-		return models.Role{}, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
-	}
-	if len(roles) == 0 {
-		return models.Role{}, erp_errors.NotFound(erp_errors.NotFoundRole, "Role", name)
-	}
-	return roles[0], nil
+	return r.findRoleByFilter(filter)
 }
 
 func (r *RoleRepository) GetRolesByTenantID(tenantID string) ([]models.Role, error) {
@@ -71,11 +57,7 @@ func (r *RoleRepository) GetRolesByTenantID(tenantID string) ([]models.Role, err
 		"tenant_id": tenantID,
 	}
 	r.logger.Debug("Getting roles by tenant id", "filter", filter)
-	roles, err := r.repository.Find(filter)
-	if err != nil {
-		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
-	}
-	return roles, nil
+	return r.findRolesByFilter(filter)
 }
 
 func (r *RoleRepository) GetRolesByPermissionsIDs(tenantID string, permissionsIDs []string) ([]models.Role, error) {
@@ -86,11 +68,7 @@ func (r *RoleRepository) GetRolesByPermissionsIDs(tenantID string, permissionsID
 		},
 	}
 	r.logger.Debug("Getting roles by permissions ids", "filter", filter)
-	roles, err := r.repository.Find(filter)
-	if err != nil {
-		return nil, err
-	}
-	return roles, nil
+	return r.findRolesByFilter(filter)
 }
 
 func (r *RoleRepository) UpdateRole(role models.Role) error {
@@ -123,4 +101,20 @@ func (r *RoleRepository) DeleteRole(tenantID, roleID string) error {
 	}
 	r.logger.Debug("Deleting role", "filter", filter)
 	return r.repository.Delete(filter)
+}
+
+func (r *RoleRepository) findRoleByFilter(filter map[string]any) (*models.Role, error) {
+	role, err := r.repository.FindOne(filter)
+	if err != nil {
+		return nil, err
+	}
+	return role, nil
+}
+
+func (r *RoleRepository) findRolesByFilter(filter map[string]any) ([]models.Role, error) {
+	roles, err := r.repository.FindAll(filter)
+	if err != nil {
+		return nil, err
+	}
+	return roles, nil
 }

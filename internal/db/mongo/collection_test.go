@@ -112,7 +112,69 @@ func TestCollection_Create(t *testing.T) {
 	}
 }
 
-func TestCollection_Find(t *testing.T) {
+func TestCollection_FindOne(t *testing.T) {
+	testModel := TestModel{ID: "1", Name: "test"}
+
+	testCases := []struct {
+		name      string
+		filter    map[string]any
+		mockFunc  func(collection string, filter map[string]any) (any, error)
+		wantModel TestModel
+		wantErr   bool
+	}{
+		{
+			name:   "successful find one",
+			filter: map[string]any{"name": "test"},
+			mockFunc: func(collection string, filter map[string]any) (any, error) {
+				return testModel, nil
+			},
+			wantModel: testModel,
+		},
+		{
+			name:   "find one with error",
+			filter: map[string]any{"name": "test"},
+			mockFunc: func(collection string, filter map[string]any) (any, error) {
+				return nil, errors.New("find one failed")
+			},
+			wantErr: true,
+		},
+		{
+			name:     "find one with default behavior",
+			filter:   map[string]any{"name": "test"},
+			mockFunc: nil,
+			wantErr:  true,
+		},
+		{
+			name:   "find one with item not found",
+			filter: map[string]any{"name": "test"},
+			mockFunc: func(collection string, filter map[string]any) (any, error) {
+				return nil, nil
+			},
+			wantErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockHandler := &mock.MockDBHandler{
+				FindOneFunc: tc.mockFunc,
+			}
+			logger := logging.NewLogger(logging.ModuleDB)
+			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
+			result, err := repo.FindOne(tc.filter)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.Equal(t, tc.wantModel.ID, result.ID)
+				assert.Equal(t, tc.wantModel.Name, result.Name)
+			}
+		})
+	}
+}
+
+func TestCollection_FindAll(t *testing.T) {
 	testCases := []struct {
 		name     string
 		filter   map[string]any
@@ -155,12 +217,12 @@ func TestCollection_Find(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc: tc.mockFunc,
+				FindAllFunc: tc.mockFunc,
 			}
 			logger := logging.NewLogger(logging.ModuleDB)
 			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
 
-			results, err := repo.Find(tc.filter)
+			results, err := repo.FindAll(tc.filter)
 			if tc.wantErr {
 				require.Error(t, err)
 				assert.Nil(t, results)

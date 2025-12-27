@@ -1,6 +1,8 @@
 package mongo
 
 import (
+	"errors"
+
 	db "erp.localhost/internal/db"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
@@ -28,44 +30,83 @@ func (r *CollectionHandler[T]) Create(item T) (string, error) {
 	r.logger.Debug("Creating item", "collection", r.collection)
 	id, err := r.dbHandler.Create(r.collection, item)
 	if err != nil {
-		return "", erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		err = erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		r.logger.Error(err.Error(), "collection", r.collection, "item", item)
+		return "", err
 	}
 	return id, nil
 }
 
-func (r *CollectionHandler[T]) Find(filter map[string]any) ([]T, error) {
-	r.logger.Debug("Finding items", "collection", r.collection, "filter", filter)
-	items, err := r.dbHandler.Find(r.collection, filter)
+func (r *CollectionHandler[T]) FindOne(filter map[string]any) (*T, error) {
+	r.logger.Debug("Finding item", "collection", r.collection, "filter", filter)
+	item, err := r.dbHandler.FindOne(r.collection, filter)
 	if err != nil {
-		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		err = erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
+		return nil, err
+	}
+	if item == nil {
+		err = erp_errors.NotFound(erp_errors.NotFoundResource, r.collection, filter)
+		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
+		return nil, err
+	}
+	res, ok := item.(T)
+	if !ok {
+		err = erp_errors.Internal(erp_errors.InternalDatabaseError, errors.New("type assertion failed"))
+		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+func (r *CollectionHandler[T]) FindAll(filter map[string]any) ([]T, error) {
+	r.logger.Debug("Finding items", "collection", r.collection, "filter", filter)
+	items, err := r.dbHandler.FindAll(r.collection, filter)
+	if err != nil {
+		err = erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
+		return nil, err
 	}
 	res := []T{}
 	for _, item := range items {
-		res = append(res, item.(T))
+		obj, ok := item.(T)
+		if !ok {
+			err = erp_errors.Internal(erp_errors.InternalDatabaseError, errors.New("type assertion failed"))
+			r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
+			return nil, err
+		}
+		res = append(res, obj)
 	}
 	return res, nil
 }
 
 func (r *CollectionHandler[T]) Update(filter map[string]any, item T) error {
+	r.logger.Debug("Updating item", "collection", r.collection, "filter", filter, "item", item)
 	if filter == nil {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "filter")
+		err := erp_errors.Validation(erp_errors.ValidationRequiredFields, "filter")
+		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter, "item", item)
+		return err
 	}
-	r.logger.Debug("Updating item", "collection", r.collection, "filter", filter)
-	err := r.dbHandler.Update(r.collection, filter, item)
-	if err != nil {
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+	if err := r.dbHandler.Update(r.collection, filter, item); err != nil {
+		err = erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter, "item", item)
+		return err
 	}
 	return nil
 }
 
 func (r *CollectionHandler[T]) Delete(filter map[string]any) error {
 	if filter == nil {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "filter")
+		err := erp_errors.Validation(erp_errors.ValidationRequiredFields, "filter")
+		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
+		return err
 	}
 	r.logger.Debug("Deleting items", "collection", r.collection, "filter", filter)
-	err := r.dbHandler.Delete(r.collection, filter)
-	if err != nil {
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+	if err := r.dbHandler.Delete(r.collection, filter); err != nil {
+		err = erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
+		return err
 	}
 	return nil
 }

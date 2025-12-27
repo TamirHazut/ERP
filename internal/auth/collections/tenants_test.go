@@ -8,9 +8,9 @@ import (
 	"erp.localhost/internal/auth/models"
 	"erp.localhost/internal/db/mock"
 	erp_errors "erp.localhost/internal/errors"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestNewTenantRepository(t *testing.T) {
@@ -24,11 +24,11 @@ func TestNewTenantRepository(t *testing.T) {
 
 func TestTenantRepository_CreateTenant(t *testing.T) {
 	testCases := []struct {
-		name      string
-		tenant    models.Tenant
-		mockFunc  func(collection string, data any) (string, error)
-		wantID    string
-		wantErr   bool
+		name     string
+		tenant   models.Tenant
+		mockFunc func(collection string, data any) (string, error)
+		wantID   string
+		wantErr  bool
 	}{
 		{
 			name: "successful create",
@@ -91,22 +91,20 @@ func TestTenantRepository_CreateTenant(t *testing.T) {
 
 func TestTenantRepository_GetTenantByID(t *testing.T) {
 	testCases := []struct {
-		name      string
-		tenantID  string
-		mockFunc  func(collection string, filter map[string]any) ([]any, error)
-		wantErr   bool
+		name     string
+		tenantID string
+		mockFunc func(collection string, filter map[string]any) (any, error)
+		wantErr  bool
 	}{
 		{
 			name:     "successful get by id",
 			tenantID: "507f1f77bcf86cd799439011",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) (any, error) {
 				tenantID, _ := primitive.ObjectIDFromHex("507f1f77bcf86cd799439011")
-				return []any{
-					models.Tenant{
-						ID:     tenantID,
-						Name:   "Test Company",
-						Status: models.TenantStatusActive,
-					},
+				return models.Tenant{
+					ID:     tenantID,
+					Name:   "Test Company",
+					Status: models.TenantStatusActive,
 				}, nil
 			},
 			wantErr: false,
@@ -114,15 +112,15 @@ func TestTenantRepository_GetTenantByID(t *testing.T) {
 		{
 			name:     "tenant not found",
 			tenantID: "507f1f77bcf86cd799439011",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{}, nil
+			mockFunc: func(collection string, filter map[string]any) (any, error) {
+				return nil, nil
 			},
 			wantErr: true,
 		},
 		{
 			name:     "get with empty tenant ID",
 			tenantID: "",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) (any, error) {
 				return nil, nil
 			},
 			wantErr: true,
@@ -130,7 +128,7 @@ func TestTenantRepository_GetTenantByID(t *testing.T) {
 		{
 			name:     "database error",
 			tenantID: "507f1f77bcf86cd799439011",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
+			mockFunc: func(collection string, filter map[string]any) (any, error) {
 				return nil, errors.New("database query failed")
 			},
 			wantErr: true,
@@ -140,7 +138,7 @@ func TestTenantRepository_GetTenantByID(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc: tc.mockFunc,
+				FindOneFunc: tc.mockFunc,
 			}
 			repo := NewTenantRepository(mockHandler)
 
@@ -165,11 +163,11 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 	createdAt := time.Now().Add(-24 * time.Hour)
 
 	testCases := []struct {
-		name        string
-		tenant      models.Tenant
-		mockFind    func(collection string, filter map[string]any) ([]any, error)
-		mockUpdate  func(collection string, filter map[string]any, data any) error
-		wantErr     bool
+		name       string
+		tenant     models.Tenant
+		mockFind   func(collection string, filter map[string]any) (any, error)
+		mockUpdate func(collection string, filter map[string]any, data any) error
+		wantErr    bool
 	}{
 		{
 			name: "successful update",
@@ -180,14 +178,12 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
-			mockFind: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{
-					models.Tenant{
-						ID:        tenantID,
-						Name:      "Test Company",
-						Status:    models.TenantStatusActive,
-						CreatedAt: createdAt,
-					},
+			mockFind: func(collection string, filter map[string]any) (any, error) {
+				return models.Tenant{
+					ID:        tenantID,
+					Name:      "Test Company",
+					Status:    models.TenantStatusActive,
+					CreatedAt: createdAt,
 				}, nil
 			},
 			mockUpdate: func(collection string, filter map[string]any, data any) error {
@@ -200,7 +196,7 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 			tenant: models.Tenant{
 				ID: tenantID,
 			},
-			mockFind: func(collection string, filter map[string]any) ([]any, error) {
+			mockFind: func(collection string, filter map[string]any) (any, error) {
 				return nil, nil
 			},
 			mockUpdate: func(collection string, filter map[string]any, data any) error {
@@ -217,8 +213,8 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
-			mockFind: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{}, nil
+			mockFind: func(collection string, filter map[string]any) (any, error) {
+				return nil, nil
 			},
 			mockUpdate: func(collection string, filter map[string]any, data any) error {
 				return nil
@@ -234,12 +230,10 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 				CreatedBy: "admin",
 				CreatedAt: time.Now(),
 			},
-			mockFind: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{
-					models.Tenant{
-						ID:        tenantID,
-						CreatedAt: createdAt,
-					},
+			mockFind: func(collection string, filter map[string]any) (any, error) {
+				return models.Tenant{
+					ID:        tenantID,
+					CreatedAt: createdAt,
 				}, nil
 			},
 			mockUpdate: func(collection string, filter map[string]any, data any) error {
@@ -256,12 +250,10 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
-			mockFind: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{
-					models.Tenant{
-						ID:        tenantID,
-						CreatedAt: createdAt,
-					},
+			mockFind: func(collection string, filter map[string]any) (any, error) {
+				return models.Tenant{
+					ID:        tenantID,
+					CreatedAt: createdAt,
 				}, nil
 			},
 			mockUpdate: func(collection string, filter map[string]any, data any) error {
@@ -274,8 +266,8 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := &mock.MockDBHandler{
-				FindFunc:   tc.mockFind,
-				UpdateFunc: tc.mockUpdate,
+				FindOneFunc: tc.mockFind,
+				UpdateFunc:  tc.mockUpdate,
 			}
 			repo := NewTenantRepository(mockHandler)
 
@@ -291,10 +283,10 @@ func TestTenantRepository_UpdateTenant(t *testing.T) {
 
 func TestTenantRepository_DeleteTenant(t *testing.T) {
 	testCases := []struct {
-		name       string
-		tenantID   string
-		mockFunc   func(collection string, filter map[string]any) error
-		wantErr    bool
+		name     string
+		tenantID string
+		mockFunc func(collection string, filter map[string]any) error
+		wantErr  bool
 	}{
 		{
 			name:     "successful delete",
@@ -338,4 +330,3 @@ func TestTenantRepository_DeleteTenant(t *testing.T) {
 		})
 	}
 }
-

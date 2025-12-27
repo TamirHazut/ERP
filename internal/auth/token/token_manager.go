@@ -1,4 +1,4 @@
-package auth
+package token
 
 import (
 	"context"
@@ -23,27 +23,28 @@ const (
 	TokenTypeRefresh = "refresh"
 
 	refreshTokenDuration = 7 * 24 * time.Hour
-	accessTokenDuration     = 1 * time.Hour
+	accessTokenDuration  = 1 * time.Hour
 
 	issuer = "erp.localhost"
 )
 
 // TokenManager coordinates all token operations including JWT generation/verification and Redis storage
 type TokenManager struct {
-	secretKey              string
-	tokenDuration          time.Duration
-	refreshTokenDuration   time.Duration
-	accessTokenHandler     AccessTokenHandler
-	refreshTokenHandler     RefreshTokenHandler
-	logger                 *logging.Logger
+	secretKey            string
+	tokenDuration        time.Duration
+	refreshTokenDuration time.Duration
+	accessTokenHandler   AccessTokenHandler
+	refreshTokenHandler  RefreshTokenHandler
+	logger               *logging.Logger
 }
 
 // GenerateAccessTokenInput input for generating access tokens
 type GenerateAccessTokenInput struct {
 	UserID      string
 	TenantID    string
+	Email       string
 	Username    string
-	Role        string
+	Roles       []string
 	Permissions []string
 	SessionID   string
 	DeviceID    string
@@ -70,10 +71,10 @@ func (i *GenerateAccessTokenInput) Validate() error {
 	if i.Username == "" {
 		missingFields = append(missingFields, "Username")
 	}
-	if i.Role == "" {
-		missingFields = append(missingFields, "Role")
+	if len(i.Roles) == 0 {
+		missingFields = append(missingFields, "Roles")
 	}
-	if i.Permissions == nil || len(i.Permissions) == 0 {
+	if len(i.Permissions) == 0 {
 		missingFields = append(missingFields, "Permissions")
 	}
 	if len(missingFields) > 0 {
@@ -96,12 +97,12 @@ func NewTokenManager(secretKey string, tokenDuration time.Duration, refreshToken
 	}
 
 	return &TokenManager{
-		secretKey:              secretKey,
-		tokenDuration:          tokenDuration,
-		refreshTokenDuration:   refreshTokenDuration,
-		accessTokenHandler:     keyshandlers.NewAccessTokenKeyHandler(redis.KeyPrefix("tokens")),
-		refreshTokenHandler:    keyshandlers.NewRefreshTokenKeyHandler(redis.KeyPrefix("refresh_tokens")),
-		logger:                 logger,
+		secretKey:            secretKey,
+		tokenDuration:        tokenDuration,
+		refreshTokenDuration: refreshTokenDuration,
+		accessTokenHandler:   keyshandlers.NewAccessTokenKeyHandler(redis.KeyPrefix("tokens")),
+		refreshTokenHandler:  keyshandlers.NewRefreshTokenKeyHandler(redis.KeyPrefix("refresh_tokens")),
+		logger:               logger,
 	}
 }
 
@@ -120,7 +121,8 @@ func (tm *TokenManager) GenerateAccessToken(input *GenerateAccessTokenInput) (st
 		UserID:      input.UserID,
 		TenantID:    input.TenantID,
 		Username:    input.Username,
-		Role:        input.Role,
+		Email:       input.Email,
+		Roles:       input.Roles,
 		Permissions: input.Permissions,
 		TokenType:   TokenTypeAccess,
 		SessionID:   input.SessionID,
@@ -183,8 +185,13 @@ func (tm *TokenManager) VerifyAccessToken(tokenString string) (*models.AccessTok
 		if username, ok := claimsMap["username"].(string); ok {
 			claims.Username = username
 		}
-		if role, ok := claimsMap["role"].(string); ok {
-			claims.Role = role
+		if roles, ok := claimsMap["roles"].([]interface{}); ok {
+			claims.Roles = make([]string, len(roles))
+			for i, r := range roles {
+				if str, ok := r.(string); ok {
+					claims.Roles[i] = str
+				}
+			}
 		}
 		if tokenType, ok := claimsMap["token_type"].(string); ok {
 			claims.TokenType = tokenType
@@ -327,7 +334,7 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 // This is typically called after successful authentication
 func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenID string, refreshTokenID string, accessTokenMetadata redis_models.TokenMetadata, refreshToken models.RefreshToken) error {
 	// Store access token
-	if err := tm.accessTokenHandler.Store(tenantID, accessTokenID, accessTokenMetadata); err != nil {
+	if err := tm.accessTokenHandler.Store(tenantID, userID, accessTokenID, accessTokenMetadata); err != nil {
 		tm.logger.Error("Failed to store access token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
 	}
@@ -336,7 +343,7 @@ func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenI
 	if err := tm.refreshTokenHandler.Store(tenantID, userID, refreshTokenID, refreshToken); err != nil {
 		// If refresh token storage fails, try to clean up access token
 		tm.logger.Error("Failed to store refresh token", "error", err, "tenantID", tenantID, "userID", userID)
-		_ = tm.accessTokenHandler.Delete(tenantID, accessTokenID)
+		_ = tm.accessTokenHandler.Delete(tenantID, userID, accessTokenID)
 		return err
 	}
 
@@ -345,8 +352,8 @@ func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenI
 }
 
 // ValidateAccessTokenFromRedis validates an access token from Redis
-func (tm *TokenManager) ValidateAccessTokenFromRedis(tenantID string, tokenID string) (*redis_models.TokenMetadata, error) {
-	return tm.accessTokenHandler.Validate(tenantID, tokenID)
+func (tm *TokenManager) ValidateAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*redis_models.TokenMetadata, error) {
+	return tm.accessTokenHandler.Validate(tenantID, userID, tokenID)
 }
 
 // ValidateRefreshTokenFromRedis validates a refresh token from Redis
@@ -370,7 +377,7 @@ func (tm *TokenManager) RefreshTokens(tenantID string, userID string, oldRefresh
 	}
 
 	// Store new access token
-	if err := tm.accessTokenHandler.Store(tenantID, newAccessTokenID, newAccessTokenMetadata); err != nil {
+	if err := tm.accessTokenHandler.Store(tenantID, userID, newAccessTokenID, newAccessTokenMetadata); err != nil {
 		tm.logger.Error("Failed to store new access token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
 	}
@@ -379,7 +386,7 @@ func (tm *TokenManager) RefreshTokens(tenantID string, userID string, oldRefresh
 	if err := tm.refreshTokenHandler.Store(tenantID, userID, newRefreshTokenID, newRefreshToken); err != nil {
 		// If new refresh token storage fails, try to clean up new access token
 		tm.logger.Error("Failed to store new refresh token", "error", err, "tenantID", tenantID, "userID", userID)
-		_ = tm.accessTokenHandler.Delete(tenantID, newAccessTokenID)
+		_ = tm.accessTokenHandler.Delete(tenantID, userID, newAccessTokenID)
 		return err
 	}
 
@@ -388,8 +395,8 @@ func (tm *TokenManager) RefreshTokens(tenantID string, userID string, oldRefresh
 }
 
 // RevokeAccessTokenFromRedis revokes a single access token in Redis
-func (tm *TokenManager) RevokeAccessTokenFromRedis(tenantID string, tokenID string, revokedBy string) error {
-	return tm.accessTokenHandler.Revoke(tenantID, tokenID, revokedBy)
+func (tm *TokenManager) RevokeAccessTokenFromRedis(tenantID string, userID string, tokenID string, revokedBy string) error {
+	return tm.accessTokenHandler.Revoke(tenantID, userID, tokenID, revokedBy)
 }
 
 // RevokeRefreshTokenFromRedis revokes a single refresh token in Redis
@@ -417,13 +424,23 @@ func (tm *TokenManager) RevokeAllTokens(tenantID string, userID string, revokedB
 }
 
 // GetAccessTokenFromRedis retrieves access token metadata from Redis
-func (tm *TokenManager) GetAccessTokenFromRedis(tenantID string, tokenID string) (*redis_models.TokenMetadata, error) {
-	return tm.accessTokenHandler.Get(tenantID, tokenID)
+func (tm *TokenManager) GetAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*redis_models.TokenMetadata, error) {
+	return tm.accessTokenHandler.GetOne(tenantID, userID, tokenID)
+}
+
+// GetAllAccessTokensFromRedis retrieves all access tokens from Redis
+func (tm *TokenManager) GetAllAccessTokensFromRedis(tenantID string, userID string) ([]redis_models.TokenMetadata, error) {
+	return tm.accessTokenHandler.GetAll(tenantID, userID)
 }
 
 // GetRefreshTokenFromRedis retrieves refresh token from Redis
 func (tm *TokenManager) GetRefreshTokenFromRedis(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
-	return tm.refreshTokenHandler.Get(tenantID, userID, tokenID)
+	return tm.refreshTokenHandler.GetOne(tenantID, userID, tokenID)
+}
+
+// GetAllRefreshTokensFromRedis retrieves all refresh tokens from Redis
+func (tm *TokenManager) GetAllRefreshTokensFromRedis(tenantID string, userID string) ([]models.RefreshToken, error) {
+	return tm.refreshTokenHandler.GetAll(tenantID, userID)
 }
 
 // UpdateRefreshTokenLastUsed updates the last used timestamp for a refresh token
@@ -432,8 +449,8 @@ func (tm *TokenManager) UpdateRefreshTokenLastUsed(tenantID string, userID strin
 }
 
 // DeleteAccessTokenFromRedis permanently deletes an access token from Redis
-func (tm *TokenManager) DeleteAccessTokenFromRedis(tenantID string, tokenID string) error {
-	return tm.accessTokenHandler.Delete(tenantID, tokenID)
+func (tm *TokenManager) DeleteAccessTokenFromRedis(tenantID string, userID string, tokenID string) error {
+	return tm.accessTokenHandler.Delete(tenantID, userID, tokenID)
 }
 
 // DeleteRefreshTokenFromRedis permanently deletes a refresh token from Redis
@@ -487,4 +504,3 @@ func (tm *TokenManager) RevokeAllUserRefreshTokens(tenantID string, userID strin
 
 	return nil
 }
-

@@ -25,12 +25,12 @@ func TestNewMockRedisHandler(t *testing.T) {
 
 func TestMockRedisHandler_Create(t *testing.T) {
 	testCases := []struct {
-		name      string
-		key       string
-		value     any
-		mockFunc  func(key string, value any) (string, error)
-		wantID    string
-		wantErr   bool
+		name     string
+		key      string
+		value    any
+		mockFunc func(key string, value any) (string, error)
+		wantID   string
+		wantErr  bool
 	}{
 		{
 			name:  "successful create",
@@ -79,7 +79,97 @@ func TestMockRedisHandler_Create(t *testing.T) {
 	}
 }
 
-func TestMockRedisHandler_Find(t *testing.T) {
+func TestMockRedisHandler_FindOne(t *testing.T) {
+
+	testCases := []struct {
+		name      string
+		key       string
+		filter    map[string]any
+		mockFunc  func(key string, filter map[string]any) (any, error)
+		wantValue any
+		wantErr   bool
+	}{
+		{
+			name:   "successful find one",
+			key:    "test-key",
+			filter: nil,
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return "value", nil
+			},
+			wantValue: "value",
+			wantErr:   false,
+		},
+		{
+			name:   "find one with error",
+			key:    "test-key",
+			filter: nil,
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return nil, errors.New("find one failed")
+			},
+			wantValue: nil,
+			wantErr:   true,
+		},
+		{
+			name:      "find one with default behavior",
+			key:       "test-key",
+			filter:    nil,
+			mockFunc:  nil,
+			wantValue: nil,
+			wantErr:   false,
+		},
+		{
+			name: "find one with filter",
+			key:  "test-key",
+			filter: map[string]any{
+				"key": "value",
+			},
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return "value", nil
+			},
+			wantValue: "value",
+			wantErr:   false,
+		},
+		{
+			name: "find one with filter and error",
+			key:  "test-key",
+			filter: map[string]any{
+				"key": "value",
+			},
+			mockFunc: func(key string, filter map[string]any) (any, error) {
+				return nil, errors.New("find one failed")
+			},
+			wantValue: nil,
+			wantErr:   true,
+		},
+		{
+			name: "find one with filter and default behavior",
+			key:  "test-key",
+			filter: map[string]any{
+				"key": "value",
+			},
+			mockFunc:  nil,
+			wantValue: nil,
+			wantErr:   false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := NewMockRedisHandler("test_prefix")
+			handler.FindOneFunc = tc.mockFunc
+
+			value, err := handler.FindOne(tc.key, tc.filter)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, value)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.wantValue, value)
+			}
+		})
+	}
+}
+
+func TestMockRedisHandler_FindAll(t *testing.T) {
 	testCases := []struct {
 		name      string
 		key       string
@@ -121,9 +211,9 @@ func TestMockRedisHandler_Find(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			handler := NewMockRedisHandler("test_prefix")
-			handler.FindFunc = tc.mockFunc
+			handler.FindAllFunc = tc.mockFunc
 
-			results, err := handler.Find(tc.key, tc.filter)
+			results, err := handler.FindAll(tc.key, tc.filter)
 			if tc.wantErr {
 				require.Error(t, err)
 				assert.Nil(t, results)
@@ -137,12 +227,12 @@ func TestMockRedisHandler_Find(t *testing.T) {
 
 func TestMockRedisHandler_Update(t *testing.T) {
 	testCases := []struct {
-		name      string
-		key       string
-		filter    map[string]any
-		value     any
-		mockFunc  func(key string, filter map[string]any, value any) error
-		wantErr   bool
+		name     string
+		key      string
+		filter   map[string]any
+		value    any
+		mockFunc func(key string, filter map[string]any, value any) error
+		wantErr  bool
 	}{
 		{
 			name:   "successful update",
@@ -191,11 +281,11 @@ func TestMockRedisHandler_Update(t *testing.T) {
 
 func TestMockRedisHandler_Delete(t *testing.T) {
 	testCases := []struct {
-		name      string
-		key       string
-		filter    map[string]any
-		mockFunc  func(key string, filter map[string]any) error
-		wantErr   bool
+		name     string
+		key      string
+		filter   map[string]any
+		mockFunc func(key string, filter map[string]any) error
+		wantErr  bool
 	}{
 		{
 			name:   "successful delete",
@@ -241,9 +331,9 @@ func TestMockRedisHandler_Delete(t *testing.T) {
 
 func TestMockRedisHandler_Close(t *testing.T) {
 	testCases := []struct {
-		name      string
-		mockFunc  func() error
-		wantErr   bool
+		name     string
+		mockFunc func() error
+		wantErr  bool
 	}{
 		{
 			name: "successful close",
@@ -280,4 +370,3 @@ func TestMockRedisHandler_Close(t *testing.T) {
 		})
 	}
 }
-

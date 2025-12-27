@@ -6,12 +6,13 @@ import (
 
 // MockRedisHandler is a mock implementation of RedisHandler for testing
 type MockRedisHandler struct {
-	keyPrefix  redis.KeyPrefix
-	CreateFunc func(key string, value any) (string, error)
-	FindFunc   func(key string, filter map[string]any) ([]any, error)
-	UpdateFunc func(key string, filter map[string]any, value any) error
-	DeleteFunc func(key string, filter map[string]any) error
-	CloseFunc  func() error
+	keyPrefix   redis.KeyPrefix
+	CreateFunc  func(key string, value any) (string, error)
+	FindOneFunc func(key string, filter map[string]any) (any, error)
+	FindAllFunc func(key string, filter map[string]any) ([]any, error)
+	UpdateFunc  func(key string, filter map[string]any, value any) error
+	DeleteFunc  func(key string, filter map[string]any) error
+	CloseFunc   func() error
 }
 
 // NewMockRedisHandler creates a new mock RedisHandler
@@ -29,10 +30,18 @@ func (m *MockRedisHandler) Create(key string, value any) (string, error) {
 	return "mock-key", nil
 }
 
+// FindOne implements the DBHandler interface
+func (m *MockRedisHandler) FindOne(key string, filter map[string]any) (any, error) {
+	if m.FindOneFunc != nil {
+		return m.FindOneFunc(key, filter)
+	}
+	return *new(any), nil
+}
+
 // Find implements the DBHandler interface
-func (m *MockRedisHandler) Find(key string, filter map[string]any) ([]any, error) {
-	if m.FindFunc != nil {
-		return m.FindFunc(key, filter)
+func (m *MockRedisHandler) FindAll(key string, filter map[string]any) ([]any, error) {
+	if m.FindAllFunc != nil {
+		return m.FindAllFunc(key, filter)
 	}
 	return []any{}, nil
 }
@@ -65,4 +74,3 @@ func (m *MockRedisHandler) Close() error {
 func (m *MockRedisHandler) GetKeyPrefix() redis.KeyPrefix {
 	return m.keyPrefix
 }
-

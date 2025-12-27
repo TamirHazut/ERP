@@ -66,25 +66,27 @@ func (h *RefreshTokenKeyHandler) Store(tenantID string, userID string, tokenID s
 	return nil
 }
 
-// Get retrieves a refresh token from Redis
-func (h *RefreshTokenKeyHandler) Get(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
-	key := userID + ":" + tokenID
-	tokens, err := h.keyHandler.Get(tenantID, key)
+func (h *RefreshTokenKeyHandler) GetOne(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
+	key := fmt.Sprintf("%s:%s", userID, tokenID)
+	token, err := h.keyHandler.GetOne(tenantID, key)
 	if err != nil {
-		h.logger.Debug("Refresh token not found", "tenantID", tenantID, "userID", userID, "tokenID", tokenID)
 		return nil, err
 	}
+	return token, nil
+}
 
-	if len(tokens) == 0 {
-		return nil, erp_errors.NotFound(erp_errors.NotFoundResource, "refresh_token", nil)
+// Get retrieves a refresh token from Redis
+func (h *RefreshTokenKeyHandler) GetAll(tenantID string, userID string) ([]models.RefreshToken, error) {
+	tokens, err := h.keyHandler.GetAll(tenantID, userID)
+	if err != nil {
+		return nil, err
 	}
-
-	return &tokens[0], nil
+	return tokens, nil
 }
 
 // Validate checks if a refresh token is valid (exists, not revoked, not expired)
 func (h *RefreshTokenKeyHandler) Validate(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
-	token, err := h.Get(tenantID, userID, tokenID)
+	token, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +106,7 @@ func (h *RefreshTokenKeyHandler) Validate(tenantID string, userID string, tokenI
 
 // Revoke revokes a single refresh token
 func (h *RefreshTokenKeyHandler) Revoke(tenantID string, userID string, tokenID string) error {
-	token, err := h.Get(tenantID, userID, tokenID)
+	token, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return err
 	}
@@ -156,7 +158,7 @@ func (h *RefreshTokenKeyHandler) RevokeAll(tenantID string, userID string) error
 
 // UpdateLastUsed updates the LastUsedAt timestamp for a refresh token
 func (h *RefreshTokenKeyHandler) UpdateLastUsed(tenantID string, userID string, tokenID string) error {
-	token, err := h.Get(tenantID, userID, tokenID)
+	token, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return err
 	}

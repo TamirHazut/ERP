@@ -404,8 +404,9 @@ type AuditMetadata struct {
 type AccessTokenClaims struct {
 	UserID               string   `json:"sub"`                 // Subject (user ID)
 	TenantID             string   `json:"tenant_id"`           // Tenant ID
+	Email                string   `json:"email"`               // Email
 	Username             string   `json:"username"`            // Username
-	Role                 string   `json:"role"`                // User role (admin, user, etc.)
+	Roles                []string `json:"roles"`               // User roles
 	Permissions          []string `json:"permissions"`         // Granular permissions
 	TokenType            string   `json:"type"`                // "access"
 	SessionID            string   `json:"sid,omitempty"`       // Session ID (optional)
@@ -428,10 +429,9 @@ func (c *AccessTokenClaims) Validate() error {
 	if c.Permissions == nil {
 		missingFields = append(missingFields, "Permissions")
 	}
-	if c.Role == "" {
-		missingFields = append(missingFields, "Role")
+	if len(c.Roles) == 0 {
+		missingFields = append(missingFields, "Roles")
 	}
-
 	if c.TokenType != "access" {
 		missingFields = append(missingFields, "TokenType")
 	}

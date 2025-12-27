@@ -34,36 +34,22 @@ func (r *PermissionRepository) CreatePermission(permission models.Permission) (s
 	return r.repository.Create(permission)
 }
 
-func (r *PermissionRepository) GetPermissionByID(tenantID, permissionID string) (models.Permission, error) {
+func (r *PermissionRepository) GetPermissionByID(tenantID, permissionID string) (*models.Permission, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       permissionID,
 	}
 	r.logger.Debug("Getting permission by id", "filter", filter)
-	permissions, err := r.repository.Find(filter)
-	if err != nil {
-		return models.Permission{}, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
-	}
-	if len(permissions) == 0 {
-		return models.Permission{}, erp_errors.NotFound(erp_errors.NotFoundPermission, "Permission", permissionID)
-	}
-	return permissions[0], nil
+	return r.findPermissionByFilter(filter)
 }
 
-func (r *PermissionRepository) GetPermissionByName(tenantID, name string) (models.Permission, error) {
+func (r *PermissionRepository) GetPermissionByName(tenantID, name string) (*models.Permission, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"name":      name,
 	}
 	r.logger.Debug("Getting permission by name", "filter", filter)
-	permissions, err := r.repository.Find(filter)
-	if err != nil {
-		return models.Permission{}, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
-	}
-	if len(permissions) == 0 {
-		return models.Permission{}, erp_errors.NotFound(erp_errors.NotFoundPermission, "Permission", name)
-	}
-	return permissions[0], nil
+	return r.findPermissionByFilter(filter)
 }
 
 func (r *PermissionRepository) GetPermissionsByTenantID(tenantID string) ([]models.Permission, error) {
@@ -71,7 +57,7 @@ func (r *PermissionRepository) GetPermissionsByTenantID(tenantID string) ([]mode
 		"tenant_id": tenantID,
 	}
 	r.logger.Debug("Getting permissions by tenant id", "filter", filter)
-	return r.getPermissionsByFilter(filter)
+	return r.findPermissionsByFilter(filter)
 }
 
 func (r *PermissionRepository) GetPermissionsByResource(tenantID, resource string) ([]models.Permission, error) {
@@ -80,7 +66,7 @@ func (r *PermissionRepository) GetPermissionsByResource(tenantID, resource strin
 		"resource":  resource,
 	}
 	r.logger.Debug("Getting permissions by resource", "filter", filter)
-	return r.getPermissionsByFilter(filter)
+	return r.findPermissionsByFilter(filter)
 }
 
 func (r *PermissionRepository) GetPermissionsByAction(tenantID, action string) ([]models.Permission, error) {
@@ -89,7 +75,7 @@ func (r *PermissionRepository) GetPermissionsByAction(tenantID, action string) (
 		"action":    action,
 	}
 	r.logger.Debug("Getting permissions by action", "filter", filter)
-	return r.getPermissionsByFilter(filter)
+	return r.findPermissionsByFilter(filter)
 }
 
 func (r *PermissionRepository) GetPermissionsByResourceAndAction(tenantID, resource, action string) ([]models.Permission, error) {
@@ -99,7 +85,7 @@ func (r *PermissionRepository) GetPermissionsByResourceAndAction(tenantID, resou
 		"action":    action,
 	}
 	r.logger.Debug("Getting permissions by resource and action", "filter", filter)
-	return r.getPermissionsByFilter(filter)
+	return r.findPermissionsByFilter(filter)
 }
 
 func (r *PermissionRepository) UpdatePermission(permission models.Permission) error {
@@ -134,10 +120,18 @@ func (r *PermissionRepository) DeletePermission(tenantID, permissionID string) e
 	return r.repository.Delete(filter)
 }
 
-func (r *PermissionRepository) getPermissionsByFilter(filter map[string]any) ([]models.Permission, error) {
-	permissions, err := r.repository.Find(filter)
+func (r *PermissionRepository) findPermissionByFilter(filter map[string]any) (*models.Permission, error) {
+	permission, err := r.repository.FindOne(filter)
 	if err != nil {
-		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return nil, err
+	}
+	return permission, nil
+}
+
+func (r *PermissionRepository) findPermissionsByFilter(filter map[string]any) ([]models.Permission, error) {
+	permissions, err := r.repository.FindAll(filter)
+	if err != nil {
+		return nil, err
 	}
 	return permissions, nil
 }

@@ -34,22 +34,19 @@ func (r *TenantRepository) CreateTenant(tenant models.Tenant) (string, error) {
 	return r.repository.Create(tenant)
 }
 
-func (r *TenantRepository) GetTenantByID(tenantID string) (models.Tenant, error) {
+func (r *TenantRepository) GetTenantByID(tenantID string) (*models.Tenant, error) {
 	if tenantID == "" {
-		return models.Tenant{}, erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID")
+		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID")
 	}
 	filter := map[string]any{
 		"_id": tenantID,
 	}
 	r.logger.Debug("Getting tenant by id", "filter", filter)
-	tenants, err := r.repository.Find(filter)
+	tenant, err := r.repository.FindOne(filter)
 	if err != nil {
-		return models.Tenant{}, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return nil, err
 	}
-	if len(tenants) == 0 {
-		return models.Tenant{}, erp_errors.NotFound(erp_errors.NotFoundTenant, "Tenant", tenantID)
-	}
-	return tenants[0], nil
+	return tenant, nil
 }
 
 func (r *TenantRepository) UpdateTenant(tenant models.Tenant) error {

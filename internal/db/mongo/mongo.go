@@ -72,6 +72,7 @@ func (m *MongoDBManager) createDBAndCollections() error {
 }
 
 func (m *MongoDBManager) Create(collectionName string, data any) (string, error) {
+	m.logger.Debug("creating data", "collection", collectionName, "data", data)
 	collection := m.db.Collection(collectionName)
 	result, err := collection.InsertOne(context.Background(), data)
 	if err != nil {
@@ -80,7 +81,32 @@ func (m *MongoDBManager) Create(collectionName string, data any) (string, error)
 	return result.InsertedID.(string), nil
 }
 
-func (m *MongoDBManager) Find(collectionName string, filter map[string]any) ([]any, error) {
+func (m *MongoDBManager) FindOne(collectionName string, filter map[string]any) (any, error) {
+	m.logger.Debug("finding one", "collection", collectionName, "filter", filter)
+	collection := m.db.Collection(collectionName)
+	if filter == nil {
+		return nil, errors.New("filter is required and cannot be nil")
+	}
+
+	if _, ok := filter["tenant_id"]; !ok {
+		return nil, errors.New("tenant id is required")
+	}
+	item := collection.FindOne(context.Background(), filter)
+	if item.Err() != nil {
+		return nil, item.Err()
+	}
+	if item == nil {
+		return nil, errors.New("no result found")
+	}
+	var result any
+	if err := item.Decode(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (m *MongoDBManager) FindAll(collectionName string, filter map[string]any) ([]any, error) {
+	m.logger.Debug("finding all", "collection", collectionName, "filter", filter)
 	collection := m.db.Collection(collectionName)
 	if filter == nil {
 		return nil, errors.New("filter is required and cannot be nil")
@@ -100,6 +126,7 @@ func (m *MongoDBManager) Find(collectionName string, filter map[string]any) ([]a
 }
 
 func (m *MongoDBManager) Update(collectionName string, filter map[string]any, data any) error {
+	m.logger.Debug("updating data", "collection", collectionName, "filter", filter, "data", data)
 	collection := m.db.Collection(collectionName)
 	_, err := collection.UpdateOne(context.Background(), filter, bson.M{"$set": data})
 	if err != nil {
@@ -109,6 +136,7 @@ func (m *MongoDBManager) Update(collectionName string, filter map[string]any, da
 }
 
 func (m *MongoDBManager) Delete(collectionName string, filter map[string]any) error {
+	m.logger.Debug("deleting data", "collection", collectionName, "filter", filter)
 	collection := m.db.Collection(collectionName)
 	_, err := collection.DeleteOne(context.Background(), filter)
 	if err != nil {

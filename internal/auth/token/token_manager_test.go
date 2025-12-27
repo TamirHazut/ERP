@@ -1,4 +1,4 @@
-package auth
+package token
 
 import (
 	"errors"
@@ -38,7 +38,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			name: "successful store",
 			setupMocks: func() (AccessTokenHandler, RefreshTokenHandler) {
 				var accessMock AccessTokenHandler = &mocks.MockAccessTokenKeyHandler{
-					StoreFunc: func(tenantID, tokenID string, metadata redis_models.TokenMetadata) error {
+					StoreFunc: func(tenantID, userID, tokenID string, metadata redis_models.TokenMetadata) error {
 						return nil
 					},
 				}
@@ -54,7 +54,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			accessTokenID:  "token-1",
 			refreshTokenID: "refresh-1",
 			accessTokenMetadata: redis_models.TokenMetadata{
-				TokenID:   "token-1",
+				TokenID:  "token-1",
 				UserID:   "user-1",
 				TenantID: "tenant-1",
 			},
@@ -71,7 +71,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			name: "access token store fails",
 			setupMocks: func() (AccessTokenHandler, RefreshTokenHandler) {
 				var accessMock AccessTokenHandler = &mocks.MockAccessTokenKeyHandler{
-					StoreFunc: func(tenantID, tokenID string, metadata redis_models.TokenMetadata) error {
+					StoreFunc: func(tenantID, userID, tokenID string, metadata redis_models.TokenMetadata) error {
 						return errors.New("store failed")
 					},
 				}
@@ -83,7 +83,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			accessTokenID:  "token-1",
 			refreshTokenID: "refresh-1",
 			accessTokenMetadata: redis_models.TokenMetadata{
-				TokenID:   "token-1",
+				TokenID:  "token-1",
 				UserID:   "user-1",
 				TenantID: "tenant-1",
 			},
@@ -100,10 +100,10 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			name: "refresh token store fails - access token cleaned up",
 			setupMocks: func() (AccessTokenHandler, RefreshTokenHandler) {
 				var accessMock AccessTokenHandler = &mocks.MockAccessTokenKeyHandler{
-					StoreFunc: func(tenantID, tokenID string, metadata redis_models.TokenMetadata) error {
+					StoreFunc: func(tenantID, userID, tokenID string, metadata redis_models.TokenMetadata) error {
 						return nil
 					},
-					DeleteFunc: func(tenantID, tokenID string) error {
+					DeleteFunc: func(tenantID, userID, tokenID string) error {
 						return nil
 					},
 				}
@@ -119,7 +119,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			accessTokenID:  "token-1",
 			refreshTokenID: "refresh-1",
 			accessTokenMetadata: redis_models.TokenMetadata{
-				TokenID:   "token-1",
+				TokenID:  "token-1",
 				UserID:   "user-1",
 				TenantID: "tenant-1",
 			},
@@ -163,6 +163,7 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 		name      string
 		setupMock func() *mocks.MockAccessTokenKeyHandler
 		tenantID  string
+		userID    string
 		tokenID   string
 		wantErr   bool
 	}{
@@ -170,11 +171,11 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 			name: "valid token",
 			setupMock: func() *mocks.MockAccessTokenKeyHandler {
 				return &mocks.MockAccessTokenKeyHandler{
-					ValidateFunc: func(tenantID, tokenID string) (*redis_models.TokenMetadata, error) {
+					ValidateFunc: func(tenantID, userID, tokenID string) (*redis_models.TokenMetadata, error) {
 						return &redis_models.TokenMetadata{
 							TokenID:   tokenID,
 							TenantID:  tenantID,
-							UserID:    "user-1",
+							UserID:    userID,
 							Revoked:   false,
 							ExpiresAt: time.Now().Add(time.Hour),
 						}, nil
@@ -182,6 +183,7 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 				}
 			},
 			tenantID: "tenant-1",
+			userID:   "user-1",
 			tokenID:  "token-1",
 			wantErr:  false,
 		},
@@ -189,12 +191,13 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 			name: "invalid token",
 			setupMock: func() *mocks.MockAccessTokenKeyHandler {
 				return &mocks.MockAccessTokenKeyHandler{
-					ValidateFunc: func(tenantID, tokenID string) (*redis_models.TokenMetadata, error) {
+					ValidateFunc: func(tenantID, userID, tokenID string) (*redis_models.TokenMetadata, error) {
 						return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid)
 					},
 				}
 			},
 			tenantID: "tenant-1",
+			userID:   "user-1",
 			tokenID:  "token-1",
 			wantErr:  true,
 		},
@@ -205,10 +208,10 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 			mock := tc.setupMock()
 			tm := &TokenManager{
 				accessTokenHandler: mock,
-				logger:            logging.NewLogger(logging.ModuleAuth),
+				logger:             logging.NewLogger(logging.ModuleAuth),
 			}
 
-			metadata, err := tm.ValidateAccessTokenFromRedis(tc.tenantID, tc.tokenID)
+			metadata, err := tm.ValidateAccessTokenFromRedis(tc.tenantID, tc.userID, tc.tokenID)
 
 			if tc.wantErr {
 				require.Error(t, err)
@@ -357,4 +360,3 @@ func TestTokenManager_RevokeAllTokens(t *testing.T) {
 		})
 	}
 }
-
