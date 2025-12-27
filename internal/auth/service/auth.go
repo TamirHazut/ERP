@@ -63,7 +63,7 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 	// Validate email or username are provided
 	authEmail := true
 	if email == "" && username == "" {
-		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "email", "username")
+		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "email", "username").Error())
 	} else if username != "" {
 		authEmail = false
 	}
@@ -71,7 +71,7 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 	// Get user by email or username
 	tenantID := req.User.TenantId
 	if tenantID == "" {
-		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id")
+		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id").Error())
 	}
 	var user *models.User
 	var err error
@@ -79,13 +79,13 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 		s.logger.Info("Authenticating user", "email", email)
 		user, err = s.userCollection.GetUserByEmail(tenantID, email)
 		if err != nil {
-			return nil, err
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 	} else {
 		s.logger.Info("Authenticating user", "username", username)
 		user, err = s.userCollection.GetUserByUsername(tenantID, username)
 		if err != nil {
-			return nil, err
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 	}
 
@@ -108,7 +108,7 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 		Permissions: permissions,
 	})
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	// Generate refresh token
@@ -117,7 +117,7 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 		TenantID: user.TenantID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	// Return response
@@ -136,40 +136,47 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 func (s *AuthService) VerifyToken(ctx context.Context, req *auth_proto.VerifyTokenRequest) (*auth_proto.VerifyTokenResponse, error) {
 	token := req.AccessToken
 	if token == "" {
-		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "access_token")
+		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "access_token").Error())
 	}
 	_, err := s.tokenManager.VerifyAccessToken(token)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 	return &auth_proto.VerifyTokenResponse{
-		Valid: err == nil,
+		Valid: true,
 	}, nil
 }
+
 func (s *AuthService) RefreshToken(ctx context.Context, req *auth_proto.RefreshTokenRequest) (*auth_proto.RefreshTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshToken not implemented")
 }
+
 func (s *AuthService) RevokeToken(ctx context.Context, req *auth_proto.RevokeTokenRequest) (*auth_proto.RevokeTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RevokeToken not implemented")
 }
+
 func (s *AuthService) Logout(ctx context.Context, req *auth_proto.LogoutRequest) (*auth_proto.LogoutResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
 }
+
 func (s *AuthService) CheckPermissions(ctx context.Context, req *auth_proto.CheckPermissionsRequest) (*auth_proto.CheckPermissionsResponse, error) {
 	tenantID := req.User.TenantId
 	if tenantID == "" {
-		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id")
+		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id").Error())
 	}
 	userID := req.User.UserId
 	if userID == "" {
-		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "user_id")
+		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "user_id").Error())
 	}
 	// Validate permissions
 	permissions := req.Permissions
 	if len(permissions) == 0 {
-		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "permissions")
+		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "permissions").Error())
 	}
 
 	permissionsCheckResponse, err := s.rbacManager.CheckUserPermissions(tenantID, userID, permissions)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	permissionsResponses := make([]*auth_proto.PermissionResponse, 0)
 	for permission, hasPermission := range permissionsCheckResponse {
