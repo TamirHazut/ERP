@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"time"
 
 	collection "erp.localhost/internal/auth/collections"
@@ -9,7 +11,8 @@ import (
 	auth_proto "erp.localhost/internal/auth/proto/v1"
 	"erp.localhost/internal/auth/rbac"
 	token "erp.localhost/internal/auth/token"
-	"erp.localhost/internal/db/mongo"
+	mongo "erp.localhost/internal/db/mongo"
+	redis_models "erp.localhost/internal/db/redis/models"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
 	"google.golang.org/grpc/codes"
@@ -17,8 +20,6 @@ import (
 )
 
 const (
-	authTypeEmail    string = "email"
-	authTypeUsername string = "username"
 
 	// TODO: Get secret key and durations from environment variable
 	secretKey            = "secret"
@@ -111,11 +112,36 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	hashedAccessToken := sha256.Sum256([]byte(accessToken))
+	accessTokenID := hex.EncodeToString(hashedAccessToken[:])
+
+	accessTokenMetadata := redis_models.TokenMetadata{
+		TokenID:   accessTokenID,
+		JTI:       accessToken,
+		UserID:    user.ID.String(),
+		TenantID:  user.TenantID,
+		TokenType: "access",
+		IssuedAt:  time.Now(),
+		ExpiresAt: time.Now().Add(tokenDuration),
+		Revoked:   false,
+		RevokedAt: nil,
+		RevokedBy: "",
+		IPAddress: "",
+		UserAgent: "",
+		Scopes:    []string{},
+	}
+
 	// Generate refresh token
 	refreshToken, err := s.tokenManager.GenerateRefreshToken(ctx, token.GenerateRefreshTokenInput{
 		UserID:   user.ID.String(),
 		TenantID: user.TenantID,
 	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Store tokens in Redis
+	err = s.tokenManager.StoreTokens(user.TenantID, user.ID.String(), accessTokenID, refreshToken.Token, accessTokenMetadata, refreshToken)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -128,7 +154,7 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 		},
 		Tokens: &auth_proto.Tokens{
 			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
+			RefreshToken: refreshToken.Token,
 		},
 	}, nil
 }

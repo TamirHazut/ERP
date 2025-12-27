@@ -3,7 +3,9 @@ package token
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -149,85 +151,35 @@ func (tm *TokenManager) GenerateAccessToken(input *GenerateAccessTokenInput) (st
 }
 
 // VerifyAccessToken verifies if the given JWT token is a valid access token
-func (tm *TokenManager) VerifyAccessToken(tokenString string) (*models.AccessTokenClaims, error) {
+func (tm *TokenManager) VerifyAccessToken(tokenString string) (*redis_models.TokenMetadata, error) {
 	if tokenString == "" {
 		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("token is required"))
 	}
 
-	claims := &models.AccessTokenClaims{}
-	// Parse and validate the token
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Verify signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("invalid signing method"))
-		}
-		return []byte(tm.secretKey), nil
-	})
-
+	accessTokenMetadata, err := tm.GetTokenMetadata(tokenString)
 	if err != nil {
 		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
 	}
-
-	// Check if token is valid
-	if !token.Valid {
-		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("invalid token"))
+	if accessTokenMetadata == nil {
+		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("access token not found"))
+	}
+	if accessTokenMetadata.ExpiresAt.Before(time.Now()) {
+		return nil, erp_errors.Auth(erp_errors.AuthTokenExpired).WithError(errors.New("access token has expired"))
+	}
+	if accessTokenMetadata.Revoked {
+		return nil, erp_errors.Auth(erp_errors.AuthTokenRevoked).WithError(errors.New("access token has been revoked"))
+	}
+	if accessTokenMetadata.RevokedAt != nil && accessTokenMetadata.RevokedAt.Before(time.Now()) {
+		return nil, erp_errors.Auth(erp_errors.AuthTokenRevoked).WithError(errors.New("access token has been revoked"))
 	}
 
-	// Extract claims from token
-	if claimsMap, ok := token.Claims.(jwt.MapClaims); ok {
-		// Extract standard claims
-		if sub, ok := claimsMap["sub"].(string); ok {
-			claims.UserID = sub
-		}
-		if tenantID, ok := claimsMap["tenant_id"].(string); ok {
-			claims.TenantID = tenantID
-		}
-		if username, ok := claimsMap["username"].(string); ok {
-			claims.Username = username
-		}
-		if roles, ok := claimsMap["roles"].([]interface{}); ok {
-			claims.Roles = make([]string, len(roles))
-			for i, r := range roles {
-				if str, ok := r.(string); ok {
-					claims.Roles[i] = str
-				}
-			}
-		}
-		if tokenType, ok := claimsMap["token_type"].(string); ok {
-			claims.TokenType = tokenType
-		}
-		if sessionID, ok := claimsMap["session_id"].(string); ok {
-			claims.SessionID = sessionID
-		}
-		if deviceID, ok := claimsMap["device_id"].(string); ok {
-			claims.DeviceID = deviceID
-		}
-		// Extract permissions array
-		if perms, ok := claimsMap["permissions"].([]interface{}); ok {
-			claims.Permissions = make([]string, len(perms))
-			for i, p := range perms {
-				if str, ok := p.(string); ok {
-					claims.Permissions[i] = str
-				}
-			}
-		}
-		// Extract expiration
-		if exp, ok := claimsMap["exp"].(float64); ok {
-			claims.ExpiresAt = jwt.NewNumericDate(time.Unix(int64(exp), 0))
-		}
-	}
-
-	if err := claims.Validate(); err != nil {
-		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
-	}
-
-	return claims, nil
+	return accessTokenMetadata, nil
 }
 
 // GenerateRefreshToken generates a new refresh token for the given user
-func (tm *TokenManager) GenerateRefreshToken(ctx context.Context, input GenerateRefreshTokenInput) (string, error) {
+func (tm *TokenManager) GenerateRefreshToken(ctx context.Context, input GenerateRefreshTokenInput) (models.RefreshToken, error) {
 	if input.UserID == "" {
-		return "", erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("user_id is required"))
+		return models.RefreshToken{}, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("user_id is required"))
 	}
 
 	tm.logger.Debug("Generating refresh token", "input", input)
@@ -238,14 +190,14 @@ func (tm *TokenManager) GenerateRefreshToken(ctx context.Context, input Generate
 	// 32 bytes = 256 bits of entropy (very secure)
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
-		return "", erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
+		return models.RefreshToken{}, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
 	}
 
 	// Encode to base64 URL-safe string (no padding)
 	tokenString := base64.RawURLEncoding.EncodeToString(tokenBytes)
 
 	// Create refresh token storage model with metadata
-	refreshToken := &models.RefreshToken{
+	refreshToken := models.RefreshToken{
 		Token:      tokenString,
 		UserID:     input.UserID,
 		TenantID:   input.TenantID,
@@ -262,14 +214,14 @@ func (tm *TokenManager) GenerateRefreshToken(ctx context.Context, input Generate
 
 	// Validate before storing
 	if err := refreshToken.Validate(); err != nil {
-		return "", erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
+		return models.RefreshToken{}, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
 	}
 
-	// Store refresh token in Redis (use tokenString as tokenID)
-	if err := tm.refreshTokenHandler.Store(input.TenantID, input.UserID, tokenString, *refreshToken); err != nil {
-		return "", erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
-	}
-	return tokenString, nil
+	// // Store refresh token in Redis (use tokenString as tokenID)
+	// if err := tm.refreshTokenHandler.Store(input.TenantID, input.UserID, tokenString, *refreshToken); err != nil {
+	// 	return "", erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
+	// }
+	return refreshToken, nil
 }
 
 // VerifyRefreshToken verifies if the given refresh token is valid
@@ -461,13 +413,13 @@ func (tm *TokenManager) DeleteRefreshTokenFromRedis(tenantID string, userID stri
 // RevokeAccessToken revokes a JWT access token (legacy method for compatibility)
 func (tm *TokenManager) RevokeAccessToken(ctx context.Context, tokenString string) error {
 	// Parse token to get JTI and expiration
-	claims, err := tm.VerifyAccessToken(tokenString)
+	accessTokenMetadata, err := tm.VerifyAccessToken(tokenString)
 	if err != nil {
 		// If token is already invalid/expired, consider it revoked
 		return nil
 	}
 
-	if claims.IsExpired() {
+	if accessTokenMetadata.ExpiresAt.Before(time.Now()) {
 		return erp_errors.Auth(erp_errors.AuthTokenExpired).WithError(errors.New("token expired"))
 	}
 
@@ -503,4 +455,49 @@ func (tm *TokenManager) RevokeAllUserRefreshTokens(tenantID string, userID strin
 	}
 
 	return nil
+}
+
+func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*redis_models.TokenMetadata, error) {
+	claims := &models.AccessTokenClaims{}
+
+	token, err := jwt.Parse(accessTokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("invalid signing method"))
+		}
+		return []byte(tm.secretKey), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !token.Valid {
+		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("invalid token"))
+	}
+	if claimsMap, ok := token.Claims.(jwt.MapClaims); ok {
+		if sub, ok := claimsMap["sub"].(string); ok {
+			claims.UserID = sub
+		}
+		if tenantID, ok := claimsMap["tenant_id"].(string); ok {
+			claims.TenantID = tenantID
+		}
+	}
+	if claims.UserID == "" {
+		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("user_id is required"))
+	}
+	if claims.TenantID == "" {
+		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("tenant_id is required"))
+	}
+	hashedAccessToken := sha256.Sum256([]byte(accessTokenString))
+	accessTokenID := hex.EncodeToString(hashedAccessToken[:])
+	accessTokenMetadata, err := tm.accessTokenHandler.GetOne(claims.TenantID, claims.UserID, accessTokenID)
+	if err != nil {
+		return nil, err
+	}
+
+	if accessTokenMetadata == nil {
+		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("access token not found"))
+	}
+	if accessTokenMetadata.TokenID != accessTokenID {
+		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("access token ID mismatch"))
+	}
+	return accessTokenMetadata, nil
 }

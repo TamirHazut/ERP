@@ -58,6 +58,8 @@ type TokenMetadata struct {
 	Scopes    []string   `json:"scopes,omitempty"`
 }
 
+// TODO: Should delete this?
+
 // RefreshToken represents a refresh token
 // Key: refresh_tokens:{user_id}
 // TTL: 7 days (configurable)
@@ -326,11 +328,11 @@ type ActiveUser struct {
 // Key: feature_flag:{flag_key}
 // TTL: 5 minutes
 type FeatureFlagCache struct {
-	FlagKey  string               `json:"flag_key"`
-	Enabled  bool                 `json:"enabled"`
+	FlagKey  string                `json:"flag_key"`
+	Enabled  bool                  `json:"enabled"`
 	Rollout  config.FeatureRollout `json:"rollout"`
-	CachedAt time.Time            `json:"cached_at"`
-	Version  int                  `json:"version"`
+	CachedAt time.Time             `json:"cached_at"`
+	Version  int                   `json:"version"`
 }
 
 // TenantFeatures represents cached tenant-specific features
