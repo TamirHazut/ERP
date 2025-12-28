@@ -44,7 +44,7 @@ func TestKeyHandler_Set(t *testing.T) {
 		name     string
 		key      string
 		value    TestModel
-		mockFunc func(key string, data any) (string, error)
+		mockFunc func(key string, data any, opts ...map[string]any) (string, error)
 		wantErr  bool
 	}{
 		{
@@ -52,7 +52,7 @@ func TestKeyHandler_Set(t *testing.T) {
 			name:     "successful set",
 			key:      "test-key",
 			value:    TestModel{ID: "1", Name: "test"},
-			mockFunc: func(key string, data any) (string, error) {
+			mockFunc: func(key string, data any, opts ...map[string]any) (string, error) {
 				return "ok", nil
 			},
 			wantErr: false,
@@ -62,7 +62,7 @@ func TestKeyHandler_Set(t *testing.T) {
 			tenantID: "1",
 			key:      "test-key",
 			value:    TestModel{ID: "1", Name: "test"},
-			mockFunc: func(key string, data any) (string, error) {
+			mockFunc: func(key string, data any, opts ...map[string]any) (string, error) {
 				return "", errors.New("database connection failed")
 			},
 			wantErr: true,
@@ -244,7 +244,7 @@ func TestKeyHandler_Update(t *testing.T) {
 		tenantID string
 		key      string
 		value    TestModel
-		mockFunc func(key string, filter map[string]any, data any) error
+		mockFunc func(key string, filter map[string]any, data any, opts ...map[string]any) error
 		wantErr  bool
 	}{
 		{
@@ -252,7 +252,7 @@ func TestKeyHandler_Update(t *testing.T) {
 			tenantID: "1",
 			key:      "test-key",
 			value:    TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(key string, filter map[string]any, data any) error {
+			mockFunc: func(key string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -262,7 +262,7 @@ func TestKeyHandler_Update(t *testing.T) {
 			tenantID: "1",
 			key:      "test-key",
 			value:    TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(key string, filter map[string]any, data any) error {
+			mockFunc: func(key string, filter map[string]any, data any, opts ...map[string]any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,

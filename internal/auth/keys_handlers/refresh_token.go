@@ -105,7 +105,7 @@ func (h *RefreshTokenKeyHandler) Validate(tenantID string, userID string, tokenI
 }
 
 // Revoke revokes a single refresh token
-func (h *RefreshTokenKeyHandler) Revoke(tenantID string, userID string, tokenID string) error {
+func (h *RefreshTokenKeyHandler) Revoke(tenantID string, userID string, tokenID string, revokedBy string) error {
 	token, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func (h *RefreshTokenKeyHandler) Revoke(tenantID string, userID string, tokenID 
 	now := time.Now()
 	token.IsRevoked = true
 	token.RevokedAt = now
-
+	token.RevokedBy = revokedBy
 	key := userID + ":" + tokenID
 	err = h.keyHandler.Update(tenantID, key, *token)
 	if err != nil {
@@ -127,7 +127,7 @@ func (h *RefreshTokenKeyHandler) Revoke(tenantID string, userID string, tokenID 
 }
 
 // RevokeAll revokes all refresh tokens for a user within a tenant
-func (h *RefreshTokenKeyHandler) RevokeAll(tenantID string, userID string) error {
+func (h *RefreshTokenKeyHandler) RevokeAll(tenantID string, userID string, revokedBy string) error {
 	if h.tokenIndex == nil {
 		return erp_errors.Internal(erp_errors.InternalUnexpectedError, fmt.Errorf("token index not initialized"))
 	}
@@ -141,7 +141,7 @@ func (h *RefreshTokenKeyHandler) RevokeAll(tenantID string, userID string) error
 
 	// Revoke each token
 	for _, tokenID := range tokenIDs {
-		if err := h.Revoke(tenantID, userID, tokenID); err != nil {
+		if err := h.Revoke(tenantID, userID, tokenID, revokedBy); err != nil {
 			// Log error but continue with other tokens
 			h.logger.Warn("Failed to revoke refresh token", "error", err, "tenantID", tenantID, "tokenID", tokenID)
 		}

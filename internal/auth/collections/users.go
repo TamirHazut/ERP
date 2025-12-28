@@ -28,6 +28,15 @@ func (r *UserCollection) CreateUser(user models.User) (string, error) {
 	if err := user.Validate(true); err != nil {
 		return "", err
 	}
+	// TODO: move this to userservice
+	// // Validate the creator has the permission to create users in the tenant
+	// creator, err := r.GetUserByID(user.TenantID, user.CreatedBy)
+	// if err != nil {
+	// 	return "", err
+	// }
+	// if !creator.HasPermission(models.PermissionCreateUser) {
+	// 	return "", erp_errors.Auth(erp_errors.AuthPermissionDenied)
+	// }
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 	r.logger.Debug("Creating user", "user", user)

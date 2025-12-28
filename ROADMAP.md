@@ -309,22 +309,22 @@ internal/
 ### Phase 1: Foundation ⚙️
 
 #### 1. Auth Service (Priority 1) 🔐
-**Status:** 🟡 In Progress (Repositories ✅, Models ✅, gRPC Server ⬜)
+**Status:** 🟡 In Progress (~90% Complete: Repositories ✅, Models ✅, Token Infrastructure ✅, Core Endpoints ✅, gRPC Server ✅, Tests ✅, main.go ⬜)
 
 **Why First:** Required by all other services for authentication/authorization. Foundation for the entire system.
 
 **Prerequisites:**
 - ✅ Pre-Phase infrastructure setup must be completed first (gRPC infrastructure, JWT library)
 
-**Dependencies:** 
-- Uses existing `db` package
-- MongoDB (`auth_db` collection)
+**Dependencies:**
+- Uses existing `db` package (✅ Enhanced with opts parameter for future TTL support)
+- MongoDB (`auth_db` collection) - ✅ Auto-creates collections via CreateCollectionInDBIfNotExists
 - Redis (sessions/tokens)
 - gRPC infrastructure (from Pre-Phase)
 - JWT library (from Pre-Phase)
 
 **What to Build:**
-- [ ] gRPC server implementation
+- [x] gRPC server implementation (structure complete, mTLS disabled for local testing, needs main.go entry point)
 - [x] Auth service proto definitions (`.proto` files)
 - [x] User repository using generic Repository pattern (MongoDB: `auth_db.users`)
   - [x] `internal/auth/repository/users_repo.go`
@@ -363,11 +363,13 @@ internal/
     - [x] Unit tests (`internal/auth/token_manager_test.go`)
   - [x] Documentation (`docs/auth/TOKEN_INFRASTRUCTURE.md`)
 - [x] Login endpoint (`Authenticate()` gRPC method)
-- [ ] Session management (Redis: `sessions:{session_id}`)
-- [ ] Logout endpoint
-- [ ] Token refresh endpoint
-- [ ] RBAC permission checking logic
-- [ ] Permission checking endpoint (`CheckPermission()` gRPC method)
+- [x] Logout endpoint (`Logout()` gRPC method) - ✅ Implemented with token revocation and audit logging (audit logs commented out)
+- [x] Token verification endpoint (`VerifyToken()` gRPC method)
+- [x] Token refresh endpoint (`RefreshToken()` gRPC method) - ✅ Implemented with token rotation
+- [x] Token revocation endpoint (`RevokeToken()` gRPC method)
+- [x] RBAC permission checking endpoint (`CheckPermissions()` gRPC method)
+- [ ] RBAC manager implementation (basic structure exists, needs full implementation)
+- [ ] Session management (Redis: `sessions:{session_id}`) - Deferred to later phase
 - [x] Role repository (MongoDB: `auth_db.roles`)
   - [x] `internal/auth/repository/roles_repo.go`
   - [x] CRUD operations with tenant isolation
@@ -384,11 +386,45 @@ internal/
   - [x] Unit tests (`internal/auth/repository/tenants_repo_test.go`)
 
 **Key Endpoints:**
-- `POST /auth/login` → gRPC `Authenticate()`
-- `POST /auth/logout` → gRPC `Logout()`
-- `POST /auth/refresh` → gRPC `RefreshToken()`
-- `GET /auth/verify` → gRPC `VerifyToken()`
-- `POST /rbac/check-permission` → gRPC `CheckPermission()`
+- `POST /auth/login` → gRPC `Authenticate()` ✅
+- `POST /auth/logout` → gRPC `Logout()` ✅
+- `POST /auth/refresh` → gRPC `RefreshToken()` ✅
+- `GET /auth/verify` → gRPC `VerifyToken()` ✅
+- `POST /auth/revoke` → gRPC `RevokeToken()` ✅
+- `POST /rbac/check-permissions` → gRPC `CheckPermissions()` ✅
+
+**Infrastructure Improvements (Added During Auth Service Development):**
+- [x] Enhanced DBHandler interface with opts parameter
+  - [x] `Create(db string, data any, opts ...map[string]any)` - Support for future TTL configuration
+  - [x] `Update(db string, filter map[string]any, data any, opts ...map[string]any)` - Support for future options
+  - [x] `Close()` method added for proper cleanup
+  - [x] MongoDB implementation updated
+  - [x] Redis implementation updated
+  - [x] MockDBHandler updated for testing
+- [x] Auto-create MongoDB collections
+  - [x] `CreateCollectionInDBIfNotExists()` in MongoDBManager
+  - [x] Called automatically in `NewCollectionHandler`
+  - [x] Gracefully handles mocks (returns nil for non-MongoDB handlers)
+- [x] Helper methods in AuthService
+  - [x] `generateAccessToken()` - Extract access token generation logic
+  - [x] `generateRefreshToken()` - Extract refresh token generation logic
+  - [x] `generateAndStoreTokens()` - Unified token generation and storage
+  - [x] `revokeTokens()` - Unified token revocation logic
+
+**Test Status:**
+- ✅ All unit tests passing (60 tests across 8 packages)
+- ✅ Collection tests (permissions, roles, tenants, users)
+- ✅ Model validation tests (permission, role, tenant, user, token_claims, refresh_token)
+- ✅ Key handler tests (access_token, refresh_token)
+- ✅ Token manager tests
+- ✅ Utils tests (password hashing)
+
+**Remaining Tasks:**
+- [ ] Create `internal/auth/cmd/main.go` entry point to start the server
+- [ ] End-to-end testing with real MongoDB and Redis
+- [ ] Complete RBAC manager implementation
+- [ ] Re-enable audit logging in Logout (currently commented out)
+- [ ] Add mTLS support (currently disabled for local testing)
 
 **Port:** 5000
 

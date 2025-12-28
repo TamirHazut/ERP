@@ -1,7 +1,6 @@
 .vscode
 .cursor
 .claude
-CLAUDE.md
 
 vendor
 
@@ -21,3 +20,7 @@ coverage.html
 *.exe
 *.env
 *.log*
+
+*.md
+!README.md
+!ROADMAP.md

@@ -147,6 +147,11 @@ var (
 		Message:  "Invalid identifier format",
 		Category: CategoryValidation,
 	}
+	ValidationInvalidValue = ErrorDef{
+		Code:     "VALIDATION_INVALID_VALUE",
+		Message:  "Invalid value",
+		Category: CategoryValidation,
+	}
 )
 
 // ============================================================================

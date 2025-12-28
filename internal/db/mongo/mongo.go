@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	db "erp.localhost/internal/db"
+	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -34,6 +34,14 @@ func NewMongoDBManager(dbName DBName) *MongoDBManager {
 	return m
 }
 
+func (m *MongoDBManager) Close() error {
+	if err := m.client.Disconnect(context.Background()); err != nil {
+		m.logger.Error("failed to disconnect from mongo", "error", err)
+		return err
+	}
+	return nil
+}
+
 func (m *MongoDBManager) Init() error {
 	uri := "mongodb://root:secret@localhost:27017"
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -48,30 +56,38 @@ func (m *MongoDBManager) Init() error {
 		return err
 	}
 	m.client = client
-	if err := m.createDBAndCollections(); err != nil {
+	if err := m.createDBIfNotExists(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *MongoDBManager) createDBAndCollections() error {
-	m.db = m.client.Database(string(m.dbName))
-	existingCollections, err := m.db.ListCollectionNames(context.Background(), nil)
+func (m *MongoDBManager) CreateCollectionInDBIfNotExists(collectionName string) error {
+	filter := bson.M{"name": collectionName}
+	names, err := m.db.ListCollectionNames(context.Background(), filter)
 	if err != nil {
-		m.logger.Fatal("failed to list collections", "db", m.dbName, "error", err)
-		return err
+		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 	}
-	missingCollections := db.SlicesDiff(dbToCollection[string(m.dbName)], existingCollections)
-	for _, collection := range missingCollections {
-		if err := m.db.CreateCollection(context.Background(), collection); err != nil {
-			m.logger.Fatal("failed to create collection", "db", m.dbName, "collection", collection, "error", err)
-			return err
-		}
+	if len(names) > 0 {
+		m.logger.Info("collection already exists", "db", m.dbName, "collection", collectionName)
+		return nil
+	}
+	if err := m.db.CreateCollection(context.Background(), collectionName); err != nil {
+		m.logger.Error("failed to create collection", "db", m.dbName, "collection", collectionName, "error", err)
+		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 	}
 	return nil
 }
 
-func (m *MongoDBManager) Create(collectionName string, data any) (string, error) {
+func (m *MongoDBManager) createDBIfNotExists() error {
+	m.db = m.client.Database(string(m.dbName))
+	if m.db == nil {
+		return erp_errors.Internal(erp_errors.InternalDatabaseError, errors.New("database not found"))
+	}
+	return nil
+}
+
+func (m *MongoDBManager) Create(collectionName string, data any, opts ...map[string]any) (string, error) {
 	m.logger.Debug("creating data", "collection", collectionName, "data", data)
 	collection := m.db.Collection(collectionName)
 	result, err := collection.InsertOne(context.Background(), data)
@@ -125,7 +141,7 @@ func (m *MongoDBManager) FindAll(collectionName string, filter map[string]any) (
 	return results, nil
 }
 
-func (m *MongoDBManager) Update(collectionName string, filter map[string]any, data any) error {
+func (m *MongoDBManager) Update(collectionName string, filter map[string]any, data any, opts ...map[string]any) error {
 	m.logger.Debug("updating data", "collection", collectionName, "filter", filter, "data", data)
 	collection := m.db.Collection(collectionName)
 	_, err := collection.UpdateOne(context.Background(), filter, bson.M{"$set": data})

@@ -19,11 +19,25 @@ func NewCollectionHandler[T any](dbHandler db.DBHandler, collection string, logg
 	if logger == nil {
 		logger = logging.NewLogger(logging.ModuleDB)
 	}
-	return &CollectionHandler[T]{
+	collectionHandler := &CollectionHandler[T]{
 		dbHandler:  dbHandler,
 		collection: collection,
 		logger:     logger,
 	}
+	if err := collectionHandler.CreateCollectionInDBIfNotExists(); err != nil {
+		logger.Error(err.Error(), "collection", collection, "error", err)
+		return nil
+	}
+	return collectionHandler
+}
+
+func (r *CollectionHandler[T]) CreateCollectionInDBIfNotExists() error {
+	if dbHandler, ok := r.dbHandler.(*MongoDBManager); ok {
+		return dbHandler.CreateCollectionInDBIfNotExists(r.collection)
+	}
+	// If not a MongoDBManager (e.g., mock), skip collection creation
+	// This allows tests to work without a real MongoDB connection
+	return nil
 }
 
 func (r *CollectionHandler[T]) Create(item T) (string, error) {

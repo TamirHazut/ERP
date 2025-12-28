@@ -308,7 +308,7 @@ func TestTokenManager_RevokeAllTokens(t *testing.T) {
 					},
 				}
 				refreshMock := &mocks.MockRefreshTokenKeyHandler{
-					RevokeAllFunc: func(tenantID, userID string) error {
+					RevokeAllFunc: func(tenantID, userID, revokedBy string) error {
 						return nil
 					},
 				}
@@ -328,7 +328,7 @@ func TestTokenManager_RevokeAllTokens(t *testing.T) {
 					},
 				}
 				refreshMock := &mocks.MockRefreshTokenKeyHandler{
-					RevokeAllFunc: func(tenantID, userID string) error {
+					RevokeAllFunc: func(tenantID, userID, revokedBy string) error {
 						return errors.New("revoke failed")
 					},
 				}

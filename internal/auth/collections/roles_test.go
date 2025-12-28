@@ -26,7 +26,7 @@ func TestRoleCollection_CreateRole(t *testing.T) {
 	testCases := []struct {
 		name     string
 		role     models.Role
-		mockFunc func(collection string, data any) (string, error)
+		mockFunc func(collection string, data any, opts ...map[string]any) (string, error)
 		wantID   string
 		wantErr  bool
 	}{
@@ -39,7 +39,7 @@ func TestRoleCollection_CreateRole(t *testing.T) {
 				CreatedBy:   "admin",
 				Permissions: []string{"read", "write"},
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "role-id-123", nil
 			},
 			wantID:  "role-id-123",
@@ -53,7 +53,7 @@ func TestRoleCollection_CreateRole(t *testing.T) {
 				CreatedBy:   "admin",
 				Permissions: []string{"read", "write"},
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "", nil
 			},
 			wantID:  "",
@@ -68,7 +68,7 @@ func TestRoleCollection_CreateRole(t *testing.T) {
 				CreatedBy:   "admin",
 				Permissions: []string{"read", "write"},
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "", errors.New("database connection failed")
 			},
 			wantID:  "",
@@ -335,7 +335,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 		name       string
 		role       models.Role
 		mockFind   func(collection string, filter map[string]any) (any, error)
-		mockUpdate func(collection string, filter map[string]any, data any) error
+		mockUpdate func(collection string, filter map[string]any, data any, opts ...map[string]any) error
 		wantErr    bool
 	}{
 		{
@@ -357,7 +357,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -370,7 +370,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 			mockFind: func(collection string, filter map[string]any) (any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -389,7 +389,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 			mockFind: func(collection string, filter map[string]any) (any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -412,7 +412,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -435,7 +435,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,

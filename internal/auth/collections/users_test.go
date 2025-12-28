@@ -26,7 +26,7 @@ func TestUserCollection_CreateUser(t *testing.T) {
 	testCases := []struct {
 		name      string
 		user      models.User
-		mockFunc  func(collection string, data any) (string, error)
+		mockFunc  func(collection string, data any, opts ...map[string]any) (string, error)
 		wantID    string
 		wantErr   bool
 		wantError error
@@ -42,7 +42,7 @@ func TestUserCollection_CreateUser(t *testing.T) {
 				CreatedBy:    "admin",
 				Roles:        []models.UserRole{},
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "user-id-123", nil
 			},
 			wantID:  "user-id-123",
@@ -58,7 +58,7 @@ func TestUserCollection_CreateUser(t *testing.T) {
 				CreatedBy:    "admin",
 				Roles:        []models.UserRole{},
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "", nil
 			},
 			wantID:  "",
@@ -75,7 +75,7 @@ func TestUserCollection_CreateUser(t *testing.T) {
 				CreatedBy:    "admin",
 				Roles:        []models.UserRole{},
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "", errors.New("database connection failed")
 			},
 			wantID:  "",
@@ -351,7 +351,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 		name       string
 		user       models.User
 		mockFind   func(collection string, filter map[string]any) (any, error)
-		mockUpdate func(collection string, filter map[string]any, data any) error
+		mockUpdate func(collection string, filter map[string]any, data any, opts ...map[string]any) error
 		wantErr    bool
 	}{
 		{
@@ -375,7 +375,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -388,7 +388,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 			mockFind: func(collection string, filter map[string]any) (any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -409,7 +409,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 			mockFind: func(collection string, filter map[string]any) (any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -435,7 +435,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -461,7 +461,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,

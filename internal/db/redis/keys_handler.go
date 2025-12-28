@@ -47,6 +47,18 @@ func (k *KeyHandler[T]) GetOne(tenantID string, key string) (*T, error) {
 	if err != nil {
 		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 	}
+
+	// Handle case where value is nil (not found)
+	if value == nil {
+		return nil, erp_errors.NotFound(erp_errors.NotFoundResource, "key", formattedKey)
+	}
+
+	// Handle case where mock returns struct directly
+	if typedValue, ok := value.(T); ok {
+		return &typedValue, nil
+	}
+
+	// Handle case where Redis returns JSON string
 	var result T
 	err = json.Unmarshal([]byte(value.(string)), &result)
 	if err != nil {
@@ -64,6 +76,13 @@ func (k *KeyHandler[T]) GetAll(tenantID string, userID string) ([]T, error) {
 	}
 	var results []T
 	for _, value := range values {
+		// Handle case where mock returns struct directly
+		if typedValue, ok := value.(T); ok {
+			results = append(results, typedValue)
+			continue
+		}
+
+		// Handle case where Redis returns JSON string
 		var result T
 		err = json.Unmarshal([]byte(value.(string)), &result)
 		if err != nil {

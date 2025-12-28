@@ -20,6 +20,7 @@ type RefreshToken struct {
 	LastUsedAt time.Time `bson:"last_used_at,omitempty" json:"last_used_at,omitempty"` // Last time token was used
 	RevokedAt  time.Time `bson:"revoked_at,omitempty" json:"revoked_at,omitempty"`     // When token was revoked
 	IsRevoked  bool      `bson:"is_revoked" json:"is_revoked"`                         // Quick check if revoked
+	RevokedBy  string    `bson:"revoked_by,omitempty" json:"revoked_by,omitempty"`     // Who revoked the token
 }
 
 func (r *RefreshToken) Validate() error {

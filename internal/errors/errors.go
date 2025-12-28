@@ -98,6 +98,8 @@ func Validation(def ErrorDef, fields ...string) *AppError {
 	e := New(def)
 	if len(fields) > 0 {
 		e.Details["fields"] = fields
+		// Append field names to the message for better error visibility
+		e.Message = fmt.Sprintf("%s: %v", e.Message, fields)
 	}
 	return e
 }

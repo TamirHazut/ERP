@@ -4,16 +4,24 @@ import "errors"
 
 // MockDBHandler is a mock implementation of DBHandler for testing
 type MockDBHandler struct {
-	CreateFunc  func(db string, data any) (string, error)
+	CloseFunc   func() error
+	CreateFunc  func(db string, data any, opts ...map[string]any) (string, error)
 	FindOneFunc func(db string, filter map[string]any) (any, error)
 	FindAllFunc func(db string, filter map[string]any) ([]any, error)
-	UpdateFunc  func(db string, filter map[string]any, data any) error
+	UpdateFunc  func(db string, filter map[string]any, data any, opts ...map[string]any) error
 	DeleteFunc  func(db string, filter map[string]any) error
 }
 
-func (m *MockDBHandler) Create(db string, data any) (string, error) {
+func (m *MockDBHandler) Close() error {
+	if m.CloseFunc != nil {
+		return m.CloseFunc()
+	}
+	return nil
+}
+
+func (m *MockDBHandler) Create(db string, data any, opts ...map[string]any) (string, error) {
 	if m.CreateFunc != nil {
-		return m.CreateFunc(db, data)
+		return m.CreateFunc(db, data, opts...)
 	}
 	return "mock-id", nil
 }
@@ -32,9 +40,9 @@ func (m *MockDBHandler) FindAll(db string, filter map[string]any) ([]any, error)
 	return []any{}, nil
 }
 
-func (m *MockDBHandler) Update(db string, filter map[string]any, data any) error {
+func (m *MockDBHandler) Update(db string, filter map[string]any, data any, opts ...map[string]any) error {
 	if m.UpdateFunc != nil {
-		return m.UpdateFunc(db, filter, data)
+		return m.UpdateFunc(db, filter, data, opts...)
 	}
 	return nil
 }

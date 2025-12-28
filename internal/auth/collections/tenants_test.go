@@ -26,7 +26,7 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 	testCases := []struct {
 		name     string
 		tenant   models.Tenant
-		mockFunc func(collection string, data any) (string, error)
+		mockFunc func(collection string, data any, opts ...map[string]any) (string, error)
 		wantID   string
 		wantErr  bool
 	}{
@@ -37,7 +37,7 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 				Status:    models.TenantStatusActive,
 				CreatedBy: "admin",
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "tenant-id-123", nil
 			},
 			wantID:  "tenant-id-123",
@@ -49,7 +49,7 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 				Status:    models.TenantStatusActive,
 				CreatedBy: "admin",
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "", nil
 			},
 			wantID:  "",
@@ -62,7 +62,7 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 				Status:    models.TenantStatusActive,
 				CreatedBy: "admin",
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "", errors.New("database connection failed")
 			},
 			wantID:  "",
@@ -166,7 +166,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 		name       string
 		tenant     models.Tenant
 		mockFind   func(collection string, filter map[string]any) (any, error)
-		mockUpdate func(collection string, filter map[string]any, data any) error
+		mockUpdate func(collection string, filter map[string]any, data any, opts ...map[string]any) error
 		wantErr    bool
 	}{
 		{
@@ -186,7 +186,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -199,7 +199,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 			mockFind: func(collection string, filter map[string]any) (any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -216,7 +216,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 			mockFind: func(collection string, filter map[string]any) (any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -236,7 +236,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -256,7 +256,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,

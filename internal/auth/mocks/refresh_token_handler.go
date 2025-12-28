@@ -10,8 +10,8 @@ type MockRefreshTokenKeyHandler struct {
 	GetOneFunc         func(tenantID string, userID string, tokenID string) (*models.RefreshToken, error)
 	GetAllFunc         func(tenantID string, userID string) ([]models.RefreshToken, error)
 	ValidateFunc       func(tenantID string, userID string, tokenID string) (*models.RefreshToken, error)
-	RevokeFunc         func(tenantID string, userID string, tokenID string) error
-	RevokeAllFunc      func(tenantID string, userID string) error
+	RevokeFunc         func(tenantID string, userID string, tokenID string, revokedBy string) error
+	RevokeAllFunc      func(tenantID string, userID string, revokedBy string) error
 	UpdateLastUsedFunc func(tenantID string, userID string, tokenID string) error
 	DeleteFunc         func(tenantID string, userID string, tokenID string) error
 }
@@ -44,16 +44,16 @@ func (m *MockRefreshTokenKeyHandler) Validate(tenantID string, userID string, to
 	return nil, nil
 }
 
-func (m *MockRefreshTokenKeyHandler) Revoke(tenantID string, userID string, tokenID string) error {
+func (m *MockRefreshTokenKeyHandler) Revoke(tenantID string, userID string, tokenID string, revokedBy string) error {
 	if m.RevokeFunc != nil {
-		return m.RevokeFunc(tenantID, userID, tokenID)
+		return m.RevokeFunc(tenantID, userID, tokenID, revokedBy)
 	}
 	return nil
 }
 
-func (m *MockRefreshTokenKeyHandler) RevokeAll(tenantID string, userID string) error {
+func (m *MockRefreshTokenKeyHandler) RevokeAll(tenantID string, userID string, revokedBy string) error {
 	if m.RevokeAllFunc != nil {
-		return m.RevokeAllFunc(tenantID, userID)
+		return m.RevokeAllFunc(tenantID, userID, revokedBy)
 	}
 	return nil
 }

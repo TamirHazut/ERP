@@ -7,10 +7,10 @@ import (
 // MockRedisHandler is a mock implementation of RedisHandler for testing
 type MockRedisHandler struct {
 	keyPrefix   redis.KeyPrefix
-	CreateFunc  func(key string, value any) (string, error)
+	CreateFunc  func(key string, value any, opts ...map[string]any) (string, error)
 	FindOneFunc func(key string, filter map[string]any) (any, error)
 	FindAllFunc func(key string, filter map[string]any) ([]any, error)
-	UpdateFunc  func(key string, filter map[string]any, value any) error
+	UpdateFunc  func(key string, filter map[string]any, value any, opts ...map[string]any) error
 	DeleteFunc  func(key string, filter map[string]any) error
 	CloseFunc   func() error
 }
@@ -23,9 +23,9 @@ func NewMockRedisHandler(keyPrefix redis.KeyPrefix) *MockRedisHandler {
 }
 
 // Create implements the DBHandler interface
-func (m *MockRedisHandler) Create(key string, value any) (string, error) {
+func (m *MockRedisHandler) Create(key string, value any, opts ...map[string]any) (string, error) {
 	if m.CreateFunc != nil {
-		return m.CreateFunc(key, value)
+		return m.CreateFunc(key, value, opts...)
 	}
 	return "mock-key", nil
 }
@@ -47,9 +47,9 @@ func (m *MockRedisHandler) FindAll(key string, filter map[string]any) ([]any, er
 }
 
 // Update implements the DBHandler interface
-func (m *MockRedisHandler) Update(key string, filter map[string]any, value any) error {
+func (m *MockRedisHandler) Update(key string, filter map[string]any, value any, opts ...map[string]any) error {
 	if m.UpdateFunc != nil {
-		return m.UpdateFunc(key, filter, value)
+		return m.UpdateFunc(key, filter, value, opts...)
 	}
 	return nil
 }

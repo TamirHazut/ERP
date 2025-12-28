@@ -50,7 +50,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 		userID   string
 		tokenID  string
 		metadata auth_models.TokenMetadata
-		mockFunc func(key string, data any) (string, error)
+		mockFunc func(key string, data any, opts ...map[string]any) (string, error)
 		wantErr  bool
 	}{
 		{
@@ -59,7 +59,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			userID:   "user-123",
 			tokenID:  "token-123",
 			metadata: validMetadata,
-			mockFunc: func(key string, data any) (string, error) {
+			mockFunc: func(key string, data any, opts ...map[string]any) (string, error) {
 				return "ok", nil
 			},
 			wantErr: false,
@@ -75,7 +75,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 				TokenType: "access",
 				ExpiresAt: time.Now().Add(time.Hour),
 			},
-			mockFunc: func(key string, data any) (string, error) {
+			mockFunc: func(key string, data any, opts ...map[string]any) (string, error) {
 				return "ok", nil
 			},
 			wantErr: true,
@@ -92,7 +92,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 				TokenType: "access",
 				ExpiresAt: time.Now().Add(time.Hour),
 			},
-			mockFunc: func(key string, data any) (string, error) {
+			mockFunc: func(key string, data any, opts ...map[string]any) (string, error) {
 				return "ok", nil
 			},
 			wantErr: true,
@@ -102,7 +102,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			tenantID: "tenant-123",
 			tokenID:  "token-123",
 			metadata: validMetadata,
-			mockFunc: func(key string, data any) (string, error) {
+			mockFunc: func(key string, data any, opts ...map[string]any) (string, error) {
 				return "", errors.New("database connection failed")
 			},
 			wantErr: true,
@@ -396,7 +396,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 		tokenID    string
 		revokedBy  string
 		getFunc    func(key string, filter map[string]any) (any, error)
-		updateFunc func(key string, filter map[string]any, data any) error
+		updateFunc func(key string, filter map[string]any, data any, opts ...map[string]any) error
 		wantErr    bool
 	}{
 		{
@@ -408,7 +408,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 			getFunc: func(key string, filter map[string]any) (any, error) {
 				return validMetadata, nil
 			},
-			updateFunc: func(key string, filter map[string]any, data any) error {
+			updateFunc: func(key string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -422,7 +422,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 			getFunc: func(key string, filter map[string]any) (any, error) {
 				return nil, errors.New("token not found")
 			},
-			updateFunc: func(key string, filter map[string]any, data any) error {
+			updateFunc: func(key string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -436,7 +436,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 			getFunc: func(key string, filter map[string]any) (any, error) {
 				return validMetadata, nil
 			},
-			updateFunc: func(key string, filter map[string]any, data any) error {
+			updateFunc: func(key string, filter map[string]any, data any, opts ...map[string]any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,

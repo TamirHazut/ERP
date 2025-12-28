@@ -80,9 +80,9 @@ func (c *RefreshTokenClaims) Validate() error {
 	// Validate expiration
 	if c.ExpiresAt == nil {
 		missingFields = append(missingFields, "ExpiresAt")
-	}
-	if time.Now().After(c.ExpiresAt.Time) {
-		missingFields = append(missingFields, "ExpiresAt")
+	} else if time.Now().After(c.ExpiresAt.Time) {
+		// Only check if expired if ExpiresAt is not nil
+		return erp_errors.Auth(erp_errors.AuthTokenExpired)
 	}
 	if len(missingFields) > 0 {
 		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)

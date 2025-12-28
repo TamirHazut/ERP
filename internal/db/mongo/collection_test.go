@@ -64,7 +64,7 @@ func TestCollection_Create(t *testing.T) {
 	testCases := []struct {
 		name      string
 		item      TestModel
-		mockFunc  func(collection string, data any) (string, error)
+		mockFunc  func(collection string, data any, opts ...map[string]any) (string, error)
 		wantID    string
 		wantErr   bool
 		wantError error
@@ -72,7 +72,7 @@ func TestCollection_Create(t *testing.T) {
 		{
 			name: "successful create",
 			item: TestModel{Name: "test"},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "created-id", nil
 			},
 			wantID:  "created-id",
@@ -81,7 +81,7 @@ func TestCollection_Create(t *testing.T) {
 		{
 			name: "create with database error",
 			item: TestModel{Name: "test"},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "", errors.New("database connection failed")
 			},
 			wantID:  "",
@@ -239,14 +239,14 @@ func TestCollection_Update(t *testing.T) {
 		name     string
 		filter   map[string]any
 		item     TestModel
-		mockFunc func(collection string, filter map[string]any, data any) error
+		mockFunc func(collection string, filter map[string]any, data any, opts ...map[string]any) error
 		wantErr  bool
 	}{
 		{
 			name:   "successful update",
 			filter: map[string]any{"_id": "1"},
 			item:   TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(collection string, filter map[string]any, data any) error {
+			mockFunc: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -255,7 +255,7 @@ func TestCollection_Update(t *testing.T) {
 			name:   "update with nil filter",
 			filter: nil,
 			item:   TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(collection string, filter map[string]any, data any) error {
+			mockFunc: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -264,7 +264,7 @@ func TestCollection_Update(t *testing.T) {
 			name:   "update with database error",
 			filter: map[string]any{"_id": "1"},
 			item:   TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(collection string, filter map[string]any, data any) error {
+			mockFunc: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,

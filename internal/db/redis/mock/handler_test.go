@@ -28,7 +28,7 @@ func TestMockRedisHandler_Create(t *testing.T) {
 		name     string
 		key      string
 		value    any
-		mockFunc func(key string, value any) (string, error)
+		mockFunc func(key string, value any, opts ...map[string]any) (string, error)
 		wantID   string
 		wantErr  bool
 	}{
@@ -36,7 +36,7 @@ func TestMockRedisHandler_Create(t *testing.T) {
 			name:  "successful create",
 			key:   "test-key",
 			value: "test-value",
-			mockFunc: func(key string, value any) (string, error) {
+			mockFunc: func(key string, value any, opts ...map[string]any) (string, error) {
 				return "created-id", nil
 			},
 			wantID:  "created-id",
@@ -46,7 +46,7 @@ func TestMockRedisHandler_Create(t *testing.T) {
 			name:  "create with error",
 			key:   "test-key",
 			value: "test-value",
-			mockFunc: func(key string, value any) (string, error) {
+			mockFunc: func(key string, value any, opts ...map[string]any) (string, error) {
 				return "", errors.New("create failed")
 			},
 			wantID:  "",
@@ -231,7 +231,7 @@ func TestMockRedisHandler_Update(t *testing.T) {
 		key      string
 		filter   map[string]any
 		value    any
-		mockFunc func(key string, filter map[string]any, value any) error
+		mockFunc func(key string, filter map[string]any, value any, opts ...map[string]any) error
 		wantErr  bool
 	}{
 		{
@@ -239,7 +239,7 @@ func TestMockRedisHandler_Update(t *testing.T) {
 			key:    "test-key",
 			filter: nil,
 			value:  "updated-value",
-			mockFunc: func(key string, filter map[string]any, value any) error {
+			mockFunc: func(key string, filter map[string]any, value any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -249,7 +249,7 @@ func TestMockRedisHandler_Update(t *testing.T) {
 			key:    "test-key",
 			filter: nil,
 			value:  "updated-value",
-			mockFunc: func(key string, filter map[string]any, value any) error {
+			mockFunc: func(key string, filter map[string]any, value any, opts ...map[string]any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,

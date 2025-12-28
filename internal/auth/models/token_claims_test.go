@@ -267,7 +267,7 @@ func TestRefreshTokenClaims_Validate(t *testing.T) {
 				},
 			},
 			wantErr:        true,
-			expectedErrMsg: "ExpiresAt",
+			expectedErrMsg: "expired",
 		},
 	}
 

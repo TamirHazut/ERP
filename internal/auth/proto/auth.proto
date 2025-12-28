@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package auth.v1;
 
-option go_package = "erp.localhost/internal/auth/proto/v1;authv1";
+option go_package = "erp.localhost/internal/auth/proto/auth/v1;authv1";
 
 message UserAuth {
     string tenant_id = 1;
@@ -20,6 +20,11 @@ message Tokens {
     string refresh_token = 2;
 }
 
+message ExpiresIn {
+    int64 access_token = 1;
+    int64 refresh_token = 2;
+}
+
 message PermissionResponse {
     string permission = 1;
     bool has_permission = 2;
@@ -33,6 +38,7 @@ message AuthenticateRequest {
 message AuthenticateResponse {
     UserIdentifier user = 1;
     Tokens tokens = 2;
+    ExpiresIn expires_in = 3;
 }
 
 message VerifyTokenRequest {
@@ -44,17 +50,20 @@ message VerifyTokenResponse {
 }
 
 message RefreshTokenRequest {
-    string refresh_token = 1;
+    UserIdentifier user = 1;
+    string refresh_token = 2;
 }
 
 message RefreshTokenResponse {
     UserIdentifier user = 1;
     Tokens tokens = 2;
-    int64 expires_in = 3;
+    ExpiresIn expires_in = 3;
 }
 
 message RevokeTokenRequest {
-    Tokens tokens = 1;
+    UserIdentifier user = 1;
+    Tokens tokens = 2;
+    string request_by = 3;
 }
 
 message RevokeTokenResponse {
@@ -67,7 +76,7 @@ message LogoutRequest {
 }
 
 message LogoutResponse {
-    bool success = 1;
+    UserIdentifier user = 1;
     string message = 2;
 }
 

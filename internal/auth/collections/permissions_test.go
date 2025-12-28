@@ -26,7 +26,7 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 	testCases := []struct {
 		name       string
 		permission models.Permission
-		mockFunc   func(collection string, data any) (string, error)
+		mockFunc   func(collection string, data any, opts ...map[string]any) (string, error)
 		wantID     string
 		wantErr    bool
 	}{
@@ -40,7 +40,7 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 				DisplayName:      "Read Products",
 				CreatedBy:        "admin",
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "permission-id-123", nil
 			},
 			wantID:  "permission-id-123",
@@ -55,7 +55,7 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 				DisplayName:      "Read Products",
 				CreatedBy:        "admin",
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "", nil
 			},
 			wantID:  "",
@@ -71,7 +71,7 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 				DisplayName:      "Read Products",
 				CreatedBy:        "admin",
 			},
-			mockFunc: func(collection string, data any) (string, error) {
+			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
 				return "", errors.New("database connection failed")
 			},
 			wantID:  "",
@@ -448,7 +448,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 		name       string
 		permission models.Permission
 		mockFind   func(collection string, filter map[string]any) (any, error)
-		mockUpdate func(collection string, filter map[string]any, data any) error
+		mockUpdate func(collection string, filter map[string]any, data any, opts ...map[string]any) error
 		wantErr    bool
 	}{
 		{
@@ -470,7 +470,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: false,
@@ -483,7 +483,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 			mockFind: func(collection string, filter map[string]any) (any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -503,7 +503,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 			mockFind: func(collection string, filter map[string]any) (any, error) {
 				return nil, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -527,7 +527,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return nil
 			},
 			wantErr: true,
@@ -551,7 +551,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 					CreatedAt: createdAt,
 				}, nil
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any) error {
+			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
 				return errors.New("update failed")
 			},
 			wantErr: true,
