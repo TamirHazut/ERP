@@ -11,7 +11,8 @@ import (
 	auth_models "erp.localhost/internal/auth/models/cache"
 	auth_proto "erp.localhost/internal/auth/proto/auth/v1"
 	"erp.localhost/internal/auth/rbac"
-	token "erp.localhost/internal/auth/token"
+	token "erp.localhost/internal/auth/token/manager"
+	token_manager "erp.localhost/internal/auth/token/manager"
 	mongo "erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
@@ -39,20 +40,29 @@ type NewTokenResponse struct {
 type AuthService struct {
 	logger              *logging.Logger
 	userCollection      *collection.UserCollection
-	tokenManager        *token.TokenManager
+	tokenManager        *token_manager.TokenManager
 	rbacManager         *rbac.RBACManager
 	auditLogsCollection *collection.AuditLogsCollection
 	auth_proto.UnimplementedAuthServiceServer
 }
 
+func newCollectionHandler[T any](collection string) *mongo.BaseCollectionHandler[T] {
+	logger := logging.NewLogger(logging.ModuleAuth)
+	return mongo.NewBaseCollectionHandler[T](string(collection), logger)
+}
+
 func NewAuthService() *AuthService {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	dbHandler := mongo.NewMongoDBManager(mongo.AuthDB)
-	if dbHandler == nil {
-		logger.Fatal("failed to create db handler")
+	userCollectionHandler := newCollectionHandler[models.User](string(mongo.UsersCollection))
+	if userCollectionHandler == nil {
+		logger.Fatal("failed to create users collection handler")
 		return nil
 	}
-	userCollection := collection.NewUserCollection(dbHandler)
+	userCollection := collection.NewUserCollection(userCollectionHandler)
+	if userCollection == nil {
+		logger.Fatal("failed to create users collection handler")
+		return nil
+	}
 	tokenManager := token.NewTokenManager(secretKey, tokenDuration, refreshTokenDuration)
 	if tokenManager == nil {
 		logger.Fatal("failed to create token manager")
@@ -63,7 +73,12 @@ func NewAuthService() *AuthService {
 		logger.Fatal("failed to create rbac manager")
 		return nil
 	}
-	auditLogsCollection := collection.NewAuditLogsCollection(dbHandler)
+	auditLogsCollectionHandler := newCollectionHandler[models.AuditLog](string(mongo.AuditLogsCollection))
+	if auditLogsCollectionHandler == nil {
+		logger.Fatal("failed to create audit logs collection handler")
+		return nil
+	}
+	auditLogsCollection := collection.NewAuditLogsCollection(auditLogsCollectionHandler)
 	return &AuthService{
 		logger:              logger,
 		userCollection:      userCollection,

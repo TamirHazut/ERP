@@ -4,6 +4,7 @@ import (
 	"context"
 
 	collection "erp.localhost/internal/auth/collections"
+	"erp.localhost/internal/auth/models"
 	user_proto "erp.localhost/internal/auth/proto/user/v1"
 	mongo "erp.localhost/internal/db/mongo"
 	"erp.localhost/internal/logging"
@@ -19,12 +20,16 @@ type UserService struct {
 
 func NewUserService() *UserService {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	dbHandler := mongo.NewMongoDBManager(mongo.AuthDB)
-	if dbHandler == nil {
-		logger.Fatal("failed to create db handler")
+	userCollectionHandler := newCollectionHandler[models.User](string(mongo.UsersCollection))
+	if userCollectionHandler == nil {
+		logger.Fatal("failed to create users collection handler")
 		return nil
 	}
-	userCollection := collection.NewUserCollection(dbHandler)
+	userCollection := collection.NewUserCollection(userCollectionHandler)
+	if userCollection == nil {
+		logger.Fatal("failed to create users collection")
+		return nil
+	}
 	return &UserService{
 		logger:         logger,
 		userCollection: userCollection,

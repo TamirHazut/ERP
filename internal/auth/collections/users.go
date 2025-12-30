@@ -4,20 +4,26 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/models"
-	"erp.localhost/internal/db"
 	"erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
 )
 
 type UserCollection struct {
-	collection *mongo.CollectionHandler[models.User]
+	collection mongo.CollectionHandler[models.User]
 	logger     *logging.Logger
 }
 
-func NewUserCollection(dbHandler db.DBHandler) *UserCollection {
+func NewUserCollection(collection mongo.CollectionHandler[models.User]) *UserCollection {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	collection := mongo.NewCollectionHandler[models.User](dbHandler, string(mongo.UsersCollection), logger)
+	if collection == nil {
+		collectionHandler := mongo.NewBaseCollectionHandler[models.User](string(mongo.UsersCollection), logger)
+		if collectionHandler == nil {
+			logger.Fatal("failed to create users collection handler")
+			return nil
+		}
+		collection = collectionHandler
+	}
 	return &UserCollection{
 		collection: collection,
 		logger:     logger,
@@ -28,15 +34,6 @@ func (r *UserCollection) CreateUser(user models.User) (string, error) {
 	if err := user.Validate(true); err != nil {
 		return "", err
 	}
-	// TODO: move this to userservice
-	// // Validate the creator has the permission to create users in the tenant
-	// creator, err := r.GetUserByID(user.TenantID, user.CreatedBy)
-	// if err != nil {
-	// 	return "", err
-	// }
-	// if !creator.HasPermission(models.PermissionCreateUser) {
-	// 	return "", erp_errors.Auth(erp_errors.AuthPermissionDenied)
-	// }
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 	r.logger.Debug("Creating user", "user", user)

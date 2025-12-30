@@ -49,7 +49,7 @@ func getmTLSServerOptions(logger *logging.Logger) []grpc.ServerOption {
 	}
 }
 
-func StartAuthServicegRPCServer() {
+func StartGRPCServer() {
 	logger := logging.NewLogger(logging.ModuleAuth)
 	lis, err := net.Listen("tcp", ":5000")
 	if err != nil {

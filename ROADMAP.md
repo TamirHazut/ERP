@@ -247,46 +247,46 @@ internal/
   - [x] `presence.go` - ActiveUser
 
 **Remaining Tasks (Phase 1 - 10%):**
-- [ ] Update imports in auth service files:
-  - [ ] `internal/auth/keys_handlers/access_token.go`
-  - [ ] `internal/auth/keys_handlers/refresh_token.go`
-  - [ ] `internal/auth/token/token_manager.go`
-  - [ ] `internal/auth/service/auth.go`
-- [ ] Delete old `internal/auth/models/models.go` (after import verification)
-- [ ] Delete old `internal/auth/models/models_test.go`
-- [ ] Delete moved cache models from `internal/db/redis/models/models.go`
-- [ ] Run tests to verify everything works
+- [x] Update imports in auth service files:
+  - [x] `internal/auth/keys_handlers/access_token.go`
+  - [x] `internal/auth/keys_handlers/refresh_token.go`
+  - [x] `internal/auth/token/token_manager.go`
+  - [x] `internal/auth/service/auth.go`
+- [x] Delete old `internal/auth/models/models.go` (after import verification)
+- [x] Delete old `internal/auth/models/models_test.go`
+- [x] Delete moved cache models from `internal/db/redis/models/models.go`
+- [x] Run tests to verify everything works
 
-### ⬜ Phase 2: Gateway Cache Models (Not Started)
-- [ ] Create `internal/gateway/models/cache/` directory
-- [ ] Move 4 gateway-related cache models from Redis:
-  - [ ] `rate_limit.go` - RateLimitInfo, TenantRateLimit, IPRateLimit
-  - [ ] `query_cache.go` - QueryCache
+### ✅ Phase 2: Gateway Cache Models (Completed)
+- [x] Create `internal/gateway/models/cache/` directory
+- [x] Move 4 gateway-related cache models from Redis:
+  - [x] `rate_limit.go` - RateLimitInfo, TenantRateLimit, IPRateLimit
+  - [x] `query_cache.go` - QueryCache
 
-### ⬜ Phase 3: Config Models (Not Started)
-- [ ] Break down `internal/config/models/models.go` into:
-  - [ ] `service_config.go` - 5 structs
-  - [ ] `feature_flag.go` - 3 structs
-- [ ] Create `internal/config/models/cache/` directory
-- [ ] Move 3 config-related cache models from Redis:
-  - [ ] `feature_flags.go` - FeatureFlagCache, TenantFeatures
-  - [ ] `service_config.go` - ServiceConfigCache
+### ✅ Phase 3: Config Models (Completed)
+- [x] Break down `internal/config/models/models.go` into:
+  - [x] `service_config.go` - 5 structs
+  - [x] `feature_flag.go` - 3 structs
+- [x] Create `internal/config/models/cache/` directory
+- [x] Move 3 config-related cache models from Redis:
+  - [x] `feature_flags.go` - FeatureFlagCache, TenantFeatures
+  - [x] `service_config.go` - ServiceConfigCache
 
-### ⬜ Phase 4: Core Models (Not Started)
-- [ ] Break down `internal/core/models/models.go` into:
-  - [ ] `constants.go` - All status/type constants
-  - [ ] `product.go` - 5 structs
-  - [ ] `vendor.go` - 4 structs
-  - [ ] `order.go` - 6 structs
-  - [ ] `customer.go` - 4 structs
-  - [ ] `inventory.go` - 2 structs
-  - [ ] `warehouse.go` - 3 structs
-  - [ ] `category.go` - 1 struct
+### ✅ Phase 4: Core Models (Completed)
+- [x] Break down `internal/core/models/models.go` into:
+  - [x] `constants.go` - All status/type constants
+  - [x] `product.go` - 5 structs
+  - [x] `vendor.go` - 4 structs
+  - [x] `order.go` - 6 structs
+  - [x] `customer.go` - 4 structs
+  - [x] `inventory.go` - 2 structs
+  - [x] `warehouse.go` - 3 structs
+  - [x] `category.go` - 1 struct
 
-### ⬜ Phase 5: Redis Infrastructure Cleanup (Not Started)
-- [ ] Create `internal/db/redis/types.go` - Generic infrastructure types (RedisKeyOptions, CacheEntry, DistributedLock)
-- [ ] Create `internal/db/redis/cross_service_cache.go` - Cross-service caches (UserCache, TenantCache, ProductCache, OrderCache)
-- [ ] Delete `internal/db/redis/models/models.go` (after all moves complete)
+### ✅ Phase 5: Redis Infrastructure Cleanup (Completed)
+- [x] Create `internal/db/redis/types.go` - Generic infrastructure types (RedisKeyOptions, CacheEntry, DistributedLock)
+- [x] Create `internal/db/redis/cross_service_cache.go` - Cross-service caches (UserCache, TenantCache, ProductCache, OrderCache)
+- [x] Delete `internal/db/redis/models/models.go` (after all moves complete)
 
 **Documentation:**
 - [x] `MODEL_BREAKDOWN_PLAN.md` - Complete reorganization plan
@@ -304,12 +304,114 @@ internal/
 
 ---
 
+## Code Quality Initiative: Test Refactoring (gomock) 🧪
+
+**Status:** ✅ Complete (All Tests Refactored and Stable)
+
+**Why Important:** Using `gomock.Any()` in tests makes them too generic and doesn't properly validate that correct parameters are being passed to mocked methods. Specific test values improve test quality and catch more bugs.
+
+**Refactoring Rules Applied:**
+1. ✅ NEVER use `gomock.Any()` under any circumstances
+2. ✅ Create custom matchers ONLY for objects/structs with dynamically-set timestamps (CreatedAt, UpdatedAt, Timestamp)
+3. ✅ Matchers skip validating ONLY timestamp fields
+4. ✅ Pass specific values directly (no `gomock.Eq()` wrappers)
+5. ✅ Use specific expected values in test cases (expectedFilter, expectedKey, etc.)
+6. ✅ Use specific names like "users", "roles", "tenants", "permissions", "audit_logs"
+
+### ✅ Completed: Collection Tests (internal/auth/collections/)
+
+**Files Refactored:**
+- [x] `permissions_test.go` - Created `permissionMatcher` to skip CreatedAt/UpdatedAt validation
+- [x] `audit_logs_test.go` - Created `auditLogMatcher` to skip Timestamp validation
+- [x] `roles_test.go` - Created `roleMatcher` to skip CreatedAt/UpdatedAt validation
+- [x] `tenants_test.go` - Created `tenantMatcher` to skip CreatedAt/UpdatedAt validation
+- [x] `users_test.go` - Created `userMatcher` to skip CreatedAt/UpdatedAt validation
+
+### ✅ Completed: RBAC Manager Tests (internal/auth/rbac/)
+
+**Files Created:**
+- [x] `rbac_manager_test.go` - Comprehensive unit tests using MockCollectionHandler[T]
+  - [x] TestRBACManager_GetUserPermissions (5 test cases)
+  - [x] TestRBACManager_GetUserRoles (3 test cases)
+  - [x] TestRBACManager_GetRolePermissions (3 test cases)
+  - [x] TestRBACManager_CheckUserPermissions (3 test cases)
+  - [x] TestRBACManager_VerifyUserRole (3 test cases)
+  - [x] TestRBACManager_VerifyRolePermissions (2 test cases)
+
+**Test Strategy:**
+- Test helpers create collections with mocked CollectionHandler[T]
+- No logic code modified - leveraged existing generic mocks
+- All tests use specific expected values (no gomock.Any())
+
+### ✅ Completed: Redis Handler Tests (internal/db/redis/handlers/)
+
+**Files Created:**
+- [x] `set_handler_test.go` - Comprehensive tests for BaseSetHandler
+  - [x] TestNewBaseSetHandler (constructor tests)
+  - [x] TestBaseSetHandler_Add (with and without TTL)
+  - [x] TestBaseSetHandler_Remove
+  - [x] TestBaseSetHandler_Members (multiple scenarios)
+  - [x] TestBaseSetHandler_Clear
+
+### ✅ Completed: Token Index Tests (internal/auth/token/)
+
+**Files Created:**
+- [x] `token_index_test.go` - Complete test coverage from scratch (11 test functions, 21 test cases)
+  - [x] Constructor tests (with mocks and nil handlers)
+  - [x] Access token operations (Add, Remove, Get, Clear)
+  - [x] Refresh token operations (Add, Remove, Get, Clear)
+  - [x] Integration test (multiple operations workflow)
+
+**Pattern Established:**
+```go
+// Custom matcher for objects with dynamic timestamps
+type userMatcher struct {
+    expected models.User
+}
+
+func (m userMatcher) Matches(x interface{}) bool {
+    user, ok := x.(models.User)
+    if !ok {
+        return false
+    }
+    // Match all fields EXCEPT CreatedAt/UpdatedAt
+    return user.TenantID == m.expected.TenantID &&
+        user.Email == m.expected.Email &&
+        user.Username == m.expected.Username &&
+        // ... other fields
+}
+
+func (m userMatcher) String() string {
+    return "matches user fields except CreatedAt and UpdatedAt"
+}
+
+// Usage in tests
+mockHandler.EXPECT().
+    Create("users", userMatcher{expected: tc.user}).
+    Return(tc.returnID, tc.returnError).
+    Times(tc.expectedCallTimes)
+
+mockHandler.EXPECT().
+    FindOne("users", tc.expectedFilter).
+    Return(tc.returnData, tc.returnError)
+```
+
+**Benefits Achieved:**
+- ✅ More robust tests that validate exact parameters
+- ✅ Better error detection (tests fail if wrong parameters are used)
+- ✅ Improved test readability (explicit values instead of wildcards)
+- ✅ Verified: NO `gomock.Any()` usage in any tests
+- ✅ All tests passing and stable
+- ✅ 100+ comprehensive test cases across all modules
+
+---
+
 ## Development Phases
 
 ### Phase 1: Foundation ⚙️
 
 #### 1. Auth Service (Priority 1) 🔐
-**Status:** 🟡 In Progress (~90% Complete: Repositories ✅, Models ✅, Token Infrastructure ✅, Core Endpoints ✅, gRPC Server ✅, Tests ✅, main.go ⬜)
+**Status:** 🟡 In Progress (~95% Complete: Repositories ✅, Models ✅, Token Infrastructure ✅, Core Endpoints ✅, gRPC Server ✅, RBAC Manager ✅, Tests ✅, User Service ⬜)
 
 **Why First:** Required by all other services for authentication/authorization. Foundation for the entire system.
 
@@ -368,8 +470,17 @@ internal/
 - [x] Token refresh endpoint (`RefreshToken()` gRPC method) - ✅ Implemented with token rotation
 - [x] Token revocation endpoint (`RevokeToken()` gRPC method)
 - [x] RBAC permission checking endpoint (`CheckPermissions()` gRPC method)
-- [ ] RBAC manager implementation (basic structure exists, needs full implementation)
+- [x] RBAC manager implementation (`internal/auth/rbac/rbac_manager.go`)
+  - [x] CRUD resource operations (Create, Update, Delete, Get, GetAll) with permission checks
+  - [x] Permission management (GetUserPermissions, GetUserRoles, GetRolePermissions)
+  - [x] Permission verification (CheckUserPermissions, VerifyUserRole, VerifyRolePermissions)
+  - [x] Supports User, Role, and Permission resource types
+  - [x] Handles role-based permissions, additional permissions, and revoked permissions
+  - [x] Unit tests (`internal/auth/rbac/rbac_manager_test.go`) - Comprehensive table-driven tests
 - [ ] Session management (Redis: `sessions:{session_id}`) - Deferred to later phase
+- [x] Audit logs collection (`internal/auth/collections/audit_logs.go`)
+  - [x] CRUD operations with tenant isolation
+  - [x] Enhanced audit models with detailed change tracking
 - [x] Role repository (MongoDB: `auth_db.roles`)
   - [x] `internal/auth/repository/roles_repo.go`
   - [x] CRUD operations with tenant isolation
@@ -412,17 +523,22 @@ internal/
   - [x] `revokeTokens()` - Unified token revocation logic
 
 **Test Status:**
-- ✅ All unit tests passing (60 tests across 8 packages)
-- ✅ Collection tests (permissions, roles, tenants, users)
+- ✅ All unit tests passing and stable (100+ tests across 10 packages)
+- ✅ Collection tests (permissions, roles, tenants, users, audit_logs) - Refactored with custom matchers
 - ✅ Model validation tests (permission, role, tenant, user, token_claims, refresh_token)
-- ✅ Key handler tests (access_token, refresh_token)
+- ✅ Key handler tests (access_token, refresh_token, token_index) - Complete coverage
 - ✅ Token manager tests
+- ✅ RBAC manager tests (comprehensive coverage of all operations - 19 test cases)
+- ✅ Redis handler tests (set_handler) - Complete coverage
 - ✅ Utils tests (password hashing)
+- ✅ Test refactoring complete - NO gomock.Any() usage anywhere
+- ✅ All tests use specific expected values and custom matchers where needed
 
 **Remaining Tasks:**
-- [ ] Create `internal/auth/cmd/main.go` entry point to start the server
-- [ ] End-to-end testing with real MongoDB and Redis
-- [ ] Complete RBAC manager implementation
+- [x] Create `internal/auth/cmd/main.go` entry point to start the server
+- [x] Complete RBAC manager implementation with comprehensive tests
+- [ ] User management service implementation (`internal/auth/service/user.go`)
+- [ ] End-to-end testing with real MongoDB and Redis (functional test in python)
 - [ ] Re-enable audit logging in Logout (currently commented out)
 - [ ] Add mTLS support (currently disabled for local testing)
 

@@ -1,36 +1,44 @@
-package keyshandlers
+package handlers
 
 import (
 	"fmt"
 	"time"
 
 	auth_models "erp.localhost/internal/auth/models/cache"
-	"erp.localhost/internal/db/redis"
+	token "erp.localhost/internal/auth/token"
+	redis "erp.localhost/internal/db/redis"
+	redis_handlers "erp.localhost/internal/db/redis/handlers"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
 )
 
-// AccessTokenKeyHandler handles access token operations in Redis
+// AccessTokenHandler handles access token operations in Redis
 // Key pattern: tokens:{tenant_id}:{token_id}
-type AccessTokenKeyHandler struct {
-	keyHandler *redis.KeyHandler[auth_models.TokenMetadata]
-	tokenIndex *TokenIndex
+type AccessTokenHandler struct {
+	keyHandler redis_handlers.KeyHandler[auth_models.TokenMetadata]
+	tokenIndex *token.TokenIndex
 	logger     *logging.Logger
 }
 
-// NewAccessTokenKeyHandler creates a new AccessTokenKeyHandler
-func NewAccessTokenKeyHandler(keyPrefix redis.KeyPrefix) *AccessTokenKeyHandler {
-	logger := logging.NewLogger(logging.ModuleAuth)
-	return &AccessTokenKeyHandler{
-		keyHandler: redis.NewKeyHandler[auth_models.TokenMetadata](keyPrefix, logger),
-		tokenIndex: NewTokenIndex(),
+// NewAccessTokenHandler creates a new AccessTokenHandler
+func NewAccessTokenHandler(keyHandler redis_handlers.KeyHandler[auth_models.TokenMetadata], tokenIndex *token.TokenIndex, logger *logging.Logger) *AccessTokenHandler {
+	if logger == nil {
+		logger = logging.NewLogger(logging.ModuleAuth)
+	}
+	if keyHandler == nil {
+		dbHandler := redis.NewBaseRedisHandler(redis.KeyPrefix(redis.RedisKeyToken))
+		keyHandler = redis_handlers.NewBaseKeyHandler[auth_models.TokenMetadata](dbHandler, logger)
+	}
+	return &AccessTokenHandler{
+		keyHandler: keyHandler,
+		tokenIndex: tokenIndex,
 		logger:     logger,
 	}
 }
 
 // Store stores an access token in Redis
 // Key: tokens:{tenant_id}:{user_id}:{token_id}
-func (h *AccessTokenKeyHandler) Store(tenantID string, userID string, tokenID string, metadata auth_models.TokenMetadata) error {
+func (h *AccessTokenHandler) Store(tenantID string, userID string, tokenID string, metadata auth_models.TokenMetadata) error {
 	// Basic validation
 	if metadata.TokenID == "" {
 		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TokenID")
@@ -74,7 +82,7 @@ func (h *AccessTokenKeyHandler) Store(tenantID string, userID string, tokenID st
 }
 
 // GetOne retrieves an access token from Redis
-func (h *AccessTokenKeyHandler) GetOne(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
+func (h *AccessTokenHandler) GetOne(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
 	key := fmt.Sprintf("%s:%s", userID, tokenID)
 	token, err := h.keyHandler.GetOne(tenantID, key)
 	if err != nil {
@@ -86,7 +94,7 @@ func (h *AccessTokenKeyHandler) GetOne(tenantID string, userID string, tokenID s
 }
 
 // GetAll retrieves all access tokens from Redis
-func (h *AccessTokenKeyHandler) GetAll(tenantID string, userID string) ([]auth_models.TokenMetadata, error) {
+func (h *AccessTokenHandler) GetAll(tenantID string, userID string) ([]auth_models.TokenMetadata, error) {
 	tokens, err := h.keyHandler.GetAll(tenantID, userID)
 	if err != nil {
 		return nil, err
@@ -95,7 +103,7 @@ func (h *AccessTokenKeyHandler) GetAll(tenantID string, userID string) ([]auth_m
 }
 
 // Validate checks if a token is valid (exists, not revoked, not expired)
-func (h *AccessTokenKeyHandler) Validate(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
+func (h *AccessTokenHandler) Validate(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
 	metadata, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return nil, err
@@ -115,7 +123,7 @@ func (h *AccessTokenKeyHandler) Validate(tenantID string, userID string, tokenID
 }
 
 // Revoke revokes a single access token
-func (h *AccessTokenKeyHandler) Revoke(tenantID string, userID string, tokenID string, revokedBy string) error {
+func (h *AccessTokenHandler) Revoke(tenantID string, userID string, tokenID string, revokedBy string) error {
 	metadata, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return err
@@ -137,7 +145,7 @@ func (h *AccessTokenKeyHandler) Revoke(tenantID string, userID string, tokenID s
 }
 
 // RevokeAll revokes all access tokens for a user within a tenant
-func (h *AccessTokenKeyHandler) RevokeAll(tenantID string, userID string, revokedBy string) error {
+func (h *AccessTokenHandler) RevokeAll(tenantID string, userID string, revokedBy string) error {
 	if h.tokenIndex == nil {
 		return erp_errors.Internal(erp_errors.InternalUnexpectedError, fmt.Errorf("token index not initialized"))
 	}
@@ -167,7 +175,7 @@ func (h *AccessTokenKeyHandler) RevokeAll(tenantID string, userID string, revoke
 }
 
 // Delete removes a token from Redis (hard delete)
-func (h *AccessTokenKeyHandler) Delete(tenantID string, userID string, tokenID string) error {
+func (h *AccessTokenHandler) Delete(tenantID string, userID string, tokenID string) error {
 	// Get token to find userID for index removal
 	metadata, err := h.GetOne(tenantID, userID, tokenID)
 	if err == nil && h.tokenIndex != nil {

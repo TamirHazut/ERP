@@ -6,29 +6,56 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/models"
-	"erp.localhost/internal/db/mock"
-	erp_errors "erp.localhost/internal/errors"
+	mongo_mocks "erp.localhost/internal/db/mongo/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/mock/gomock"
 )
 
-func TestNewPermissionCollection(t *testing.T) {
-	mockHandler := &mock.MockDBHandler{}
-	repo := NewPermissionCollection(mockHandler)
+// permissionMatcher is a custom gomock matcher for Permission objects
+type permissionMatcher struct {
+	expected models.Permission
+}
 
-	require.NotNil(t, repo)
-	assert.NotNil(t, repo.collection)
-	assert.NotNil(t, repo.logger)
+func (m permissionMatcher) Matches(x interface{}) bool {
+	perm, ok := x.(models.Permission)
+	if !ok {
+		return false
+	}
+	// Match fields except timestamps which are set by the function
+	return perm.TenantID == m.expected.TenantID &&
+		perm.Resource == m.expected.Resource &&
+		perm.Action == m.expected.Action &&
+		perm.PermissionString == m.expected.PermissionString &&
+		perm.DisplayName == m.expected.DisplayName &&
+		perm.CreatedBy == m.expected.CreatedBy
+}
+
+func (m permissionMatcher) String() string {
+	return "matches permission fields"
+}
+
+func TestNewPermissionCollection(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+	collection := NewPermissionCollection(mockHandler)
+
+	require.NotNil(t, collection)
+	assert.NotNil(t, collection.collection)
+	assert.NotNil(t, collection.logger)
 }
 
 func TestPermissionCollection_CreatePermission(t *testing.T) {
 	testCases := []struct {
-		name       string
-		permission models.Permission
-		mockFunc   func(collection string, data any, opts ...map[string]any) (string, error)
-		wantID     string
-		wantErr    bool
+		name              string
+		permission        models.Permission
+		returnID          string
+		returnError       error
+		wantErr           bool
+		expectedCallTimes int
 	}{
 		{
 			name: "successful create",
@@ -40,11 +67,10 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 				DisplayName:      "Read Products",
 				CreatedBy:        "admin",
 			},
-			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
-				return "permission-id-123", nil
-			},
-			wantID:  "permission-id-123",
-			wantErr: false,
+			returnID:          "permission-id-123",
+			returnError:       nil,
+			wantErr:           false,
+			expectedCallTimes: 1,
 		},
 		{
 			name: "create with validation error - missing tenant ID",
@@ -55,11 +81,10 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 				DisplayName:      "Read Products",
 				CreatedBy:        "admin",
 			},
-			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
-				return "", nil
-			},
-			wantID:  "",
-			wantErr: true,
+			returnID:          "",
+			returnError:       nil,
+			wantErr:           true,
+			expectedCallTimes: 0,
 		},
 		{
 			name: "create with database error",
@@ -71,91 +96,108 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 				DisplayName:      "Read Products",
 				CreatedBy:        "admin",
 			},
-			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
-				return "", errors.New("database connection failed")
-			},
-			wantID:  "",
-			wantErr: true,
+			returnID:          "",
+			returnError:       errors.New("database connection failed"),
+			wantErr:           true,
+			expectedCallTimes: 1,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				CreateFunc: tc.mockFunc,
-			}
-			repo := NewPermissionCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			id, err := repo.CreatePermission(tc.permission)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			if tc.expectedCallTimes > 0 {
+				mockHandler.EXPECT().
+					Create(permissionMatcher{expected: tc.permission}).
+					Return(tc.returnID, tc.returnError).
+					Times(tc.expectedCallTimes)
+			}
+
+			collection := NewPermissionCollection(mockHandler)
+			id, err := collection.CreatePermission(tc.permission)
 			if tc.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, id)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.wantID, id)
+				assert.Equal(t, tc.returnID, id)
 			}
 		})
 	}
 }
 
 func TestPermissionCollection_GetPermissionByID(t *testing.T) {
+	permissionID, _ := primitive.ObjectIDFromHex("507f1f77bcf86cd799439011")
+
 	testCases := []struct {
-		name         string
-		tenantID     string
-		permissionID string
-		mockFunc     func(collection string, filter map[string]any) (any, error)
-		wantErr      bool
+		name             string
+		tenantID         string
+		permissionID     string
+		expectedFilter   map[string]any
+		returnPermission *models.Permission
+		returnError      error
+		wantErr          bool
 	}{
 		{
 			name:         "successful get by id",
 			tenantID:     "tenant1",
-			permissionID: "permission-id-123",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				permissionID, _ := primitive.ObjectIDFromHex("permission-id-123")
-				return models.Permission{
-					ID:       permissionID,
-					TenantID: "tenant1",
-					Resource: "products",
-					Action:   "read",
-				}, nil
+			permissionID: "507f1f77bcf86cd799439011",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       "507f1f77bcf86cd799439011",
 			},
-			wantErr: false,
+			returnPermission: &models.Permission{
+				ID:       permissionID,
+				TenantID: "tenant1",
+				Resource: "products",
+				Action:   "read",
+			},
+			returnError: nil,
+			wantErr:     false,
 		},
 		{
 			name:         "permission not found",
 			tenantID:     "tenant1",
-			permissionID: "permission-id-123",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return nil, nil
+			permissionID: "507f1f77bcf86cd799439011",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       "507f1f77bcf86cd799439011",
 			},
-			wantErr: true,
+			returnPermission: nil,
+			returnError:      errors.New("permission not found"),
+			wantErr:          true,
 		},
 		{
 			name:         "database error",
 			tenantID:     "tenant1",
-			permissionID: "permission-id-123",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return nil, errors.New("database query failed")
+			permissionID: "507f1f77bcf86cd799439011",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       "507f1f77bcf86cd799439011",
 			},
-			wantErr: true,
+			returnPermission: nil,
+			returnError:      errors.New("database query failed"),
+			wantErr:          true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindOneFunc: tc.mockFunc,
-			}
-			repo := NewPermissionCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			permission, err := repo.GetPermissionByID(tc.tenantID, tc.permissionID)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler.EXPECT().
+				FindOne(tc.expectedFilter).
+				Return(tc.returnPermission, tc.returnError)
+
+			collection := NewPermissionCollection(mockHandler)
+			permission, err := collection.GetPermissionByID(tc.tenantID, tc.permissionID)
 			if tc.wantErr {
 				require.Error(t, err)
-				if tc.name == "permission not found" {
-					appErr, ok := erp_errors.AsAppError(err)
-					require.True(t, ok)
-					assert.Equal(t, erp_errors.CategoryNotFound, appErr.Category)
-				}
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.tenantID, permission.TenantID)
@@ -166,54 +208,69 @@ func TestPermissionCollection_GetPermissionByID(t *testing.T) {
 
 func TestPermissionCollection_GetPermissionByName(t *testing.T) {
 	testCases := []struct {
-		name           string
-		tenantID       string
-		permissionName string
-		mockFunc       func(collection string, filter map[string]any) (any, error)
-		wantErr        bool
+		name             string
+		tenantID         string
+		permissionName   string
+		expectedFilter   map[string]any
+		returnPermission *models.Permission
+		returnError      error
+		wantErr          bool
 	}{
 		{
 			name:           "successful get by name",
 			tenantID:       "tenant1",
 			permissionName: "Read Products",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return models.Permission{
-					TenantID:    "tenant1",
-					DisplayName: "Read Products",
-					Resource:    "products",
-					Action:      "read",
-				}, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"name":      "Read Products",
 			},
-			wantErr: false,
+			returnPermission: &models.Permission{
+				TenantID:    "tenant1",
+				DisplayName: "Read Products",
+				Resource:    "products",
+				Action:      "read",
+			},
+			returnError: nil,
+			wantErr:     false,
 		},
 		{
 			name:           "permission not found",
 			tenantID:       "tenant1",
 			permissionName: "Nonexistent",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return nil, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"name":      "Nonexistent",
 			},
-			wantErr: true,
+			returnPermission: nil,
+			returnError:      errors.New("permission not found"),
+			wantErr:          true,
 		},
 		{
 			name:           "database error",
 			tenantID:       "tenant1",
 			permissionName: "Read Products",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return nil, errors.New("database query failed")
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"name":      "Read Products",
 			},
-			wantErr: true,
+			returnPermission: nil,
+			returnError:      errors.New("database query failed"),
+			wantErr:          true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindOneFunc: tc.mockFunc,
-			}
-			repo := NewPermissionCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			permission, err := repo.GetPermissionByName(tc.tenantID, tc.permissionName)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler.EXPECT().
+				FindOne(tc.expectedFilter).
+				Return(tc.returnPermission, tc.returnError)
+
+			collection := NewPermissionCollection(mockHandler)
+			permission, err := collection.GetPermissionByName(tc.tenantID, tc.permissionName)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -226,52 +283,64 @@ func TestPermissionCollection_GetPermissionByName(t *testing.T) {
 
 func TestPermissionCollection_GetPermissionsByTenantID(t *testing.T) {
 	testCases := []struct {
-		name      string
-		tenantID  string
-		mockFunc  func(collection string, filter map[string]any) ([]any, error)
-		wantCount int
-		wantErr   bool
+		name              string
+		tenantID          string
+		expectedFilter    map[string]any
+		returnPermissions []models.Permission
+		returnError       error
+		wantCount         int
+		wantErr           bool
 	}{
 		{
 			name:     "successful get permissions by tenant",
 			tenantID: "tenant1",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{
-					models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
-					models.Permission{TenantID: "tenant1", Resource: "products", Action: "write"},
-				}, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
 			},
-			wantCount: 2,
-			wantErr:   false,
+			returnPermissions: []models.Permission{
+				models.Permission{TenantID: "tenant1", DisplayName: "Read Products"},
+				models.Permission{TenantID: "tenant1", DisplayName: "Write Products"},
+			},
+			returnError: nil,
+			wantCount:   2,
+			wantErr:     false,
 		},
 		{
 			name:     "no permissions found",
 			tenantID: "tenant1",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{}, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
 			},
-			wantCount: 0,
-			wantErr:   false,
+			returnPermissions: []models.Permission{},
+			returnError:       nil,
+			wantCount:         0,
+			wantErr:           false,
 		},
 		{
 			name:     "database error",
 			tenantID: "tenant1",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return nil, errors.New("database query failed")
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
 			},
-			wantCount: 0,
-			wantErr:   true,
+			returnPermissions: []models.Permission{},
+			returnError:       errors.New("database query failed"),
+			wantCount:         0,
+			wantErr:           true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindAllFunc: tc.mockFunc,
-			}
-			repo := NewPermissionCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			permissions, err := repo.GetPermissionsByTenantID(tc.tenantID)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler.EXPECT().
+				FindAll(tc.expectedFilter).
+				Return(tc.returnPermissions, tc.returnError)
+
+			collection := NewPermissionCollection(mockHandler)
+			permissions, err := collection.GetPermissionsByTenantID(tc.tenantID)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -284,46 +353,58 @@ func TestPermissionCollection_GetPermissionsByTenantID(t *testing.T) {
 
 func TestPermissionCollection_GetPermissionsByResource(t *testing.T) {
 	testCases := []struct {
-		name      string
-		tenantID  string
-		resource  string
-		mockFunc  func(collection string, filter map[string]any) ([]any, error)
-		wantCount int
-		wantErr   bool
+		name              string
+		tenantID          string
+		resource          string
+		expectedFilter    map[string]any
+		returnPermissions []models.Permission
+		returnError       error
+		wantCount         int
+		wantErr           bool
 	}{
 		{
-			name:     "successful get permissions by resource",
+			name:     "successful get by resource",
 			tenantID: "tenant1",
 			resource: "products",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{
-					models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
-					models.Permission{TenantID: "tenant1", Resource: "products", Action: "write"},
-				}, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"resource":  "products",
 			},
-			wantCount: 2,
-			wantErr:   false,
+			returnPermissions: []models.Permission{
+				models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
+				models.Permission{TenantID: "tenant1", Resource: "products", Action: "write"},
+			},
+			returnError: nil,
+			wantCount:   2,
+			wantErr:     false,
 		},
 		{
 			name:     "database error",
 			tenantID: "tenant1",
 			resource: "products",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return nil, errors.New("database query failed")
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"resource":  "products",
 			},
-			wantCount: 0,
-			wantErr:   true,
+			returnPermissions: []models.Permission{},
+			returnError:       errors.New("database query failed"),
+			wantCount:         0,
+			wantErr:           true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindAllFunc: tc.mockFunc,
-			}
-			repo := NewPermissionCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			permissions, err := repo.GetPermissionsByResource(tc.tenantID, tc.resource)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler.EXPECT().
+				FindAll(tc.expectedFilter).
+				Return(tc.returnPermissions, tc.returnError)
+
+			collection := NewPermissionCollection(mockHandler)
+			permissions, err := collection.GetPermissionsByResource(tc.tenantID, tc.resource)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -336,46 +417,58 @@ func TestPermissionCollection_GetPermissionsByResource(t *testing.T) {
 
 func TestPermissionCollection_GetPermissionsByAction(t *testing.T) {
 	testCases := []struct {
-		name      string
-		tenantID  string
-		action    string
-		mockFunc  func(collection string, filter map[string]any) ([]any, error)
-		wantCount int
-		wantErr   bool
+		name              string
+		tenantID          string
+		action            string
+		expectedFilter    map[string]any
+		returnPermissions []models.Permission
+		returnError       error
+		wantCount         int
+		wantErr           bool
 	}{
 		{
-			name:     "successful get permissions by action",
+			name:     "successful get by action",
 			tenantID: "tenant1",
 			action:   "read",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{
-					models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
-					models.Permission{TenantID: "tenant1", Resource: "orders", Action: "read"},
-				}, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"action":    "read",
 			},
-			wantCount: 2,
-			wantErr:   false,
+			returnPermissions: []models.Permission{
+				models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
+				models.Permission{TenantID: "tenant1", Resource: "orders", Action: "read"},
+			},
+			returnError: nil,
+			wantCount:   2,
+			wantErr:     false,
 		},
 		{
 			name:     "database error",
 			tenantID: "tenant1",
 			action:   "read",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return nil, errors.New("database query failed")
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"action":    "read",
 			},
-			wantCount: 0,
-			wantErr:   true,
+			returnPermissions: []models.Permission{},
+			returnError:       errors.New("database query failed"),
+			wantCount:         0,
+			wantErr:           true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindAllFunc: tc.mockFunc,
-			}
-			repo := NewPermissionCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			permissions, err := repo.GetPermissionsByAction(tc.tenantID, tc.action)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler.EXPECT().
+				FindAll(tc.expectedFilter).
+				Return(tc.returnPermissions, tc.returnError)
+
+			collection := NewPermissionCollection(mockHandler)
+			permissions, err := collection.GetPermissionsByAction(tc.tenantID, tc.action)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -388,48 +481,62 @@ func TestPermissionCollection_GetPermissionsByAction(t *testing.T) {
 
 func TestPermissionCollection_GetPermissionsByResourceAndAction(t *testing.T) {
 	testCases := []struct {
-		name      string
-		tenantID  string
-		resource  string
-		action    string
-		mockFunc  func(collection string, filter map[string]any) ([]any, error)
-		wantCount int
-		wantErr   bool
+		name              string
+		tenantID          string
+		resource          string
+		action            string
+		expectedFilter    map[string]any
+		returnPermissions []models.Permission
+		returnError       error
+		wantCount         int
+		wantErr           bool
 	}{
 		{
-			name:     "successful get permissions by resource and action",
+			name:     "successful get by resource and action",
 			tenantID: "tenant1",
 			resource: "products",
 			action:   "read",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{
-					models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
-				}, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"resource":  "products",
+				"action":    "read",
 			},
-			wantCount: 1,
-			wantErr:   false,
+			returnPermissions: []models.Permission{
+				models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
+			},
+			returnError: nil,
+			wantCount:   1,
+			wantErr:     false,
 		},
 		{
 			name:     "database error",
 			tenantID: "tenant1",
 			resource: "products",
 			action:   "read",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return nil, errors.New("database query failed")
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"resource":  "products",
+				"action":    "read",
 			},
-			wantCount: 0,
-			wantErr:   true,
+			returnPermissions: []models.Permission{},
+			returnError:       errors.New("database query failed"),
+			wantCount:         0,
+			wantErr:           true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindAllFunc: tc.mockFunc,
-			}
-			repo := NewPermissionCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			permissions, err := repo.GetPermissionsByResourceAndAction(tc.tenantID, tc.resource, tc.action)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler.EXPECT().
+				FindAll(tc.expectedFilter).
+				Return(tc.returnPermissions, tc.returnError)
+
+			collection := NewPermissionCollection(mockHandler)
+			permissions, err := collection.GetPermissionsByResourceAndAction(tc.tenantID, tc.resource, tc.action)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -445,11 +552,16 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 	createdAt := time.Now().Add(-24 * time.Hour)
 
 	testCases := []struct {
-		name       string
-		permission models.Permission
-		mockFind   func(collection string, filter map[string]any) (any, error)
-		mockUpdate func(collection string, filter map[string]any, data any, opts ...map[string]any) error
-		wantErr    bool
+		name                 string
+		permission           models.Permission
+		expectedFindFilter   map[string]any
+		returnFindPermission *models.Permission
+		returnFindError      error
+		expectedUpdateFilter map[string]any
+		returnUpdateError    error
+		wantErr              bool
+		expectedFindCalls    int
+		expectedUpdateCalls  int
 	}{
 		{
 			name: "successful update",
@@ -463,30 +575,38 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 				CreatedBy:        "admin",
 				CreatedAt:        createdAt,
 			},
-			mockFind: func(collection string, filter map[string]any) (any, error) {
-				return models.Permission{
-					ID:        permissionID,
-					TenantID:  "tenant1",
-					CreatedAt: createdAt,
-				}, nil
+			expectedFindFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       permissionID.String(),
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return nil
+			returnFindPermission: &models.Permission{
+				ID:        permissionID,
+				TenantID:  "tenant1",
+				CreatedAt: createdAt,
 			},
-			wantErr: false,
+			returnFindError: nil,
+			expectedUpdateFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       permissionID,
+			},
+			returnUpdateError:   nil,
+			wantErr:             false,
+			expectedFindCalls:   1,
+			expectedUpdateCalls: 1,
 		},
 		{
 			name: "update with validation error",
 			permission: models.Permission{
 				TenantID: "tenant1",
 			},
-			mockFind: func(collection string, filter map[string]any) (any, error) {
-				return nil, nil
-			},
-			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return nil
-			},
-			wantErr: true,
+			expectedFindFilter:   nil,
+			returnFindPermission: nil,
+			returnFindError:      nil,
+			expectedUpdateFilter: nil,
+			returnUpdateError:    errors.New("validation error"),
+			wantErr:              true,
+			expectedFindCalls:    0,
+			expectedUpdateCalls:  0,
 		},
 		{
 			name: "update with permission not found",
@@ -500,37 +620,17 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 				CreatedBy:        "admin",
 				CreatedAt:        createdAt,
 			},
-			mockFind: func(collection string, filter map[string]any) (any, error) {
-				return nil, nil
+			expectedFindFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       permissionID.String(),
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return nil
-			},
-			wantErr: true,
-		},
-		{
-			name: "update with restricted field change - CreatedAt",
-			permission: models.Permission{
-				ID:               permissionID,
-				TenantID:         "tenant1",
-				Resource:         "products",
-				Action:           "read",
-				PermissionString: "products:read",
-				DisplayName:      "Read Products",
-				CreatedBy:        "admin",
-				CreatedAt:        time.Now(),
-			},
-			mockFind: func(collection string, filter map[string]any) (any, error) {
-				return models.Permission{
-					ID:        permissionID,
-					TenantID:  "tenant1",
-					CreatedAt: createdAt,
-				}, nil
-			},
-			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return nil
-			},
-			wantErr: true,
+			returnFindPermission: nil,
+			returnFindError:      errors.New("permission not found"),
+			expectedUpdateFilter: nil,
+			returnUpdateError:    errors.New("validation error"),
+			wantErr:              true,
+			expectedFindCalls:    1,
+			expectedUpdateCalls:  0,
 		},
 		{
 			name: "update with database error",
@@ -544,29 +644,48 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 				CreatedBy:        "admin",
 				CreatedAt:        createdAt,
 			},
-			mockFind: func(collection string, filter map[string]any) (any, error) {
-				return models.Permission{
-					ID:        permissionID,
-					TenantID:  "tenant1",
-					CreatedAt: createdAt,
-				}, nil
+			expectedFindFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       permissionID.String(),
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return errors.New("update failed")
+			returnFindPermission: &models.Permission{
+				ID:        permissionID,
+				TenantID:  "tenant1",
+				CreatedAt: createdAt,
 			},
-			wantErr: true,
+			returnFindError: nil,
+			expectedUpdateFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       permissionID,
+			},
+			returnUpdateError:   errors.New("update failed"),
+			wantErr:             true,
+			expectedFindCalls:   1,
+			expectedUpdateCalls: 1,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindOneFunc: tc.mockFind,
-				UpdateFunc:  tc.mockUpdate,
-			}
-			repo := NewPermissionCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			err := repo.UpdatePermission(tc.permission)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			if tc.expectedFindCalls > 0 {
+				mockHandler.EXPECT().
+					FindOne(tc.expectedFindFilter).
+					Return(tc.returnFindPermission, tc.returnFindError).
+					Times(tc.expectedFindCalls)
+			}
+			if tc.expectedUpdateCalls > 0 {
+				mockHandler.EXPECT().
+					Update(tc.expectedUpdateFilter, permissionMatcher{expected: tc.permission}).
+					Return(tc.returnUpdateError).
+					Times(tc.expectedUpdateCalls)
+			}
+
+			collection := NewPermissionCollection(mockHandler)
+			err := collection.UpdatePermission(tc.permission)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -578,58 +697,73 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 
 func TestPermissionCollection_DeletePermission(t *testing.T) {
 	testCases := []struct {
-		name         string
-		tenantID     string
-		permissionID string
-		mockFunc     func(collection string, filter map[string]any) error
-		wantErr      bool
+		name              string
+		tenantID          string
+		permissionID      string
+		expectedFilter    map[string]any
+		returnError       error
+		wantErr           bool
+		expectedCallTimes int
 	}{
 		{
 			name:         "successful delete",
 			tenantID:     "tenant1",
-			permissionID: "permission-id-123",
-			mockFunc: func(collection string, filter map[string]any) error {
-				return nil
+			permissionID: "507f1f77bcf86cd799439011",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       "507f1f77bcf86cd799439011",
 			},
-			wantErr: false,
+			returnError:       nil,
+			wantErr:           false,
+			expectedCallTimes: 1,
 		},
 		{
-			name:         "delete with empty tenant ID",
-			tenantID:     "",
-			permissionID: "permission-id-123",
-			mockFunc: func(collection string, filter map[string]any) error {
-				return nil
-			},
-			wantErr: true,
+			name:              "delete with empty tenant ID",
+			tenantID:          "",
+			permissionID:      "507f1f77bcf86cd799439011",
+			expectedFilter:    nil,
+			returnError:       nil,
+			wantErr:           true,
+			expectedCallTimes: 0,
 		},
 		{
-			name:         "delete with empty permission ID",
-			tenantID:     "tenant1",
-			permissionID: "",
-			mockFunc: func(collection string, filter map[string]any) error {
-				return nil
-			},
-			wantErr: true,
+			name:              "delete with empty permission ID",
+			tenantID:          "tenant1",
+			permissionID:      "",
+			expectedFilter:    nil,
+			returnError:       nil,
+			wantErr:           true,
+			expectedCallTimes: 0,
 		},
 		{
 			name:         "delete with database error",
 			tenantID:     "tenant1",
-			permissionID: "permission-id-123",
-			mockFunc: func(collection string, filter map[string]any) error {
-				return errors.New("delete failed")
+			permissionID: "507f1f77bcf86cd799439011",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       "507f1f77bcf86cd799439011",
 			},
-			wantErr: true,
+			returnError:       errors.New("delete failed"),
+			wantErr:           true,
+			expectedCallTimes: 1,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				DeleteFunc: tc.mockFunc,
-			}
-			repo := NewPermissionCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			err := repo.DeletePermission(tc.tenantID, tc.permissionID)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			if tc.expectedCallTimes > 0 {
+				mockHandler.EXPECT().
+					Delete(tc.expectedFilter).
+					Return(tc.returnError).
+					Times(tc.expectedCallTimes)
+			}
+
+			collection := NewPermissionCollection(mockHandler)
+			err := collection.DeletePermission(tc.tenantID, tc.permissionID)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {

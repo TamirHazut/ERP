@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"time"
 
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
@@ -13,14 +14,14 @@ var (
 	redisContext = context.Background()
 )
 
-type RedisHandler struct {
+type BaseRedisHandler struct {
 	client    *redis.Client
 	logger    *logging.Logger
 	keyPrefix KeyPrefix
 }
 
-func NewRedisHandler(keyPrefix KeyPrefix) *RedisHandler {
-	redisHandler := &RedisHandler{
+func NewBaseRedisHandler(keyPrefix KeyPrefix) *BaseRedisHandler {
+	redisHandler := &BaseRedisHandler{
 		logger:    logging.NewLogger(logging.ModuleDB),
 		keyPrefix: keyPrefix,
 	}
@@ -31,7 +32,7 @@ func NewRedisHandler(keyPrefix KeyPrefix) *RedisHandler {
 	return redisHandler
 }
 
-func (r *RedisHandler) init() error {
+func (r *BaseRedisHandler) init() error {
 	r.logger = logging.NewLogger(logging.ModuleDB)
 	uri := "redis://:supersecretredis@localhost:6379"
 	options, err := redis.ParseURL(uri)
@@ -48,11 +49,11 @@ func (r *RedisHandler) init() error {
 	return nil
 }
 
-func (r *RedisHandler) Close() error {
+func (r *BaseRedisHandler) Close() error {
 	return r.client.Close()
 }
 
-func (r *RedisHandler) Create(key string, value any, opts ...map[string]any) (string, error) {
+func (r *BaseRedisHandler) Create(key string, value any, opts ...map[string]any) (string, error) {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
 	if _, err := r.FindOne(key, nil); err == nil {
 		return "", erp_errors.Conflict(erp_errors.ConflictDuplicateResource)
@@ -64,7 +65,7 @@ func (r *RedisHandler) Create(key string, value any, opts ...map[string]any) (st
 	return result.Val(), nil
 }
 
-func (r *RedisHandler) FindOne(key string, filter map[string]any) (any, error) {
+func (r *BaseRedisHandler) FindOne(key string, filter map[string]any) (any, error) {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
 	value, err := r.client.Get(redisContext, formattedKey).Result()
 	if err != nil {
@@ -73,9 +74,9 @@ func (r *RedisHandler) FindOne(key string, filter map[string]any) (any, error) {
 	return value, nil
 }
 
-func (r *RedisHandler) FindAll(key string, filter map[string]any) ([]any, error) {
+func (r *BaseRedisHandler) FindAll(key string, filter map[string]any) ([]any, error) {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
-	values, err := r.client.SMembers(redisContext, formattedKey).Result()
+	values, err := r.SMembers(formattedKey)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +87,7 @@ func (r *RedisHandler) FindAll(key string, filter map[string]any) ([]any, error)
 	return results, nil
 }
 
-func (r *RedisHandler) Update(key string, filter map[string]any, value any, opts ...map[string]any) error {
+func (r *BaseRedisHandler) Update(key string, filter map[string]any, value any, opts ...map[string]any) error {
 	_, err := r.Create(key, value)
 	if err != nil {
 		return err
@@ -94,7 +95,31 @@ func (r *RedisHandler) Update(key string, filter map[string]any, value any, opts
 	return nil
 }
 
-func (r *RedisHandler) Delete(key string, filter map[string]any) error {
+func (r *BaseRedisHandler) Delete(key string, filter map[string]any) error {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
 	return r.client.Del(redisContext, formattedKey).Err()
+}
+
+func (r *BaseRedisHandler) SAdd(key string, members ...any) error {
+	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
+	return r.client.SAdd(redisContext, formattedKey, members...).Err()
+}
+
+func (r *BaseRedisHandler) SRem(key string, members ...any) error {
+	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
+	return r.client.SRem(redisContext, formattedKey, members...).Err()
+}
+
+func (r *BaseRedisHandler) Expire(key string, ttl int, unit time.Duration) error {
+	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
+	return r.client.Expire(redisContext, formattedKey, time.Duration(ttl)*unit).Err()
+}
+
+func (r *BaseRedisHandler) SMembers(key string) ([]string, error) {
+	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
+	return r.client.SMembers(redisContext, formattedKey).Result()
+}
+
+func (r *BaseRedisHandler) Clear(key string) error {
+	return r.Delete(key, nil)
 }

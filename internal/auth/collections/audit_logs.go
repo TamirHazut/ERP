@@ -4,20 +4,26 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/models"
-	"erp.localhost/internal/db"
 	"erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
 )
 
 type AuditLogsCollection struct {
-	collection *mongo.CollectionHandler[models.AuditLog]
+	collection mongo.CollectionHandler[models.AuditLog]
 	logger     *logging.Logger
 }
 
-func NewAuditLogsCollection(dbHandler db.DBHandler) *AuditLogsCollection {
+func NewAuditLogsCollection(collection mongo.CollectionHandler[models.AuditLog]) *AuditLogsCollection {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	collection := mongo.NewCollectionHandler[models.AuditLog](dbHandler, string(mongo.AuditLogsCollection), logger)
+	if collection == nil {
+		collectionHandler := mongo.NewBaseCollectionHandler[models.AuditLog](string(mongo.AuditLogsCollection), logger)
+		if collectionHandler == nil {
+			logger.Fatal("failed to create audit logs collection handler")
+			return nil
+		}
+		collection = collectionHandler
+	}
 	return &AuditLogsCollection{
 		collection: collection,
 		logger:     logger,

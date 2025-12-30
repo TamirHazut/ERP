@@ -4,20 +4,26 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/models"
-	"erp.localhost/internal/db"
 	"erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
 )
 
 type RolesCollection struct {
-	collection *mongo.CollectionHandler[models.Role]
+	collection mongo.CollectionHandler[models.Role]
 	logger     *logging.Logger
 }
 
-func NewRoleCollection(dbHandler db.DBHandler) *RolesCollection {
+func NewRoleCollection(collection mongo.CollectionHandler[models.Role]) *RolesCollection {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	collection := mongo.NewCollectionHandler[models.Role](dbHandler, string(mongo.RolesCollection), logger)
+	if collection == nil {
+		collectionHandler := mongo.NewBaseCollectionHandler[models.Role](string(mongo.RolesCollection), logger)
+		if collectionHandler == nil {
+			logger.Fatal("failed to create roles collection handler")
+			return nil
+		}
+		collection = collectionHandler
+	}
 	return &RolesCollection{
 		collection: collection,
 		logger:     logger,

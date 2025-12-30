@@ -34,12 +34,12 @@ run: ## Run auth service
 	@echo "Starting auth service on port $(SERVICE_PORT)..."
 	@go run $(CMD_DIR)
 
-test: ## Run auth service tests
+test: mocks ## Run auth service tests
 	@echo "Running auth service tests..."
 	@go test -v -count=1 ./...
 	@echo "✓ Auth tests complete"
 
-test-coverage: ## Run tests with coverage
+test-coverage: mocks ## Run tests with coverage
 	@echo "Running auth service tests with coverage..."
 	@go test -v -coverprofile=$(INTERNAL_DIR)/coverage.out ./...
 	@go tool cover -html=$(INTERNAL_DIR)/coverage.out -o $(INTERNAL_DIR)/coverage.html
@@ -55,3 +55,14 @@ clean: ## Clean build artifacts
 	@rm -f $(INTERNAL_DIR)/coverage.out $(INTERNAL_DIR)/coverage.html
 	@echo "✓ Clean complete"
 
+.PHONY: mocks
+mocks: mocks-clean
+	@echo "Generating auth mocks..."
+	@go generate ./...
+	@echo "✅ Auth mocks generated successfully"
+
+.PHONY: mocks-clean
+mocks-clean:
+	@echo "Cleaning generated auth mocks..."
+	@find . -path "*/mocks/mock_*.go" -type f -delete
+	@echo "✅ Auth mocks cleaned"

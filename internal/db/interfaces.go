@@ -1,5 +1,7 @@
 package db
 
+//go:generate mockgen -destination=mocks/mock_db_handler.go -package=mocks erp.localhost/internal/db DBHandler
+
 type DBHandler interface {
 	Close() error
 	Create(db string, data any, opts ...map[string]any) (string, error)

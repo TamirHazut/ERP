@@ -34,12 +34,12 @@ run: ## Run core service
 	@echo "Starting core service on port $(SERVICE_PORT)..."
 	@go run $(CMD_DIR)
 
-test: ## Run core service tests
+test: mocks ## Run core service tests
 	@echo "Running core service tests..."
 	@go test -v -count=1 ./...
 	@echo "✓ Core tests complete"
 
-test-coverage: ## Run tests with coverage
+test-coverage: mocks ## Run tests with coverage
 	@echo "Running core service tests with coverage..."
 	@go test -v -coverprofile=$(INTERNAL_DIR)/coverage.out ./...
 	@go tool cover -html=$(INTERNAL_DIR)/coverage.out -o $(INTERNAL_DIR)/coverage.html
@@ -55,3 +55,14 @@ clean: ## Clean build artifacts
 	@rm -f $(INTERNAL_DIR)/coverage.out $(INTERNAL_DIR)/coverage.html
 	@echo "✓ Clean complete"
 
+.PHONY: mocks
+mocks: mocks-clean
+	@echo "Generating core mocks..."
+	@go generate ./...
+	@echo "✅ Core mocks generated successfully"
+
+.PHONY: mocks-clean
+mocks-clean:
+	@echo "Cleaning generated core mocks..."
+	@find . -path "*/mocks/mock_*.go" -type f -delete
+	@echo "✅ Core mocks cleaned"

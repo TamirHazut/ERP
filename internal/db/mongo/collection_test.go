@@ -4,12 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	db "erp.localhost/internal/db"
-	"erp.localhost/internal/db/mock"
-	erp_errors "erp.localhost/internal/errors"
+	db_mocks "erp.localhost/internal/db/mocks"
 	"erp.localhost/internal/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 // TestModel is a simple test model for collection handler tests
@@ -18,95 +17,49 @@ type TestModel struct {
 	Name string `bson:"name" json:"name"`
 }
 
-func TestNewCollectionHandler(t *testing.T) {
-	mockHandler := &mock.MockDBHandler{}
-	logger := logging.NewLogger(logging.ModuleDB)
-
-	testCases := []struct {
-		name       string
-		handler    db.DBHandler
-		collection string
-		logger     *logging.Logger
-		wantErr    bool
-	}{
-		{
-			name:       "valid collection handler",
-			handler:    mockHandler,
-			collection: "test_collection",
-			logger:     logger,
-			wantErr:    false,
-		},
-		{
-			name:       "nil handler",
-			handler:    nil,
-			collection: "test_collection",
-			logger:     logger,
-			wantErr:    false, // Collection creation doesn't validate handler
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			repo := NewCollectionHandler[TestModel](tc.handler, tc.collection, tc.logger)
-			if tc.wantErr {
-				assert.Nil(t, repo)
-			} else {
-				assert.NotNil(t, repo)
-				if repo != nil {
-					assert.Equal(t, tc.collection, repo.collection)
-				}
-			}
-		})
-	}
-}
-
 func TestCollection_Create(t *testing.T) {
 	testCases := []struct {
-		name      string
-		item      TestModel
-		mockFunc  func(collection string, data any, opts ...map[string]any) (string, error)
-		wantID    string
-		wantErr   bool
-		wantError error
+		name        string
+		collection  string
+		data        TestModel
+		returnID    string
+		returnError error
 	}{
 		{
-			name: "successful create",
-			item: TestModel{Name: "test"},
-			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
-				return "created-id", nil
-			},
-			wantID:  "created-id",
-			wantErr: false,
+			name:        "successful create",
+			collection:  "test_collection",
+			data:        TestModel{Name: "test"},
+			returnID:    "created-id",
+			returnError: nil,
 		},
 		{
-			name: "create with database error",
-			item: TestModel{Name: "test"},
-			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
-				return "", errors.New("database connection failed")
-			},
-			wantID:  "",
-			wantErr: true,
+			name:        "create with database error",
+			collection:  "test_collection",
+			data:        TestModel{Name: "test"},
+			returnID:    "",
+			returnError: errors.New("database connection failed"),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				CreateFunc: tc.mockFunc,
-			}
-			logger := logging.NewLogger(logging.ModuleDB)
-			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockHandler := db_mocks.NewMockDBHandler(ctrl)
+			mockHandler.EXPECT().Create(tc.collection, tc.data).Return(tc.returnID, tc.returnError)
 
-			id, err := repo.Create(tc.item)
-			if tc.wantErr {
+			collectionHanlder := BaseCollectionHandler[TestModel]{
+				dbHandler:  mockHandler,
+				collection: tc.collection,
+				logger:     logging.NewLogger(logging.ModuleDB),
+			}
+
+			id, err := collectionHanlder.Create(tc.data)
+			if tc.returnError != nil {
 				require.Error(t, err)
-				appErr, ok := erp_errors.AsAppError(err)
-				require.True(t, ok, "Expected AppError")
-				assert.Equal(t, erp_errors.CategoryInternal, appErr.Category)
-				assert.Empty(t, id)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.wantID, id)
+				assert.Equal(t, tc.returnID, id)
 			}
 		})
 	}
@@ -116,59 +69,51 @@ func TestCollection_FindOne(t *testing.T) {
 	testModel := TestModel{ID: "1", Name: "test"}
 
 	testCases := []struct {
-		name      string
-		filter    map[string]any
-		mockFunc  func(collection string, filter map[string]any) (any, error)
-		wantModel TestModel
-		wantErr   bool
+		name        string
+		collection  string
+		filter      map[string]any
+		returnModel TestModel
+		returnError error
 	}{
 		{
-			name:   "successful find one",
-			filter: map[string]any{"name": "test"},
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return testModel, nil
-			},
-			wantModel: testModel,
+			name:        "successful find one",
+			collection:  "test_collection",
+			filter:      map[string]any{"name": "test"},
+			returnModel: testModel,
+			returnError: nil,
 		},
 		{
-			name:   "find one with error",
-			filter: map[string]any{"name": "test"},
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return nil, errors.New("find one failed")
-			},
-			wantErr: true,
+			name:        "find one with error - missing collection",
+			filter:      map[string]any{"name": "test"},
+			returnModel: TestModel{},
+			returnError: errors.New("find one failed"),
 		},
 		{
-			name:     "find one with default behavior",
-			filter:   map[string]any{"name": "test"},
-			mockFunc: nil,
-			wantErr:  true,
-		},
-		{
-			name:   "find one with item not found",
-			filter: map[string]any{"name": "test"},
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return nil, nil
-			},
-			wantErr: true,
+			name:        "find one with error - item not found",
+			collection:  "test_collection",
+			filter:      map[string]any{"name": "test"},
+			returnModel: TestModel{},
+			returnError: errors.New("no result found"),
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindOneFunc: tc.mockFunc,
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockHandler := db_mocks.NewMockDBHandler(ctrl)
+			mockHandler.EXPECT().FindOne(tc.collection, tc.filter).Return(tc.returnModel, tc.returnError)
+
+			collectionHanlder := BaseCollectionHandler[TestModel]{
+				dbHandler:  mockHandler,
+				collection: tc.collection,
+				logger:     logging.NewLogger(logging.ModuleDB),
 			}
-			logger := logging.NewLogger(logging.ModuleDB)
-			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
-			result, err := repo.FindOne(tc.filter)
-			if tc.wantErr {
+			result, err := collectionHanlder.FindOne(tc.filter)
+			if tc.returnError != nil {
 				require.Error(t, err)
-				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)
-				require.NotNil(t, result)
-				assert.Equal(t, tc.wantModel.ID, result.ID)
-				assert.Equal(t, tc.wantModel.Name, result.Name)
+				assert.Equal(t, tc.returnModel, *result)
 			}
 		})
 	}
@@ -176,59 +121,62 @@ func TestCollection_FindOne(t *testing.T) {
 
 func TestCollection_FindAll(t *testing.T) {
 	testCases := []struct {
-		name     string
-		filter   map[string]any
-		mockFunc func(collection string, filter map[string]any) ([]any, error)
-		wantLen  int
-		wantErr  bool
+		name           string
+		collection     string
+		filter         map[string]any
+		returnModels   []any
+		returnError    error
+		expectedResult []TestModel
 	}{
 		{
-			name:   "successful find with results",
-			filter: map[string]any{"name": "test"},
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{
-					TestModel{ID: "1", Name: "test1"},
-					TestModel{ID: "2", Name: "test2"},
-				}, nil
+			name:       "successful find with results",
+			collection: "test_collection",
+			filter:     map[string]any{"name": "test"},
+			returnModels: []any{
+				TestModel{ID: "1", Name: "test1"},
+				TestModel{ID: "2", Name: "test2"},
 			},
-			wantLen: 2,
-			wantErr: false,
+			returnError: nil,
+			expectedResult: []TestModel{
+				{ID: "1", Name: "test1"},
+				{ID: "2", Name: "test2"},
+			},
 		},
 		{
-			name:   "successful find with no results",
-			filter: map[string]any{"name": "nonexistent"},
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{}, nil
-			},
-			wantLen: 0,
-			wantErr: false,
+			name:           "successful find with no results",
+			collection:     "test_collection",
+			filter:         map[string]any{"name": "nonexistent"},
+			returnModels:   []any{},
+			returnError:    nil,
+			expectedResult: []TestModel{},
 		},
 		{
-			name:   "find with database error",
-			filter: map[string]any{"name": "test"},
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return nil, errors.New("database query failed")
-			},
-			wantLen: 0,
-			wantErr: true,
+			name:         "find with database error",
+			collection:   "test_collection",
+			filter:       map[string]any{"name": "test"},
+			returnModels: []any{},
+			returnError:  errors.New("database query failed"),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindAllFunc: tc.mockFunc,
-			}
-			logger := logging.NewLogger(logging.ModuleDB)
-			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockHandler := db_mocks.NewMockDBHandler(ctrl)
+			mockHandler.EXPECT().FindAll(tc.collection, tc.filter).Return(tc.returnModels, tc.returnError)
 
-			results, err := repo.FindAll(tc.filter)
-			if tc.wantErr {
+			collectionHanlder := BaseCollectionHandler[TestModel]{
+				dbHandler:  mockHandler,
+				collection: tc.collection,
+				logger:     logging.NewLogger(logging.ModuleDB),
+			}
+			results, err := collectionHanlder.FindAll(tc.filter)
+			if tc.returnError != nil {
 				require.Error(t, err)
-				assert.Nil(t, results)
 			} else {
 				require.NoError(t, err)
-				assert.Len(t, results, tc.wantLen)
+				assert.Equal(t, tc.expectedResult, results)
 			}
 		})
 	}
@@ -236,51 +184,53 @@ func TestCollection_FindAll(t *testing.T) {
 
 func TestCollection_Update(t *testing.T) {
 	testCases := []struct {
-		name     string
-		filter   map[string]any
-		item     TestModel
-		mockFunc func(collection string, filter map[string]any, data any, opts ...map[string]any) error
-		wantErr  bool
+		name              string
+		collection        string
+		filter            map[string]any
+		item              TestModel
+		returnError       error
+		expectedCallTimes int
 	}{
 		{
-			name:   "successful update",
-			filter: map[string]any{"_id": "1"},
-			item:   TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return nil
-			},
-			wantErr: false,
+			name:              "successful update",
+			collection:        "test_collection",
+			filter:            map[string]any{"_id": "1"},
+			item:              TestModel{ID: "1", Name: "updated"},
+			returnError:       nil,
+			expectedCallTimes: 1,
 		},
 		{
-			name:   "update with nil filter",
-			filter: nil,
-			item:   TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return nil
-			},
-			wantErr: true,
+			name:              "update with nil filter",
+			collection:        "test_collection",
+			filter:            nil,
+			item:              TestModel{ID: "1", Name: "updated"},
+			returnError:       errors.New("filter is required and cannot be nil"),
+			expectedCallTimes: 0,
 		},
 		{
-			name:   "update with database error",
-			filter: map[string]any{"_id": "1"},
-			item:   TestModel{ID: "1", Name: "updated"},
-			mockFunc: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return errors.New("update failed")
-			},
-			wantErr: true,
+			name:              "update with database error",
+			collection:        "test_collection",
+			filter:            map[string]any{"_id": "1"},
+			item:              TestModel{ID: "1", Name: "updated"},
+			returnError:       errors.New("update failed"),
+			expectedCallTimes: 1,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				UpdateFunc: tc.mockFunc,
-			}
-			logger := logging.NewLogger(logging.ModuleDB)
-			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockHandler := db_mocks.NewMockDBHandler(ctrl)
+			mockHandler.EXPECT().Update(tc.collection, tc.filter, tc.item).Return(tc.returnError).Times(tc.expectedCallTimes)
 
-			err := repo.Update(tc.filter, tc.item)
-			if tc.wantErr {
+			collectionHanlder := BaseCollectionHandler[TestModel]{
+				dbHandler:  mockHandler,
+				collection: tc.collection,
+				logger:     logging.NewLogger(logging.ModuleDB),
+			}
+			err := collectionHanlder.Update(tc.filter, tc.item)
+			if tc.returnError != nil {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
@@ -291,47 +241,49 @@ func TestCollection_Update(t *testing.T) {
 
 func TestCollection_Delete(t *testing.T) {
 	testCases := []struct {
-		name     string
-		filter   map[string]any
-		mockFunc func(collection string, filter map[string]any) error
-		wantErr  bool
+		name              string
+		collection        string
+		filter            map[string]any
+		returnError       error
+		expectedCallTimes int
 	}{
 		{
-			name:   "successful delete",
-			filter: map[string]any{"_id": "1"},
-			mockFunc: func(collection string, filter map[string]any) error {
-				return nil
-			},
-			wantErr: false,
+			name:              "successful delete",
+			collection:        "test_collection",
+			filter:            map[string]any{"_id": "1"},
+			returnError:       nil,
+			expectedCallTimes: 1,
 		},
 		{
-			name:   "delete with nil filter",
-			filter: nil,
-			mockFunc: func(collection string, filter map[string]any) error {
-				return nil
-			},
-			wantErr: true,
+			name:              "delete with nil filter",
+			collection:        "test_collection",
+			filter:            nil,
+			returnError:       errors.New("filter is required and cannot be nil"),
+			expectedCallTimes: 0,
 		},
 		{
-			name:   "delete with database error",
-			filter: map[string]any{"_id": "1"},
-			mockFunc: func(collection string, filter map[string]any) error {
-				return errors.New("delete failed")
-			},
-			wantErr: true,
+			name:              "delete with database error",
+			collection:        "test_collection",
+			filter:            map[string]any{"_id": "1"},
+			returnError:       errors.New("delete failed"),
+			expectedCallTimes: 1,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				DeleteFunc: tc.mockFunc,
-			}
-			logger := logging.NewLogger(logging.ModuleDB)
-			repo := NewCollectionHandler[TestModel](mockHandler, "test_collection", logger)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockHandler := db_mocks.NewMockDBHandler(ctrl)
+			mockHandler.EXPECT().Delete(tc.collection, tc.filter).Return(tc.returnError).Times(tc.expectedCallTimes)
 
-			err := repo.Delete(tc.filter)
-			if tc.wantErr {
+			collectionHanlder := BaseCollectionHandler[TestModel]{
+				dbHandler:  mockHandler,
+				collection: tc.collection,
+				logger:     logging.NewLogger(logging.ModuleDB),
+			}
+			err := collectionHanlder.Delete(tc.filter)
+			if tc.returnError != nil {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)

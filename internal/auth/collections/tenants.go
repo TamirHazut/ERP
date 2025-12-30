@@ -4,20 +4,26 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/models"
-	"erp.localhost/internal/db"
 	"erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
 )
 
 type TenantCollection struct {
-	collection *mongo.CollectionHandler[models.Tenant]
+	collection mongo.CollectionHandler[models.Tenant]
 	logger     *logging.Logger
 }
 
-func NewTenantCollection(dbHandler db.DBHandler) *TenantCollection {
+func NewTenantCollection(collection mongo.CollectionHandler[models.Tenant]) *TenantCollection {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	collection := mongo.NewCollectionHandler[models.Tenant](dbHandler, string(mongo.TenantsCollection), logger)
+	if collection == nil {
+		collectionHandler := mongo.NewBaseCollectionHandler[models.Tenant](string(mongo.TenantsCollection), logger)
+		if collectionHandler == nil {
+			logger.Fatal("failed to create tenants collection handler")
+			return nil
+		}
+		collection = collectionHandler
+	}
 	return &TenantCollection{
 		collection: collection,
 		logger:     logger,

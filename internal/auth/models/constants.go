@@ -54,8 +54,7 @@ func IsValidTenantStatus(tenantStatus string) bool {
 // Permission formats
 const (
 	PermissionWildcard = "*:*"
-	PermissionFormat   = "resource:action[:scope]"
-	PermissionCreate   = "create"
+	PermissionFormat   = "[resource]:[action]"
 )
 
 func IsValidPermissionFormat(permissionFormat string) bool {
@@ -63,13 +62,37 @@ func IsValidPermissionFormat(permissionFormat string) bool {
 		return false
 	}
 	permissionFormat = strings.ToLower(permissionFormat)
-	validPermissionFormats := map[string]bool{
-		PermissionWildcard: true,
-		PermissionFormat:   true,
-		PermissionCreate:   true,
-	}
 
-	return validPermissionFormats[permissionFormat]
+	permissionBreakDown := strings.Split(permissionFormat, ":")
+
+	if len(permissionBreakDown) != 2 ||
+		!IsValidResourceType(permissionBreakDown[0]) ||
+		!IsValidPermissionAction(permissionBreakDown[1]) {
+		return false
+	}
+	return true
+}
+
+// Permission actions
+const (
+	PermissionActionCreate = "create"
+	PermissionActionRead   = "read"
+	PermissionActionUpdate = "update"
+	PermissionActionDelete = "delete"
+)
+
+func IsValidPermissionAction(permissionAction string) bool {
+	if permissionAction == "" {
+		return false
+	}
+	permissionAction = strings.ToLower(permissionAction)
+	validPermissionActions := map[string]bool{
+		PermissionActionCreate: true,
+		PermissionActionRead:   true,
+		PermissionActionUpdate: true,
+		PermissionActionDelete: true,
+	}
+	return validPermissionActions[permissionAction]
 }
 
 // Role types
@@ -171,8 +194,7 @@ func IsValidCategory(category string) bool {
 /* Actions */
 // Auth Actions
 const (
-	ActionLoginSuccess    = "login_success"
-	ActionLoginFailed     = "login_failed"
+	ActionLogin           = "login"
 	ActionLogout          = "logout"
 	ActionLogoutAll       = "logout_all"
 	ActionTokenRefresh    = "token_refresh"
@@ -274,8 +296,7 @@ func IsValidAction(action string) bool {
 	}
 	action = strings.ToLower(action)
 	validActions := map[string]bool{
-		ActionLoginSuccess:        true,
-		ActionLoginFailed:         true,
+		ActionLogin:               true,
 		ActionLogout:              true,
 		ActionLogoutAll:           true,
 		ActionTokenRefresh:        true,

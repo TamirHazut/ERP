@@ -1,4 +1,4 @@
-package redis
+package handlers
 
 import (
 	"encoding/json"
@@ -9,38 +9,36 @@ import (
 	logging "erp.localhost/internal/logging"
 )
 
-type KeyHandler[T any] struct {
+type BaseKeyHandler[T any] struct {
 	dbHandler db.DBHandler
 	logger    *logging.Logger
 }
 
-func NewKeyHandler[T any](keyPrefix KeyPrefix, logger *logging.Logger) *KeyHandler[T] {
+func NewBaseKeyHandler[T any](dbHandler db.DBHandler, logger *logging.Logger) *BaseKeyHandler[T] {
 	if logger == nil {
 		logger = logging.NewLogger(logging.ModuleDB)
 	}
-	// Currently only redis is supported
-	dbHandler := NewRedisHandler(keyPrefix)
 	if dbHandler == nil {
-		logger.Fatal("Failed to create redis handler")
+		logger.Error("DBHandler is nil")
 		return nil
 	}
-	return &KeyHandler[T]{
+	return &BaseKeyHandler[T]{
 		dbHandler: dbHandler,
 		logger:    logger,
 	}
 }
 
-func (k *KeyHandler[T]) Set(tenantID string, key string, value any) error {
+func (k *BaseKeyHandler[T]) Set(tenantID string, key string, value T, opts ...map[string]any) error {
 	k.logger.Debug("Setting key", "tenantID", tenantID, "key", key, "value", value)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
-	_, err := k.dbHandler.Create(formattedKey, value)
+	_, err := k.dbHandler.Create(formattedKey, value, opts...)
 	if err != nil {
 		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 	}
 	return nil
 }
 
-func (k *KeyHandler[T]) GetOne(tenantID string, key string) (*T, error) {
+func (k *BaseKeyHandler[T]) GetOne(tenantID string, key string) (*T, error) {
 	k.logger.Debug("Getting key", "tenantID", tenantID, "key", key)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
 	value, err := k.dbHandler.FindOne(formattedKey, nil)
@@ -67,18 +65,18 @@ func (k *KeyHandler[T]) GetOne(tenantID string, key string) (*T, error) {
 	return &result, nil
 }
 
-func (k *KeyHandler[T]) GetAll(tenantID string, userID string) ([]T, error) {
+func (k *BaseKeyHandler[T]) GetAll(tenantID string, userID string) ([]T, error) {
 	k.logger.Debug("Getting key", "tenantID", tenantID, "userID", userID)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, userID)
 	values, err := k.dbHandler.FindAll(formattedKey, nil)
 	if err != nil {
 		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 	}
-	var results []T
-	for _, value := range values {
+	results := make([]T, len(values))
+	for i, value := range values {
 		// Handle case where mock returns struct directly
 		if typedValue, ok := value.(T); ok {
-			results = append(results, typedValue)
+			results[i] = typedValue
 			continue
 		}
 
@@ -88,22 +86,22 @@ func (k *KeyHandler[T]) GetAll(tenantID string, userID string) ([]T, error) {
 		if err != nil {
 			return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 		}
-		results = append(results, result)
+		results[i] = result
 	}
 	return results, nil
 }
 
-func (k *KeyHandler[T]) Update(tenantID string, key string, value any) error {
+func (k *BaseKeyHandler[T]) Update(tenantID string, key string, value T, opts ...map[string]any) error {
 	k.logger.Debug("Updating key", "tenantID", tenantID, "key", key, "value", value)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
-	err := k.dbHandler.Update(formattedKey, nil, value)
+	err := k.dbHandler.Update(formattedKey, nil, value, opts...)
 	if err != nil {
 		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
 	}
 	return nil
 }
 
-func (k *KeyHandler[T]) Delete(tenantID string, key string) error {
+func (k *BaseKeyHandler[T]) Delete(tenantID string, key string) error {
 	k.logger.Debug("Deleting key", "tenantID", tenantID, "key", key)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
 	err := k.dbHandler.Delete(formattedKey, nil)

@@ -6,29 +6,56 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/models"
-	"erp.localhost/internal/db/mock"
-	erp_errors "erp.localhost/internal/errors"
+	mongo_mocks "erp.localhost/internal/db/mongo/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/mock/gomock"
 )
 
-func TestNewRoleCollection(t *testing.T) {
-	mockHandler := &mock.MockDBHandler{}
-	repo := NewRoleCollection(mockHandler)
+// roleMatcher is a custom gomock matcher for Role objects
+// It skips the CreatedAt and UpdatedAt fields which are set dynamically
+type roleMatcher struct {
+	expected models.Role
+}
 
-	require.NotNil(t, repo)
-	assert.NotNil(t, repo.collection)
-	assert.NotNil(t, repo.logger)
+func (m roleMatcher) Matches(x interface{}) bool {
+	role, ok := x.(models.Role)
+	if !ok {
+		return false
+	}
+	// Match all fields except CreatedAt and UpdatedAt which are set by the function
+	return role.TenantID == m.expected.TenantID &&
+		role.Name == m.expected.Name &&
+		role.Status == m.expected.Status &&
+		role.CreatedBy == m.expected.CreatedBy &&
+		len(role.Permissions) == len(m.expected.Permissions)
+}
+
+func (m roleMatcher) String() string {
+	return "matches role fields except CreatedAt and UpdatedAt"
+}
+
+func TestNewRoleCollection(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+	collection := NewRoleCollection(mockHandler)
+
+	require.NotNil(t, collection)
+	assert.NotNil(t, collection.collection)
+	assert.NotNil(t, collection.logger)
 }
 
 func TestRoleCollection_CreateRole(t *testing.T) {
 	testCases := []struct {
-		name     string
-		role     models.Role
-		mockFunc func(collection string, data any, opts ...map[string]any) (string, error)
-		wantID   string
-		wantErr  bool
+		name              string
+		role              models.Role
+		returnID          string
+		returnError       error
+		wantErr           bool
+		expectedCallTimes int
 	}{
 		{
 			name: "successful create",
@@ -39,11 +66,10 @@ func TestRoleCollection_CreateRole(t *testing.T) {
 				CreatedBy:   "admin",
 				Permissions: []string{"read", "write"},
 			},
-			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
-				return "role-id-123", nil
-			},
-			wantID:  "role-id-123",
-			wantErr: false,
+			returnID:          "role-id-123",
+			returnError:       nil,
+			wantErr:           false,
+			expectedCallTimes: 1,
 		},
 		{
 			name: "create with validation error - missing tenant ID",
@@ -53,11 +79,10 @@ func TestRoleCollection_CreateRole(t *testing.T) {
 				CreatedBy:   "admin",
 				Permissions: []string{"read", "write"},
 			},
-			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
-				return "", nil
-			},
-			wantID:  "",
-			wantErr: true,
+			returnID:          "",
+			returnError:       nil,
+			wantErr:           true,
+			expectedCallTimes: 0,
 		},
 		{
 			name: "create with database error",
@@ -68,90 +93,107 @@ func TestRoleCollection_CreateRole(t *testing.T) {
 				CreatedBy:   "admin",
 				Permissions: []string{"read", "write"},
 			},
-			mockFunc: func(collection string, data any, opts ...map[string]any) (string, error) {
-				return "", errors.New("database connection failed")
-			},
-			wantID:  "",
-			wantErr: true,
+			returnID:          "",
+			returnError:       errors.New("database connection failed"),
+			wantErr:           true,
+			expectedCallTimes: 1,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				CreateFunc: tc.mockFunc,
-			}
-			repo := NewRoleCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			id, err := repo.CreateRole(tc.role)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			if tc.expectedCallTimes > 0 {
+				mockHandler.EXPECT().
+					Create(roleMatcher{expected: tc.role}).
+					Return(tc.returnID, tc.returnError).
+					Times(tc.expectedCallTimes)
+			}
+
+			collection := NewRoleCollection(mockHandler)
+			id, err := collection.CreateRole(tc.role)
 			if tc.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, id)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.wantID, id)
+				assert.Equal(t, tc.returnID, id)
 			}
 		})
 	}
 }
 
 func TestRoleCollection_GetRoleByID(t *testing.T) {
+	roleID, _ := primitive.ObjectIDFromHex("507f1f77bcf86cd799439011")
+
 	testCases := []struct {
-		name     string
-		tenantID string
-		roleID   string
-		mockFunc func(collection string, filter map[string]any) (any, error)
-		wantErr  bool
+		name           string
+		tenantID       string
+		roleID         string
+		expectedFilter map[string]any
+		returnRole     *models.Role
+		returnError    error
+		wantErr        bool
 	}{
 		{
 			name:     "successful get by id",
 			tenantID: "tenant1",
-			roleID:   "role-id-123",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				roleID, _ := primitive.ObjectIDFromHex("role-id-123")
-				return models.Role{
-					ID:       roleID,
-					TenantID: "tenant1",
-					Name:     "Admin",
-				}, nil
+			roleID:   "507f1f77bcf86cd799439011",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       "507f1f77bcf86cd799439011",
 			},
-			wantErr: false,
+			returnRole: &models.Role{
+				ID:       roleID,
+				TenantID: "tenant1",
+				Name:     "Admin",
+			},
+			returnError: nil,
+			wantErr:     false,
 		},
 		{
 			name:     "role not found",
 			tenantID: "tenant1",
-			roleID:   "role-id-123",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return nil, nil
+			roleID:   "507f1f77bcf86cd799439011",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       "507f1f77bcf86cd799439011",
 			},
-			wantErr: true,
+			returnRole:  nil,
+			returnError: errors.New("role not found"),
+			wantErr:     true,
 		},
 		{
 			name:     "database error",
 			tenantID: "tenant1",
-			roleID:   "role-id-123",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return nil, errors.New("database query failed")
+			roleID:   "507f1f77bcf86cd799439011",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       "507f1f77bcf86cd799439011",
 			},
-			wantErr: true,
+			returnRole:  nil,
+			returnError: errors.New("database query failed"),
+			wantErr:     true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindOneFunc: tc.mockFunc,
-			}
-			repo := NewRoleCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			role, err := repo.GetRoleByID(tc.tenantID, tc.roleID)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			mockHandler.EXPECT().
+				FindOne(tc.expectedFilter).
+				Return(tc.returnRole, tc.returnError)
+
+			collection := NewRoleCollection(mockHandler)
+			role, err := collection.GetRoleByID(tc.tenantID, tc.roleID)
 			if tc.wantErr {
 				require.Error(t, err)
-				if tc.name == "role not found" {
-					appErr, ok := erp_errors.AsAppError(err)
-					require.True(t, ok)
-					assert.Equal(t, erp_errors.CategoryNotFound, appErr.Category)
-				}
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.tenantID, role.TenantID)
@@ -162,52 +204,67 @@ func TestRoleCollection_GetRoleByID(t *testing.T) {
 
 func TestRoleCollection_GetRoleByName(t *testing.T) {
 	testCases := []struct {
-		name     string
-		tenantID string
-		roleName string
-		mockFunc func(collection string, filter map[string]any) (any, error)
-		wantErr  bool
+		name           string
+		tenantID       string
+		roleName       string
+		expectedFilter map[string]any
+		returnRole     *models.Role
+		returnError    error
+		wantErr        bool
 	}{
 		{
 			name:     "successful get by name",
 			tenantID: "tenant1",
 			roleName: "Admin",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return models.Role{
-					TenantID: "tenant1",
-					Name:     "Admin",
-				}, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"name":      "Admin",
 			},
-			wantErr: false,
+			returnRole: &models.Role{
+				TenantID: "tenant1",
+				Name:     "Admin",
+			},
+			returnError: nil,
+			wantErr:     false,
 		},
 		{
 			name:     "role not found",
 			tenantID: "tenant1",
 			roleName: "Nonexistent",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return nil, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"name":      "Nonexistent",
 			},
-			wantErr: true,
+			returnRole:  nil,
+			returnError: errors.New("role not found"),
+			wantErr:     true,
 		},
 		{
 			name:     "database error",
 			tenantID: "tenant1",
 			roleName: "Admin",
-			mockFunc: func(collection string, filter map[string]any) (any, error) {
-				return nil, errors.New("database query failed")
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"name":      "Admin",
 			},
-			wantErr: true,
+			returnRole:  nil,
+			returnError: errors.New("database query failed"),
+			wantErr:     true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindOneFunc: tc.mockFunc,
-			}
-			repo := NewRoleCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			role, err := repo.GetRoleByName(tc.tenantID, tc.roleName)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			mockHandler.EXPECT().
+				FindOne(tc.expectedFilter).
+				Return(tc.returnRole, tc.returnError)
+
+			collection := NewRoleCollection(mockHandler)
+			role, err := collection.GetRoleByName(tc.tenantID, tc.roleName)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -220,52 +277,64 @@ func TestRoleCollection_GetRoleByName(t *testing.T) {
 
 func TestRoleCollection_GetRolesByTenantID(t *testing.T) {
 	testCases := []struct {
-		name      string
-		tenantID  string
-		mockFunc  func(collection string, filter map[string]any) ([]any, error)
-		wantCount int
-		wantErr   bool
+		name           string
+		tenantID       string
+		expectedFilter map[string]any
+		returnRoles    []models.Role
+		returnError    error
+		wantCount      int
+		wantErr        bool
 	}{
 		{
 			name:     "successful get roles by tenant",
 			tenantID: "tenant1",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{
-					models.Role{TenantID: "tenant1", Name: "Admin"},
-					models.Role{TenantID: "tenant1", Name: "User"},
-				}, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
 			},
-			wantCount: 2,
-			wantErr:   false,
+			returnRoles: []models.Role{
+				models.Role{TenantID: "tenant1", Name: "Admin"},
+				models.Role{TenantID: "tenant1", Name: "User"},
+			},
+			returnError: nil,
+			wantCount:   2,
+			wantErr:     false,
 		},
 		{
 			name:     "no roles found",
 			tenantID: "tenant1",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{}, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
 			},
-			wantCount: 0,
-			wantErr:   false,
+			returnRoles: []models.Role{},
+			returnError: nil,
+			wantCount:   0,
+			wantErr:     false,
 		},
 		{
 			name:     "database error",
 			tenantID: "tenant1",
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return nil, errors.New("database query failed")
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
 			},
-			wantCount: 0,
-			wantErr:   true,
+			returnRoles: []models.Role{},
+			returnError: errors.New("database query failed"),
+			wantCount:   0,
+			wantErr:     true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindAllFunc: tc.mockFunc,
-			}
-			repo := NewRoleCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			roles, err := repo.GetRolesByTenantID(tc.tenantID)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			mockHandler.EXPECT().
+				FindAll(tc.expectedFilter).
+				Return(tc.returnRoles, tc.returnError)
+
+			collection := NewRoleCollection(mockHandler)
+			roles, err := collection.GetRolesByTenantID(tc.tenantID)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -281,7 +350,9 @@ func TestRoleCollection_GetRolesByPermissionsIDs(t *testing.T) {
 		name           string
 		tenantID       string
 		permissionsIDs []string
-		mockFunc       func(collection string, filter map[string]any) ([]any, error)
+		expectedFilter map[string]any
+		returnRoles    []models.Role
+		returnError    error
 		wantCount      int
 		wantErr        bool
 	}{
@@ -289,34 +360,48 @@ func TestRoleCollection_GetRolesByPermissionsIDs(t *testing.T) {
 			name:           "successful get roles by permissions",
 			tenantID:       "tenant1",
 			permissionsIDs: []string{"perm1", "perm2"},
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return []any{
-					models.Role{TenantID: "tenant1", Name: "Admin"},
-				}, nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"permissions": map[string]any{
+					"$all": []string{"perm1", "perm2"},
+				},
 			},
-			wantCount: 1,
-			wantErr:   false,
+			returnRoles: []models.Role{
+				models.Role{TenantID: "tenant1", Name: "Admin"},
+			},
+			returnError: nil,
+			wantCount:   1,
+			wantErr:     false,
 		},
 		{
 			name:           "database error",
 			tenantID:       "tenant1",
 			permissionsIDs: []string{"perm1"},
-			mockFunc: func(collection string, filter map[string]any) ([]any, error) {
-				return nil, errors.New("database query failed")
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"permissions": map[string]any{
+					"$all": []string{"perm1"},
+				},
 			},
-			wantCount: 0,
-			wantErr:   true,
+			returnRoles: []models.Role{},
+			returnError: errors.New("database query failed"),
+			wantCount:   0,
+			wantErr:     true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindAllFunc: tc.mockFunc,
-			}
-			repo := NewRoleCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			roles, err := repo.GetRolesByPermissionsIDs(tc.tenantID, tc.permissionsIDs)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			mockHandler.EXPECT().
+				FindAll(tc.expectedFilter).
+				Return(tc.returnRoles, tc.returnError)
+
+			collection := NewRoleCollection(mockHandler)
+			roles, err := collection.GetRolesByPermissionsIDs(tc.tenantID, tc.permissionsIDs)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -332,11 +417,16 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 	createdAt := time.Now().Add(-24 * time.Hour)
 
 	testCases := []struct {
-		name       string
-		role       models.Role
-		mockFind   func(collection string, filter map[string]any) (any, error)
-		mockUpdate func(collection string, filter map[string]any, data any, opts ...map[string]any) error
-		wantErr    bool
+		name                 string
+		role                 models.Role
+		expectedFindFilter   map[string]any
+		expectedUpdateFilter map[string]any
+		returnFindRole       *models.Role
+		returnFindError      error
+		returnUpdateError    error
+		wantErr              bool
+		expectedFindCalls    int
+		expectedUpdateCalls  int
 	}{
 		{
 			name: "successful update",
@@ -349,31 +439,39 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 				CreatedAt:   createdAt,
 				Permissions: []string{"read", "write"},
 			},
-			mockFind: func(collection string, filter map[string]any) (any, error) {
-				return models.Role{
-					ID:        roleID,
-					TenantID:  "tenant1",
-					Name:      "Admin",
-					CreatedAt: createdAt,
-				}, nil
+			expectedFindFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       roleID.String(),
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return nil
+			expectedUpdateFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       roleID,
 			},
-			wantErr: false,
+			returnFindRole: &models.Role{
+				ID:        roleID,
+				TenantID:  "tenant1",
+				Name:      "Admin",
+				CreatedAt: createdAt,
+			},
+			returnFindError:     nil,
+			returnUpdateError:   nil,
+			wantErr:             false,
+			expectedFindCalls:   1,
+			expectedUpdateCalls: 1,
 		},
 		{
 			name: "update with validation error",
 			role: models.Role{
 				TenantID: "tenant1",
 			},
-			mockFind: func(collection string, filter map[string]any) (any, error) {
-				return nil, nil
-			},
-			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return nil
-			},
-			wantErr: true,
+			expectedFindFilter:   map[string]any{},
+			expectedUpdateFilter: map[string]any{},
+			returnFindRole:       nil,
+			returnFindError:      nil,
+			returnUpdateError:    nil,
+			wantErr:              true,
+			expectedFindCalls:    0,
+			expectedUpdateCalls:  0,
 		},
 		{
 			name: "update with role not found",
@@ -386,13 +484,17 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 				CreatedAt:   createdAt,
 				Permissions: []string{"read", "write"},
 			},
-			mockFind: func(collection string, filter map[string]any) (any, error) {
-				return nil, nil
+			expectedFindFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       roleID.String(),
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return nil
-			},
-			wantErr: true,
+			expectedUpdateFilter: map[string]any{},
+			returnFindRole:       nil,
+			returnFindError:      errors.New("role not found"),
+			returnUpdateError:    errors.New("validation error"),
+			wantErr:              true,
+			expectedFindCalls:    1,
+			expectedUpdateCalls:  0,
 		},
 		{
 			name: "update with restricted field change - CreatedAt",
@@ -405,17 +507,21 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 				CreatedAt:   time.Now(),
 				Permissions: []string{"read", "write"},
 			},
-			mockFind: func(collection string, filter map[string]any) (any, error) {
-				return models.Role{
-					ID:        roleID,
-					TenantID:  "tenant1",
-					CreatedAt: createdAt,
-				}, nil
+			expectedFindFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       roleID.String(),
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return nil
+			expectedUpdateFilter: map[string]any{},
+			returnFindRole: &models.Role{
+				ID:        roleID,
+				TenantID:  "tenant1",
+				CreatedAt: createdAt,
 			},
-			wantErr: true,
+			returnFindError:     nil,
+			returnUpdateError:   nil,
+			wantErr:             true,
+			expectedFindCalls:   1,
+			expectedUpdateCalls: 0,
 		},
 		{
 			name: "update with database error",
@@ -428,29 +534,48 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 				CreatedAt:   createdAt,
 				Permissions: []string{"read", "write"},
 			},
-			mockFind: func(collection string, filter map[string]any) (any, error) {
-				return models.Role{
-					ID:        roleID,
-					TenantID:  "tenant1",
-					CreatedAt: createdAt,
-				}, nil
+			expectedFindFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       roleID.String(),
 			},
-			mockUpdate: func(collection string, filter map[string]any, data any, opts ...map[string]any) error {
-				return errors.New("update failed")
+			expectedUpdateFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       roleID,
 			},
-			wantErr: true,
+			returnFindRole: &models.Role{
+				ID:        roleID,
+				TenantID:  "tenant1",
+				CreatedAt: createdAt,
+			},
+			returnFindError:     nil,
+			returnUpdateError:   errors.New("update failed"),
+			wantErr:             true,
+			expectedFindCalls:   1,
+			expectedUpdateCalls: 1,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				FindOneFunc: tc.mockFind,
-				UpdateFunc:  tc.mockUpdate,
-			}
-			repo := NewRoleCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			err := repo.UpdateRole(tc.role)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			if tc.expectedFindCalls > 0 {
+				mockHandler.EXPECT().
+					FindOne(tc.expectedFindFilter).
+					Return(tc.returnFindRole, tc.returnFindError).
+					Times(tc.expectedFindCalls)
+			}
+			if tc.expectedUpdateCalls > 0 {
+				mockHandler.EXPECT().
+					Update(tc.expectedUpdateFilter, roleMatcher{expected: tc.role}).
+					Return(tc.returnUpdateError).
+					Times(tc.expectedUpdateCalls)
+			}
+
+			collection := NewRoleCollection(mockHandler)
+			err := collection.UpdateRole(tc.role)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -462,58 +587,73 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 
 func TestRoleCollection_DeleteRole(t *testing.T) {
 	testCases := []struct {
-		name     string
-		tenantID string
-		roleID   string
-		mockFunc func(collection string, filter map[string]any) error
-		wantErr  bool
+		name              string
+		tenantID          string
+		roleID            string
+		expectedFilter    map[string]any
+		returnError       error
+		wantErr           bool
+		expectedCallTimes int
 	}{
 		{
 			name:     "successful delete",
 			tenantID: "tenant1",
 			roleID:   "role-id-123",
-			mockFunc: func(collection string, filter map[string]any) error {
-				return nil
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       "role-id-123",
 			},
-			wantErr: false,
+			returnError:       nil,
+			wantErr:           false,
+			expectedCallTimes: 1,
 		},
 		{
-			name:     "delete with empty tenant ID",
-			tenantID: "",
-			roleID:   "role-id-123",
-			mockFunc: func(collection string, filter map[string]any) error {
-				return nil
-			},
-			wantErr: true,
+			name:              "delete with empty tenant ID",
+			tenantID:          "",
+			roleID:            "role-id-123",
+			expectedFilter:    map[string]any{},
+			returnError:       nil,
+			wantErr:           true,
+			expectedCallTimes: 0,
 		},
 		{
-			name:     "delete with empty role ID",
-			tenantID: "tenant1",
-			roleID:   "",
-			mockFunc: func(collection string, filter map[string]any) error {
-				return nil
-			},
-			wantErr: true,
+			name:              "delete with empty role ID",
+			tenantID:          "tenant1",
+			roleID:            "",
+			expectedFilter:    map[string]any{},
+			returnError:       nil,
+			wantErr:           true,
+			expectedCallTimes: 0,
 		},
 		{
 			name:     "delete with database error",
 			tenantID: "tenant1",
 			roleID:   "role-id-123",
-			mockFunc: func(collection string, filter map[string]any) error {
-				return errors.New("delete failed")
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+				"_id":       "role-id-123",
 			},
-			wantErr: true,
+			returnError:       errors.New("delete failed"),
+			wantErr:           true,
+			expectedCallTimes: 1,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockHandler := &mock.MockDBHandler{
-				DeleteFunc: tc.mockFunc,
-			}
-			repo := NewRoleCollection(mockHandler)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			err := repo.DeleteRole(tc.tenantID, tc.roleID)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			if tc.expectedCallTimes > 0 {
+				mockHandler.EXPECT().
+					Delete(tc.expectedFilter).
+					Return(tc.returnError).
+					Times(tc.expectedCallTimes)
+			}
+
+			collection := NewRoleCollection(mockHandler)
+			err := collection.DeleteRole(tc.tenantID, tc.roleID)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {

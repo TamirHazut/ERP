@@ -56,3 +56,14 @@ var (
 		string(WarehouseCollection):     string(CoreDB),
 	}
 )
+
+func GetDBNameFromCollection(collection string) string {
+	if _, ok := collectionToDB[string(collection)]; !ok {
+		return ""
+	}
+	return collectionToDB[string(collection)]
+}
+
+func GetDBCollections(dbName DBName) []string {
+	return dbToCollection[string(dbName)]
+}

@@ -1,30 +1,38 @@
-package keyshandlers
+package handlers
 
 import (
 	"fmt"
 	"time"
 
 	"erp.localhost/internal/auth/models"
-	"erp.localhost/internal/db/redis"
+	token "erp.localhost/internal/auth/token"
+	redis "erp.localhost/internal/db/redis"
+	redis_handlers "erp.localhost/internal/db/redis/handlers"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
 )
 
-// RefreshTokenKeyHandler handles refresh token operations in Redis
+// RefreshTokenHandler handles refresh token operations in Redis
 // Key pattern: refresh_tokens:{tenant_id}:{user_id}:{token_id}
 // Note: Multiple refresh tokens per user per tenant are allowed (for different devices/sessions)
-type RefreshTokenKeyHandler struct {
-	keyHandler *redis.KeyHandler[models.RefreshToken]
-	tokenIndex *TokenIndex
+type RefreshTokenHandler struct {
+	keyHandler redis_handlers.KeyHandler[models.RefreshToken]
+	tokenIndex *token.TokenIndex
 	logger     *logging.Logger
 }
 
-// NewRefreshTokenKeyHandler creates a new RefreshTokenKeyHandler
-func NewRefreshTokenKeyHandler(keyPrefix redis.KeyPrefix) *RefreshTokenKeyHandler {
-	logger := logging.NewLogger(logging.ModuleAuth)
-	return &RefreshTokenKeyHandler{
-		keyHandler: redis.NewKeyHandler[models.RefreshToken](keyPrefix, logger),
-		tokenIndex: NewTokenIndex(),
+// NewRefreshTokenHandler creates a new RefreshTokenHandler
+func NewRefreshTokenHandler(keyHandler redis_handlers.KeyHandler[models.RefreshToken], tokenIndex *token.TokenIndex, logger *logging.Logger) *RefreshTokenHandler {
+	if logger == nil {
+		logger = logging.NewLogger(logging.ModuleAuth)
+	}
+	if keyHandler == nil {
+		dbHandler := redis.NewBaseRedisHandler(redis.KeyPrefix(redis.RedisKeyRefreshToken))
+		keyHandler = redis_handlers.NewBaseKeyHandler[models.RefreshToken](dbHandler, logger)
+	}
+	return &RefreshTokenHandler{
+		keyHandler: keyHandler,
+		tokenIndex: tokenIndex,
 		logger:     logger,
 	}
 }
@@ -32,7 +40,7 @@ func NewRefreshTokenKeyHandler(keyPrefix redis.KeyPrefix) *RefreshTokenKeyHandle
 // Store stores a refresh token in Redis
 // Key: refresh_tokens:{tenant_id}:{user_id}:{token_id}
 // tokenID should be unique (e.g., JTI from JWT or a UUID)
-func (h *RefreshTokenKeyHandler) Store(tenantID string, userID string, tokenID string, refreshToken models.RefreshToken) error {
+func (h *RefreshTokenHandler) Store(tenantID string, userID string, tokenID string, refreshToken models.RefreshToken) error {
 	if err := refreshToken.Validate(); err != nil {
 		h.logger.Error("Failed to validate refresh token", "error", err)
 		return err
@@ -66,7 +74,7 @@ func (h *RefreshTokenKeyHandler) Store(tenantID string, userID string, tokenID s
 	return nil
 }
 
-func (h *RefreshTokenKeyHandler) GetOne(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
+func (h *RefreshTokenHandler) GetOne(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
 	key := fmt.Sprintf("%s:%s", userID, tokenID)
 	token, err := h.keyHandler.GetOne(tenantID, key)
 	if err != nil {
@@ -76,7 +84,7 @@ func (h *RefreshTokenKeyHandler) GetOne(tenantID string, userID string, tokenID 
 }
 
 // Get retrieves a refresh token from Redis
-func (h *RefreshTokenKeyHandler) GetAll(tenantID string, userID string) ([]models.RefreshToken, error) {
+func (h *RefreshTokenHandler) GetAll(tenantID string, userID string) ([]models.RefreshToken, error) {
 	tokens, err := h.keyHandler.GetAll(tenantID, userID)
 	if err != nil {
 		return nil, err
@@ -85,7 +93,7 @@ func (h *RefreshTokenKeyHandler) GetAll(tenantID string, userID string) ([]model
 }
 
 // Validate checks if a refresh token is valid (exists, not revoked, not expired)
-func (h *RefreshTokenKeyHandler) Validate(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
+func (h *RefreshTokenHandler) Validate(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
 	token, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return nil, err
@@ -105,7 +113,7 @@ func (h *RefreshTokenKeyHandler) Validate(tenantID string, userID string, tokenI
 }
 
 // Revoke revokes a single refresh token
-func (h *RefreshTokenKeyHandler) Revoke(tenantID string, userID string, tokenID string, revokedBy string) error {
+func (h *RefreshTokenHandler) Revoke(tenantID string, userID string, tokenID string, revokedBy string) error {
 	token, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return err
@@ -127,7 +135,7 @@ func (h *RefreshTokenKeyHandler) Revoke(tenantID string, userID string, tokenID 
 }
 
 // RevokeAll revokes all refresh tokens for a user within a tenant
-func (h *RefreshTokenKeyHandler) RevokeAll(tenantID string, userID string, revokedBy string) error {
+func (h *RefreshTokenHandler) RevokeAll(tenantID string, userID string, revokedBy string) error {
 	if h.tokenIndex == nil {
 		return erp_errors.Internal(erp_errors.InternalUnexpectedError, fmt.Errorf("token index not initialized"))
 	}
@@ -157,7 +165,7 @@ func (h *RefreshTokenKeyHandler) RevokeAll(tenantID string, userID string, revok
 }
 
 // UpdateLastUsed updates the LastUsedAt timestamp for a refresh token
-func (h *RefreshTokenKeyHandler) UpdateLastUsed(tenantID string, userID string, tokenID string) error {
+func (h *RefreshTokenHandler) UpdateLastUsed(tenantID string, userID string, tokenID string) error {
 	token, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return err
@@ -176,7 +184,7 @@ func (h *RefreshTokenKeyHandler) UpdateLastUsed(tenantID string, userID string, 
 }
 
 // Delete removes a refresh token from Redis (hard delete)
-func (h *RefreshTokenKeyHandler) Delete(tenantID string, userID string, tokenID string) error {
+func (h *RefreshTokenHandler) Delete(tenantID string, userID string, tokenID string) error {
 	key := userID + ":" + tokenID
 
 	// Remove from index

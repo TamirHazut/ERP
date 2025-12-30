@@ -330,6 +330,11 @@ var (
 		Message:  "A database error occurred. Please try again later",
 		Category: CategoryInternal,
 	}
+	InternalInvalidArgument = ErrorDef{
+		Code:     "INTERNAL_INVALID_ARGUMENT",
+		Message:  "An invalid argument occurred. Please check the arguments and try again",
+		Category: CategoryInternal,
+	}
 	InternalServiceUnavailable = ErrorDef{
 		Code:     "INTERNAL_SERVICE_UNAVAILABLE",
 		Message:  "Service is temporarily unavailable. Please try again later",

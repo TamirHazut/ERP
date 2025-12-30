@@ -102,11 +102,12 @@ run-core: ## Run core service
 # TEST TARGETS
 # ============================================================================
 
-test: ## Run all tests from all services
+test: mocks ## Run all tests from all services
 	@echo "Running all tests..."
 	@$(MAKE) -C internal/auth test
 	@$(MAKE) -C internal/config test
 	@$(MAKE) -C internal/core test
+	@$(MAKE) -C internal/db test
 	@echo "✓ All tests complete"
 
 test-coverage: ## Run tests with coverage
@@ -124,6 +125,7 @@ lint: ## Run linter on all services
 	@$(MAKE) -C internal/auth lint
 	@$(MAKE) -C internal/config lint
 	@$(MAKE) -C internal/core lint
+	@$(MAKE) -C internal/db lint
 	@echo "✓ All linting complete"
 
 # ============================================================================
@@ -167,3 +169,36 @@ docker-logs: ## View container logs
 
 docker-ps: ## List running containers
 	@docker compose ps
+
+# ============================================================================
+# Mock Generation
+# ============================================================================
+
+.PHONY: mocks
+mocks: mocks-clean
+	@echo "Generating mocks..."
+	@$(MAKE) -C internal/auth mocks
+	@$(MAKE) -C internal/config mocks
+	@$(MAKE) -C internal/core mocks
+	@$(MAKE) -C internal/db mocks
+	@echo "✅ Mocks generated successfully"
+
+.PHONY: mocks-clean
+mocks-clean:
+	@echo "Cleaning generated mocks..."
+	@$(MAKE) -C internal/auth mocks-clean
+	@$(MAKE) -C internal/config mocks-clean
+	@$(MAKE) -C internal/core mocks-clean
+	@$(MAKE) -C internal/db mocks-clean
+	@echo "✅ Mocks cleaned"
+
+.PHONY: mocks-verify
+mocks-verify: mocks
+	@echo "Verifying mocks are up to date..."
+	@if [ -n "$$(git status --porcelain | grep 'mock_')" ]; then \
+		echo "❌ Generated mocks are out of date. Run 'make mocks' and commit changes."; \
+		git status --porcelain | grep 'mock_'; \
+		exit 1; \
+	else \
+		echo "✅ Mocks are up to date"; \
+	fi

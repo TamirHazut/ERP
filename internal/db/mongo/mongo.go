@@ -20,14 +20,18 @@ type MongoDBManager struct {
 }
 
 func NewMongoDBManager(dbName DBName) *MongoDBManager {
-	m := &MongoDBManager{
-		dbName: dbName,
-		logger: logging.NewLogger(logging.ModuleDB),
-	}
-	if _, ok := dbToCollection[string(dbName)]; !ok {
-		m.logger.Fatal("db not found", "db", dbName)
+	logger := logging.NewLogger(logging.ModuleDB)
+	db := GetDBNameFromCollection(string(dbName))
+	if db == "" {
+		logger.Fatal("db not found", "db", dbName)
 		return nil
 	}
+
+	m := &MongoDBManager{
+		dbName: DBName(db),
+		logger: logger,
+	}
+
 	if err := m.Init(); err != nil {
 		return nil
 	}

@@ -4,20 +4,26 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/models"
-	"erp.localhost/internal/db"
 	"erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
 )
 
 type PermissionsCollection struct {
-	collection *mongo.CollectionHandler[models.Permission]
+	collection mongo.CollectionHandler[models.Permission]
 	logger     *logging.Logger
 }
 
-func NewPermissionCollection(dbHandler db.DBHandler) *PermissionsCollection {
+func NewPermissionCollection(collection mongo.CollectionHandler[models.Permission]) *PermissionsCollection {
 	logger := logging.NewLogger(logging.ModuleAuth)
-	collection := mongo.NewCollectionHandler[models.Permission](dbHandler, string(mongo.PermissionsCollection), logger)
+	if collection == nil {
+		collectionHandler := mongo.NewBaseCollectionHandler[models.Permission](string(mongo.PermissionsCollection), logger)
+		if collectionHandler == nil {
+			logger.Fatal("failed to create permissions collection handler")
+			return nil
+		}
+		collection = collectionHandler
+	}
 	return &PermissionsCollection{
 		collection: collection,
 		logger:     logger,

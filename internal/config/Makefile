@@ -34,12 +34,12 @@ run: ## Run config service
 	@echo "Starting config service on port $(SERVICE_PORT)..."
 	@go run $(CMD_DIR)
 
-test: ## Run config service tests
+test: mocks ## Run config service tests
 	@echo "Running config service tests..."
 	@go test -v -count=1 ./...
 	@echo "✓ Config tests complete"
 
-test-coverage: ## Run tests with coverage
+test-coverage: mocks ## Run tests with coverage
 	@echo "Running config service tests with coverage..."
 	@go test -v -coverprofile=$(INTERNAL_DIR)/coverage.out ./...
 	@go tool cover -html=$(INTERNAL_DIR)/coverage.out -o $(INTERNAL_DIR)/coverage.html
@@ -55,3 +55,14 @@ clean: ## Clean build artifacts
 	@rm -f $(INTERNAL_DIR)/coverage.out $(INTERNAL_DIR)/coverage.html
 	@echo "✓ Clean complete"
 
+.PHONY: mocks
+mocks: mocks-clean
+	@echo "Generating config mocks..."
+	@go generate ./...
+	@echo "✅ Config mocks generated successfully"
+
+.PHONY: mocks-clean
+mocks-clean:
+	@echo "Cleaning generated config mocks..."
+	@find . -path "*/mocks/mock_*.go" -type f -delete
+	@echo "✅ Config mocks cleaned"

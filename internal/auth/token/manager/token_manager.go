@@ -8,10 +8,9 @@ import (
 	"errors"
 	"time"
 
-	keyshandlers "erp.localhost/internal/auth/keys_handlers"
 	"erp.localhost/internal/auth/models"
 	auth_models "erp.localhost/internal/auth/models/cache"
-	"erp.localhost/internal/db/redis"
+	handlers "erp.localhost/internal/auth/token/handlers"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
 	"github.com/google/uuid"
@@ -31,8 +30,8 @@ type TokenManager struct {
 	secretKey            string
 	tokenDuration        time.Duration
 	refreshTokenDuration time.Duration
-	accessTokenHandler   AccessTokenHandler
-	refreshTokenHandler  RefreshTokenHandler
+	accessTokenHandler   handlers.TokenHandler[auth_models.TokenMetadata]
+	refreshTokenHandler  handlers.TokenHandler[models.RefreshToken]
 	logger               *logging.Logger
 }
 
@@ -102,8 +101,8 @@ func NewTokenManager(secretKey string, tokenDuration time.Duration, refreshToken
 		secretKey:            secretKey,
 		tokenDuration:        tokenDuration,
 		refreshTokenDuration: refreshTokenDuration,
-		accessTokenHandler:   keyshandlers.NewAccessTokenKeyHandler(redis.KeyPrefix("tokens")),
-		refreshTokenHandler:  keyshandlers.NewRefreshTokenKeyHandler(redis.KeyPrefix("refresh_tokens")),
+		accessTokenHandler:   handlers.NewAccessTokenHandler(nil, nil, logger),
+		refreshTokenHandler:  handlers.NewRefreshTokenHandler(nil, nil, logger),
 		logger:               logger,
 	}
 }
@@ -272,8 +271,9 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 		}
 	}
 
+	refreshTokenHandler := tm.refreshTokenHandler.(*handlers.RefreshTokenHandler)
 	// Update last used timestamp
-	if err := tm.refreshTokenHandler.UpdateLastUsed(tenantID, userID, tokenString); err != nil {
+	if err := refreshTokenHandler.UpdateLastUsed(tenantID, userID, tokenString); err != nil {
 		// Log but don't fail
 		tm.logger.Warn("Failed to update last used timestamp", "error", err)
 	}
@@ -400,7 +400,8 @@ func (tm *TokenManager) RevokeAllTokens(tenantID string, userID string, revokedB
 
 // UpdateRefreshTokenLastUsed updates the last used timestamp for a refresh token
 func (tm *TokenManager) UpdateRefreshTokenLastUsed(tenantID string, userID string, tokenID string) error {
-	return tm.refreshTokenHandler.UpdateLastUsed(tenantID, userID, tokenID)
+	refreshTokenHandler := tm.refreshTokenHandler.(*handlers.RefreshTokenHandler)
+	return refreshTokenHandler.UpdateLastUsed(tenantID, userID, tokenID)
 }
 
 // DeleteAccessTokenFromRedis permanently deletes an access token from Redis
