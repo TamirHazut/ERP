@@ -61,6 +61,9 @@ func IsValidPermissionFormat(permissionFormat string) bool {
 	if permissionFormat == "" {
 		return false
 	}
+	if permissionFormat == PermissionWildcard {
+		return true
+	}
 	permissionFormat = strings.ToLower(permissionFormat)
 
 	permissionBreakDown := strings.Split(permissionFormat, ":")
@@ -116,6 +119,7 @@ func IsValidRoleType(roleType string) bool {
 
 // Resource types
 const (
+	ResourceTypeAll        = "*"
 	ResourceTypeUser       = "user"
 	ResourceTypeRole       = "role"
 	ResourceTypePermission = "permission"
@@ -133,6 +137,7 @@ func IsValidResourceType(resourceType string) bool {
 	}
 	resourceType = strings.ToLower(resourceType)
 	validResourceTypes := map[string]bool{
+		ResourceTypeAll:        true,
 		ResourceTypeUser:       true,
 		ResourceTypeRole:       true,
 		ResourceTypePermission: true,
@@ -192,6 +197,10 @@ func IsValidCategory(category string) bool {
 }
 
 /* Actions */
+const (
+	ActionSystemWildcard = "*:*"
+)
+
 // Auth Actions
 const (
 	ActionLogin           = "login"
@@ -296,6 +305,7 @@ func IsValidAction(action string) bool {
 	}
 	action = strings.ToLower(action)
 	validActions := map[string]bool{
+		ActionSystemWildcard:      true,
 		ActionLogin:               true,
 		ActionLogout:              true,
 		ActionLogoutAll:           true,

@@ -9,6 +9,7 @@ import (
 	"erp.localhost/internal/logging"
 )
 
+// TODO: move this to Events service and consume from kafka topics
 type AuditLogsCollection struct {
 	collection mongo.CollectionHandler[models.AuditLog]
 	logger     *logging.Logger

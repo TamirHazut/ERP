@@ -2,6 +2,19 @@ package db
 
 import "time"
 
+const (
+	SystemAdminUser     = "SystemAdmin"
+	SystemAdminEmail    = "system@system.com"
+	SystemAdminPassword = "ERP@SystemAdmin.Secret5"
+)
+
+var (
+	SystemTenantID          = ""
+	SystemAdminUserID       = ""
+	SystemAdminRoleID       = ""
+	SystemAdminPermissionID = ""
+)
+
 // ============================================================================
 // HELPER STRUCTS AND TYPES
 // ============================================================================

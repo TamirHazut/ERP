@@ -45,8 +45,8 @@ func (u *User) Validate(createOperation bool) error {
 	if u.TenantID == "" {
 		missingFields = append(missingFields, "TenantID")
 	}
-	if u.Email == "" {
-		missingFields = append(missingFields, "Email")
+	if u.Email == "" || u.Username == "" {
+		missingFields = append(missingFields, "Email or Username")
 	}
 	if u.PasswordHash == "" {
 		missingFields = append(missingFields, "PasswordHash")
@@ -57,7 +57,7 @@ func (u *User) Validate(createOperation bool) error {
 	if u.CreatedBy == "" {
 		missingFields = append(missingFields, "CreatedBy")
 	}
-	if u.Roles == nil {
+	if len(u.Roles) == 0 {
 		missingFields = append(missingFields, "Roles")
 	}
 	if len(missingFields) > 0 {

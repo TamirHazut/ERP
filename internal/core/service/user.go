@@ -5,12 +5,17 @@ import (
 
 	collection "erp.localhost/internal/auth/collections"
 	"erp.localhost/internal/auth/models"
-	user_proto "erp.localhost/internal/auth/proto/user/v1"
+	user_proto "erp.localhost/internal/core/proto/user/v1"
 	mongo "erp.localhost/internal/db/mongo"
 	"erp.localhost/internal/logging"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func newCollectionHandler[T any](collection string) *mongo.BaseCollectionHandler[T] {
+	logger := logging.NewLogger(logging.ModuleCore)
+	return mongo.NewBaseCollectionHandler[T](string(collection), logger)
+}
 
 type UserService struct {
 	logger         *logging.Logger

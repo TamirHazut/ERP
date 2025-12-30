@@ -230,6 +230,10 @@ func (r *RBACManager) GetRolePermissions(tenantID string, roleID string) ([]stri
 
 /* Verification Functions */
 func (r *RBACManager) CheckUserPermissions(tenantID string, userID string, permissions []string) (map[string]bool, error) {
+	if tenantID == "" || userID == "" || len(permissions) == 0 {
+		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenantID", "userID", "permission")
+	}
+
 	// Verify permissions format
 	for _, permission := range permissions {
 		if !models.IsValidPermissionFormat(permission) {

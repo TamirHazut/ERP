@@ -7,7 +7,6 @@ import (
 	"os"
 
 	auth_proto "erp.localhost/internal/auth/proto/auth/v1"
-	user_proto "erp.localhost/internal/auth/proto/user/v1"
 	service "erp.localhost/internal/auth/service"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
@@ -64,7 +63,6 @@ func StartGRPCServer() {
 	grpcServer := grpc.NewServer()
 
 	auth_proto.RegisterAuthServiceServer(grpcServer, service.NewAuthService())
-	user_proto.RegisterUserServiceServer(grpcServer, service.NewUserService())
 	reflection.Register(grpcServer)
 	if err = grpcServer.Serve(lis); err != nil {
 		logger.Fatal("failed to serve", "error", erp_errors.Internal(erp_errors.InternalGRPCError, err))
