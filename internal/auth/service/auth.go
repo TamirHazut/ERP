@@ -327,9 +327,7 @@ func (s *AuthService) generateAccessToken(user *models.User) (auth_models.TokenM
 		roles = append(roles, role.RoleID)
 	}
 	permissions := []string{}
-	for _, permission := range user.AdditionalPermissions {
-		permissions = append(permissions, permission)
-	}
+	permissions = append(permissions, user.AdditionalPermissions...)
 
 	// Generate access token
 	accessToken, err := s.tokenManager.GenerateAccessToken(&token.GenerateAccessTokenInput{

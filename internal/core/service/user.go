@@ -60,7 +60,3 @@ func (s *UserService) UpdateUser(ctx context.Context, req *user_proto.UpdateUser
 func (s *UserService) DeleteUser(ctx context.Context, req *user_proto.DeleteUserRequest) (*user_proto.DeleteUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteUser not implemented")
 }
-
-func (s *UserService) mustEmbedUnimplementedUserServiceServer() {
-	panic("unimplemented")
-}

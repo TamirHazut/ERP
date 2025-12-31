@@ -1,7 +1,6 @@
 package token
 
 import (
-	"context"
 	"time"
 
 	"erp.localhost/internal/db/redis"
@@ -11,7 +10,6 @@ import (
 )
 
 var (
-	redisContext        = context.Background()
 	accessTokenTTLUnit  = time.Minute
 	refreshTokenTTLUnit = time.Hour
 	accessTokenTTL      = 15

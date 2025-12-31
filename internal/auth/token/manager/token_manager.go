@@ -255,7 +255,9 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 	// Check if expired
 	if refreshToken.IsExpired() {
 		// Auto-cleanup expired token
-		tm.refreshTokenHandler.Delete(tenantID, userID, tokenString)
+		if err := tm.refreshTokenHandler.Delete(tenantID, userID, tokenString); err != nil {
+			return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		}
 		return nil, erp_errors.Auth(erp_errors.AuthRefreshTokenExpired).WithError(errors.New("token has expired"))
 	}
 
@@ -266,7 +268,9 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 		if timeSinceLastUse < 1*time.Minute {
 			// Token used twice within 1 minute - possible token theft
 			// Revoke all user tokens as security measure
-			tm.refreshTokenHandler.RevokeAll(tenantID, refreshToken.UserID, "system")
+			if err := tm.refreshTokenHandler.RevokeAll(tenantID, refreshToken.UserID, "system"); err != nil {
+				return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+			}
 			return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("suspicious activity detected - all sessions terminated"))
 		}
 	}

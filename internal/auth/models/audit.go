@@ -187,7 +187,7 @@ func (c *Changes) Validate() error {
 			}
 
 			// At least one of old or new value should be set
-			if change.OldValue == nil && change.NewValue == nil {
+			if change != nil && change.OldValue == nil && change.NewValue == nil {
 				errors = append(errors, erp_errors.Validation(erp_errors.ValidationRequiredFields, "FieldChange for "+fieldName+" must have at least old_value or new_value").Error())
 			}
 		}

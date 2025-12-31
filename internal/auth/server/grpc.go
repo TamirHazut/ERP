@@ -55,12 +55,8 @@ func StartGRPCServer() {
 		logger.Fatal("failed to listen", "error", erp_errors.Internal(erp_errors.InternalGRPCError, err))
 	}
 
-	// TODO: Uncomment this when TLS is ready
-	// tlsServerOptions := getmTLSServerOptions(logger)
-	// grpcServer := grpc.NewServer(tlsServerOptions...)
-
-	// TODO: Remove this when TLS is ready
-	grpcServer := grpc.NewServer()
+	tlsServerOptions := getmTLSServerOptions(logger)
+	grpcServer := grpc.NewServer(tlsServerOptions...)
 
 	auth_proto.RegisterAuthServiceServer(grpcServer, service.NewAuthService())
 	reflection.Register(grpcServer)
