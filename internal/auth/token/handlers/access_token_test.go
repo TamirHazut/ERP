@@ -6,6 +6,7 @@ import (
 	"time"
 
 	auth_models "erp.localhost/internal/auth/models/cache"
+	common_models "erp.localhost/internal/common/models"
 	handlers_mocks "erp.localhost/internal/db/redis/handlers/mocks"
 	"erp.localhost/internal/logging"
 	"github.com/stretchr/testify/assert"
@@ -54,27 +55,27 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                string
-		tenantID            string
-		userID              string
-		tokenID             string
-		metadata            auth_models.TokenMetadata
-		expectedTenantID    string
-		expectedTokenID     string
-		returnError         error
-		wantErr             bool
+		name                 string
+		tenantID             string
+		userID               string
+		tokenID              string
+		metadata             auth_models.TokenMetadata
+		expectedTenantID     string
+		expectedTokenID      string
+		returnError          error
+		wantErr              bool
 		expectedSetCallTimes int
 	}{
 		{
-			name:                "successful store",
-			tenantID:            "tenant-123",
-			userID:              "user-123",
-			tokenID:             "token-123",
-			metadata:            validMetadata,
-			expectedTenantID:    "tenant-123",
-			expectedTokenID:     "token-123",
-			returnError:         nil,
-			wantErr:             false,
+			name:                 "successful store",
+			tenantID:             "tenant-123",
+			userID:               "user-123",
+			tokenID:              "token-123",
+			metadata:             validMetadata,
+			expectedTenantID:     "tenant-123",
+			expectedTokenID:      "token-123",
+			returnError:          nil,
+			wantErr:              false,
 			expectedSetCallTimes: 1,
 		},
 		{
@@ -88,10 +89,10 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 				TokenType: "access",
 				ExpiresAt: time.Now().Add(time.Hour),
 			},
-			expectedTenantID:    "",
-			expectedTokenID:     "",
-			returnError:         nil,
-			wantErr:             true,
+			expectedTenantID:     "",
+			expectedTokenID:      "",
+			returnError:          nil,
+			wantErr:              true,
 			expectedSetCallTimes: 0,
 		},
 		{
@@ -106,22 +107,22 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 				TokenType: "access",
 				ExpiresAt: time.Now().Add(time.Hour),
 			},
-			expectedTenantID:    "",
-			expectedTokenID:     "",
-			returnError:         nil,
-			wantErr:             true,
+			expectedTenantID:     "",
+			expectedTokenID:      "",
+			returnError:          nil,
+			wantErr:              true,
 			expectedSetCallTimes: 0,
 		},
 		{
-			name:                "store with database error",
-			tenantID:            "tenant-123",
-			userID:              "user-123",
-			tokenID:             "token-123",
-			metadata:            validMetadata,
-			expectedTenantID:    "tenant-123",
-			expectedTokenID:     "token-123",
-			returnError:         errors.New("database connection failed"),
-			wantErr:             true,
+			name:                 "store with database error",
+			tenantID:             "tenant-123",
+			userID:               "user-123",
+			tokenID:              "token-123",
+			metadata:             validMetadata,
+			expectedTenantID:     "tenant-123",
+			expectedTokenID:      "token-123",
+			returnError:          errors.New("database connection failed"),
+			wantErr:              true,
 			expectedSetCallTimes: 1,
 		},
 	}
@@ -139,7 +140,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 					Times(tc.expectedSetCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewAccessTokenHandler(mockHandler, nil, logger)
 
 			err := handler.Store(tc.tenantID, tc.userID, tc.tokenID, tc.metadata)
@@ -164,55 +165,55 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                   string
-		tenantID               string
-		userID                 string
-		tokenID                string
-		expectedTenantID       string
-		expectedKey            string
-		returnMetadata         *auth_models.TokenMetadata
-		returnError            error
-		wantToken              *auth_models.TokenMetadata
-		wantErr                bool
+		name                    string
+		tenantID                string
+		userID                  string
+		tokenID                 string
+		expectedTenantID        string
+		expectedKey             string
+		returnMetadata          *auth_models.TokenMetadata
+		returnError             error
+		wantToken               *auth_models.TokenMetadata
+		wantErr                 bool
 		expectedGetOneCallTimes int
 	}{
 		{
-			name:                   "successful get",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnMetadata:         &validMetadata,
-			returnError:            nil,
-			wantToken:              &validMetadata,
-			wantErr:                false,
+			name:                    "successful get",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnMetadata:          &validMetadata,
+			returnError:             nil,
+			wantToken:               &validMetadata,
+			wantErr:                 false,
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:                   "token not found",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnMetadata:         nil,
-			returnError:            errors.New("token not found"),
-			wantToken:              nil,
-			wantErr:                true,
+			name:                    "token not found",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnMetadata:          nil,
+			returnError:             errors.New("token not found"),
+			wantToken:               nil,
+			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:                   "database error",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnMetadata:         nil,
-			returnError:            errors.New("database query failed"),
-			wantToken:              nil,
-			wantErr:                true,
+			name:                    "database error",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnMetadata:          nil,
+			returnError:             errors.New("database query failed"),
+			wantToken:               nil,
+			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
 		},
 	}
@@ -230,7 +231,7 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 					Times(tc.expectedGetOneCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewAccessTokenHandler(mockHandler, nil, logger)
 
 			result, err := handler.GetOne(tc.tenantID, tc.userID, tc.tokenID)
@@ -257,51 +258,51 @@ func TestAccessTokenKeyHandler_GetAll(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                   string
-		tenantID               string
-		userID                 string
-		expectedTenantID       string
-		expectedUserID         string
-		returnTokens           []auth_models.TokenMetadata
-		returnError            error
-		wantToken              *auth_models.TokenMetadata
-		wantErr                bool
+		name                    string
+		tenantID                string
+		userID                  string
+		expectedTenantID        string
+		expectedUserID          string
+		returnTokens            []auth_models.TokenMetadata
+		returnError             error
+		wantToken               *auth_models.TokenMetadata
+		wantErr                 bool
 		expectedGetAllCallTimes int
 	}{
 		{
-			name:                   "successful get",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			expectedTenantID:       "tenant-123",
-			expectedUserID:         "user-123",
-			returnTokens:           []auth_models.TokenMetadata{validMetadata},
-			returnError:            nil,
-			wantToken:              &validMetadata,
-			wantErr:                false,
+			name:                    "successful get",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			expectedTenantID:        "tenant-123",
+			expectedUserID:          "user-123",
+			returnTokens:            []auth_models.TokenMetadata{validMetadata},
+			returnError:             nil,
+			wantToken:               &validMetadata,
+			wantErr:                 false,
 			expectedGetAllCallTimes: 1,
 		},
 		{
-			name:                   "token not found",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			expectedTenantID:       "tenant-123",
-			expectedUserID:         "user-123",
-			returnTokens:           []auth_models.TokenMetadata{},
-			returnError:            nil,
-			wantToken:              nil,
-			wantErr:                false,
+			name:                    "token not found",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			expectedTenantID:        "tenant-123",
+			expectedUserID:          "user-123",
+			returnTokens:            []auth_models.TokenMetadata{},
+			returnError:             nil,
+			wantToken:               nil,
+			wantErr:                 false,
 			expectedGetAllCallTimes: 1,
 		},
 		{
-			name:                   "database error",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			expectedTenantID:       "tenant-123",
-			expectedUserID:         "user-123",
-			returnTokens:           nil,
-			returnError:            errors.New("database query failed"),
-			wantToken:              nil,
-			wantErr:                true,
+			name:                    "database error",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			expectedTenantID:        "tenant-123",
+			expectedUserID:          "user-123",
+			returnTokens:            nil,
+			returnError:             errors.New("database query failed"),
+			wantToken:               nil,
+			wantErr:                 true,
 			expectedGetAllCallTimes: 1,
 		},
 	}
@@ -319,7 +320,7 @@ func TestAccessTokenKeyHandler_GetAll(t *testing.T) {
 					Times(tc.expectedGetAllCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewAccessTokenHandler(mockHandler, nil, logger)
 
 			tokens, err := handler.GetAll(tc.tenantID, tc.userID)
@@ -371,63 +372,63 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                   string
-		tenantID               string
-		userID                 string
-		tokenID                string
-		expectedTenantID       string
-		expectedKey            string
-		returnMetadata         *auth_models.TokenMetadata
-		returnError            error
-		wantErr                bool
+		name                    string
+		tenantID                string
+		userID                  string
+		tokenID                 string
+		expectedTenantID        string
+		expectedKey             string
+		returnMetadata          *auth_models.TokenMetadata
+		returnError             error
+		wantErr                 bool
 		expectedGetOneCallTimes int
 	}{
 		{
-			name:                   "valid token",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnMetadata:         &validMetadata,
-			returnError:            nil,
-			wantErr:                false,
+			name:                    "valid token",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnMetadata:          &validMetadata,
+			returnError:             nil,
+			wantErr:                 false,
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:                   "expired token",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnMetadata:         &expiredMetadata,
-			returnError:            nil,
-			wantErr:                true,
+			name:                    "expired token",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnMetadata:          &expiredMetadata,
+			returnError:             nil,
+			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:                   "revoked token",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnMetadata:         &revokedMetadata,
-			returnError:            nil,
-			wantErr:                true,
+			name:                    "revoked token",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnMetadata:          &revokedMetadata,
+			returnError:             nil,
+			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:                   "token not found",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnMetadata:         nil,
-			returnError:            errors.New("token not found"),
-			wantErr:                true,
+			name:                    "token not found",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnMetadata:          nil,
+			returnError:             errors.New("token not found"),
+			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
 		},
 	}
@@ -445,7 +446,7 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 					Times(tc.expectedGetOneCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewAccessTokenHandler(mockHandler, nil, logger)
 
 			result, err := handler.Validate(tc.tenantID, tc.userID, tc.tokenID)
@@ -472,72 +473,72 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                     string
-		tenantID                 string
-		userID                   string
-		tokenID                  string
-		revokedBy                string
-		expectedGetTenantID      string
-		expectedGetKey           string
-		expectedUpdateTenantID   string
-		expectedUpdateTokenID    string
-		returnGetMetadata        *auth_models.TokenMetadata
-		returnGetError           error
-		returnUpdateError        error
-		wantErr                  bool
-		expectedGetOneCallTimes   int
-		expectedUpdateCallTimes  int
+		name                    string
+		tenantID                string
+		userID                  string
+		tokenID                 string
+		revokedBy               string
+		expectedGetTenantID     string
+		expectedGetKey          string
+		expectedUpdateTenantID  string
+		expectedUpdateTokenID   string
+		returnGetMetadata       *auth_models.TokenMetadata
+		returnGetError          error
+		returnUpdateError       error
+		wantErr                 bool
+		expectedGetOneCallTimes int
+		expectedUpdateCallTimes int
 	}{
 		{
-			name:                     "successful revoke",
-			tenantID:                 "tenant-123",
-			userID:                   "user-123",
-			tokenID:                  "token-123",
-			revokedBy:                "admin",
-			expectedGetTenantID:      "tenant-123",
-			expectedGetKey:           "user-123:token-123",
-			expectedUpdateTenantID:   "tenant-123",
-			expectedUpdateTokenID:    "token-123",
-			returnGetMetadata:        &validMetadata,
-			returnGetError:           nil,
-			returnUpdateError:        nil,
-			wantErr:                  false,
-			expectedGetOneCallTimes:   1,
-			expectedUpdateCallTimes:  1,
+			name:                    "successful revoke",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			revokedBy:               "admin",
+			expectedGetTenantID:     "tenant-123",
+			expectedGetKey:          "user-123:token-123",
+			expectedUpdateTenantID:  "tenant-123",
+			expectedUpdateTokenID:   "token-123",
+			returnGetMetadata:       &validMetadata,
+			returnGetError:          nil,
+			returnUpdateError:       nil,
+			wantErr:                 false,
+			expectedGetOneCallTimes: 1,
+			expectedUpdateCallTimes: 1,
 		},
 		{
-			name:                     "token not found",
-			tenantID:                 "tenant-123",
-			userID:                   "user-123",
-			tokenID:                  "token-123",
-			revokedBy:                "admin",
-			expectedGetTenantID:      "tenant-123",
-			expectedGetKey:           "user-123:token-123",
-			expectedUpdateTenantID:   "",
-			expectedUpdateTokenID:    "",
-			returnGetMetadata:        nil,
-			returnGetError:           errors.New("token not found"),
-			returnUpdateError:        nil,
-			wantErr:                  true,
-			expectedGetOneCallTimes:   1,
-			expectedUpdateCallTimes:  0,
+			name:                    "token not found",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			revokedBy:               "admin",
+			expectedGetTenantID:     "tenant-123",
+			expectedGetKey:          "user-123:token-123",
+			expectedUpdateTenantID:  "",
+			expectedUpdateTokenID:   "",
+			returnGetMetadata:       nil,
+			returnGetError:          errors.New("token not found"),
+			returnUpdateError:       nil,
+			wantErr:                 true,
+			expectedGetOneCallTimes: 1,
+			expectedUpdateCallTimes: 0,
 		},
 		{
-			name:                     "update fails",
-			tenantID:                 "tenant-123",
-			userID:                   "user-123",
-			tokenID:                  "token-123",
-			revokedBy:                "admin",
-			expectedGetTenantID:      "tenant-123",
-			expectedGetKey:           "user-123:token-123",
-			expectedUpdateTenantID:   "tenant-123",
-			expectedUpdateTokenID:    "token-123",
-			returnGetMetadata:        &validMetadata,
-			returnGetError:           nil,
-			returnUpdateError:        errors.New("update failed"),
-			wantErr:                  true,
-			expectedGetOneCallTimes:   1,
-			expectedUpdateCallTimes:  1,
+			name:                    "update fails",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			revokedBy:               "admin",
+			expectedGetTenantID:     "tenant-123",
+			expectedGetKey:          "user-123:token-123",
+			expectedUpdateTenantID:  "tenant-123",
+			expectedUpdateTokenID:   "token-123",
+			returnGetMetadata:       &validMetadata,
+			returnGetError:          nil,
+			returnUpdateError:       errors.New("update failed"),
+			wantErr:                 true,
+			expectedGetOneCallTimes: 1,
+			expectedUpdateCallTimes: 1,
 		},
 	}
 
@@ -564,7 +565,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 					Times(tc.expectedUpdateCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewAccessTokenHandler(mockHandler, nil, logger)
 
 			err := handler.Revoke(tc.tenantID, tc.userID, tc.tokenID, tc.revokedBy)
@@ -589,52 +590,52 @@ func TestAccessTokenKeyHandler_Delete(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                     string
-		tenantID                 string
-		userID                   string
-		tokenID                  string
-		expectedGetTenantID      string
-		expectedGetKey           string
-		expectedDeleteTenantID   string
-		expectedDeleteTokenID    string
-		returnGetMetadata        *auth_models.TokenMetadata
-		returnGetError           error
-		returnDeleteError        error
-		wantErr                  bool
-		expectedGetOneCallTimes   int
-		expectedDeleteCallTimes  int
+		name                    string
+		tenantID                string
+		userID                  string
+		tokenID                 string
+		expectedGetTenantID     string
+		expectedGetKey          string
+		expectedDeleteTenantID  string
+		expectedDeleteTokenID   string
+		returnGetMetadata       *auth_models.TokenMetadata
+		returnGetError          error
+		returnDeleteError       error
+		wantErr                 bool
+		expectedGetOneCallTimes int
+		expectedDeleteCallTimes int
 	}{
 		{
-			name:                     "successful delete",
-			tenantID:                 "tenant-123",
-			userID:                   "user-123",
-			tokenID:                  "token-123",
-			expectedGetTenantID:      "tenant-123",
-			expectedGetKey:           "user-123:token-123",
-			expectedDeleteTenantID:   "tenant-123",
-			expectedDeleteTokenID:    "token-123",
-			returnGetMetadata:        &validMetadata,
-			returnGetError:           nil,
-			returnDeleteError:        nil,
-			wantErr:                  false,
-			expectedGetOneCallTimes:   1,
-			expectedDeleteCallTimes:  1,
+			name:                    "successful delete",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedGetTenantID:     "tenant-123",
+			expectedGetKey:          "user-123:token-123",
+			expectedDeleteTenantID:  "tenant-123",
+			expectedDeleteTokenID:   "token-123",
+			returnGetMetadata:       &validMetadata,
+			returnGetError:          nil,
+			returnDeleteError:       nil,
+			wantErr:                 false,
+			expectedGetOneCallTimes: 1,
+			expectedDeleteCallTimes: 1,
 		},
 		{
-			name:                     "delete with database error",
-			tenantID:                 "tenant-123",
-			userID:                   "user-123",
-			tokenID:                  "token-123",
-			expectedGetTenantID:      "tenant-123",
-			expectedGetKey:           "user-123:token-123",
-			expectedDeleteTenantID:   "tenant-123",
-			expectedDeleteTokenID:    "token-123",
-			returnGetMetadata:        &validMetadata,
-			returnGetError:           nil,
-			returnDeleteError:        errors.New("delete failed"),
-			wantErr:                  true,
-			expectedGetOneCallTimes:   1,
-			expectedDeleteCallTimes:  1,
+			name:                    "delete with database error",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedGetTenantID:     "tenant-123",
+			expectedGetKey:          "user-123:token-123",
+			expectedDeleteTenantID:  "tenant-123",
+			expectedDeleteTokenID:   "token-123",
+			returnGetMetadata:       &validMetadata,
+			returnGetError:          nil,
+			returnDeleteError:       errors.New("delete failed"),
+			wantErr:                 true,
+			expectedGetOneCallTimes: 1,
+			expectedDeleteCallTimes: 1,
 		},
 	}
 
@@ -657,7 +658,7 @@ func TestAccessTokenKeyHandler_Delete(t *testing.T) {
 					Times(tc.expectedDeleteCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewAccessTokenHandler(mockHandler, nil, logger)
 
 			err := handler.Delete(tc.tenantID, tc.userID, tc.tokenID)

@@ -131,8 +131,7 @@ func TestUser_Validate(t *testing.T) {
 				CreatedBy:    "admin",
 			},
 			createOperation: true,
-			wantErr:         true,
-			expectedErrMsg:  "Roles",
+			wantErr:         false,
 		},
 	}
 

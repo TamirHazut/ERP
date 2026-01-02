@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/models"
+	common_models "erp.localhost/internal/common/models"
 	"erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
@@ -15,7 +16,7 @@ type TenantCollection struct {
 }
 
 func NewTenantCollection(collection mongo.CollectionHandler[models.Tenant]) *TenantCollection {
-	logger := logging.NewLogger(logging.ModuleAuth)
+	logger := logging.NewLogger(common_models.ModuleAuth)
 	if collection == nil {
 		collectionHandler := mongo.NewBaseCollectionHandler[models.Tenant](string(mongo.TenantsCollection), logger)
 		if collectionHandler == nil {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	common_models "erp.localhost/internal/common/models"
 	handlers_mocks "erp.localhost/internal/db/redis/handlers/mocks"
 	"erp.localhost/internal/logging"
 	"github.com/stretchr/testify/assert"
@@ -90,7 +91,7 @@ func TestTokenIndex_AddAccessToken(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  mockAccessTokenHandler,
 				refreshTokenSetHandler: nil,
-				logger:                 logging.NewLogger(logging.ModuleAuth),
+				logger:                 logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			err := tokenIndex.AddAccessToken(tc.tenantID, tc.userID, tc.tokenID)
@@ -152,7 +153,7 @@ func TestTokenIndex_RemoveAccessToken(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  mockAccessTokenHandler,
 				refreshTokenSetHandler: nil,
-				logger:                 logging.NewLogger(logging.ModuleAuth),
+				logger:                 logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			err := tokenIndex.RemoveAccessToken(tc.tenantID, tc.userID, tc.tokenID)
@@ -224,7 +225,7 @@ func TestTokenIndex_GetAccessTokens(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  mockAccessTokenHandler,
 				refreshTokenSetHandler: nil,
-				logger:                 logging.NewLogger(logging.ModuleAuth),
+				logger:                 logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			tokens, err := tokenIndex.GetAccessTokens(tc.tenantID, tc.userID)
@@ -285,7 +286,7 @@ func TestTokenIndex_ClearAccessTokens(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  mockAccessTokenHandler,
 				refreshTokenSetHandler: nil,
-				logger:                 logging.NewLogger(logging.ModuleAuth),
+				logger:                 logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			err := tokenIndex.ClearAccessTokens(tc.tenantID, tc.userID)
@@ -352,7 +353,7 @@ func TestTokenIndex_AddRefreshToken(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  nil,
 				refreshTokenSetHandler: mockRefreshTokenHandler,
-				logger:                 logging.NewLogger(logging.ModuleAuth),
+				logger:                 logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			err := tokenIndex.AddRefreshToken(tc.tenantID, tc.userID, tc.tokenID)
@@ -414,7 +415,7 @@ func TestTokenIndex_RemoveRefreshToken(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  nil,
 				refreshTokenSetHandler: mockRefreshTokenHandler,
-				logger:                 logging.NewLogger(logging.ModuleAuth),
+				logger:                 logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			err := tokenIndex.RemoveRefreshToken(tc.tenantID, tc.userID, tc.tokenID)
@@ -486,7 +487,7 @@ func TestTokenIndex_GetRefreshTokens(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  nil,
 				refreshTokenSetHandler: mockRefreshTokenHandler,
-				logger:                 logging.NewLogger(logging.ModuleAuth),
+				logger:                 logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			tokens, err := tokenIndex.GetRefreshTokens(tc.tenantID, tc.userID)
@@ -547,7 +548,7 @@ func TestTokenIndex_ClearRefreshTokens(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  nil,
 				refreshTokenSetHandler: mockRefreshTokenHandler,
-				logger:                 logging.NewLogger(logging.ModuleAuth),
+				logger:                 logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			err := tokenIndex.ClearRefreshTokens(tc.tenantID, tc.userID)

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/models"
+	common_models "erp.localhost/internal/common/models"
 	"erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
@@ -16,7 +17,7 @@ type AuditLogsCollection struct {
 }
 
 func NewAuditLogsCollection(collection mongo.CollectionHandler[models.AuditLog]) *AuditLogsCollection {
-	logger := logging.NewLogger(logging.ModuleAuth)
+	logger := logging.NewLogger(common_models.ModuleAuth)
 	if collection == nil {
 		collectionHandler := mongo.NewBaseCollectionHandler[models.AuditLog](string(mongo.AuditLogsCollection), logger)
 		if collectionHandler == nil {

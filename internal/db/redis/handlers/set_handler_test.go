@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	common_models "erp.localhost/internal/common/models"
 	handlers_mocks "erp.localhost/internal/db/redis/handlers/mocks"
 	"erp.localhost/internal/logging"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ func TestNewBaseSetHandler(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockHandler := handlers_mocks.NewMockRedisHandler(ctrl)
-	logger := logging.NewLogger(logging.ModuleDB)
+	logger := logging.NewLogger(common_models.ModuleDB)
 
 	handler := NewBaseSetHandler(mockHandler, logger)
 
@@ -27,7 +28,7 @@ func TestNewBaseSetHandler(t *testing.T) {
 }
 
 func TestNewBaseSetHandler_NilRedisHandler(t *testing.T) {
-	logger := logging.NewLogger(logging.ModuleDB)
+	logger := logging.NewLogger(common_models.ModuleDB)
 
 	handler := NewBaseSetHandler(nil, logger)
 
@@ -48,37 +49,37 @@ func TestNewBaseSetHandler_NilLogger(t *testing.T) {
 
 func TestBaseSetHandler_Add(t *testing.T) {
 	testCases := []struct {
-		name                string
-		tenantID            string
-		key                 string
-		member              string
-		opts                []map[string]any
+		name                 string
+		tenantID             string
+		key                  string
+		member               string
+		opts                 []map[string]any
 		expectedFormattedKey string
-		returnError         error
-		wantErr             bool
-		expectedSAddCalls   int
+		returnError          error
+		wantErr              bool
+		expectedSAddCalls    int
 	}{
 		{
-			name:                "successful add",
-			tenantID:            "tenant-1",
-			key:                 "my-set",
-			member:              "member-1",
-			opts:                nil,
+			name:                 "successful add",
+			tenantID:             "tenant-1",
+			key:                  "my-set",
+			member:               "member-1",
+			opts:                 nil,
 			expectedFormattedKey: "tenant-1:my-set",
-			returnError:         nil,
-			wantErr:             false,
-			expectedSAddCalls:   1,
+			returnError:          nil,
+			wantErr:              false,
+			expectedSAddCalls:    1,
 		},
 		{
-			name:                "add with database error",
-			tenantID:            "tenant-1",
-			key:                 "my-set",
-			member:              "member-1",
-			opts:                nil,
+			name:                 "add with database error",
+			tenantID:             "tenant-1",
+			key:                  "my-set",
+			member:               "member-1",
+			opts:                 nil,
 			expectedFormattedKey: "tenant-1:my-set",
-			returnError:         errors.New("redis connection failed"),
-			wantErr:             true,
-			expectedSAddCalls:   1,
+			returnError:          errors.New("redis connection failed"),
+			wantErr:              true,
+			expectedSAddCalls:    1,
 		},
 	}
 
@@ -95,7 +96,7 @@ func TestBaseSetHandler_Add(t *testing.T) {
 					Times(tc.expectedSAddCalls)
 			}
 
-			logger := logging.NewLogger(logging.ModuleDB)
+			logger := logging.NewLogger(common_models.ModuleDB)
 			handler := NewBaseSetHandler(mockHandler, logger)
 
 			err := handler.Add(tc.tenantID, tc.key, tc.member, tc.opts...)
@@ -137,7 +138,7 @@ func TestBaseSetHandler_Add_WithTTL(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	logger := logging.NewLogger(logging.ModuleDB)
+	logger := logging.NewLogger(common_models.ModuleDB)
 	handler := NewBaseSetHandler(mockHandler, logger)
 
 	err := handler.Add(tenantID, key, member, opts...)
@@ -173,7 +174,7 @@ func TestBaseSetHandler_Add_WithTTL_ExpireFails(t *testing.T) {
 		Return(errors.New("expire failed")).
 		Times(1)
 
-	logger := logging.NewLogger(logging.ModuleDB)
+	logger := logging.NewLogger(common_models.ModuleDB)
 	handler := NewBaseSetHandler(mockHandler, logger)
 
 	err := handler.Add(tenantID, key, member, opts...)
@@ -182,34 +183,34 @@ func TestBaseSetHandler_Add_WithTTL_ExpireFails(t *testing.T) {
 
 func TestBaseSetHandler_Remove(t *testing.T) {
 	testCases := []struct {
-		name                string
-		tenantID            string
-		key                 string
-		member              string
+		name                 string
+		tenantID             string
+		key                  string
+		member               string
 		expectedFormattedKey string
-		returnError         error
-		wantErr             bool
-		expectedSRemCalls   int
+		returnError          error
+		wantErr              bool
+		expectedSRemCalls    int
 	}{
 		{
-			name:                "successful remove",
-			tenantID:            "tenant-1",
-			key:                 "my-set",
-			member:              "member-1",
+			name:                 "successful remove",
+			tenantID:             "tenant-1",
+			key:                  "my-set",
+			member:               "member-1",
 			expectedFormattedKey: "tenant-1:my-set",
-			returnError:         nil,
-			wantErr:             false,
-			expectedSRemCalls:   1,
+			returnError:          nil,
+			wantErr:              false,
+			expectedSRemCalls:    1,
 		},
 		{
-			name:                "remove with database error",
-			tenantID:            "tenant-1",
-			key:                 "my-set",
-			member:              "member-1",
+			name:                 "remove with database error",
+			tenantID:             "tenant-1",
+			key:                  "my-set",
+			member:               "member-1",
 			expectedFormattedKey: "tenant-1:my-set",
-			returnError:         errors.New("redis connection failed"),
-			wantErr:             true,
-			expectedSRemCalls:   1,
+			returnError:          errors.New("redis connection failed"),
+			wantErr:              true,
+			expectedSRemCalls:    1,
 		},
 	}
 
@@ -226,7 +227,7 @@ func TestBaseSetHandler_Remove(t *testing.T) {
 					Times(tc.expectedSRemCalls)
 			}
 
-			logger := logging.NewLogger(logging.ModuleDB)
+			logger := logging.NewLogger(common_models.ModuleDB)
 			handler := NewBaseSetHandler(mockHandler, logger)
 
 			err := handler.Remove(tc.tenantID, tc.key, tc.member)
@@ -295,7 +296,7 @@ func TestBaseSetHandler_Members(t *testing.T) {
 					Times(tc.expectedSMembersCalls)
 			}
 
-			logger := logging.NewLogger(logging.ModuleDB)
+			logger := logging.NewLogger(common_models.ModuleDB)
 			handler := NewBaseSetHandler(mockHandler, logger)
 
 			members, err := handler.Members(tc.tenantID, tc.key)
@@ -312,31 +313,31 @@ func TestBaseSetHandler_Members(t *testing.T) {
 
 func TestBaseSetHandler_Clear(t *testing.T) {
 	testCases := []struct {
-		name                string
-		tenantID            string
-		key                 string
+		name                 string
+		tenantID             string
+		key                  string
 		expectedFormattedKey string
-		returnError         error
-		wantErr             bool
-		expectedClearCalls  int
+		returnError          error
+		wantErr              bool
+		expectedClearCalls   int
 	}{
 		{
-			name:                "successful clear",
-			tenantID:            "tenant-1",
-			key:                 "my-set",
+			name:                 "successful clear",
+			tenantID:             "tenant-1",
+			key:                  "my-set",
 			expectedFormattedKey: "tenant-1:my-set",
-			returnError:         nil,
-			wantErr:             false,
-			expectedClearCalls:  1,
+			returnError:          nil,
+			wantErr:              false,
+			expectedClearCalls:   1,
 		},
 		{
-			name:                "clear with database error",
-			tenantID:            "tenant-1",
-			key:                 "my-set",
+			name:                 "clear with database error",
+			tenantID:             "tenant-1",
+			key:                  "my-set",
 			expectedFormattedKey: "tenant-1:my-set",
-			returnError:         errors.New("redis connection failed"),
-			wantErr:             true,
-			expectedClearCalls:  1,
+			returnError:          errors.New("redis connection failed"),
+			wantErr:              true,
+			expectedClearCalls:   1,
 		},
 	}
 
@@ -353,7 +354,7 @@ func TestBaseSetHandler_Clear(t *testing.T) {
 					Times(tc.expectedClearCalls)
 			}
 
-			logger := logging.NewLogger(logging.ModuleDB)
+			logger := logging.NewLogger(common_models.ModuleDB)
 			handler := NewBaseSetHandler(mockHandler, logger)
 
 			err := handler.Clear(tc.tenantID, tc.key)

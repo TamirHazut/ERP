@@ -3,6 +3,7 @@ package mongo
 import (
 	"errors"
 
+	common_models "erp.localhost/internal/common/models"
 	db "erp.localhost/internal/db"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
@@ -17,7 +18,7 @@ type BaseCollectionHandler[T any] struct {
 
 func NewBaseCollectionHandler[T any](collection string, logger *logging.Logger) *BaseCollectionHandler[T] {
 	if logger == nil {
-		logger = logging.NewLogger(logging.ModuleDB)
+		logger = logging.NewLogger(common_models.ModuleDB)
 	}
 	dbName := GetDBNameFromCollection(collection)
 	if dbName == "" {

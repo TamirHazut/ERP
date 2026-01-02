@@ -6,6 +6,7 @@ import (
 
 	auth_models "erp.localhost/internal/auth/models/cache"
 	token "erp.localhost/internal/auth/token"
+	common_models "erp.localhost/internal/common/models"
 	redis "erp.localhost/internal/db/redis"
 	redis_handlers "erp.localhost/internal/db/redis/handlers"
 	erp_errors "erp.localhost/internal/errors"
@@ -23,7 +24,7 @@ type AccessTokenHandler struct {
 // NewAccessTokenHandler creates a new AccessTokenHandler
 func NewAccessTokenHandler(keyHandler redis_handlers.KeyHandler[auth_models.TokenMetadata], tokenIndex *token.TokenIndex, logger *logging.Logger) *AccessTokenHandler {
 	if logger == nil {
-		logger = logging.NewLogger(logging.ModuleAuth)
+		logger = logging.NewLogger(common_models.ModuleAuth)
 	}
 	if keyHandler == nil {
 		dbHandler := redis.NewBaseRedisHandler(redis.KeyPrefix(redis.RedisKeyToken))

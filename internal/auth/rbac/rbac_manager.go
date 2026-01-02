@@ -6,6 +6,7 @@ import (
 
 	collection "erp.localhost/internal/auth/collections"
 	"erp.localhost/internal/auth/models"
+	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
 )
@@ -19,7 +20,7 @@ type RBACManager struct {
 }
 
 func NewRBACManager() *RBACManager {
-	logger := logging.NewLogger(logging.ModuleAuth)
+	logger := logging.NewLogger(common_models.ModuleAuth)
 	return &RBACManager{
 		logger:                logger,
 		userCollection:        collection.NewUserCollection(nil),
@@ -33,7 +34,7 @@ func NewRBACManager() *RBACManager {
 func (r *RBACManager) CreateResource(tenantID string, userID string, resourceType string, resource any) (string, error) {
 	permission := fmt.Sprintf("%s:%s", resourceType, models.PermissionActionCreate)
 
-	if err := r.hasPermission(tenantID, userID, permission); err != nil {
+	if err := r.HasPermission(tenantID, userID, permission); err != nil {
 		return "", err
 	}
 
@@ -65,7 +66,7 @@ func (r *RBACManager) CreateResource(tenantID string, userID string, resourceTyp
 func (r *RBACManager) UpdateResource(tenantID string, userID string, resourceType string, resource any) error {
 	permission := fmt.Sprintf("%s:%s", resourceType, models.PermissionActionUpdate)
 
-	if err := r.hasPermission(tenantID, userID, permission); err != nil {
+	if err := r.HasPermission(tenantID, userID, permission); err != nil {
 		return err
 	}
 
@@ -96,7 +97,7 @@ func (r *RBACManager) UpdateResource(tenantID string, userID string, resourceTyp
 
 func (r *RBACManager) DeleteResource(tenantID string, userID string, resourceType string, resource any) error {
 	permission := fmt.Sprintf("%s:%s", resourceType, models.PermissionActionDelete)
-	if err := r.hasPermission(tenantID, userID, permission); err != nil {
+	if err := r.HasPermission(tenantID, userID, permission); err != nil {
 		return err
 	}
 	invalidResourceValueTypeError := erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("invalid resource value type"))
@@ -126,7 +127,7 @@ func (r *RBACManager) DeleteResource(tenantID string, userID string, resourceTyp
 
 func (r *RBACManager) GetResource(tenantID string, userID string, resourceType string, resourceID string) (any, error) {
 	permission := fmt.Sprintf("%s:%s", resourceType, models.PermissionActionRead)
-	if err := r.hasPermission(tenantID, userID, permission); err != nil {
+	if err := r.HasPermission(tenantID, userID, permission); err != nil {
 		return nil, err
 	}
 	switch resourceType {
@@ -143,7 +144,7 @@ func (r *RBACManager) GetResource(tenantID string, userID string, resourceType s
 
 func (r *RBACManager) GetResources(tenantID string, userID string, resourceType string) ([]any, error) {
 	permission := fmt.Sprintf("%s:%s", resourceType, models.PermissionActionRead)
-	if err := r.hasPermission(tenantID, userID, permission); err != nil {
+	if err := r.HasPermission(tenantID, userID, permission); err != nil {
 		return nil, err
 	}
 	switch resourceType {
@@ -283,8 +284,7 @@ func (r *RBACManager) VerifyRolePermissions(tenantID string, roleID string, perm
 	return permissionsCheckResponse, nil
 }
 
-/* Helper Functions */
-func (r *RBACManager) hasPermission(tenantID string, userID string, permission string) error {
+func (r *RBACManager) HasPermission(tenantID string, userID string, permission string) error {
 	permissionsCheckResponse, err := r.CheckUserPermissions(tenantID, userID, []string{permission})
 	if err != nil {
 		return err

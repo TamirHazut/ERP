@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/models"
+	common_models "erp.localhost/internal/common/models"
 	handlers_mocks "erp.localhost/internal/db/redis/handlers/mocks"
 	logging "erp.localhost/internal/logging"
 	"github.com/stretchr/testify/assert"
@@ -53,27 +54,27 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                string
-		tenantID            string
-		userID              string
-		tokenID             string
-		refreshToken        models.RefreshToken
-		expectedTenantID    string
-		expectedKey         string
-		returnError         error
-		wantErr             bool
+		name                 string
+		tenantID             string
+		userID               string
+		tokenID              string
+		refreshToken         models.RefreshToken
+		expectedTenantID     string
+		expectedKey          string
+		returnError          error
+		wantErr              bool
 		expectedSetCallTimes int
 	}{
 		{
-			name:                "successful store",
-			tenantID:            "tenant-123",
-			userID:              "user-123",
-			tokenID:             "token-123",
-			refreshToken:        validToken,
-			expectedTenantID:    "tenant-123",
-			expectedKey:         "user-123:token-123",
-			returnError:         nil,
-			wantErr:             false,
+			name:                 "successful store",
+			tenantID:             "tenant-123",
+			userID:               "user-123",
+			tokenID:              "token-123",
+			refreshToken:         validToken,
+			expectedTenantID:     "tenant-123",
+			expectedKey:          "user-123:token-123",
+			returnError:          nil,
+			wantErr:              false,
 			expectedSetCallTimes: 1,
 		},
 		{
@@ -87,10 +88,10 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 				ExpiresAt: time.Now().Add(24 * time.Hour),
 				CreatedAt: time.Now(),
 			},
-			expectedTenantID:    "",
-			expectedKey:         "",
-			returnError:         nil,
-			wantErr:             true,
+			expectedTenantID:     "",
+			expectedKey:          "",
+			returnError:          nil,
+			wantErr:              true,
 			expectedSetCallTimes: 0,
 		},
 		{
@@ -105,22 +106,22 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 				ExpiresAt: time.Now().Add(24 * time.Hour),
 				CreatedAt: time.Now(),
 			},
-			expectedTenantID:    "",
-			expectedKey:         "",
-			returnError:         nil,
-			wantErr:             true,
+			expectedTenantID:     "",
+			expectedKey:          "",
+			returnError:          nil,
+			wantErr:              true,
 			expectedSetCallTimes: 0,
 		},
 		{
-			name:                "store with database error",
-			tenantID:            "tenant-123",
-			userID:              "user-123",
-			tokenID:             "token-123",
-			refreshToken:        validToken,
-			expectedTenantID:    "tenant-123",
-			expectedKey:         "user-123:token-123",
-			returnError:         errors.New("database connection failed"),
-			wantErr:             true,
+			name:                 "store with database error",
+			tenantID:             "tenant-123",
+			userID:               "user-123",
+			tokenID:              "token-123",
+			refreshToken:         validToken,
+			expectedTenantID:     "tenant-123",
+			expectedKey:          "user-123:token-123",
+			returnError:          errors.New("database connection failed"),
+			wantErr:              true,
 			expectedSetCallTimes: 1,
 		},
 	}
@@ -138,7 +139,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 					Times(tc.expectedSetCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			err := handler.Store(tc.tenantID, tc.userID, tc.tokenID, tc.refreshToken)
@@ -162,55 +163,55 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                   string
-		tenantID               string
-		userID                 string
-		tokenID                string
-		expectedTenantID       string
-		expectedKey            string
-		returnToken            *models.RefreshToken
-		returnError            error
-		wantToken              *models.RefreshToken
-		wantErr                bool
+		name                    string
+		tenantID                string
+		userID                  string
+		tokenID                 string
+		expectedTenantID        string
+		expectedKey             string
+		returnToken             *models.RefreshToken
+		returnError             error
+		wantToken               *models.RefreshToken
+		wantErr                 bool
 		expectedGetOneCallTimes int
 	}{
 		{
-			name:                   "successful get",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnToken:            &validToken,
-			returnError:            nil,
-			wantToken:              &validToken,
-			wantErr:                false,
+			name:                    "successful get",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnToken:             &validToken,
+			returnError:             nil,
+			wantToken:               &validToken,
+			wantErr:                 false,
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:                   "token not found",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnToken:            nil,
-			returnError:            errors.New("token not found"),
-			wantToken:              nil,
-			wantErr:                true,
+			name:                    "token not found",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnToken:             nil,
+			returnError:             errors.New("token not found"),
+			wantToken:               nil,
+			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:                   "database error",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnToken:            nil,
-			returnError:            errors.New("database query failed"),
-			wantToken:              nil,
-			wantErr:                true,
+			name:                    "database error",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnToken:             nil,
+			returnError:             errors.New("database query failed"),
+			wantToken:               nil,
+			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
 		},
 	}
@@ -228,7 +229,7 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 					Times(tc.expectedGetOneCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			result, err := handler.GetOne(tc.tenantID, tc.userID, tc.tokenID)
@@ -256,51 +257,51 @@ func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                   string
-		tenantID               string
-		userID                 string
-		expectedTenantID       string
-		expectedUserID         string
-		returnTokens           []models.RefreshToken
-		returnError            error
-		wantCount              int
-		wantErr                bool
+		name                    string
+		tenantID                string
+		userID                  string
+		expectedTenantID        string
+		expectedUserID          string
+		returnTokens            []models.RefreshToken
+		returnError             error
+		wantCount               int
+		wantErr                 bool
 		expectedGetAllCallTimes int
 	}{
 		{
-			name:                   "successful get",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			expectedTenantID:       "tenant-123",
-			expectedUserID:         "user-123",
-			returnTokens:           []models.RefreshToken{validToken},
-			returnError:            nil,
-			wantCount:              1,
-			wantErr:                false,
+			name:                    "successful get",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			expectedTenantID:        "tenant-123",
+			expectedUserID:          "user-123",
+			returnTokens:            []models.RefreshToken{validToken},
+			returnError:             nil,
+			wantCount:               1,
+			wantErr:                 false,
 			expectedGetAllCallTimes: 1,
 		},
 		{
-			name:                   "token not found",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			expectedTenantID:       "tenant-123",
-			expectedUserID:         "user-123",
-			returnTokens:           []models.RefreshToken{},
-			returnError:            nil,
-			wantCount:              0,
-			wantErr:                false,
+			name:                    "token not found",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			expectedTenantID:        "tenant-123",
+			expectedUserID:          "user-123",
+			returnTokens:            []models.RefreshToken{},
+			returnError:             nil,
+			wantCount:               0,
+			wantErr:                 false,
 			expectedGetAllCallTimes: 1,
 		},
 		{
-			name:                   "database error",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			expectedTenantID:       "tenant-123",
-			expectedUserID:         "user-123",
-			returnTokens:           nil,
-			returnError:            errors.New("database query failed"),
-			wantCount:              0,
-			wantErr:                true,
+			name:                    "database error",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			expectedTenantID:        "tenant-123",
+			expectedUserID:          "user-123",
+			returnTokens:            nil,
+			returnError:             errors.New("database query failed"),
+			wantCount:               0,
+			wantErr:                 true,
 			expectedGetAllCallTimes: 1,
 		},
 	}
@@ -318,7 +319,7 @@ func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
 					Times(tc.expectedGetAllCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			result, err := handler.GetAll(tc.tenantID, tc.userID)
@@ -364,63 +365,63 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                   string
-		tenantID               string
-		userID                 string
-		tokenID                string
-		expectedTenantID       string
-		expectedKey            string
-		returnToken            *models.RefreshToken
-		returnError            error
-		wantErr                bool
+		name                    string
+		tenantID                string
+		userID                  string
+		tokenID                 string
+		expectedTenantID        string
+		expectedKey             string
+		returnToken             *models.RefreshToken
+		returnError             error
+		wantErr                 bool
 		expectedGetOneCallTimes int
 	}{
 		{
-			name:                   "valid token",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnToken:            &validToken,
-			returnError:            nil,
-			wantErr:                false,
+			name:                    "valid token",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnToken:             &validToken,
+			returnError:             nil,
+			wantErr:                 false,
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:                   "expired token",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnToken:            &expiredToken,
-			returnError:            nil,
-			wantErr:                true,
+			name:                    "expired token",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnToken:             &expiredToken,
+			returnError:             nil,
+			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:                   "revoked token",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnToken:            &revokedToken,
-			returnError:            nil,
-			wantErr:                true,
+			name:                    "revoked token",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnToken:             &revokedToken,
+			returnError:             nil,
+			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:                   "token not found",
-			tenantID:               "tenant-123",
-			userID:                 "user-123",
-			tokenID:                "token-123",
-			expectedTenantID:       "tenant-123",
-			expectedKey:            "user-123:token-123",
-			returnToken:            nil,
-			returnError:            errors.New("token not found"),
-			wantErr:                true,
+			name:                    "token not found",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedTenantID:        "tenant-123",
+			expectedKey:             "user-123:token-123",
+			returnToken:             nil,
+			returnError:             errors.New("token not found"),
+			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
 		},
 	}
@@ -438,7 +439,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 					Times(tc.expectedGetOneCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			result, err := handler.Validate(tc.tenantID, tc.userID, tc.tokenID)
@@ -464,68 +465,68 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                     string
-		tenantID                 string
-		userID                   string
-		tokenID                  string
-		expectedGetTenantID      string
-		expectedGetKey           string
-		expectedUpdateTenantID   string
-		expectedUpdateKey        string
-		returnGetToken           *models.RefreshToken
-		returnGetError           error
-		returnUpdateError        error
-		wantErr                  bool
-		expectedGetOneCallTimes   int
-		expectedUpdateCallTimes  int
+		name                    string
+		tenantID                string
+		userID                  string
+		tokenID                 string
+		expectedGetTenantID     string
+		expectedGetKey          string
+		expectedUpdateTenantID  string
+		expectedUpdateKey       string
+		returnGetToken          *models.RefreshToken
+		returnGetError          error
+		returnUpdateError       error
+		wantErr                 bool
+		expectedGetOneCallTimes int
+		expectedUpdateCallTimes int
 	}{
 		{
-			name:                     "successful revoke",
-			tenantID:                 "tenant-123",
-			userID:                   "user-123",
-			tokenID:                  "token-123",
-			expectedGetTenantID:      "tenant-123",
-			expectedGetKey:           "user-123:token-123",
-			expectedUpdateTenantID:   "tenant-123",
-			expectedUpdateKey:        "user-123:token-123",
-			returnGetToken:           &validToken,
-			returnGetError:           nil,
-			returnUpdateError:        nil,
-			wantErr:                  false,
-			expectedGetOneCallTimes:   1,
-			expectedUpdateCallTimes:  1,
+			name:                    "successful revoke",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedGetTenantID:     "tenant-123",
+			expectedGetKey:          "user-123:token-123",
+			expectedUpdateTenantID:  "tenant-123",
+			expectedUpdateKey:       "user-123:token-123",
+			returnGetToken:          &validToken,
+			returnGetError:          nil,
+			returnUpdateError:       nil,
+			wantErr:                 false,
+			expectedGetOneCallTimes: 1,
+			expectedUpdateCallTimes: 1,
 		},
 		{
-			name:                     "token not found",
-			tenantID:                 "tenant-123",
-			userID:                   "user-123",
-			tokenID:                  "token-123",
-			expectedGetTenantID:      "tenant-123",
-			expectedGetKey:           "user-123:token-123",
-			expectedUpdateTenantID:   "",
-			expectedUpdateKey:        "",
-			returnGetToken:           nil,
-			returnGetError:           errors.New("token not found"),
-			returnUpdateError:        nil,
-			wantErr:                  true,
-			expectedGetOneCallTimes:   1,
-			expectedUpdateCallTimes:  0,
+			name:                    "token not found",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedGetTenantID:     "tenant-123",
+			expectedGetKey:          "user-123:token-123",
+			expectedUpdateTenantID:  "",
+			expectedUpdateKey:       "",
+			returnGetToken:          nil,
+			returnGetError:          errors.New("token not found"),
+			returnUpdateError:       nil,
+			wantErr:                 true,
+			expectedGetOneCallTimes: 1,
+			expectedUpdateCallTimes: 0,
 		},
 		{
-			name:                     "update fails",
-			tenantID:                 "tenant-123",
-			userID:                   "user-123",
-			tokenID:                  "token-123",
-			expectedGetTenantID:      "tenant-123",
-			expectedGetKey:           "user-123:token-123",
-			expectedUpdateTenantID:   "tenant-123",
-			expectedUpdateKey:        "user-123:token-123",
-			returnGetToken:           &validToken,
-			returnGetError:           nil,
-			returnUpdateError:        errors.New("update failed"),
-			wantErr:                  true,
-			expectedGetOneCallTimes:   1,
-			expectedUpdateCallTimes:  1,
+			name:                    "update fails",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedGetTenantID:     "tenant-123",
+			expectedGetKey:          "user-123:token-123",
+			expectedUpdateTenantID:  "tenant-123",
+			expectedUpdateKey:       "user-123:token-123",
+			returnGetToken:          &validToken,
+			returnGetError:          nil,
+			returnUpdateError:       errors.New("update failed"),
+			wantErr:                 true,
+			expectedGetOneCallTimes: 1,
+			expectedUpdateCallTimes: 1,
 		},
 	}
 
@@ -551,7 +552,7 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 					Times(tc.expectedUpdateCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			err := handler.Revoke(tc.tenantID, tc.userID, tc.tokenID, "system")
@@ -566,37 +567,37 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 
 func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 	testCases := []struct {
-		name                     string
-		tenantID                 string
-		userID                   string
-		tokenID                  string
-		expectedDeleteTenantID   string
-		expectedDeleteKey        string
-		returnDeleteError        error
-		wantErr                  bool
-		expectedDeleteCallTimes  int
+		name                    string
+		tenantID                string
+		userID                  string
+		tokenID                 string
+		expectedDeleteTenantID  string
+		expectedDeleteKey       string
+		returnDeleteError       error
+		wantErr                 bool
+		expectedDeleteCallTimes int
 	}{
 		{
-			name:                     "successful delete",
-			tenantID:                 "tenant-123",
-			userID:                   "user-123",
-			tokenID:                  "token-123",
-			expectedDeleteTenantID:   "tenant-123",
-			expectedDeleteKey:        "user-123:token-123",
-			returnDeleteError:        nil,
-			wantErr:                  false,
-			expectedDeleteCallTimes:  1,
+			name:                    "successful delete",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedDeleteTenantID:  "tenant-123",
+			expectedDeleteKey:       "user-123:token-123",
+			returnDeleteError:       nil,
+			wantErr:                 false,
+			expectedDeleteCallTimes: 1,
 		},
 		{
-			name:                     "delete with database error",
-			tenantID:                 "tenant-123",
-			userID:                   "user-123",
-			tokenID:                  "token-123",
-			expectedDeleteTenantID:   "tenant-123",
-			expectedDeleteKey:        "user-123:token-123",
-			returnDeleteError:        errors.New("delete failed"),
-			wantErr:                  true,
-			expectedDeleteCallTimes:  1,
+			name:                    "delete with database error",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			tokenID:                 "token-123",
+			expectedDeleteTenantID:  "tenant-123",
+			expectedDeleteKey:       "user-123:token-123",
+			returnDeleteError:       errors.New("delete failed"),
+			wantErr:                 true,
+			expectedDeleteCallTimes: 1,
 		},
 	}
 
@@ -613,7 +614,7 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 					Times(tc.expectedDeleteCallTimes)
 			}
 
-			logger := logging.NewLogger(logging.ModuleAuth)
+			logger := logging.NewLogger(common_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			err := handler.Delete(tc.tenantID, tc.userID, tc.tokenID)

@@ -8,20 +8,8 @@ import (
 	"os"
 	"strings"
 
+	common_models "erp.localhost/internal/common/models"
 	"github.com/rs/zerolog"
-)
-
-type Module string
-
-const (
-	ModuleAuth    Module = "Auth"
-	ModuleConfig  Module = "Config"
-	ModuleCore    Module = "Core"
-	ModuleDB      Module = "DB"
-	ModuleEvents  Module = "Events"
-	ModuleGateway Module = "Gateway"
-	ModuleSidecar Module = "Sidecar"
-	ModuleWebUI   Module = "WebUI"
 )
 
 type Logger struct {
@@ -29,7 +17,7 @@ type Logger struct {
 }
 
 // NewLogger creates a new logger for each module.
-func NewLogger(module Module) *Logger {
+func NewLogger(module common_models.Module) *Logger {
 	baseLogger := zerolog.New(newConsoleWriter()).
 		With().
 		Timestamp().

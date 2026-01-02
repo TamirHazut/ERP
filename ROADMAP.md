@@ -411,9 +411,11 @@ mockHandler.EXPECT().
 ### Phase 1: Foundation ⚙️
 
 #### 1. Auth Service (Priority 1) 🔐
-**Status:** 🟡 In Progress (~95% Complete: Repositories ✅, Models ✅, Token Infrastructure ✅, Core Endpoints ✅, gRPC Server ✅, RBAC Manager ✅, Tests ✅, User Service ⬜)
+**Status:** ✅ Complete (100%)
 
 **Why First:** Required by all other services for authentication/authorization. Foundation for the entire system.
+
+**Note:** User Service was moved to Core module as it's part of business logic, not authentication.
 
 **Prerequisites:**
 - ✅ Pre-Phase infrastructure setup must be completed first (gRPC infrastructure, JWT library)
@@ -534,45 +536,64 @@ mockHandler.EXPECT().
 - ✅ Test refactoring complete - NO gomock.Any() usage anywhere
 - ✅ All tests use specific expected values and custom matchers where needed
 
-**Remaining Tasks:**
+**Completed Tasks:**
 - [x] Create `internal/auth/cmd/main.go` entry point to start the server
 - [x] Complete RBAC manager implementation with comprehensive tests
-- [ ] User management service implementation (`internal/auth/service/user.go`)
-- [ ] End-to-end testing with real MongoDB and Redis (functional test in python)
-- [ ] Re-enable audit logging in Logout (currently commented out)
-- [ ] Add mTLS support (currently disabled for local testing)
+- [x] All core endpoints (Login, Logout, Refresh, Verify, Revoke, CheckPermissions)
+- [x] gRPC server implementation with all methods
+- [x] Token infrastructure (AccessToken, RefreshToken, TokenIndex, TokenManager)
+- [x] Repository layers for Users, Roles, Permissions, Tenants, AuditLogs
+
+**Notes:**
+- User management moved to Core Service (part of business logic, not authentication)
+- End-to-end functional testing infrastructure will be built in Phase 3
+- Audit logging in Logout can be re-enabled during functional testing phase
+- mTLS support deferred to Config Service enhancement phase
 
 **Port:** 5000
 
 ---
 
-#### 2. Config Service (Priority 2) ⚙️
+#### 2. Config Service - Phase 1 (Priority 2) ⚙️
 **Status:** ⬜ Not Started
 
-**Why Second:** Simple service, needed for feature flags and dynamic configuration. Low complexity, high value.
+**Why Second:** Simple service, needed for feature flags and dynamic configuration. Required by User Service (Core module). Starting with .env approach for simplicity, structured for future mTLS enhancement.
 
 **Prerequisites:**
-- ✅ Pre-Phase infrastructure setup must be completed first (gRPC infrastructure)
+- ✅ Pre-Phase infrastructure setup (gRPC infrastructure)
+- ✅ Auth Service (for RBAC permission checks)
 
 **Dependencies:**
-- Uses existing `db` package
-- MongoDB (`config_db` collection)
-- Redis (caching)
+- Auth Service (for CheckPermissions gRPC calls)
+- .env files (config.env, secret.env, etc.)
+- Redis (optional caching)
 - gRPC infrastructure (from Pre-Phase)
 
-**What to Build:**
+**What to Build (Phase 1 - Simple Version):**
+- [ ] .env file loading infrastructure
+  - [ ] Support multiple .env files (config.env, secret.env, database.env, etc.)
+  - [ ] Environment variable parsing and validation
+  - [ ] Type-safe configuration structs
 - [ ] gRPC server implementation
 - [ ] Config service proto definitions
-- [ ] Config repository (MongoDB: `config_db.configurations`)
-- [ ] Environment settings repository (MongoDB: `config_db.environment_settings`)
-- [ ] Feature flags repository (MongoDB: `config_db.feature_flags`)
-- [ ] Redis caching layer
-- [ ] Config validation logic
-- [ ] Config versioning
-- [ ] GetConfig gRPC method
-- [ ] UpdateConfig gRPC method
-- [ ] Cache invalidation on updates
-- [ ] Broadcast config updates to services
+  - [ ] GetConfig RPC method
+  - [ ] SetConfig RPC method
+  - [ ] ListConfigs RPC method
+- [ ] In-memory configuration storage (loaded from .env files)
+- [ ] Configuration validation logic
+- [ ] Simple RBAC via Auth service
+  - [ ] Call Auth.CheckPermissions for user-level authorization
+  - [ ] Verify user has permission to read/write specific configs
+- [ ] Redis caching layer (optional for performance)
+- [ ] Code structure prepared for future mTLS
+  - [ ] Abstract authentication/authorization into interfaces
+  - [ ] Separate transport security from business logic
+  - [ ] Design for future certificate-based module authentication
+
+**Key Design Decisions:**
+- **Configuration Source**: .env files (not MongoDB) - industry standard, easier to manage
+- **Security Model (Phase 1)**: User-level RBAC only (via Auth service)
+- **Future Enhancement (Phase 5)**: Add mTLS + certificate-based module authentication
 
 **Port:** 5002
 
@@ -580,58 +601,320 @@ mockHandler.EXPECT().
 
 ### Phase 2: Core Business Logic 💼
 
-#### 3. Core Service (Priority 3) 🏢
+#### 3. Core User Service (Priority 3) 👥
 **Status:** ⬜ Not Started
 
-**Why Third:** Contains main business logic. Depends on Auth for RBAC checks and Config for feature flags.
+**Why Third:** User management is core business logic (not authentication). Required for functional testing infrastructure (test setup/cleanup). Minimal implementation to unblock testing.
 
 **Prerequisites:**
-- ✅ Pre-Phase infrastructure setup (gRPC infrastructure)
+- ✅ Auth Service (for RBAC permission checks)
+- ✅ Config Service Phase 1 (for feature flags - optional)
+
+**Dependencies:**
+- Auth Service (for CheckPermissions gRPC calls)
+- Config Service (for feature flags - optional)
+- MongoDB (`core_db.users` collection)
+- gRPC infrastructure (from Pre-Phase)
+
+**What to Build:**
+- [ ] gRPC server implementation (can share with future Core service modules)
+- [ ] User service proto definitions
+  - [ ] CreateUser RPC method
+  - [ ] GetUser RPC method
+  - [ ] UpdateUser RPC method
+  - [ ] DeleteUser RPC method
+  - [ ] ListUsers RPC method (with pagination, filtering by tenant)
+- [ ] User repository (MongoDB: `core_db.users`)
+  - [ ] CRUD operations with tenant isolation
+  - [ ] User profile management
+  - [ ] Metadata and preferences storage
+- [ ] RBAC integration with Auth service
+  - [ ] Call Auth.CheckPermissions before user operations
+  - [ ] Verify user has permission to create/read/update/delete users
+- [ ] Config integration (optional for Phase 1)
+  - [ ] Feature flag support (if Config service ready)
+  - [ ] Can defer to later if Config not ready
+- [ ] System admin data seeding
+  - [ ] Use CollectionHandlers directly with hard-coded data
+  - [ ] Create default tenant
+  - [ ] Create default roles (SuperAdmin, Admin, User)
+  - [ ] Create default permissions
+  - [ ] Create system admin user
+  - [ ] Seeding script or initialization function
+
+**Scope Notes:**
+- This is ONLY user management, not full Core service
+- Other Core modules (Products, Orders, Vendors, Inventory) come later
+- Minimal implementation to enable functional testing
+
+**Port:** 5001 (shared with future Core service modules)
+
+---
+
+#### 4. Core Service - Remaining Modules (Priority 7) 🏢
+**Status:** ⬜ Not Started (Deferred after functional testing)
+
+**Why Deferred:** User Service (Priority 3) provides enough functionality for initial testing. Other Core modules (Products, Orders, Vendors, Inventory) can wait until after functional testing infrastructure is proven.
+
+**Prerequisites:**
 - ✅ Auth Service (for RBAC permission checks)
 - ✅ Config Service (for feature flags)
+- ✅ Core User Service (shares gRPC server)
+- ✅ Functional Testing Infrastructure (to ensure quality)
 
 **Dependencies:**
 - Auth Service (for RBAC permission checks)
 - Config Service (for feature flags)
-- MongoDB (`core_db` collection)
+- MongoDB (`core_db` collections)
 - Kafka (event publishing)
 - gRPC infrastructure (from Pre-Phase)
 
 **What to Build:**
-- [ ] gRPC server implementation
-- [ ] Core service proto definitions
-- [ ] Products repository (MongoDB: `core_db.products`)
-- [ ] Orders repository (MongoDB: `core_db.orders`)
-- [ ] Vendors repository (MongoDB: `core_db.vendors`)
-- [ ] Inventory repository (MongoDB: `core_db.inventory`)
-- [ ] Business rules and validation
-- [ ] Transaction management
-- [ ] Kafka event publisher integration
-- [ ] CreateOrder gRPC method
-- [ ] UpdateOrder gRPC method
-- [ ] Product CRUD operations
-- [ ] Vendor CRUD operations
-- [ ] Inventory management operations
-- [ ] Event publishing for: `order.created`, `order.updated`, `product.updated`, `vendor.approved`
-- [ ] Multi-tenancy filtering (tenant_id in all queries)
-
-**Modules:**
-- [ ] Users module
-- [ ] Vendors module
 - [ ] Products module
+  - [ ] Products repository (MongoDB: `core_db.products`)
+  - [ ] Product CRUD gRPC methods
+  - [ ] Product validation and business rules
+  - [ ] Event publishing: `product.created`, `product.updated`, `product.deleted`
 - [ ] Orders module
+  - [ ] Orders repository (MongoDB: `core_db.orders`)
+  - [ ] CreateOrder, UpdateOrder, GetOrder, ListOrders gRPC methods
+  - [ ] Order validation and business rules
+  - [ ] Event publishing: `order.created`, `order.updated`, `order.cancelled`
+- [ ] Vendors module
+  - [ ] Vendors repository (MongoDB: `core_db.vendors`)
+  - [ ] Vendor CRUD gRPC methods
+  - [ ] Vendor approval workflow
+  - [ ] Event publishing: `vendor.created`, `vendor.approved`, `vendor.rejected`
 - [ ] Inventory module
+  - [ ] Inventory repository (MongoDB: `core_db.inventory`)
+  - [ ] Stock management operations
+  - [ ] Inventory tracking and adjustments
+  - [ ] Event publishing: `inventory.updated`, `inventory.low_stock`
+- [ ] Shared infrastructure
+  - [ ] Business rules and validation framework
+  - [ ] Transaction management
+  - [ ] Kafka event publisher integration
+  - [ ] Multi-tenancy filtering (tenant_id in all queries)
 
-**Port:** 5001
+**Completed Modules:**
+- ✅ Users module (Priority 3)
+
+**Port:** 5001 (shared with User Service)
 
 ---
 
-### Phase 3: Integration Layer 🔗
+### Phase 3: Quality Assurance 🧪
 
-#### 4. Gateway (Priority 4) 🌐
+#### 5. Functional Testing Infrastructure (Priority 4) 🐍
 **Status:** ⬜ Not Started
 
-**Why Fourth:** Single entry point for WebUI. Depends on Auth and Core services being ready.
+**Why Fourth:** Auth, Config, and User services are ready to test. Building test infrastructure now prevents technical debt and ensures quality before adding more services.
+
+**Prerequisites:**
+- ✅ Auth Service (to test authentication flows)
+- ✅ Config Service (to test configuration management)
+- ✅ Core User Service (to test user CRUD, needed for test setup/cleanup)
+
+**Dependencies:**
+- Python 3.10+ (for test framework)
+- gRPC Python libraries (grpcio, grpcio-tools)
+- Proto files (must generate Python code from .proto files)
+- pytest (test runner)
+- Docker (for running MongoDB and Redis during tests)
+
+**What to Build:**
+- [ ] Python test framework structure
+  - [ ] Common test utilities module (`tests/common/`)
+  - [ ] Generic gRPC client utilities
+  - [ ] Test fixtures and helpers
+  - [ ] Configuration management for test environments
+- [ ] Proto generation for Python
+  - [ ] Modify `make proto` to generate Go + Python proto files
+  - [ ] Add `make proto-python` target
+  - [ ] Python proto output directory (`tests/proto/`)
+  - [ ] Update `.gitignore` for Python generated files
+- [ ] Test organization structure
+  - [ ] Create `functional/` folder in each module:
+    - [ ] `internal/auth/functional/`
+    - [ ] `internal/config/functional/`
+    - [ ] `internal/core/functional/`
+  - [ ] Each module has its own test suite
+- [ ] Test lifecycle structure (Pre-test → Test → Post-test)
+  - [ ] **Pre-test**: Setup test data (create users, tenants, roles via gRPC)
+  - [ ] **Actual test**: Execute the flow being tested (black-box approach)
+  - [ ] **Post-test**: Cleanup test data (delete created resources)
+  - [ ] Fixtures for common setup/teardown patterns
+- [ ] Generic gRPC client implementation
+  - [ ] Connection management (connect to services)
+  - [ ] Credential handling (JWT tokens for authenticated calls)
+  - [ ] Request/response helpers
+  - [ ] Error handling utilities
+- [ ] Test documentation
+  - [ ] How to run functional tests
+  - [ ] How to add new test cases
+  - [ ] Test environment setup guide
+
+**Test Structure Example:**
+```python
+def test_user_login_flow():
+    # Pre-test: Setup
+    tenant = create_test_tenant()
+    user = create_test_user(tenant_id=tenant.id)
+
+    # Actual test
+    response = auth_client.authenticate(
+        email=user.email,
+        password="test_password",
+        tenant_id=tenant.id
+    )
+    assert response.access_token is not None
+    assert response.user_id == user.id
+
+    # Post-test: Cleanup
+    delete_test_user(user.id)
+    delete_test_tenant(tenant.id)
+```
+
+**Deliverables:**
+- Python test framework with reusable utilities
+- Proto generation pipeline for Python
+- Functional test structure in each module
+- Documentation and examples
+
+---
+
+#### 6. Functional Tests - Auth, Config, User (Priority 5) ✅
+**Status:** ⬜ Not Started
+
+**Why Fifth:** Tests the three completed services (Auth, Config, User) using the newly built testing infrastructure. Validates end-to-end flows work correctly.
+
+**Prerequisites:**
+- ✅ Functional Testing Infrastructure (Priority 4)
+- ✅ Auth Service (service to test)
+- ✅ Config Service (service to test)
+- ✅ Core User Service (service to test)
+
+**What to Build:**
+- [ ] Auth Service functional tests (`internal/auth/functional/`)
+  - [ ] `test_authentication.py` - Login, logout, token validation
+  - [ ] `test_token_refresh.py` - Token refresh and rotation
+  - [ ] `test_token_revocation.py` - Single token revoke, revoke all
+  - [ ] `test_permissions.py` - CheckPermissions endpoint
+  - [ ] `test_rbac.py` - Role-based access control flows
+  - [ ] `test_multi_tenant.py` - Multi-tenant isolation (user in tenant A cannot access tenant B resources)
+- [ ] Config Service functional tests (`internal/config/functional/`)
+  - [ ] `test_get_config.py` - Get configuration values
+  - [ ] `test_set_config.py` - Update configuration (with permissions)
+  - [ ] `test_config_permissions.py` - RBAC for configuration access
+  - [ ] `test_config_validation.py` - Invalid configuration rejection
+- [ ] User Service functional tests (`internal/core/functional/`)
+  - [ ] `test_user_crud.py` - Create, read, update, delete users
+  - [ ] `test_user_permissions.py` - RBAC for user operations
+  - [ ] `test_user_multi_tenant.py` - User isolation per tenant
+  - [ ] `test_user_pagination.py` - List users with pagination
+- [ ] Integration/End-to-end tests
+  - [ ] `test_full_user_lifecycle.py` - Login → Create User → Logout → Cleanup
+  - [ ] `test_permission_enforcement.py` - User without permission cannot perform action
+
+**Test Coverage Goals:**
+- Positive test cases (happy path)
+- Negative test cases (errors, invalid inputs)
+- Edge cases (boundary conditions)
+- Multi-tenancy isolation verification
+- RBAC enforcement verification
+
+**Deliverables:**
+- Comprehensive functional test suite for Auth, Config, User services
+- Test reports and coverage metrics
+- CI/CD integration (optional)
+
+---
+
+### Phase 5: Security Enhancement 🔒
+
+#### 7. Config Service - mTLS & Two-Tier RBAC (Priority 6) 🔐
+**Status:** ⬜ Not Started
+
+**Why Sixth:** Enhances Config service security with production-grade mTLS and certificate-based module authentication. Now that basic functionality is proven via functional tests, we can add enterprise-level security.
+
+**Prerequisites:**
+- ✅ Config Service Phase 1 (simple version working)
+- ✅ Functional tests passing (Config service validated)
+
+**Dependencies:**
+- PKI infrastructure (certificate authority, cert generation tools)
+- TLS/mTLS libraries (Go crypto/tls)
+- Certificate storage (filesystem or secrets manager)
+
+**What to Build:**
+- [ ] PKI Infrastructure
+  - [ ] Certificate Authority (CA) setup
+  - [ ] Certificate generation scripts/tools
+  - [ ] Certificate storage strategy
+  - [ ] Certificate rotation mechanism
+  - [ ] Expiration monitoring and alerts
+- [ ] mTLS Implementation for Config Service
+  - [ ] Server-side mTLS configuration
+  - [ ] Client certificate validation
+  - [ ] TLS handshake and mutual authentication
+  - [ ] Graceful fallback for local development (disable mTLS in dev mode)
+- [ ] Two-Tier RBAC Implementation
+  - [ ] **Tier 1: Module-Level Authentication (Certificate Validation)**
+    - [ ] Extract module identity from client certificate (Subject CN or SAN)
+    - [ ] Validate module can access requested configuration scope
+    - [ ] Example: Core module can only access `core.*` configs, not `auth.*`
+    - [ ] Enforcement: Reject requests from unauthorized modules
+  - [ ] **Tier 2: User-Level Authorization (Auth Service Integration)**
+    - [ ] Extract user identity from request context (already implemented in Phase 1)
+    - [ ] Call Auth.CheckPermissions to verify user permissions
+    - [ ] Example: User must have `config:write` permission to update configs
+    - [ ] Enforcement: Reject requests from users without proper permissions
+  - [ ] Combined enforcement: Both tiers must pass for request to succeed
+- [ ] Module Certificate Distribution
+  - [ ] Auth service certificate
+  - [ ] Core service certificate
+  - [ ] Config service certificate (for self-access)
+  - [ ] Gateway service certificate (future)
+- [ ] Update Config proto
+  - [ ] Add metadata fields for certificate-based auth
+  - [ ] Version config API if needed
+- [ ] Documentation
+  - [ ] mTLS setup guide
+  - [ ] Certificate generation and distribution procedures
+  - [ ] Two-tier RBAC architecture diagram
+  - [ ] Troubleshooting guide
+
+**Security Model:**
+```
+Request Flow with Two-Tier RBAC:
+1. Client connects with mTLS certificate
+2. Config service validates certificate (Tier 1: Module authentication)
+   - Extract module identity from cert
+   - Check if module can access config scope (e.g., core.* configs)
+3. Config service extracts user from request metadata
+4. Config service calls Auth.CheckPermissions (Tier 2: User authorization)
+   - Verify user has permission (e.g., config:read, config:write)
+5. Both checks pass → Process request
+6. Either check fails → Reject with appropriate error
+```
+
+**Benefits:**
+- ✅ Production-grade security
+- ✅ Module-level isolation (core can't read auth configs)
+- ✅ User-level permissions (not all users can change configs)
+- ✅ Mutual authentication via mTLS
+- ✅ Certificate-based service identity
+
+**Port:** 5002 (same as Config Service Phase 1)
+
+---
+
+### Phase 6: Integration Layer 🔗
+
+#### 8. Gateway (Priority 8) 🌐
+**Status:** ⬜ Not Started (Deferred after functional testing and security enhancements)
+
+**Why Eighth:** Single entry point for WebUI. Depends on Auth and Core services being ready. Deferred until core services and testing are complete.
 
 **Prerequisites:**
 - ✅ Auth Service (JWT validation)
@@ -662,10 +945,10 @@ mockHandler.EXPECT().
 
 ---
 
-#### 5. Events Service (Priority 5) 📡
-**Status:** ⬜ Not Started
+#### 9. Events Service (Priority 9) 📡
+**Status:** ⬜ Not Started (Deferred)
 
-**Why Fifth:** Consumes events from Kafka. Can be built in parallel with Gateway.
+**Why Ninth:** Consumes events from Kafka. Deferred until Core service modules are implemented and generating events.
 
 **Dependencies:**
 - Core Service (consumes its events)
@@ -690,12 +973,12 @@ mockHandler.EXPECT().
 
 ---
 
-### Phase 4: Frontend 🎨
+### Phase 7: Frontend 🎨
 
-#### 6. WebUI (Priority 6) 💻
-**Status:** ⬜ Not Started
+#### 10. WebUI (Priority 10) 💻
+**Status:** ⬜ Not Started (Deferred)
 
-**Why Last:** Depends on Gateway being ready to provide GraphQL API.
+**Why Last:** Depends on Gateway being ready to provide GraphQL API. Final phase after all backend services are complete.
 
 **Dependencies:**
 - Gateway (GraphQL API)

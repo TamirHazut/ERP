@@ -8,6 +8,7 @@ import (
 	"erp.localhost/internal/auth/models"
 	auth_models "erp.localhost/internal/auth/models/cache"
 	handlers_mocks "erp.localhost/internal/auth/token/handlers/mocks"
+	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
 	"github.com/stretchr/testify/assert"
@@ -147,7 +148,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			tm := &TokenManager{
 				accessTokenHandler:  accessMock,
 				refreshTokenHandler: refreshMock,
-				logger:              logging.NewLogger(logging.ModuleAuth),
+				logger:              logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			err := tm.StoreTokens(
@@ -219,7 +220,7 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 
 			tm := &TokenManager{
 				accessTokenHandler: mock,
-				logger:             logging.NewLogger(logging.ModuleAuth),
+				logger:             logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			metadata, err := tm.ValidateAccessTokenFromRedis(tc.tenantID, tc.userID, tc.tokenID)
@@ -289,7 +290,7 @@ func TestTokenManager_ValidateRefreshToken(t *testing.T) {
 
 			tm := &TokenManager{
 				refreshTokenHandler: mock,
-				logger:              logging.NewLogger(logging.ModuleAuth),
+				logger:              logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			token, err := tm.ValidateRefreshTokenFromRedis(tc.tenantID, tc.userID, tc.tokenID)
@@ -366,7 +367,7 @@ func TestTokenManager_RevokeAllTokens(t *testing.T) {
 			tm := &TokenManager{
 				accessTokenHandler:  accessMock,
 				refreshTokenHandler: refreshMock,
-				logger:              logging.NewLogger(logging.ModuleAuth),
+				logger:              logging.NewLogger(common_models.ModuleAuth),
 			}
 
 			err := tm.RevokeAllTokens(tc.tenantID, tc.userID, tc.revokedBy)

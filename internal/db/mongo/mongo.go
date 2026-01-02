@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,7 +21,7 @@ type MongoDBManager struct {
 }
 
 func NewMongoDBManager(dbName DBName) *MongoDBManager {
-	logger := logging.NewLogger(logging.ModuleDB)
+	logger := logging.NewLogger(common_models.ModuleDB)
 	db := GetDBNameFromCollection(string(dbName))
 	if db == "" {
 		logger.Fatal("db not found", "db", dbName)

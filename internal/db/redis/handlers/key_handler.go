@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	common_models "erp.localhost/internal/common/models"
 	db "erp.localhost/internal/db"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
@@ -16,7 +17,7 @@ type BaseKeyHandler[T any] struct {
 
 func NewBaseKeyHandler[T any](dbHandler db.DBHandler, logger *logging.Logger) *BaseKeyHandler[T] {
 	if logger == nil {
-		logger = logging.NewLogger(logging.ModuleDB)
+		logger = logging.NewLogger(common_models.ModuleDB)
 	}
 	if dbHandler == nil {
 		logger.Error("DBHandler is nil")

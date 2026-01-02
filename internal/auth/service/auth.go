@@ -13,6 +13,7 @@ import (
 	"erp.localhost/internal/auth/rbac"
 	token "erp.localhost/internal/auth/token/manager"
 	token_manager "erp.localhost/internal/auth/token/manager"
+	common_models "erp.localhost/internal/common/models"
 	mongo "erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
@@ -47,12 +48,12 @@ type AuthService struct {
 }
 
 func newCollectionHandler[T any](collection string) *mongo.BaseCollectionHandler[T] {
-	logger := logging.NewLogger(logging.ModuleAuth)
+	logger := logging.NewLogger(common_models.ModuleAuth)
 	return mongo.NewBaseCollectionHandler[T](string(collection), logger)
 }
 
 func NewAuthService() *AuthService {
-	logger := logging.NewLogger(logging.ModuleAuth)
+	logger := logging.NewLogger(common_models.ModuleAuth)
 	userCollectionHandler := newCollectionHandler[models.User](string(mongo.UsersCollection))
 	if userCollectionHandler == nil {
 		logger.Fatal("failed to create users collection handler")
@@ -95,7 +96,9 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 	// Validate email or username are provided
 	authEmail := true
 	if email == "" && username == "" {
-		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "email", "username").Error())
+		err := erp_errors.Validation(erp_errors.ValidationRequiredFields, "email", "username").Error()
+		s.logger.Error(err, "function", "Authenticate")
+		return nil, status.Error(codes.InvalidArgument, err)
 	} else if username != "" {
 		authEmail = false
 	}
@@ -300,18 +303,40 @@ func (s *AuthService) CheckPermissions(ctx context.Context, req *auth_proto.Chec
 }
 
 func (s *AuthService) revokeTokens(user *auth_proto.UserIdentifier, tokens *auth_proto.Tokens, requestBy string) error {
+	if user == nil || user.TenantId == "" || user.UserId == "" {
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "user")
+	}
+	if requestBy == "" {
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "requestedBy")
+	}
+
+	var requestor *models.User
+	var err error
+	if tokens.AccessToken != "" || tokens.RefreshToken != "" {
+		requestor, err = s.userCollection.GetUserByUsername(user.TenantId, requestBy)
+		if err != nil {
+			return erp_errors.Validation(erp_errors.ValidationRequiredFields, "permissions")
+		}
+	}
 	if tokens.AccessToken != "" {
-		// TODO: Add validation if user has permission to revoke access token
-		err := s.tokenManager.RevokeAccessToken(tokens.AccessToken, requestBy)
+		// Validate user permission to revoke access_token
+		permission, _ := models.CreatePermissionString(models.ResourceAccessToken, models.PermissionActionDelete)
+		if err = s.rbacManager.HasPermission(requestor.TenantID, requestor.ID.String(), permission); err != nil {
+			return err
+		}
+
+		err = s.tokenManager.RevokeAccessToken(tokens.AccessToken, requestBy)
 		if err != nil {
 			return err
 		}
 	}
 	if tokens.RefreshToken != "" {
-		// TODO: Add validation if user has permission to revoke refresh token
-		if user == nil || user.TenantId == "" || user.UserId == "" {
-			return erp_errors.Validation(erp_errors.ValidationRequiredFields, "user")
+		// Validate user permission to revoke refresh_token
+		permission, _ := models.CreatePermissionString(models.ResourceRefreshToken, models.PermissionActionDelete)
+		if err = s.rbacManager.HasPermission(requestor.TenantID, requestor.ID.String(), permission); err != nil {
+			return err
 		}
+
 		err := s.tokenManager.RevokeRefreshToken(user.TenantId, user.UserId, tokens.RefreshToken, requestBy, false)
 		if err != nil {
 			return err

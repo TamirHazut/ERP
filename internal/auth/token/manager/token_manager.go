@@ -11,6 +11,7 @@ import (
 	"erp.localhost/internal/auth/models"
 	auth_models "erp.localhost/internal/auth/models/cache"
 	handlers "erp.localhost/internal/auth/token/handlers"
+	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
 	"github.com/google/uuid"
@@ -83,7 +84,7 @@ func (i *GenerateAccessTokenInput) Validate() error {
 
 // NewTokenManager creates a new TokenManager
 func NewTokenManager(secretKey string, tokenDuration time.Duration, refreshTokenDuration time.Duration) *TokenManager {
-	logger := logging.NewLogger(logging.ModuleAuth)
+	logger := logging.NewLogger(common_models.ModuleAuth)
 	if secretKey == "" {
 		logger.Fatal("secret key is required")
 		return nil

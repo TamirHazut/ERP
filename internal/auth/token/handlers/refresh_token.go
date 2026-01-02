@@ -6,6 +6,7 @@ import (
 
 	"erp.localhost/internal/auth/models"
 	token "erp.localhost/internal/auth/token"
+	common_models "erp.localhost/internal/common/models"
 	redis "erp.localhost/internal/db/redis"
 	redis_handlers "erp.localhost/internal/db/redis/handlers"
 	erp_errors "erp.localhost/internal/errors"
@@ -24,7 +25,7 @@ type RefreshTokenHandler struct {
 // NewRefreshTokenHandler creates a new RefreshTokenHandler
 func NewRefreshTokenHandler(keyHandler redis_handlers.KeyHandler[models.RefreshToken], tokenIndex *token.TokenIndex, logger *logging.Logger) *RefreshTokenHandler {
 	if logger == nil {
-		logger = logging.NewLogger(logging.ModuleAuth)
+		logger = logging.NewLogger(common_models.ModuleAuth)
 	}
 	if keyHandler == nil {
 		dbHandler := redis.NewBaseRedisHandler(redis.KeyPrefix(redis.RedisKeyRefreshToken))

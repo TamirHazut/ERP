@@ -8,6 +8,7 @@ import (
 
 	auth_proto "erp.localhost/internal/auth/proto/auth/v1"
 	service "erp.localhost/internal/auth/service"
+	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
 	"google.golang.org/grpc"
@@ -49,7 +50,7 @@ func getmTLSServerOptions(logger *logging.Logger) []grpc.ServerOption {
 }
 
 func StartGRPCServer() {
-	logger := logging.NewLogger(logging.ModuleAuth)
+	logger := logging.NewLogger(common_models.ModuleAuth)
 	lis, err := net.Listen("tcp", ":5000")
 	if err != nil {
 		logger.Fatal("failed to listen", "error", erp_errors.Internal(erp_errors.InternalGRPCError, err))

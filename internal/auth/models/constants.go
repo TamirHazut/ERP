@@ -1,6 +1,11 @@
 package models
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+
+	erp_errors "erp.localhost/internal/errors"
+)
 
 /* User */
 // User statuses
@@ -51,18 +56,27 @@ func IsValidTenantStatus(tenantStatus string) bool {
 }
 
 /* RBAC */
+func CreatePermissionString(resource string, action string) (string, error) {
+	resource = strings.ToLower(resource)
+	if !IsValidResourceType(resource) {
+		return "", erp_errors.Validation(erp_errors.ValidationInvalidType, "resource")
+	}
+	action = strings.ToLower(action)
+	if !IsValidPermissionAction(action) {
+		return "", erp_errors.Validation(erp_errors.ValidationInvalidType, "action")
+	}
+
+	return fmt.Sprintf("%s:%s", resource, action), nil
+}
+
 // Permission formats
 const (
-	PermissionWildcard = "*:*"
-	PermissionFormat   = "[resource]:[action]"
+	PermissionFormat = "[resource]:[action]"
 )
 
 func IsValidPermissionFormat(permissionFormat string) bool {
 	if permissionFormat == "" {
 		return false
-	}
-	if permissionFormat == PermissionWildcard {
-		return true
 	}
 	permissionFormat = strings.ToLower(permissionFormat)
 
@@ -78,6 +92,7 @@ func IsValidPermissionFormat(permissionFormat string) bool {
 
 // Permission actions
 const (
+	PermissionActionAll    = "*"
 	PermissionActionCreate = "create"
 	PermissionActionRead   = "read"
 	PermissionActionUpdate = "update"
@@ -129,6 +144,8 @@ const (
 	ResourceTypeCustomer   = "customer"
 	ResourceTypeConfig     = "config"
 	ResourceTypeTenant     = "tenant"
+	ResourceRefreshToken   = "refresh_token"
+	ResourceAccessToken    = "access_token"
 )
 
 func IsValidResourceType(resourceType string) bool {
@@ -147,6 +164,8 @@ func IsValidResourceType(resourceType string) bool {
 		ResourceTypeCustomer:   true,
 		ResourceTypeConfig:     true,
 		ResourceTypeTenant:     true,
+		ResourceRefreshToken:   true,
+		ResourceAccessToken:    true,
 	}
 
 	return validResourceTypes[resourceType]
@@ -196,17 +215,14 @@ func IsValidCategory(category string) bool {
 	return validCategories[category]
 }
 
-/* Actions */
-const (
-	ActionSystemWildcard = "*:*"
-)
-
+/* Audit logs Actions */
 // Auth Actions
 const (
 	ActionLogin           = "login"
 	ActionLogout          = "logout"
 	ActionLogoutAll       = "logout_all"
 	ActionTokenRefresh    = "token_refresh"
+	ActionTokenRevoke     = "token_revoke"
 	ActionPasswordChanged = "password_changed"
 	ActionPasswordReset   = "password_reset"
 	ActionForcedLogout    = "forced_logout"
@@ -299,13 +315,13 @@ const (
 	ActionRightToBeForgotten = "right_to_be_forgotten"
 )
 
-func IsValidAction(action string) bool {
+func IsValidAuditAction(action string) bool {
 	if action == "" {
 		return false
 	}
 	action = strings.ToLower(action)
 	validActions := map[string]bool{
-		ActionSystemWildcard:      true,
+		// ActionSystemWildcard:      true,
 		ActionLogin:               true,
 		ActionLogout:              true,
 		ActionLogoutAll:           true,

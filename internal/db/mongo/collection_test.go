@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	common_models "erp.localhost/internal/common/models"
 	db_mocks "erp.localhost/internal/db/mocks"
 	"erp.localhost/internal/logging"
 	"github.com/stretchr/testify/assert"
@@ -51,7 +52,7 @@ func TestCollection_Create(t *testing.T) {
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
 				collection: tc.collection,
-				logger:     logging.NewLogger(logging.ModuleDB),
+				logger:     logging.NewLogger(common_models.ModuleDB),
 			}
 
 			id, err := collectionHanlder.Create(tc.data)
@@ -106,7 +107,7 @@ func TestCollection_FindOne(t *testing.T) {
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
 				collection: tc.collection,
-				logger:     logging.NewLogger(logging.ModuleDB),
+				logger:     logging.NewLogger(common_models.ModuleDB),
 			}
 			result, err := collectionHanlder.FindOne(tc.filter)
 			if tc.returnError != nil {
@@ -169,7 +170,7 @@ func TestCollection_FindAll(t *testing.T) {
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
 				collection: tc.collection,
-				logger:     logging.NewLogger(logging.ModuleDB),
+				logger:     logging.NewLogger(common_models.ModuleDB),
 			}
 			results, err := collectionHanlder.FindAll(tc.filter)
 			if tc.returnError != nil {
@@ -227,7 +228,7 @@ func TestCollection_Update(t *testing.T) {
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
 				collection: tc.collection,
-				logger:     logging.NewLogger(logging.ModuleDB),
+				logger:     logging.NewLogger(common_models.ModuleDB),
 			}
 			err := collectionHanlder.Update(tc.filter, tc.item)
 			if tc.returnError != nil {
@@ -280,7 +281,7 @@ func TestCollection_Delete(t *testing.T) {
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
 				collection: tc.collection,
-				logger:     logging.NewLogger(logging.ModuleDB),
+				logger:     logging.NewLogger(common_models.ModuleDB),
 			}
 			err := collectionHanlder.Delete(tc.filter)
 			if tc.returnError != nil {
