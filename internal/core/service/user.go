@@ -5,11 +5,11 @@ import (
 
 	collection "erp.localhost/internal/core/collections"
 	user_proto "erp.localhost/internal/core/proto/user/v1"
-	mongo "erp.localhost/internal/db/mongo"
-	"erp.localhost/internal/logging"
-	shared_models "erp.localhost/internal/shared/models"
-	core_models "erp.localhost/internal/shared/models/core"
-	mongo_models "erp.localhost/internal/shared/models/db/mongo"
+	mongo "erp.localhost/internal/infra/db/mongo"
+	"erp.localhost/internal/infra/logging"
+	core_models "erp.localhost/internal/infra/models/core"
+	mongo_models "erp.localhost/internal/infra/models/db/mongo"
+	shared_models "erp.localhost/internal/infra/models/shared"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

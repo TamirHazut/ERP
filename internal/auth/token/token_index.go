@@ -3,12 +3,12 @@ package token
 import (
 	"time"
 
-	"erp.localhost/internal/db/redis"
-	redis_handlers "erp.localhost/internal/db/redis/handlers"
-	erp_errors "erp.localhost/internal/errors"
-	logging "erp.localhost/internal/logging"
-	shared_models "erp.localhost/internal/shared/models"
-	redis_models "erp.localhost/internal/shared/models/db/redis"
+	"erp.localhost/internal/infra/db/redis"
+	redis_handlers "erp.localhost/internal/infra/db/redis/handlers"
+	erp_errors "erp.localhost/internal/infra/errors"
+	logging "erp.localhost/internal/infra/logging"
+	redis_models "erp.localhost/internal/infra/models/db/redis"
+	shared_models "erp.localhost/internal/infra/models/shared"
 )
 
 var (

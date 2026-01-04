@@ -1,7 +1,7 @@
 package auth
 
 import (
-	erp_errors "erp.localhost/internal/errors"
+	erp_errors "erp.localhost/internal/infra/errors"
 	passwordvalidator "github.com/wagslane/go-password-validator"
 	"golang.org/x/crypto/bcrypt"
 )

@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"erp.localhost/internal/config/utils"
-	"erp.localhost/internal/logging"
-	shared_models "erp.localhost/internal/shared/models"
+	"erp.localhost/internal/infra/logging"
+	shared_models "erp.localhost/internal/infra/models/shared"
 )
 
 var (

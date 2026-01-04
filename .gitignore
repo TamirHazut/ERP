@@ -24,3 +24,10 @@ coverage.html
 *.md
 !README.md
 !ROADMAP.md
+
+# Certificates (mTLS) - NEVER commit private keys!
+resources/certs/
+**/resources/certs/
+*.pem
+*.csr
+*.key

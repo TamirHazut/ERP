@@ -15,8 +15,8 @@ Before starting service development, we need to set up foundational infrastructu
 **Why First:** All inter-service communication uses gRPC. Must be set up before any service development.
 
 **What to Build:**
-- [x] Create proto files directory structure (service-specific proto dirs + `proto/common/`)
-  - [x] `proto/common/` - Shared types
+- [x] Create proto files directory structure (service-specific proto dirs + `internal/infra/proto/`)
+  - [x] `internal/infra/proto/` - Shared types
   - [x] `internal/auth/proto/` - Auth service proto files
   - [x] `internal/config/proto/` - Config service proto files
   - [x] `internal/core/proto/` - Core service proto files
@@ -32,7 +32,7 @@ Before starting service development, we need to set up foundational infrastructu
   - [x] PowerShell script for Windows (`scripts/generate-proto.ps1`)
   - [x] Bash script for Linux/Mac (`scripts/generate-proto.sh`)
 - [x] Create proto file template/structure for services
-  - [x] Common proto file (`proto/common/common.proto`)
+  - [x] Common proto file (`internal/infra/proto/shared.proto`)
   - [x] Template documentation in `docs/proto/README.md`
 - [x] Document proto generation workflow
 
@@ -40,10 +40,8 @@ Before starting service development, we need to set up foundational infrastructu
 
 **Directory Structure:**
 ```
-proto/
-├── common/              # Shared types (errors, base messages)
-
 internal/
+├── infra/proto/         # Shared types (errors, base messages)
 ├── auth/proto/          # Auth service proto files
 ├── config/proto/        # Config service proto files
 ├── core/proto/          # Core service proto files
@@ -79,21 +77,21 @@ internal/
 
 **What to Build:**
 - [x] Define gRPC error codes mapping
-  - [x] `internal/errors/grpc.go` - ToGRPCError/FromGRPCError functions
+  - [x] `internal/infra/errors/grpc.go` - ToGRPCError/FromGRPCError functions
   - [x] Category to gRPC code mapping (AUTH → Unauthenticated, VALIDATION → InvalidArgument, etc.)
 - [x] Create error handling utilities
-  - [x] `internal/errors/errors.go` - AppError type with constructors
+  - [x] `internal/infra/errors/errors.go` - AppError type with constructors
   - [x] Helper functions: New(), Wrap(), Auth(), Validation(), NotFound(), Conflict(), Business(), Internal()
 - [x] Document error response format
-  - [x] Updated `proto/common/common.proto` with ErrorCategory enum and enhanced Error message
+  - [x] Updated `internal/infra/proto/shared.proto` with ErrorCategory enum and enhanced Error message
 - [x] Create common error types
-  - [x] `internal/errors/codes.go` - Categorized error codes (AUTH, VALIDATION, NOT_FOUND, CONFLICT, BUSINESS, INTERNAL)
+  - [x] `internal/infra/errors/codes.go` - Categorized error codes (AUTH, VALIDATION, NOT_FOUND, CONFLICT, BUSINESS, INTERNAL)
 
 **Files Created:**
-- `internal/errors/errors.go` - Core error types and constructors
-- `internal/errors/codes.go` - Error code definitions by category
-- `internal/errors/grpc.go` - gRPC status code mapping
-- `internal/errors/errors_test.go` - Unit tests for error handling
+- `internal/infra/errors/errors.go` - Core error types and constructors
+- `internal/infra/errors/codes.go` - Error code definitions by category
+- `internal/infra/errors/grpc.go` - gRPC status code mapping
+- `internal/infra/errors/errors_test.go` - Unit tests for error handling
 
 ---
 
@@ -170,64 +168,80 @@ internal/
 
 **What was Built:**
 - [x] **Major Architecture Refactoring**:
-  - [x] `common/` directory renamed to `shared/`
-  - [x] All models centralized in `shared/models/<module>/`
+  - [x] `common/` directory renamed to `infra/` and moved to `internal/infra/`
+  - [x] All shared infrastructure consolidated in `internal/infra/`
   - [x] User collection ownership moved from Auth → Core module
   - [x] RBAC manager refactored to only check permissions (no user CRUD)
   - [x] Audit log ownership moved from Auth → Events module
-- [x] Organized models by module for easier cross-service access
-- [x] `shared/models/auth/` - Auth models (Tenant, Role, Permission, Token, Session, etc.)
-- [x] `shared/models/core/` - Core models (User, Product, Order, Vendor, Customer, Inventory, etc.)
-- [x] `shared/models/config/` - Config models (ServiceConfig, FeatureFlag)
-- [x] `shared/models/gateway/` - Gateway models (RateLimitInfo, QueryCache, etc.)
-- [x] `shared/models/events/` - Events models (AuditLog, etc.)
+- [x] Organized infrastructure by purpose for easier management
+- [x] `internal/infra/models/auth/` - Auth models (Tenant, Role, Permission, Token, Session, etc.)
+- [x] `internal/infra/models/core/` - Core models (User, Product, Order, Vendor, Customer, Inventory, etc.)
+- [x] `internal/infra/models/config/` - Config models (ServiceConfig, FeatureFlag)
+- [x] `internal/infra/models/gateway/` - Gateway models (RateLimitInfo, QueryCache, etc.)
+- [x] `internal/infra/models/events/` - Events models (AuditLog, etc.)
 - [x] Validation methods on all models (`Validate(createOperation bool)`)
 
 **Directory Structure:**
 ```
-shared/
-└── models/
-    ├── auth/         # Auth models
-    ├── core/         # Core models (User, Product, Order, etc.)
-    ├── config/       # Config models
-    ├── gateway/      # Gateway models
-    └── events/       # Events models (AuditLog, etc.)
-
 internal/
-├── auth/
-│   ├── proto/        # Auth service proto
-│   └── repository/
-│       ├── roles_repo.go
-│       ├── permissions_repo.go
-│       └── tenants_repo.go
-└── core/
-    ├── proto/        # Core service proto
-    └── repository/
-        └── users_repo.go  # User repo (moved from Auth)
+├── infra/                          # All shared infrastructure
+│   ├── models/                     # Domain models by module
+│   │   ├── auth/                   # Tenant, Role, Permission, Token, Session, etc.
+│   │   ├── core/                   # User, Product, Order, Vendor, Inventory, etc.
+│   │   ├── config/                 # ServiceConfig, FeatureFlag
+│   │   ├── gateway/                # RateLimitInfo, QueryCache
+│   │   ├── events/                 # AuditLog, etc.
+│   │   └── shared/                 # All Shared models
+│   ├── grpc/                       # Generic gRPC infrastructure (to be built)
+│   ├── proto/                      # Shared proto definitions
+│   ├── errors/                     # Error handling utilities
+│   ├── db/                         # Database interfaces (MongoDB, Redis)
+│   ├── logging/                    # Logging utilities
+│   └── events/                     # Event publishing/consuming
+│
+├── auth/                           # Auth service
+│   ├── proto/                      # Auth-specific proto
+│   ├── repository/                 # Roles, Permissions, Tenants repos
+│   ├── token/                      # Token management
+│   └── rbac/                       # RBAC manager
+│
+├── core/                           # Core service
+│   ├── proto/                      # Core-specific proto (user.proto, etc.)
+│   └── repository/                 # Users repo
+│
+├── config/                         # Config service
+├── gateway/                        # Gateway service
+└── events/                         # Events service
 ```
 
 **Impact on Services:**
 - ⚠️ Auth Service: Has TODOs for Core User service integration
-- ⚠️ Unit Tests: Need updates for new import paths and architecture
+- ⚠️ Unit Tests: Need updates for new import paths (`internal/infra/...`)
 
 ---
 
-## Code Quality Initiative: Model Reorganization 📦
+## Code Quality Initiative: Infrastructure Consolidation 📦
 
-**Status:** ✅ Complete - Models Centralized to `shared/models/`
+**Status:** ✅ Complete - All shared code centralized to `internal/infra/`
 
-**Why Important:** Centralized model management in `shared/models/<module>/` improves cross-service access, eliminates circular dependencies, and provides clear module boundaries.
+**Why Important:** Centralized infrastructure management in `internal/infra/` improves code organization, eliminates circular dependencies, and provides clear separation between services and shared utilities.
 
 **What Was Done:**
 
 ### ✅ Major Architecture Refactoring (100% Complete)
-- [x] **Directory Restructure**: `common/` → `shared/`
-- [x] **Model Centralization**: All models moved from `internal/{module}/models/` → `shared/models/{module}/`
-  - [x] `shared/models/auth/` - Auth models (Tenant, Role, Permission, Token, Session, etc.)
-  - [x] `shared/models/core/` - Core models (User, Product, Order, Vendor, Customer, Inventory, etc.)
-  - [x] `shared/models/config/` - Config models (ServiceConfig, FeatureFlag, etc.)
-  - [x] `shared/models/gateway/` - Gateway models (RateLimitInfo, QueryCache, etc.)
-  - [x] `shared/models/events/` - Events models (AuditLog, etc.)
+- [x] **Directory Restructure**: `common/` → `internal/infra/`
+- [x] **Infrastructure Consolidation**: All shared code moved to `internal/infra/`
+  - [x] `internal/infra/models/` - Domain models by module
+    - [x] `internal/infra/models/auth/` - Auth models (Tenant, Role, Permission, Token, Session, etc.)
+    - [x] `internal/infra/models/core/` - Core models (User, Product, Order, Vendor, Customer, Inventory, etc.)
+    - [x] `internal/infra/models/config/` - Config models (ServiceConfig, FeatureFlag, etc.)
+    - [x] `internal/infra/models/gateway/` - Gateway models (RateLimitInfo, QueryCache, etc.)
+    - [x] `internal/infra/models/events/` - Events models (AuditLog, etc.)
+  - [x] `internal/infra/proto/` - Shared proto definitions
+  - [x] `internal/infra/errors/` - Error handling (moved from `internal/errors/`)
+  - [x] `internal/infra/db/` - Database interfaces (moved from `internal/db/`)
+  - [x] `internal/infra/logging/` - Logging utilities (moved from `internal/logging/`)
+  - [x] `internal/infra/events/` - Event infrastructure (moved from `internal/events/`)
 - [x] **Service Ownership Changes**:
   - [x] User collection: Auth → Core module
   - [x] Audit log: Auth → Events module
@@ -235,19 +249,20 @@ internal/
 - [x] **TODO Comments**: Added throughout for cross-service dependencies
 
 **Benefits Achieved:**
-- ✅ Centralized model management - all models in one location
-- ✅ Clear module boundaries - models organized by business domain
+- ✅ Single source of truth - all infrastructure in `internal/infra/`
+- ✅ Clear separation - services vs infrastructure
 - ✅ Easier cross-service sharing - no circular dependencies
-- ✅ Simplified imports - `shared/models/auth`, `shared/models/core`, etc.
-- ✅ Better separation of concerns - services own business logic, models are shared
+- ✅ Simplified imports - `internal/infra/models/auth`, `internal/infra/db`, etc.
+- ✅ Future-proof - easy to extract as separate module
 
 **Impact:**
-- ⚠️ Import paths need updates: `internal/{module}/models` → `shared/models/{module}`
+- ⚠️ Import paths need updates: `internal/{module}/models` → `internal/infra/models/{module}`
+- ⚠️ Infrastructure imports: `internal/errors` → `internal/infra/errors`, etc.
 - ⚠️ Auth service has TODOs for Core User service integration
 - ⚠️ Unit tests need fixes for new architecture
 
 **Previous Breakdown Work (Preserved):**
-The detailed model breakdown work from the previous organization (breaking monolithic `models.go` into focused files) has been preserved during the move to `shared/`. Models are still organized by entity with validation methods and comprehensive tests.
+The detailed model breakdown work from the previous organization (breaking monolithic `models.go` into focused files) has been preserved during the move to `internal/infra/`. Models are still organized by entity with validation methods and comprehensive tests.
 
 ---
 
@@ -290,7 +305,7 @@ The detailed model breakdown work from the previous organization (breaking monol
 - No logic code modified - leveraged existing generic mocks
 - All tests use specific expected values (no gomock.Any())
 
-### ✅ Completed: Redis Handler Tests (internal/db/redis/handlers/)
+### ✅ Completed: Redis Handler Tests (internal/infra/db/redis/handlers/)
 
 **Files Created:**
 - [x] `set_handler_test.go` - Comprehensive tests for BaseSetHandler
@@ -473,7 +488,8 @@ mockHandler.EXPECT().
 
 **Test Status:**
 - ⚠️ **Unit tests broken** - Need updates after refactoring:
-  - Import paths changed: `internal/{module}/models` → `shared/models/{module}`
+  - Import paths changed: `internal/{module}/models` → `internal/infra/models/{module}`
+  - Infrastructure imports: `internal/errors` → `internal/infra/errors`, etc.
   - User collection moved to Core module
   - Audit log moved to Events module
 - ✅ Test quality improvements preserved:
@@ -491,7 +507,7 @@ mockHandler.EXPECT().
 
 **TODOs to Fix:**
 - [ ] Auth service needs to call Core User service via gRPC for user operations
-- [ ] Update all imports to use `shared/models/{module}`
+- [ ] Update all imports to use `internal/infra/models/{module}`, `internal/infra/db`, etc.
 - [ ] Fix unit tests to work with new architecture
 - [ ] Handle audit logging via Events service (not Auth)
 
@@ -519,18 +535,18 @@ mockHandler.EXPECT().
 - Proto definitions (from Pre-Phase)
 
 **What to Build:**
-- [ ] Generic gRPC server infrastructure (`shared/grpc/server/`)
+- [ ] Generic gRPC server infrastructure (`internal/infra/grpc/server/`)
   - [ ] Server initialization utilities
   - [ ] Graceful shutdown handling
   - [ ] Health check endpoints
   - [ ] Server configuration struct
   - [ ] Interceptor registration helpers
-- [ ] Generic gRPC client infrastructure (`shared/grpc/client/`)
+- [ ] Generic gRPC client infrastructure (`internal/infra/grpc/client/`)
   - [ ] Client connection management
   - [ ] Connection pooling utilities (basic - advanced features deferred)
   - [ ] Client configuration struct
   - [ ] Interceptor registration helpers
-- [ ] Shared middleware/interceptors (`shared/grpc/interceptors/`)
+- [ ] Shared middleware/interceptors (`internal/infra/grpc/interceptors/`)
   - [ ] Logging interceptor (request/response logging)
   - [ ] Error handling interceptor (standardized error conversion)
   - [ ] Authentication interceptor (JWT validation for service-to-service calls)
@@ -538,7 +554,7 @@ mockHandler.EXPECT().
 - [ ] Error handling utilities
   - [ ] Standard gRPC status code mapping
   - [ ] Error conversion helpers
-  - [ ] Integration with `internal/errors/` package
+  - [ ] Integration with `internal/infra/errors/` package
 - [ ] Documentation
   - [ ] Usage examples for server setup
   - [ ] Usage examples for client usage
@@ -553,7 +569,7 @@ mockHandler.EXPECT().
 - [ ] Distributed tracing (OpenTelemetry)
 
 **Deliverables:**
-- Reusable gRPC server and client infrastructure in `shared/grpc/`
+- Reusable gRPC server and client infrastructure in `internal/infra/grpc/`
 - Shared interceptors for common concerns
 - Documentation and usage examples
 - Ready to use for Core User Service and cross-service communication
@@ -617,7 +633,7 @@ mockHandler.EXPECT().
 - ✅ Generic gRPC Infrastructure (Priority 1.5)
 
 **Dependencies:**
-- Generic gRPC Infrastructure (client/server from `shared/grpc/`)
+- Generic gRPC Infrastructure (client/server from `internal/infra/grpc/`)
 - Auth Service (for CheckPermissions gRPC calls - optional for now)
 - MongoDB (`core_db.users` collection)
 - Proto definitions
@@ -633,9 +649,9 @@ mockHandler.EXPECT().
   - [ ] CRUD operations with tenant isolation
   - [ ] User profile management
   - [ ] Metadata and preferences storage
-  - [ ] Uses models from `shared/models/core/`
+  - [ ] Uses models from `internal/infra/models/core/`
 - [ ] gRPC server implementation
-  - [ ] Use generic gRPC server infrastructure from `shared/grpc/`
+  - [ ] Use generic gRPC server infrastructure from `internal/infra/grpc/`
   - [ ] Implement all User service RPC methods
   - [ ] Can be extended for future Core modules (Products, Orders, etc.)
 - [ ] RBAC integration with Auth service (optional - can defer)
@@ -698,16 +714,22 @@ mockHandler.EXPECT().
 
 **What to Fix:**
 - [ ] Update import paths across all tests
-  - [ ] Change `internal/{module}/models` → `shared/models/{module}`
-  - [ ] Change `internal/common/models` → `shared/models/common` (if exists)
+  - [ ] Change `internal/{module}/models` → `internal/infra/models/{module}`
+  - [ ] Change `internal/errors` → `internal/infra/errors`
+  - [ ] Change `internal/db` → `internal/infra/db`
+  - [ ] Change `internal/logging` → `internal/infra/logging`
+  - [ ] Change `internal/events` → `internal/infra/events`
 - [ ] Fix Auth service tests
   - [ ] Update tests to use Core User service mock/client
-  - [ ] Fix collection tests (roles, permissions, tenants)
+  - [ ] Fix repository tests (roles, permissions, tenants)
   - [ ] Fix RBAC manager tests
   - [ ] Fix token infrastructure tests
   - [ ] Preserve test quality (no gomock.Any(), custom matchers)
 - [ ] Fix Core service tests (if any exist)
   - [ ] Update User repository tests to use new model locations
+- [ ] Fix infrastructure tests
+  - [ ] Update database handler tests (`internal/infra/db/`)
+  - [ ] Update error handling tests (`internal/infra/errors/`)
 - [ ] Run all tests and verify they pass
   - [ ] `make test` should succeed
   - [ ] All 100+ tests should pass
@@ -1132,20 +1154,22 @@ Request Flow with Two-Tier RBAC:
 
 ### Database Access
 - ✅ Each component creates a repository service for its db+collection
-- ✅ Uses generic Repository pattern from `internal/db/repository.go`
+- ✅ Uses generic Repository pattern from `internal/infra/db/repository.go`
 
 ### Code Organization
 - ✅ Starting as monorepo with multiple packages
 - ✅ Will break down to microservices and shared Go modules later
-- ✅ Models centralized in `shared/models/` for easier cross-service access:
-  - `shared/models/auth/` - Auth models (Tenant, Role, Permission, Token, Session, etc.)
-  - `shared/models/core/` - Core models (User, Product, Order, Vendor, Customer, Inventory, etc.)
-  - `shared/models/config/` - Config models (ServiceConfig, FeatureFlag)
-  - `shared/models/gateway/` - Gateway models (RateLimitInfo, QueryCache, etc.)
-  - `shared/models/events/` - Events models (AuditLog, etc.)
+- ✅ Infrastructure centralized in `internal/infra/` for easier management:
+  - `internal/infra/models/` - Domain models by module (auth, core, config, gateway, events)
+  - `internal/infra/grpc/` - Generic gRPC infrastructure (to be built)
+  - `internal/infra/proto/` - Shared proto definitions
+  - `internal/infra/db/` - Database interfaces (MongoDB, Redis)
+  - `internal/infra/errors/` - Error handling utilities
+  - `internal/infra/logging/` - Logging utilities
+  - `internal/infra/events/` - Event publishing/consuming
 
 ### Infrastructure Notes
-- ⚠️ MongoDB and Redis connection URIs are currently hardcoded in `internal/db/mongo/mongo.go` and `internal/db/redis/redis.go`
+- ⚠️ MongoDB and Redis connection URIs are currently hardcoded in `internal/infra/db/mongo/mongo.go` and `internal/infra/db/redis/redis.go`
 - ⚠️ Will be moved to environment configuration later (not blocking for initial development)
 
 ---

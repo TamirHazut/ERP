@@ -3,8 +3,8 @@ package cmd
 import (
 	authv1 "erp.localhost/internal/auth/proto/auth/v1"
 	"erp.localhost/internal/auth/service"
-	shared_grpc "erp.localhost/internal/shared/grpc"
-	shared_models "erp.localhost/internal/shared/models"
+	infra_grpc "erp.localhost/internal/infra/grpc"
+	shared_models "erp.localhost/internal/infra/models/shared"
 	"google.golang.org/grpc"
 )
 
@@ -14,7 +14,7 @@ func Main() {
 	services := map[*grpc.ServiceDesc]any{
 		&authv1.AuthService_ServiceDesc: service.NewAuthService(),
 	}
-	grpcServer := shared_grpc.NewGRPCServer(certs, shared_models.ModuleAuth, 5000, services)
+	grpcServer := infra_grpc.NewGRPCServer(certs, shared_models.ModuleAuth, 5000, services)
 	if grpcServer == nil {
 		return
 	}

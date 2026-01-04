@@ -1,11 +1,12 @@
 # ERP System Root Makefile
 # Delegates to service-specific Makefiles
 
-.PHONY: proto proto-auth proto-config proto-core proto-shared \
+.PHONY: proto proto-auth proto-config proto-core proto-infra \
         build build-auth build-config build-core \
         run-auth run-config run-core \
         test test-coverage lint clean tidy help \
-        docker-up docker-down docker-logs docker-ps
+        docker-up docker-down docker-logs docker-ps \
+        certs certs-clean
 
 # Binary output directory
 BIN_DIR := bin
@@ -15,7 +16,7 @@ help: ## Show this help message
 	@echo ""
 	@echo "Proto Generation:"
 	@echo "  make proto          - Generate all proto files"
-	@echo "  make proto-shared   - Generate shared proto files"
+	@echo "  make proto-infra   - Generate infra proto files"
 	@echo "  make proto-auth     - Generate auth service proto files"
 	@echo "  make proto-config   - Generate config service proto files"
 	@echo "  make proto-core     - Generate core service proto files"
@@ -46,6 +47,10 @@ help: ## Show this help message
 	@echo "  make tidy           - Run go mod tidy"
 	@echo "  make clean          - Clean build artifacts from all services"
 	@echo ""
+	@echo "Certificates (mTLS):"
+	@echo "  make certs          - Create CA and all service certificates"
+	@echo "  make certs-clean    - Remove all certificates"
+	@echo ""
 	@echo "Service-specific help:"
 	@echo "  make -C internal/auth help    - Show auth service targets"
 	@echo "  make -C internal/config help  - Show config service targets"
@@ -55,10 +60,10 @@ help: ## Show this help message
 # PROTO GENERATION TARGETS
 # ============================================================================
 
-proto: proto-shared proto-auth proto-config proto-core ## Generate all proto files
+proto: proto-infra proto-auth proto-config proto-core ## Generate all proto files
 
-proto-shared: ## Generate shared proto files
-	@bash scripts/generate-proto.sh shared
+proto-infra: ## Generate infra proto files
+	@bash scripts/generate-proto.sh infra
 
 proto-auth: ## Generate auth service proto files
 	@$(MAKE) -C internal/auth proto
@@ -202,3 +207,44 @@ mocks-verify: mocks
 	else \
 		echo "✅ Mocks are up to date"; \
 	fi
+
+# ============================================================================
+# CERTIFICATE GENERATION (mTLS)
+# ============================================================================
+
+# Certificate configuration
+CA_DIR := resources/certs/ca
+CA_KEY := $(CA_DIR)/ca-key.pem
+CA_CERT := $(CA_DIR)/ca-cert.pem
+CA_DAYS := 3650
+CERT_DAYS := 365
+
+certs: ## Create CA and certificates for all services
+	@echo "Creating Certificate Authority (CA) and all service certificates..."
+	@mkdir -p $(CA_DIR)
+	@if [ ! -f $(CA_CERT) ]; then \
+		echo "Creating root CA certificate..."; \
+		openssl genrsa -out $(CA_KEY) 4096; \
+		openssl req -new -x509 -days $(CA_DAYS) -key $(CA_KEY) -out $(CA_CERT) \
+			-subj "/C=US/ST=State/L=City/O=ERP System/OU=Certificate Authority/CN=ERP Root CA"; \
+		echo "✓ CA certificate created: $(CA_CERT)"; \
+		echo "✓ CA private key created: $(CA_KEY)"; \
+		echo ""; \
+		echo "⚠️  IMPORTANT: Keep $(CA_KEY) secure and never commit to version control!"; \
+		echo ""; \
+	else \
+		echo "✓ CA certificate already exists: $(CA_CERT)"; \
+	fi
+	@echo "Creating service certificates..."
+	@$(MAKE) -C internal/auth certs
+	@$(MAKE) -C internal/config certs
+	@$(MAKE) -C internal/core certs
+	@echo "✓ All certificates created successfully"
+
+certs-clean: ## Remove all certificates (CA and service certificates)
+	@echo "Removing all certificates..."
+	@rm -rf resources/certs
+	@$(MAKE) -C internal/auth certs-clean
+	@$(MAKE) -C internal/config certs-clean
+	@$(MAKE) -C internal/core certs-clean
+	@echo "✓ All certificates removed"

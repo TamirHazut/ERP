@@ -1,6 +1,6 @@
 # Core Service Makefile
 
-.PHONY: proto build run test test-coverage lint clean help
+.PHONY: proto build run test test-coverage lint clean help certs certs-clean
 
 # Service configuration
 SERVICE_NAME := core
@@ -18,6 +18,8 @@ help: ## Show this help message
 	@echo "  make test           - Run core service tests"
 	@echo "  make test-coverage  - Run tests with coverage"
 	@echo "  make lint           - Run linter on core service"
+	@echo "  make certs          - Generate mTLS certificates for core service"
+	@echo "  make certs-clean    - Remove core service certificates"
 	@echo "  make clean          - Clean build artifacts"
 	@echo ""
 
@@ -66,3 +68,42 @@ mocks-clean:
 	@echo "Cleaning generated core mocks..."
 	@find . -path "*/mocks/mock_*.go" -type f -delete
 	@echo "✅ Core mocks cleaned"
+
+# ============================================================================
+# CERTIFICATE GENERATION (mTLS)
+# ============================================================================
+
+# Certificate paths
+CERTS_DIR := resources/certs
+CA_DIR := ../../resources/certs/ca
+CA_KEY := $(CA_DIR)/ca-key.pem
+CA_CERT := $(CA_DIR)/ca-cert.pem
+SERVICE_KEY := $(CERTS_DIR)/$(SERVICE_NAME)-key.pem
+SERVICE_CSR := $(CERTS_DIR)/$(SERVICE_NAME)-csr.pem
+SERVICE_CERT := $(CERTS_DIR)/$(SERVICE_NAME)-cert.pem
+SERVICE_CA_COPY := $(CERTS_DIR)/ca-cert.pem
+CERT_DAYS := 365
+
+certs: ## Generate mTLS certificates for core service
+	@echo "Creating certificates for $(SERVICE_NAME) service..."
+	@if [ ! -f $(CA_CERT) ]; then \
+		echo "❌ CA certificate not found. Run 'make certs-ca' from root directory first."; \
+		exit 1; \
+	fi
+	@mkdir -p $(CERTS_DIR)
+	@openssl genrsa -out $(SERVICE_KEY) 2048
+	@openssl req -new -key $(SERVICE_KEY) -out $(SERVICE_CSR) \
+		-subj "/C=US/ST=State/L=City/O=ERP System/OU=$(SERVICE_NAME) Service/CN=$(SERVICE_NAME).erp.localhost"
+	@openssl x509 -req -in $(SERVICE_CSR) -CA $(CA_CERT) -CAkey $(CA_KEY) \
+		-CAcreateserial -out $(SERVICE_CERT) -days $(CERT_DAYS) \
+		-extfile <(printf "subjectAltName=DNS:$(SERVICE_NAME).erp.localhost,DNS:localhost,IP:127.0.0.1")
+	@cp $(CA_CERT) $(SERVICE_CA_COPY)
+	@rm -f $(SERVICE_CSR)
+	@echo "✓ Service certificate created: $(SERVICE_CERT)"
+	@echo "✓ Service private key created: $(SERVICE_KEY)"
+	@echo "✓ CA certificate copied: $(SERVICE_CA_COPY)"
+
+certs-clean: ## Remove core service certificates
+	@echo "Removing $(SERVICE_NAME) service certificates..."
+	@rm -rf $(CERTS_DIR)
+	@echo "✓ $(SERVICE_NAME) certificates removed"

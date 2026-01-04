@@ -5,14 +5,14 @@ import (
 	"time"
 
 	auth "erp.localhost/internal/auth/utils"
-	"erp.localhost/internal/db"
-	"erp.localhost/internal/db/mongo"
-	erp_errors "erp.localhost/internal/errors"
-	"erp.localhost/internal/logging"
-	shared_models "erp.localhost/internal/shared/models"
-	auth_models "erp.localhost/internal/shared/models/auth"
-	core_models "erp.localhost/internal/shared/models/core"
-	mongo_models "erp.localhost/internal/shared/models/db/mongo"
+	"erp.localhost/internal/infra/db"
+	"erp.localhost/internal/infra/db/mongo"
+	erp_errors "erp.localhost/internal/infra/errors"
+	"erp.localhost/internal/infra/logging"
+	auth_models "erp.localhost/internal/infra/models/auth"
+	core_models "erp.localhost/internal/infra/models/core"
+	mongo_models "erp.localhost/internal/infra/models/db/mongo"
+	shared_models "erp.localhost/internal/infra/models/shared"
 )
 
 var (

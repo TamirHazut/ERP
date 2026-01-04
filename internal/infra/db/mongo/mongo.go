@@ -1,0 +1,168 @@
+package mongo
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	erp_errors "erp.localhost/internal/infra/errors"
+	logging "erp.localhost/internal/infra/logging"
+	mongo_models "erp.localhost/internal/infra/models/db/mongo"
+	shared_models "erp.localhost/internal/infra/models/shared"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+type MongoDBManager struct {
+	client *mongo.Client
+	dbName mongo_models.DBName
+	db     *mongo.Database
+	logger *logging.Logger
+}
+
+func NewMongoDBManager(dbName mongo_models.DBName) *MongoDBManager {
+	logger := logging.NewLogger(shared_models.ModuleDB)
+	db := mongo_models.GetDBNameFromCollection(string(dbName))
+	if db == "" {
+		logger.Fatal("db not found", "db", dbName)
+		return nil
+	}
+
+	m := &MongoDBManager{
+		dbName: mongo_models.DBName(db),
+		logger: logger,
+	}
+
+	if err := m.Init(); err != nil {
+		return nil
+	}
+	return m
+}
+
+func (m *MongoDBManager) Close() error {
+	if err := m.client.Disconnect(context.Background()); err != nil {
+		m.logger.Error("failed to disconnect from mongo", "error", err)
+		return err
+	}
+	return nil
+}
+
+func (m *MongoDBManager) Init() error {
+	uri := "mongodb://root:secret@localhost:27017"
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	if err != nil {
+		m.logger.Fatal("failed to connect to mongo", "error", err)
+		return err
+	}
+	if err := client.Ping(ctx, nil); err != nil {
+		m.logger.Fatal("failed to ping mongo", "error", err)
+		return err
+	}
+	m.client = client
+	if err := m.createDBIfNotExists(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *MongoDBManager) CreateCollectionInDBIfNotExists(collectionName string) error {
+	filter := bson.M{"name": collectionName}
+	names, err := m.db.ListCollectionNames(context.Background(), filter)
+	if err != nil {
+		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+	}
+	if len(names) > 0 {
+		m.logger.Info("collection already exists", "db", m.dbName, "collection", collectionName)
+		return nil
+	}
+	if err := m.db.CreateCollection(context.Background(), collectionName); err != nil {
+		m.logger.Error("failed to create collection", "db", m.dbName, "collection", collectionName, "error", err)
+		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+	}
+	return nil
+}
+
+func (m *MongoDBManager) createDBIfNotExists() error {
+	m.db = m.client.Database(string(m.dbName))
+	if m.db == nil {
+		return erp_errors.Internal(erp_errors.InternalDatabaseError, errors.New("database not found"))
+	}
+	return nil
+}
+
+func (m *MongoDBManager) Create(collectionName string, data any, opts ...map[string]any) (string, error) {
+	m.logger.Debug("creating data", "collection", collectionName, "data", data)
+	collection := m.db.Collection(collectionName)
+	result, err := collection.InsertOne(context.Background(), data)
+	if err != nil {
+		return "", err
+	}
+	return result.InsertedID.(string), nil
+}
+
+func (m *MongoDBManager) FindOne(collectionName string, filter map[string]any) (any, error) {
+	m.logger.Debug("finding one", "collection", collectionName, "filter", filter)
+	collection := m.db.Collection(collectionName)
+	if filter == nil {
+		return nil, errors.New("filter is required and cannot be nil")
+	}
+
+	if _, ok := filter["tenant_id"]; !ok {
+		return nil, errors.New("tenant id is required")
+	}
+	item := collection.FindOne(context.Background(), filter)
+	if item.Err() != nil {
+		return nil, item.Err()
+	}
+	if item == nil {
+		return nil, errors.New("no result found")
+	}
+	var result any
+	if err := item.Decode(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (m *MongoDBManager) FindAll(collectionName string, filter map[string]any) ([]any, error) {
+	m.logger.Debug("finding all", "collection", collectionName, "filter", filter)
+	collection := m.db.Collection(collectionName)
+	if filter == nil {
+		return nil, errors.New("filter is required and cannot be nil")
+	}
+	if _, ok := filter["tenant_id"]; !ok {
+		return nil, errors.New("tenant id is required")
+	}
+	cursor, err := collection.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	var results []any
+	if err := cursor.All(context.Background(), &results); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+func (m *MongoDBManager) Update(collectionName string, filter map[string]any, data any, opts ...map[string]any) error {
+	m.logger.Debug("updating data", "collection", collectionName, "filter", filter, "data", data)
+	collection := m.db.Collection(collectionName)
+	_, err := collection.UpdateOne(context.Background(), filter, bson.M{"$set": data})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *MongoDBManager) Delete(collectionName string, filter map[string]any) error {
+	m.logger.Debug("deleting data", "collection", collectionName, "filter", filter)
+	collection := m.db.Collection(collectionName)
+	_, err := collection.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return err
+	}
+	return nil
+}

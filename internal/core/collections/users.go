@@ -3,12 +3,12 @@ package collection
 import (
 	"time"
 
-	"erp.localhost/internal/db/mongo"
-	erp_errors "erp.localhost/internal/errors"
-	"erp.localhost/internal/logging"
-	shared_models "erp.localhost/internal/shared/models"
-	core_models "erp.localhost/internal/shared/models/core"
-	mongo_models "erp.localhost/internal/shared/models/db/mongo"
+	"erp.localhost/internal/infra/db/mongo"
+	erp_errors "erp.localhost/internal/infra/errors"
+	"erp.localhost/internal/infra/logging"
+	core_models "erp.localhost/internal/infra/models/core"
+	mongo_models "erp.localhost/internal/infra/models/db/mongo"
+	shared_models "erp.localhost/internal/infra/models/shared"
 )
 
 type UserCollection struct {

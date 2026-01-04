@@ -3,12 +3,12 @@ package collection
 import (
 	"time"
 
-	"erp.localhost/internal/db/mongo"
-	erp_errors "erp.localhost/internal/errors"
-	"erp.localhost/internal/logging"
-	shared_models "erp.localhost/internal/shared/models"
-	auth_models "erp.localhost/internal/shared/models/auth"
-	mongo_models "erp.localhost/internal/shared/models/db/mongo"
+	"erp.localhost/internal/infra/db/mongo"
+	erp_errors "erp.localhost/internal/infra/errors"
+	"erp.localhost/internal/infra/logging"
+	auth_models "erp.localhost/internal/infra/models/auth"
+	mongo_models "erp.localhost/internal/infra/models/db/mongo"
+	shared_models "erp.localhost/internal/infra/models/shared"
 )
 
 type RolesCollection struct {

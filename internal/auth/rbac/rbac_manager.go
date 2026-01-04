@@ -5,10 +5,10 @@ import (
 	"slices"
 
 	collection "erp.localhost/internal/auth/collections"
-	erp_errors "erp.localhost/internal/errors"
-	"erp.localhost/internal/logging"
-	shared_models "erp.localhost/internal/shared/models"
-	auth_models "erp.localhost/internal/shared/models/auth"
+	erp_errors "erp.localhost/internal/infra/errors"
+	"erp.localhost/internal/infra/logging"
+	auth_models "erp.localhost/internal/infra/models/auth"
+	shared_models "erp.localhost/internal/infra/models/shared"
 )
 
 type RBACManager struct {

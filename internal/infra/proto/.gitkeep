@@ -1,0 +1,7 @@
+# Common Proto Definitions
+
+This directory contains infra protobuf definitions used across multiple services.
+
+## Structure
+- `infra.proto` - Common types, error definitions, base messages
+

@@ -12,25 +12,25 @@ cd "$PROJECT_ROOT"
 # Configuration
 MODULE="erp.localhost"
 PROTO_OUT="."  # Output to project root (protoc will use go_package path relative to module)
-PROTO_COMMON="internal/shared/proto"
+PROTO_COMMON="internal/infra/proto"
 PROTO_AUTH="internal/auth/proto"
 PROTO_CONFIG="internal/config/proto"
 PROTO_CORE="internal/core/proto"
 
 SERVICE="${1:-all}"
 
-generate_shared() {
-    echo "Generating shared proto files..."
-    if [ -f "$PROTO_COMMON/shared.proto" ]; then
+generate_infra() {
+    echo "Generating infra proto files..."
+    if [ -f "$PROTO_COMMON/infra.proto" ]; then
         protoc --go_out=$PROTO_OUT \
             --go_opt=module=$MODULE \
             --go-grpc_out=$PROTO_OUT \
             --go-grpc_opt=module=$MODULE \
             -I=$PROTO_COMMON \
-            "$PROTO_COMMON/shared.proto"
+            "$PROTO_COMMON/infra.proto"
         echo "✓ Common proto files generated"
     else
-        echo "⚠ No shared.proto file found, skipping..."
+        echo "⚠ No infra.proto file found, skipping..."
     fi
 }
 
@@ -86,13 +86,13 @@ echo "=== Proto Code Generation ==="
 
 case "$SERVICE" in
     all)
-        generate_shared
+        generate_infra
         generate_auth
         generate_config
         generate_core
         ;;
-    shared)
-        generate_shared
+    infra)
+        generate_infra
         ;;
     auth)
         generate_auth
@@ -104,7 +104,7 @@ case "$SERVICE" in
         generate_core
         ;;
     *)
-        echo "Usage: $0 [all|shared|auth|config|core]"
+        echo "Usage: $0 [all|infra|auth|config|core]"
         exit 1
         ;;
 esac

@@ -19,7 +19,7 @@ type GraphQLQueryCache struct {
 
 // PersistedQuery represents a persisted GraphQL query (APQ - Automatic Persisted Queries)
 // Stored in: persisted_queries:{query_hash} (Redis String with query text)
-// These are shared across all tenants for shared queries
+// These are infra across all tenants for infra queries
 type PersistedQuery struct {
 	QueryHash     string    `json:"query_hash"` // SHA256 hash of the query
 	QueryText     string    `json:"query_text"` // The full GraphQL query text

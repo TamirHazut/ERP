@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"erp.localhost/internal/logging"
+	"erp.localhost/internal/infra/logging"
 )
 
 func LoadEnvironmentVariablesFromFile(filePath string, logger *logging.Logger) map[string]string {

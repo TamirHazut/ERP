@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	mongo_mocks "erp.localhost/internal/db/mongo/mocks"
-	auth_models "erp.localhost/internal/shared/models/auth"
+	mongo_mocks "erp.localhost/internal/infra/db/mongo/mocks"
+	auth_models "erp.localhost/internal/infra/models/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
