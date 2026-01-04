@@ -9,7 +9,7 @@ import (
 	"time"
 
 	auth "erp.localhost/internal/auth/utils"
-	userv1 "erp.localhost/internal/core/proto/user/v1"
+	userv1 "erp.localhost/internal/infra/proto/core/v1"
 	"erp.localhost/internal/core/service"
 	"erp.localhost/internal/infra/db"
 	"erp.localhost/internal/infra/db/mongo"

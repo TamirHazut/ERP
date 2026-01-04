@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "erp.localhost/internal/infra/proto/auth/v1;authv1";
+
+message UserAuth {
+    string tenant_id = 1;
+    oneof account_id {
+        string email = 2;
+        string username = 3;
+    }
+}
+
+message UserIdentifier {
+    string tenant_id = 1;
+    string user_id = 2;
+}
+
+message Tokens {
+    string access_token = 1;
+    string refresh_token = 2;
+}
+
+message ExpiresIn {
+    int64 access_token = 1;
+    int64 refresh_token = 2;
+}
+
+message TokensResponse {
+    Tokens tokens = 1;
+    ExpiresIn expires_in = 2;
+}
+
+message PermissionResponse {
+    string permission = 1;
+    bool has_permission = 2;
+}
+
+message AuthenticateRequest {
+    UserAuth user = 1;
+    string password = 2;
+}
+
+
+message VerifyTokenRequest {
+    string access_token = 1;
+}
+
+message VerifyTokenResponse {
+    bool valid = 1;
+}
+
+message RefreshTokenRequest {
+    UserIdentifier user = 1;
+    string refresh_token = 2;
+}
+
+message RevokeTokenRequest {
+    UserIdentifier user = 1;
+    Tokens tokens = 2;
+    string request_by = 3;
+}
+
+message RevokeTokenResponse {
+    bool revoked = 1;
+}
+
+message LogoutRequest {
+    string tenant_id = 1;
+    Tokens tokens = 2;
+}
+
+message LogoutResponse {
+    string message = 1;
+}
+
+message CheckPermissionsRequest {
+    UserIdentifier user = 1;
+    repeated string permissions = 2;
+}
+
+service AuthService {
+    rpc Authenticate(AuthenticateRequest) returns (TokensResponse);
+    rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+    rpc RefreshToken(RefreshTokenRequest) returns (TokensResponse);
+    rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+    rpc Logout(LogoutRequest) returns (LogoutResponse);
+    rpc CheckPermissions(CheckPermissionsRequest) returns (stream PermissionResponse);
+}

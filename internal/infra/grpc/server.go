@@ -7,8 +7,6 @@ import (
 	"net"
 	"os"
 
-	auth_proto "erp.localhost/internal/auth/proto/auth/v1"
-	service "erp.localhost/internal/auth/service"
 	erp_errors "erp.localhost/internal/infra/errors"
 	"erp.localhost/internal/infra/logging"
 	shared_models "erp.localhost/internal/infra/models/shared"
@@ -24,7 +22,7 @@ type GRPCServer struct {
 	logger *logging.Logger
 }
 
-func NewGRPCServer(certs *shared_models.Certs, module shared_models.Module, port int, services map[*grpc.ServiceDesc]any) *GRPCServer {
+func NewGRPCServer(certs *shared_models.Certs, module shared_models.Module, port int, services map[*grpc.ServiceDesc]any) RPCServer {
 	logger := logging.NewLogger(module)
 
 	tlsServerOptions := getmTLSServerOptions(certs, logger)
@@ -35,7 +33,6 @@ func NewGRPCServer(certs *shared_models.Certs, module shared_models.Module, port
 	for serviceDesc, service := range services {
 		grpcServer.RegisterService(serviceDesc, service)
 	}
-	auth_proto.RegisterAuthServiceServer(grpcServer, service.NewAuthService())
 	reflection.Register(grpcServer)
 	return &GRPCServer{
 		server: grpcServer,

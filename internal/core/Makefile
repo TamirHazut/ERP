@@ -1,6 +1,6 @@
 # Core Service Makefile
 
-.PHONY: proto build run test test-coverage lint clean help certs certs-clean
+.PHONY: build run test test-coverage lint clean help certs certs-clean
 
 # Service configuration
 SERVICE_NAME := core
@@ -12,7 +12,6 @@ INTERNAL_DIR := .
 help: ## Show this help message
 	@echo "Core Service - Available targets:"
 	@echo ""
-	@echo "  make proto          - Generate core service proto files"
 	@echo "  make build          - Build core service"
 	@echo "  make run            - Run core service (port $(SERVICE_PORT))"
 	@echo "  make test           - Run core service tests"
@@ -22,9 +21,6 @@ help: ## Show this help message
 	@echo "  make certs-clean    - Remove core service certificates"
 	@echo "  make clean          - Clean build artifacts"
 	@echo ""
-
-proto: ## Generate core service proto files
-	@bash ../../scripts/generate-proto.sh core
 
 build: ## Build core service
 	@echo "Building core service..."

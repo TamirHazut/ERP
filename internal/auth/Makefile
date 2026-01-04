@@ -1,6 +1,6 @@
 # Auth Service Makefile
 
-.PHONY: proto build run test test-coverage lint clean help certs certs-clean
+.PHONY: build run test test-coverage lint clean help certs certs-clean
 
 # Service configuration
 SERVICE_NAME := auth
@@ -12,7 +12,6 @@ INTERNAL_DIR := .
 help: ## Show this help message
 	@echo "Auth Service - Available targets:"
 	@echo ""
-	@echo "  make proto          - Generate auth service proto files"
 	@echo "  make build          - Build auth service"
 	@echo "  make run            - Run auth service (port $(SERVICE_PORT))"
 	@echo "  make test           - Run auth service tests"
@@ -22,9 +21,6 @@ help: ## Show this help message
 	@echo "  make certs-clean    - Remove auth service certificates"
 	@echo "  make clean          - Clean build artifacts"
 	@echo ""
-
-proto: ## Generate auth service proto files
-	@bash ../../scripts/generate-proto.sh auth
 
 build: ## Build auth service
 	@echo "Building auth service..."

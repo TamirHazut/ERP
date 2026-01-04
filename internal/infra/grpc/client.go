@@ -17,7 +17,7 @@ type GRPCClient struct {
 	logger *logging.Logger
 }
 
-func NewGRPCClient(address string, certs *shared_models.Certs, module shared_models.Module) *GRPCClient {
+func NewGRPCClient(address string, certs *shared_models.Certs, module shared_models.Module) RPCClient {
 	logger := logging.NewLogger(module)
 	// Build dial options
 	opts := getmTLSClientOptions(certs, logger)

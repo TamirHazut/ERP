@@ -1,6 +1,6 @@
 # Config Service Makefile
 
-.PHONY: proto build run test test-coverage lint clean help certs certs-clean
+.PHONY: build run test test-coverage lint clean help certs certs-clean
 
 # Service configuration
 SERVICE_NAME := config
@@ -12,7 +12,6 @@ INTERNAL_DIR := .
 help: ## Show this help message
 	@echo "Config Service - Available targets:"
 	@echo ""
-	@echo "  make proto          - Generate config service proto files"
 	@echo "  make build          - Build config service"
 	@echo "  make run            - Run config service (port $(SERVICE_PORT))"
 	@echo "  make test           - Run config service tests"
@@ -22,9 +21,6 @@ help: ## Show this help message
 	@echo "  make certs-clean    - Remove config service certificates"
 	@echo "  make clean          - Clean build artifacts"
 	@echo ""
-
-proto: ## Generate config service proto files
-	@bash ../../scripts/generate-proto.sh config
 
 build: ## Build config service
 	@echo "Building config service..."

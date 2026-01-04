@@ -7,7 +7,7 @@ import (
 	"errors"
 	"time"
 
-	auth_proto "erp.localhost/internal/auth/proto/auth/v1"
+	auth_proto "erp.localhost/internal/infra/proto/auth/v1"
 	"erp.localhost/internal/auth/rbac"
 	token "erp.localhost/internal/auth/token/manager"
 	token_manager "erp.localhost/internal/auth/token/manager"

@@ -1,7 +1,7 @@
 # ERP System Root Makefile
 # Delegates to service-specific Makefiles
 
-.PHONY: proto proto-auth proto-config proto-core proto-infra \
+.PHONY: proto proto-auth proto-config proto-core proto-infra proto-clean \
         build build-auth build-config build-core \
         run-auth run-config run-core \
         test test-coverage lint clean tidy help \
@@ -16,10 +16,11 @@ help: ## Show this help message
 	@echo ""
 	@echo "Proto Generation:"
 	@echo "  make proto          - Generate all proto files"
-	@echo "  make proto-infra   - Generate infra proto files"
+	@echo "  make proto-infra    - Generate infra proto files"
 	@echo "  make proto-auth     - Generate auth service proto files"
 	@echo "  make proto-config   - Generate config service proto files"
 	@echo "  make proto-core     - Generate core service proto files"
+	@echo "  make proto-clean    - Remove all generated proto files"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build          - Build all services"
@@ -59,20 +60,64 @@ help: ## Show this help message
 # ============================================================================
 # PROTO GENERATION TARGETS
 # ============================================================================
+MODULE="erp.localhost"
+PROTO_OUT="."
+INFRA_BASE_PROTO="internal/infra/proto"
+INFRA_PROTO="$(INFRA_BASE_PROTO)/infra/v1"
+AUTH_PROTO="$(INFRA_BASE_PROTO)/auth/v1"
+CONFIG_PROTO="$(INFRA_BASE_PROTO)/config/v1"
+CORE_PROTO="$(INFRA_BASE_PROTO)/core/v1"
 
 proto: proto-infra proto-auth proto-config proto-core ## Generate all proto files
+	@echo "All proto files generated successfully"
 
 proto-infra: ## Generate infra proto files
-	@bash scripts/generate-proto.sh infra
+	@echo "Generating infra proto files..."
+	@protoc --go_out=$(PROTO_OUT) \
+		--go_opt=module=$(MODULE) \
+		--go-grpc_out=$(PROTO_OUT) \
+		--go-grpc_opt=module=$(MODULE) \
+		-I=$(INFRA_PROTO) \
+		"$(INFRA_PROTO)/*.proto"
+	@echo "Infra proto files generated"
 
-proto-auth: ## Generate auth service proto files
-	@$(MAKE) -C internal/auth proto
+proto-auth: ## Generate auth proto files
+	@echo "Generating auth proto files..."
+	@protoc --go_out=$(PROTO_OUT) \
+		--go_opt=module=$(MODULE) \
+		--go-grpc_out=$(PROTO_OUT) \
+		--go-grpc_opt=module=$(MODULE) \
+		-I=$(INFRA_PROTO) \
+		-I=$(AUTH_PROTO) \
+		"$(AUTH_PROTO)/*.proto"
+	@echo "Auth proto files generated"
 
-proto-config: ## Generate config service proto files
-	@$(MAKE) -C internal/config proto
+proto-config: ## Generate config proto files
+	@echo "Generating config proto files..."
+	@protoc --go_out=$(PROTO_OUT) \
+		--go_opt=module=$(MODULE) \
+		--go-grpc_out=$(PROTO_OUT) \
+		--go-grpc_opt=module=$(MODULE) \
+		-I=$(INFRA_PROTO) \
+		-I=$(CONFIG_PROTO) \
+		"$(CONFIG_PROTO)/*.proto"
+	@echo "Config proto files generated"
 
-proto-core: ## Generate core service proto files
-	@$(MAKE) -C internal/core proto
+proto-core: ## Generate core proto files (user service)
+	@echo "Generating core proto files..."
+	@protoc --go_out=$(PROTO_OUT) \
+		--go_opt=module=$(MODULE) \
+		--go-grpc_out=$(PROTO_OUT) \
+		--go-grpc_opt=module=$(MODULE) \
+		-I=$(INFRA_PROTO) \
+		-I=$(CORE_PROTO) \
+		"$(CORE_PROTO)/*.proto"
+	@echo "Core proto files generated"
+
+proto-clean: ## Remove all generated proto files
+	@echo "Cleaning generated proto files..."
+	@find internal/infra/proto -name "*.pb.go" -type f -delete 2>/dev/null || true
+	@echo "Proto files cleaned"
 
 # ============================================================================
 # BUILD TARGETS
