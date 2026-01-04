@@ -165,142 +165,89 @@ internal/
 
 ---
 
-### 6. Model Organization (Completed) 📦
+### 6. Model Organization & Architecture Refactoring (Completed) 📦
 **Status:** ✅ Completed
 
 **What was Built:**
-- [x] Organized models by service for future microservice separation
-- [x] `internal/auth/models/models.go` - Auth models (Tenant, User, Role, Permission, UserGroup, AuditLog)
-- [x] `internal/core/models/models.go` - Core models (Product, Order, Vendor, Customer, Inventory, Warehouse, Category)
-- [x] `internal/config/models/models.go` - Config models (ServiceConfig, FeatureFlag)
-- [x] Updated Redis cache models to reference new locations
+- [x] **Major Architecture Refactoring**:
+  - [x] `common/` directory renamed to `shared/`
+  - [x] All models centralized in `shared/models/<module>/`
+  - [x] User collection ownership moved from Auth → Core module
+  - [x] RBAC manager refactored to only check permissions (no user CRUD)
+  - [x] Audit log ownership moved from Auth → Events module
+- [x] Organized models by module for easier cross-service access
+- [x] `shared/models/auth/` - Auth models (Tenant, Role, Permission, Token, Session, etc.)
+- [x] `shared/models/core/` - Core models (User, Product, Order, Vendor, Customer, Inventory, etc.)
+- [x] `shared/models/config/` - Config models (ServiceConfig, FeatureFlag)
+- [x] `shared/models/gateway/` - Gateway models (RateLimitInfo, QueryCache, etc.)
+- [x] `shared/models/events/` - Events models (AuditLog, etc.)
 - [x] Validation methods on all models (`Validate(createOperation bool)`)
-- [x] Removed deprecated `internal/db/models.go` and `internal/db/mongo/models/`
 
 **Directory Structure:**
 ```
+shared/
+└── models/
+    ├── auth/         # Auth models
+    ├── core/         # Core models (User, Product, Order, etc.)
+    ├── config/       # Config models
+    ├── gateway/      # Gateway models
+    └── events/       # Events models (AuditLog, etc.)
+
 internal/
 ├── auth/
-│   ├── models/
-│   │   └── models.go      # Tenant, User, Role, Permission
+│   ├── proto/        # Auth service proto
 │   └── repository/
-│       ├── users_repo.go
 │       ├── roles_repo.go
 │       ├── permissions_repo.go
 │       └── tenants_repo.go
-├── core/
-│   └── models/
-│       └── models.go      # Product, Order, Vendor, Customer, etc.
-├── config/
-│   └── models/
-│       └── models.go      # ServiceConfig, FeatureFlag
-└── db/
-    └── redis/
-        └── models/
-            └── models.go  # Session, TokenMetadata, caches
+└── core/
+    ├── proto/        # Core service proto
+    └── repository/
+        └── users_repo.go  # User repo (moved from Auth)
 ```
+
+**Impact on Services:**
+- ⚠️ Auth Service: Has TODOs for Core User service integration
+- ⚠️ Unit Tests: Need updates for new import paths and architecture
 
 ---
 
 ## Code Quality Initiative: Model Reorganization 📦
 
-**Status:** 🟡 In Progress (Phase 1: 90% ✅, Phases 2-5: ⬜)
+**Status:** ✅ Complete - Models Centralized to `shared/models/`
 
-**Why Important:** Monolithic `models.go` files (500+ lines) are hard to navigate, test, and maintain. Breaking them down improves code organization and developer productivity.
+**Why Important:** Centralized model management in `shared/models/<module>/` improves cross-service access, eliminates circular dependencies, and provides clear module boundaries.
 
 **What Was Done:**
 
-### ✅ Phase 1: Auth Models (90% Complete)
-
-**Domain Models Breakdown:**
-- [x] Split `internal/auth/models/models.go` (534 lines) into 9 focused files:
-  - [x] `constants.go` - All status constants, role types, permission formats
-  - [x] `tenant.go` - Tenant + 7 related structs + `Validate()` method
-  - [x] `user.go` - User + 5 related structs + `Validate()` method
-  - [x] `role.go` - Role + RoleMetadata + `Validate()` method
-  - [x] `permission.go` - Permission + PermissionMetadata + `Validate()` method
-  - [x] `user_group.go` - UserGroup + GroupMember
-  - [x] `audit.go` - AuditLog + 3 related structs
-  - [x] `token_claims.go` - AccessTokenClaims + RefreshTokenClaims + validation methods
-  - [x] `refresh_token.go` - RefreshToken + validation methods
-
-**Unit Tests:**
-- [x] Created 6 comprehensive test files with table-driven tests:
-  - [x] `tenant_test.go` - Tests for Tenant.Validate()
-  - [x] `user_test.go` - Tests for User.Validate()
-  - [x] `role_test.go` - Tests for Role.Validate()
-  - [x] `permission_test.go` - Tests for Permission.Validate()
-  - [x] `token_claims_test.go` - Tests for Claims validation and IsExpired()
-  - [x] `refresh_token_test.go` - Tests for RefreshToken validation and helper methods
-
-**Cache Models (Moved from Redis):**
-- [x] Created `internal/auth/models/cache/` subdirectory
-- [x] Moved 14 auth-related cache models from `internal/db/redis/models/`:
-  - [x] `session.go` - Session + DeviceInfo
-  - [x] `token.go` - TokenMetadata + RevokedToken
-  - [x] `rbac.go` - UserPermissionsCache, UserRolesCache, RoleSummary, RolePermissionsCache
-  - [x] `password.go` - PasswordResetToken
-  - [x] `verification.go` - EmailVerificationToken
-  - [x] `mfa.go` - MFACode
-  - [x] `invitation.go` - InviteToken
-  - [x] `security.go` - LoginAttempts
-  - [x] `presence.go` - ActiveUser
-
-**Remaining Tasks (Phase 1 - 10%):**
-- [x] Update imports in auth service files:
-  - [x] `internal/auth/keys_handlers/access_token.go`
-  - [x] `internal/auth/keys_handlers/refresh_token.go`
-  - [x] `internal/auth/token/token_manager.go`
-  - [x] `internal/auth/service/auth.go`
-- [x] Delete old `internal/auth/models/models.go` (after import verification)
-- [x] Delete old `internal/auth/models/models_test.go`
-- [x] Delete moved cache models from `internal/db/redis/models/models.go`
-- [x] Run tests to verify everything works
-
-### ✅ Phase 2: Gateway Cache Models (Completed)
-- [x] Create `internal/gateway/models/cache/` directory
-- [x] Move 4 gateway-related cache models from Redis:
-  - [x] `rate_limit.go` - RateLimitInfo, TenantRateLimit, IPRateLimit
-  - [x] `query_cache.go` - QueryCache
-
-### ✅ Phase 3: Config Models (Completed)
-- [x] Break down `internal/config/models/models.go` into:
-  - [x] `service_config.go` - 5 structs
-  - [x] `feature_flag.go` - 3 structs
-- [x] Create `internal/config/models/cache/` directory
-- [x] Move 3 config-related cache models from Redis:
-  - [x] `feature_flags.go` - FeatureFlagCache, TenantFeatures
-  - [x] `service_config.go` - ServiceConfigCache
-
-### ✅ Phase 4: Core Models (Completed)
-- [x] Break down `internal/core/models/models.go` into:
-  - [x] `constants.go` - All status/type constants
-  - [x] `product.go` - 5 structs
-  - [x] `vendor.go` - 4 structs
-  - [x] `order.go` - 6 structs
-  - [x] `customer.go` - 4 structs
-  - [x] `inventory.go` - 2 structs
-  - [x] `warehouse.go` - 3 structs
-  - [x] `category.go` - 1 struct
-
-### ✅ Phase 5: Redis Infrastructure Cleanup (Completed)
-- [x] Create `internal/db/redis/types.go` - Generic infrastructure types (RedisKeyOptions, CacheEntry, DistributedLock)
-- [x] Create `internal/db/redis/cross_service_cache.go` - Cross-service caches (UserCache, TenantCache, ProductCache, OrderCache)
-- [x] Delete `internal/db/redis/models/models.go` (after all moves complete)
-
-**Documentation:**
-- [x] `MODEL_BREAKDOWN_PLAN.md` - Complete reorganization plan
-- [x] `MODEL_REORGANIZATION.md` - Cache model relocation strategy
-- [x] `DUPLICATES_ANALYSIS.md` - Duplicate code analysis
-- [x] `IMPLEMENTATION_STATUS.md` - Current progress tracking
-- [x] Updated `CLAUDE.md` - Model organization guidelines
+### ✅ Major Architecture Refactoring (100% Complete)
+- [x] **Directory Restructure**: `common/` → `shared/`
+- [x] **Model Centralization**: All models moved from `internal/{module}/models/` → `shared/models/{module}/`
+  - [x] `shared/models/auth/` - Auth models (Tenant, Role, Permission, Token, Session, etc.)
+  - [x] `shared/models/core/` - Core models (User, Product, Order, Vendor, Customer, Inventory, etc.)
+  - [x] `shared/models/config/` - Config models (ServiceConfig, FeatureFlag, etc.)
+  - [x] `shared/models/gateway/` - Gateway models (RateLimitInfo, QueryCache, etc.)
+  - [x] `shared/models/events/` - Events models (AuditLog, etc.)
+- [x] **Service Ownership Changes**:
+  - [x] User collection: Auth → Core module
+  - [x] Audit log: Auth → Events module
+  - [x] RBAC manager: Refactored to only check permissions (no user CRUD)
+- [x] **TODO Comments**: Added throughout for cross-service dependencies
 
 **Benefits Achieved:**
-- ✅ Better code organization (27 focused files vs 1 monolithic file)
-- ✅ Easier navigation (find User model in `user.go` instead of searching 534-line file)
-- ✅ Improved testing (colocated test files, comprehensive coverage)
-- ✅ Reduced merge conflicts (different developers work on different entity files)
-- ✅ Clear ownership (each service owns its models and caches)
+- ✅ Centralized model management - all models in one location
+- ✅ Clear module boundaries - models organized by business domain
+- ✅ Easier cross-service sharing - no circular dependencies
+- ✅ Simplified imports - `shared/models/auth`, `shared/models/core`, etc.
+- ✅ Better separation of concerns - services own business logic, models are shared
+
+**Impact:**
+- ⚠️ Import paths need updates: `internal/{module}/models` → `shared/models/{module}`
+- ⚠️ Auth service has TODOs for Core User service integration
+- ⚠️ Unit tests need fixes for new architecture
+
+**Previous Breakdown Work (Preserved):**
+The detailed model breakdown work from the previous organization (breaking monolithic `models.go` into focused files) has been preserved during the move to `shared/`. Models are still organized by entity with validation methods and comprehensive tests.
 
 ---
 
@@ -411,11 +358,11 @@ mockHandler.EXPECT().
 ### Phase 1: Foundation ⚙️
 
 #### 1. Auth Service (Priority 1) 🔐
-**Status:** ✅ Complete (100%)
+**Status:** 🟡 Partially Complete (has TODOs and broken tests)
 
 **Why First:** Required by all other services for authentication/authorization. Foundation for the entire system.
 
-**Note:** User Service was moved to Core module as it's part of business logic, not authentication.
+**Note:** User collection moved to Core module. RBAC manager refactored to only check permissions (no user CRUD). Audit logs moved to Events module.
 
 **Prerequisites:**
 - ✅ Pre-Phase infrastructure setup must be completed first (gRPC infrastructure, JWT library)
@@ -525,36 +472,95 @@ mockHandler.EXPECT().
   - [x] `revokeTokens()` - Unified token revocation logic
 
 **Test Status:**
-- ✅ All unit tests passing and stable (100+ tests across 10 packages)
-- ✅ Collection tests (permissions, roles, tenants, users, audit_logs) - Refactored with custom matchers
-- ✅ Model validation tests (permission, role, tenant, user, token_claims, refresh_token)
-- ✅ Key handler tests (access_token, refresh_token, token_index) - Complete coverage
-- ✅ Token manager tests
-- ✅ RBAC manager tests (comprehensive coverage of all operations - 19 test cases)
-- ✅ Redis handler tests (set_handler) - Complete coverage
-- ✅ Utils tests (password hashing)
-- ✅ Test refactoring complete - NO gomock.Any() usage anywhere
-- ✅ All tests use specific expected values and custom matchers where needed
+- ⚠️ **Unit tests broken** - Need updates after refactoring:
+  - Import paths changed: `internal/{module}/models` → `shared/models/{module}`
+  - User collection moved to Core module
+  - Audit log moved to Events module
+- ✅ Test quality improvements preserved:
+  - NO gomock.Any() usage
+  - Custom matchers for dynamic timestamps
+  - Specific expected values in all tests
 
-**Completed Tasks:**
-- [x] Create `internal/auth/cmd/main.go` entry point to start the server
-- [x] Complete RBAC manager implementation with comprehensive tests
-- [x] All core endpoints (Login, Logout, Refresh, Verify, Revoke, CheckPermissions)
-- [x] gRPC server implementation with all methods
+**Completed Infrastructure:**
 - [x] Token infrastructure (AccessToken, RefreshToken, TokenIndex, TokenManager)
-- [x] Repository layers for Users, Roles, Permissions, Tenants, AuditLogs
+- [x] Core endpoints (Login, Logout, Refresh, Verify, Revoke, CheckPermissions)
+- [x] RBAC manager (refactored - permission checking only)
+- [x] gRPC server implementation
+- [x] Repository layers for Roles, Permissions, Tenants
+- [x] Password hashing utilities
+
+**TODOs to Fix:**
+- [ ] Auth service needs to call Core User service via gRPC for user operations
+- [ ] Update all imports to use `shared/models/{module}`
+- [ ] Fix unit tests to work with new architecture
+- [ ] Handle audit logging via Events service (not Auth)
 
 **Notes:**
-- User management moved to Core Service (part of business logic, not authentication)
-- End-to-end functional testing infrastructure will be built in Phase 3
-- Audit logging in Logout can be re-enabled during functional testing phase
-- mTLS support deferred to Config Service enhancement phase
+- User management moved to Core Service (Priority 2)
+- RBAC manager now only checks permissions (no CRUD except roles/permissions)
+- Audit logs moved to Events Service (Priority 11)
+- End-to-end functional testing infrastructure will be built in Priority 6
+- mTLS support deferred to Config Service enhancement (Priority 8)
 
 **Port:** 5000
 
 ---
 
-#### 2. Config Service - Phase 1 (Priority 2) ⚙️
+#### 2. Generic gRPC Infrastructure (Priority 1.5 - NEW) 🔧
+**Status:** ⬜ Not Started
+
+**Why Now:** Services need to communicate via gRPC (Auth ↔ Core, Core ↔ Config, etc.). Building generic infrastructure avoids duplication and establishes consistent patterns.
+
+**Prerequisites:**
+- ✅ Pre-Phase gRPC infrastructure (proto generation, build scripts)
+
+**Dependencies:**
+- gRPC Go libraries (already installed)
+- Proto definitions (from Pre-Phase)
+
+**What to Build:**
+- [ ] Generic gRPC server infrastructure (`shared/grpc/server/`)
+  - [ ] Server initialization utilities
+  - [ ] Graceful shutdown handling
+  - [ ] Health check endpoints
+  - [ ] Server configuration struct
+  - [ ] Interceptor registration helpers
+- [ ] Generic gRPC client infrastructure (`shared/grpc/client/`)
+  - [ ] Client connection management
+  - [ ] Connection pooling utilities (basic - advanced features deferred)
+  - [ ] Client configuration struct
+  - [ ] Interceptor registration helpers
+- [ ] Shared middleware/interceptors (`shared/grpc/interceptors/`)
+  - [ ] Logging interceptor (request/response logging)
+  - [ ] Error handling interceptor (standardized error conversion)
+  - [ ] Authentication interceptor (JWT validation for service-to-service calls)
+  - [ ] Metrics interceptor (basic request metrics)
+- [ ] Error handling utilities
+  - [ ] Standard gRPC status code mapping
+  - [ ] Error conversion helpers
+  - [ ] Integration with `internal/errors/` package
+- [ ] Documentation
+  - [ ] Usage examples for server setup
+  - [ ] Usage examples for client usage
+  - [ ] Interceptor configuration guide
+
+**Future Enhancements (Deferred):**
+- [ ] Advanced connection pooling strategies
+- [ ] Retry logic with exponential backoff
+- [ ] Circuit breaker pattern
+- [ ] Load balancing
+- [ ] Service discovery integration
+- [ ] Distributed tracing (OpenTelemetry)
+
+**Deliverables:**
+- Reusable gRPC server and client infrastructure in `shared/grpc/`
+- Shared interceptors for common concerns
+- Documentation and usage examples
+- Ready to use for Core User Service and cross-service communication
+
+---
+
+#### 3. Config Service - Phase 1 (Priority 5 - MOVED) ⚙️
 **Status:** ⬜ Not Started
 
 **Why Second:** Simple service, needed for feature flags and dynamic configuration. Required by User Service (Core module). Starting with .env approach for simplicity, structured for future mTLS enhancement.
@@ -601,26 +607,25 @@ mockHandler.EXPECT().
 
 ### Phase 2: Core Business Logic 💼
 
-#### 3. Core User Service (Priority 3) 👥
+#### 4. Core User Service (Priority 2 - MOVED UP) 👥
 **Status:** ⬜ Not Started
 
-**Why Third:** User management is core business logic (not authentication). Required for functional testing infrastructure (test setup/cleanup). Minimal implementation to unblock testing.
+**Why Second (After gRPC Infrastructure):** User management is core business logic (not authentication). Auth service depends on this for user operations. Required for functional testing infrastructure (test setup/cleanup).
 
 **Prerequisites:**
-- ✅ Auth Service (for RBAC permission checks)
-- ✅ Config Service Phase 1 (for feature flags - optional)
+- ✅ Auth Service (partially complete, will be finished after this)
+- ✅ Generic gRPC Infrastructure (Priority 1.5)
 
 **Dependencies:**
-- Auth Service (for CheckPermissions gRPC calls)
-- Config Service (for feature flags - optional)
+- Generic gRPC Infrastructure (client/server from `shared/grpc/`)
+- Auth Service (for CheckPermissions gRPC calls - optional for now)
 - MongoDB (`core_db.users` collection)
-- gRPC infrastructure (from Pre-Phase)
+- Proto definitions
 
 **What to Build:**
-- [ ] gRPC server implementation (can share with future Core service modules)
-- [ ] User service proto definitions
+- [ ] User service proto definitions (`internal/core/proto/user.proto`)
   - [ ] CreateUser RPC method
-  - [ ] GetUser RPC method
+  - [ ] GetUser RPC method (by ID, by email)
   - [ ] UpdateUser RPC method
   - [ ] DeleteUser RPC method
   - [ ] ListUsers RPC method (with pagination, filtering by tenant)
@@ -628,33 +633,103 @@ mockHandler.EXPECT().
   - [ ] CRUD operations with tenant isolation
   - [ ] User profile management
   - [ ] Metadata and preferences storage
-- [ ] RBAC integration with Auth service
+  - [ ] Uses models from `shared/models/core/`
+- [ ] gRPC server implementation
+  - [ ] Use generic gRPC server infrastructure from `shared/grpc/`
+  - [ ] Implement all User service RPC methods
+  - [ ] Can be extended for future Core modules (Products, Orders, etc.)
+- [ ] RBAC integration with Auth service (optional - can defer)
   - [ ] Call Auth.CheckPermissions before user operations
   - [ ] Verify user has permission to create/read/update/delete users
-- [ ] Config integration (optional for Phase 1)
-  - [ ] Feature flag support (if Config service ready)
-  - [ ] Can defer to later if Config not ready
 - [ ] System admin data seeding
   - [ ] Use CollectionHandlers directly with hard-coded data
   - [ ] Create default tenant
-  - [ ] Create default roles (SuperAdmin, Admin, User)
-  - [ ] Create default permissions
+  - [ ] Create default roles (SuperAdmin, Admin, User) - via Auth service
+  - [ ] Create default permissions - via Auth service
   - [ ] Create system admin user
   - [ ] Seeding script or initialization function
 
 **Scope Notes:**
 - This is ONLY user management, not full Core service
-- Other Core modules (Products, Orders, Vendors, Inventory) come later
-- Minimal implementation to enable functional testing
+- Other Core modules (Products, Orders, Vendors, Inventory) come later (Priority 9)
+- Minimal implementation to unblock Auth service fixes
 
 **Port:** 5001 (shared with future Core service modules)
 
 ---
 
-#### 4. Core Service - Remaining Modules (Priority 7) 🏢
+#### 5. Fix TODOs - Auth Service Dependencies (Priority 3 - NEW) 🔧
+**Status:** ⬜ Not Started
+
+**Why Third:** Auth service has TODOs that depend on Core User service. Must resolve these to complete Auth service.
+
+**Prerequisites:**
+- ✅ Generic gRPC Infrastructure (Priority 1.5)
+- ✅ Core User Service (Priority 2)
+
+**What to Fix:**
+- [ ] Update Auth service to use Core User service gRPC client
+  - [ ] Replace direct User collection access with gRPC calls to Core
+  - [ ] Update Login endpoint to call Core.GetUser
+  - [ ] Remove User repository from Auth service (moved to Core)
+- [ ] Update RBAC manager
+  - [ ] Already refactored to only check permissions (no user CRUD)
+  - [ ] Verify it works with new architecture
+- [ ] Audit logging integration
+  - [ ] Add TODO comments for Events service integration (deferred to Priority 11)
+  - [ ] Temporarily disable or comment out audit logging in Auth endpoints
+- [ ] Review and resolve all remaining TODO comments in Auth service
+
+**Deliverables:**
+- Auth service fully functional with Core User service integration
+- All critical TODOs resolved or documented for future work
+- Auth service ready for unit testing
+
+---
+
+#### 6. Fix Unit Tests (Priority 4 - NEW) 🧪
+**Status:** ⬜ Not Started
+
+**Why Fourth:** Tests are broken after refactoring. Must fix before proceeding with new development.
+
+**Prerequisites:**
+- ✅ Architecture refactoring complete
+- ✅ Auth service TODOs resolved (Priority 3)
+
+**What to Fix:**
+- [ ] Update import paths across all tests
+  - [ ] Change `internal/{module}/models` → `shared/models/{module}`
+  - [ ] Change `internal/common/models` → `shared/models/common` (if exists)
+- [ ] Fix Auth service tests
+  - [ ] Update tests to use Core User service mock/client
+  - [ ] Fix collection tests (roles, permissions, tenants)
+  - [ ] Fix RBAC manager tests
+  - [ ] Fix token infrastructure tests
+  - [ ] Preserve test quality (no gomock.Any(), custom matchers)
+- [ ] Fix Core service tests (if any exist)
+  - [ ] Update User repository tests to use new model locations
+- [ ] Run all tests and verify they pass
+  - [ ] `make test` should succeed
+  - [ ] All 100+ tests should pass
+- [ ] Update test documentation if needed
+
+**Test Quality Standards (MUST PRESERVE):**
+- ✅ NO `gomock.Any()` usage
+- ✅ Custom matchers only for dynamic timestamps
+- ✅ Specific expected values in all test cases
+- ✅ Table-driven tests where applicable
+
+**Deliverables:**
+- All unit tests passing
+- Test coverage maintained
+- Test quality standards preserved
+
+---
+
+#### 7. Core Service - Remaining Modules (Priority 9 - MOVED) 🏢
 **Status:** ⬜ Not Started (Deferred after functional testing)
 
-**Why Deferred:** User Service (Priority 3) provides enough functionality for initial testing. Other Core modules (Products, Orders, Vendors, Inventory) can wait until after functional testing infrastructure is proven.
+**Why Deferred:** User Service (Priority 2) provides enough functionality for initial testing. Other Core modules (Products, Orders, Vendors, Inventory) can wait until after functional testing infrastructure is proven.
 
 **Prerequisites:**
 - ✅ Auth Service (for RBAC permission checks)
@@ -705,10 +780,10 @@ mockHandler.EXPECT().
 
 ### Phase 3: Quality Assurance 🧪
 
-#### 5. Functional Testing Infrastructure (Priority 4) 🐍
+#### 8. Functional Testing Infrastructure (Priority 6 - MOVED) 🐍
 **Status:** ⬜ Not Started
 
-**Why Fourth:** Auth, Config, and User services are ready to test. Building test infrastructure now prevents technical debt and ensures quality before adding more services.
+**Why Sixth:** Auth, Config, and User services are ready to test. Building test infrastructure now prevents technical debt and ensures quality before adding more services.
 
 **Prerequisites:**
 - ✅ Auth Service (to test authentication flows)
@@ -783,10 +858,10 @@ def test_user_login_flow():
 
 ---
 
-#### 6. Functional Tests - Auth, Config, User (Priority 5) ✅
+#### 9. Functional Tests - Auth, Config, User (Priority 7 - MOVED) ✅
 **Status:** ⬜ Not Started
 
-**Why Fifth:** Tests the three completed services (Auth, Config, User) using the newly built testing infrastructure. Validates end-to-end flows work correctly.
+**Why Seventh:** Tests the three completed services (Auth, Config, User) using the newly built testing infrastructure. Validates end-to-end flows work correctly.
 
 **Prerequisites:**
 - ✅ Functional Testing Infrastructure (Priority 4)
@@ -832,10 +907,10 @@ def test_user_login_flow():
 
 ### Phase 5: Security Enhancement 🔒
 
-#### 7. Config Service - mTLS & Two-Tier RBAC (Priority 6) 🔐
+#### 10. Config Service - mTLS & Two-Tier RBAC (Priority 8 - MOVED) 🔐
 **Status:** ⬜ Not Started
 
-**Why Sixth:** Enhances Config service security with production-grade mTLS and certificate-based module authentication. Now that basic functionality is proven via functional tests, we can add enterprise-level security.
+**Why Eighth:** Enhances Config service security with production-grade mTLS and certificate-based module authentication. Now that basic functionality is proven via functional tests, we can add enterprise-level security.
 
 **Prerequisites:**
 - ✅ Config Service Phase 1 (simple version working)
@@ -911,10 +986,10 @@ Request Flow with Two-Tier RBAC:
 
 ### Phase 6: Integration Layer 🔗
 
-#### 8. Gateway (Priority 8) 🌐
+#### 11. Gateway (Priority 10 - MOVED) 🌐
 **Status:** ⬜ Not Started (Deferred after functional testing and security enhancements)
 
-**Why Eighth:** Single entry point for WebUI. Depends on Auth and Core services being ready. Deferred until core services and testing are complete.
+**Why Tenth:** Single entry point for WebUI. Depends on Auth and Core services being ready. Deferred until core services and testing are complete.
 
 **Prerequisites:**
 - ✅ Auth Service (JWT validation)
@@ -945,10 +1020,10 @@ Request Flow with Two-Tier RBAC:
 
 ---
 
-#### 9. Events Service (Priority 9) 📡
+#### 12. Events Service (Priority 11 - MOVED) 📡
 **Status:** ⬜ Not Started (Deferred)
 
-**Why Ninth:** Consumes events from Kafka. Deferred until Core service modules are implemented and generating events.
+**Why Eleventh:** Consumes events from Kafka and handles audit logging. Deferred until Core service modules are implemented and generating events.
 
 **Dependencies:**
 - Core Service (consumes its events)
@@ -975,10 +1050,10 @@ Request Flow with Two-Tier RBAC:
 
 ### Phase 7: Frontend 🎨
 
-#### 10. WebUI (Priority 10) 💻
+#### 13. WebUI (Priority 12 - MOVED) 💻
 **Status:** ⬜ Not Started (Deferred)
 
-**Why Last:** Depends on Gateway being ready to provide GraphQL API. Final phase after all backend services are complete.
+**Why Twelfth (Last):** Depends on Gateway being ready to provide GraphQL API. Final phase after all backend services are complete.
 
 **Dependencies:**
 - Gateway (GraphQL API)
@@ -1062,11 +1137,12 @@ Request Flow with Two-Tier RBAC:
 ### Code Organization
 - ✅ Starting as monorepo with multiple packages
 - ✅ Will break down to microservices and shared Go modules later
-- ✅ Models organized by service for easy future separation:
-  - `internal/auth/models/` - Auth models (Tenant, User, Role, Permission, UserGroup, AuditLog)
-  - `internal/core/models/` - Core models (Product, Order, Vendor, Customer, Inventory, etc.)
-  - `internal/config/models/` - Config models (ServiceConfig, FeatureFlag)
-  - `internal/db/redis/models/` - Redis cache models (Session, TokenMetadata, caches)
+- ✅ Models centralized in `shared/models/` for easier cross-service access:
+  - `shared/models/auth/` - Auth models (Tenant, Role, Permission, Token, Session, etc.)
+  - `shared/models/core/` - Core models (User, Product, Order, Vendor, Customer, Inventory, etc.)
+  - `shared/models/config/` - Config models (ServiceConfig, FeatureFlag)
+  - `shared/models/gateway/` - Gateway models (RateLimitInfo, QueryCache, etc.)
+  - `shared/models/events/` - Events models (AuditLog, etc.)
 
 ### Infrastructure Notes
 - ⚠️ MongoDB and Redis connection URIs are currently hardcoded in `internal/db/mongo/mongo.go` and `internal/db/redis/redis.go`
@@ -1077,6 +1153,21 @@ Request Flow with Two-Tier RBAC:
 ---
 
 ## Future Features (To Be Planned)
+
+### Advanced gRPC Infrastructure Features 🔧
+**Status:** 📝 Planned (deferred from Priority 1.5)
+
+Advanced features for production-grade gRPC infrastructure:
+- Advanced connection pooling strategies
+- Retry logic with exponential backoff
+- Circuit breaker pattern
+- Load balancing
+- Service discovery integration
+- Distributed tracing (OpenTelemetry)
+
+*To be implemented after basic infrastructure is proven.*
+
+---
 
 ### Data Import from Files 📁
 **Status:** 📝 Planned (not yet designed)
