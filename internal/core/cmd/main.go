@@ -2,17 +2,29 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	auth "erp.localhost/internal/auth/utils"
+	userv1 "erp.localhost/internal/core/proto/user/v1"
+	"erp.localhost/internal/core/service"
 	"erp.localhost/internal/infra/db"
 	"erp.localhost/internal/infra/db/mongo"
 	erp_errors "erp.localhost/internal/infra/errors"
+	infra_grpc "erp.localhost/internal/infra/grpc"
 	"erp.localhost/internal/infra/logging"
 	auth_models "erp.localhost/internal/infra/models/auth"
 	core_models "erp.localhost/internal/infra/models/core"
 	mongo_models "erp.localhost/internal/infra/models/db/mongo"
 	shared_models "erp.localhost/internal/infra/models/shared"
+	"google.golang.org/grpc"
+)
+
+const (
+	serverPort = 5001
 )
 
 var (
@@ -20,9 +32,46 @@ var (
 )
 
 func Main() {
+	// Channel to listen for OS signals for graceful shutdown
+	stopChan := make(chan os.Signal, 1)
+	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Channel to signal the gRPC server goroutine to stop
+	quit := make(chan struct{})
+
+	// Create gRPC Server
+	certs := shared_models.NewCerts()
+	if certs == nil {
+		return
+	}
+	services := map[*grpc.ServiceDesc]any{
+		&userv1.UserService_ServiceDesc: service.NewUserService(),
+	}
+	grpcServer := infra_grpc.NewGRPCServer(certs, shared_models.ModuleCore, serverPort, services)
+	if grpcServer == nil {
+		return
+	}
+
+	// WaitGroup to wait for the gRPC server goroutine to finish
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Run gRPC Server
+		grpcServer.ListenAndServe(quit)
+	}()
+
 	if err := createDefaultData(); err != nil {
 		return
 	}
+	// Wait for OS signal
+	<-stopChan
+
+	// Signal the gRPC server to stop
+	close(quit)
+
+	// Wait for the gRPC server goroutine to finish
+	wg.Wait()
 }
 
 func createDefaultData() error {

@@ -46,23 +46,41 @@ func NewGRPCServer(certs *shared_models.Certs, module shared_models.Module, port
 
 }
 
-func (s *GRPCServer) ListenAndServe() {
+func (s *GRPCServer) ListenAndServe(quit <-chan struct{}) error {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
 	if err != nil {
-		s.logger.Fatal("failed to listen", "error", erp_errors.Internal(erp_errors.InternalGRPCError, err))
-		return
+		err := erp_errors.Internal(erp_errors.InternalGRPCError, err)
+		s.logger.Fatal("failed to listen", "error", err)
+		return err
 	}
-	if err = s.server.Serve(lis); err != nil {
-		s.logger.Fatal("failed to serve", "error", erp_errors.Internal(erp_errors.InternalGRPCError, err))
-	}
+	s.logger.Info(fmt.Sprintf("gRPC server is listening on port: %d", s.port))
+	// Channel to signal when the server has shut down
+	serverStopped := make(chan struct{})
+
+	go func() {
+		if err = s.server.Serve(lis); err != nil {
+			err := erp_errors.Internal(erp_errors.InternalGRPCError, err)
+			s.logger.Fatal("failed to serve", "error", err)
+		}
+		close(serverStopped)
+	}()
+
+	<-quit
+
+	s.logger.Info("Initiating graceful stop for gRPC server...")
+	s.server.GracefulStop()
+
+	<-serverStopped
+
+	return nil
 }
 
 func getmTLSServerOptions(certs *shared_models.Certs, logger *logging.Logger) []grpc.ServerOption {
-	if certs == nil || certs.CACert == "" || certs.Certs == "" || certs.Key == "" {
+	if certs == nil || certs.CACert == "" || certs.Cert == "" || certs.Key == "" {
 		logger.Fatal("Failed to ")
 		return nil
 	}
-	serverCert, err := tls.LoadX509KeyPair(certs.Certs, certs.Key)
+	serverCert, err := tls.LoadX509KeyPair(certs.Cert, certs.Key)
 	if err != nil {
 		logger.Fatal("failed to load certificate", "error", erp_errors.Internal(erp_errors.InternalGRPCError, err))
 		return nil

@@ -4,7 +4,7 @@
 // - protoc             v6.33.2
 // source: config.proto
 
-package config1
+package configv1
 
 import (
 	context "context"

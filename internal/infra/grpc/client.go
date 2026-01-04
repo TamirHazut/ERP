@@ -57,13 +57,13 @@ func (c *GRPCClient) Close() error {
 
 func getmTLSClientOptions(certs *shared_models.Certs, logger *logging.Logger) []grpc.DialOption {
 	// If no certs provided, use insecure connection
-	if certs == nil || certs.CACert == "" || certs.Certs == "" || certs.Key == "" {
+	if certs == nil || certs.CACert == "" || certs.Cert == "" || certs.Key == "" {
 		logger.Error("no certificates provided")
 		return nil
 	}
 
 	// Load client certificate
-	clientCert, err := tls.LoadX509KeyPair(certs.Certs, certs.Key)
+	clientCert, err := tls.LoadX509KeyPair(certs.Cert, certs.Key)
 	if err != nil {
 		logger.Error("failed to load client certificate", "error", err)
 		return nil

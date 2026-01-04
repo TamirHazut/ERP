@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package config.v1;
 
-option go_package = "erp.localhost/internal/config/proto/config/v1;config1";
+option go_package = "erp.localhost/internal/config/proto/config/v1;configv1";
 
 import "google/protobuf/struct.proto";
 

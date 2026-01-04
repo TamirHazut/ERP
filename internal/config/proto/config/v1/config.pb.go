@@ -4,7 +4,7 @@
 // 	protoc        v6.33.2
 // source: config.proto
 
-package config1
+package configv1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -289,7 +289,7 @@ const file_config_proto_rawDesc = "" +
 	"\rConfigService\x12@\n" +
 	"\tGetConfig\x12\x18.config.v1.ConfigRequest\x1a\x19.config.v1.ConfigResponse\x127\n" +
 	"\x06GetEnv\x12\x15.config.v1.EnvRequest\x1a\x16.config.v1.EnvResponse\x12O\n" +
-	"\x0eSetFeatureFlag\x12\x1d.config.v1.FeatureFlagRequest\x1a\x1e.config.v1.FeatureFlagResponseB7Z5erp.localhost/internal/config/proto/config/v1;config1b\x06proto3"
+	"\x0eSetFeatureFlag\x12\x1d.config.v1.FeatureFlagRequest\x1a\x1e.config.v1.FeatureFlagResponseB8Z6erp.localhost/internal/config/proto/config/v1;configv1b\x06proto3"
 
 var (
 	file_config_proto_rawDescOnce sync.Once

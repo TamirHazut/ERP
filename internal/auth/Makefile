@@ -78,9 +78,9 @@ CERTS_DIR := resources/certs
 CA_DIR := ../../resources/certs/ca
 CA_KEY := $(CA_DIR)/ca-key.pem
 CA_CERT := $(CA_DIR)/ca-cert.pem
-SERVICE_KEY := $(CERTS_DIR)/$(SERVICE_NAME)-key.pem
-SERVICE_CSR := $(CERTS_DIR)/$(SERVICE_NAME)-csr.pem
-SERVICE_CERT := $(CERTS_DIR)/$(SERVICE_NAME)-cert.pem
+SERVICE_KEY := $(CERTS_DIR)/key.pem
+SERVICE_CSR := $(CERTS_DIR)/csr.pem
+SERVICE_CERT := $(CERTS_DIR)/cert.pem
 SERVICE_CA_COPY := $(CERTS_DIR)/ca-cert.pem
 CERT_DAYS := 365
 
