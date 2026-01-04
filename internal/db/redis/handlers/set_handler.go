@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
 )
 
 type BaseSetHandler struct {
@@ -16,7 +16,7 @@ type BaseSetHandler struct {
 
 func NewBaseSetHandler(redisHandler RedisHandler, logger *logging.Logger) *BaseSetHandler {
 	if logger == nil {
-		logger = logging.NewLogger(common_models.ModuleDB)
+		logger = logging.NewLogger(shared_models.ModuleDB)
 	}
 	if redisHandler == nil {
 		logger.Error("RedisHandler is nil")

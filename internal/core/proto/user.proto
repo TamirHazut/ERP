@@ -2,7 +2,11 @@ syntax = "proto3";
 
 package user.v1;
 
-option go_package = "erp.localhost/internal/auth/proto/user/v1;userv1";
+option go_package = "erp.localhost/internal/core/proto/user/v1;userv1";
+
+message UserResponse {
+
+}
 
 message CreateUserRequest {
 
@@ -13,19 +17,11 @@ message CreateUserResponse {
 }
 
 message GetUserRequest {
-
-}
-
-message GetUserResponse {
-    
+    string tenant_id = 1; 
 }
 
 message GetUsersRequest {
 
-}
-
-message GetUsersResponse {
-    
 }
 
 message UpdateUserRequest {
@@ -46,8 +42,8 @@ message DeleteUserResponse {
 
 service UserService {
     rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
-    rpc GetUser(GetUserRequest) returns (GetUserResponse);
-    rpc GetUsers(GetUsersRequest) returns (GetUsersResponse);
+    rpc GetUser(GetUserRequest) returns (UserResponse);
+    rpc GetUsers(GetUsersRequest) returns (stream UserResponse);
     rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
     rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
 }

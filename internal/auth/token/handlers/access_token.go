@@ -4,31 +4,32 @@ import (
 	"fmt"
 	"time"
 
-	auth_models "erp.localhost/internal/auth/models/cache"
 	token "erp.localhost/internal/auth/token"
-	common_models "erp.localhost/internal/common/models"
 	redis "erp.localhost/internal/db/redis"
 	redis_handlers "erp.localhost/internal/db/redis/handlers"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	auth_cache_models "erp.localhost/internal/shared/models/auth/cache"
+	redis_models "erp.localhost/internal/shared/models/db/redis"
 )
 
 // AccessTokenHandler handles access token operations in Redis
 // Key pattern: tokens:{tenant_id}:{token_id}
 type AccessTokenHandler struct {
-	keyHandler redis_handlers.KeyHandler[auth_models.TokenMetadata]
+	keyHandler redis_handlers.KeyHandler[auth_cache_models.TokenMetadata]
 	tokenIndex *token.TokenIndex
 	logger     *logging.Logger
 }
 
 // NewAccessTokenHandler creates a new AccessTokenHandler
-func NewAccessTokenHandler(keyHandler redis_handlers.KeyHandler[auth_models.TokenMetadata], tokenIndex *token.TokenIndex, logger *logging.Logger) *AccessTokenHandler {
+func NewAccessTokenHandler(keyHandler redis_handlers.KeyHandler[auth_cache_models.TokenMetadata], tokenIndex *token.TokenIndex, logger *logging.Logger) *AccessTokenHandler {
 	if logger == nil {
-		logger = logging.NewLogger(common_models.ModuleAuth)
+		logger = logging.NewLogger(shared_models.ModuleAuth)
 	}
 	if keyHandler == nil {
-		dbHandler := redis.NewBaseRedisHandler(redis.KeyPrefix(redis.RedisKeyToken))
-		keyHandler = redis_handlers.NewBaseKeyHandler[auth_models.TokenMetadata](dbHandler, logger)
+		dbHandler := redis.NewBaseRedisHandler(redis_models.KeyPrefix(redis_models.RedisKeyToken))
+		keyHandler = redis_handlers.NewBaseKeyHandler[auth_cache_models.TokenMetadata](dbHandler, logger)
 	}
 	return &AccessTokenHandler{
 		keyHandler: keyHandler,
@@ -39,7 +40,7 @@ func NewAccessTokenHandler(keyHandler redis_handlers.KeyHandler[auth_models.Toke
 
 // Store stores an access token in Redis
 // Key: tokens:{tenant_id}:{user_id}:{token_id}
-func (h *AccessTokenHandler) Store(tenantID string, userID string, tokenID string, metadata auth_models.TokenMetadata) error {
+func (h *AccessTokenHandler) Store(tenantID string, userID string, tokenID string, metadata auth_cache_models.TokenMetadata) error {
 	// Basic validation
 	if metadata.TokenID == "" {
 		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TokenID")
@@ -83,7 +84,7 @@ func (h *AccessTokenHandler) Store(tenantID string, userID string, tokenID strin
 }
 
 // GetOne retrieves an access token from Redis
-func (h *AccessTokenHandler) GetOne(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
+func (h *AccessTokenHandler) GetOne(tenantID string, userID string, tokenID string) (*auth_cache_models.TokenMetadata, error) {
 	key := fmt.Sprintf("%s:%s", userID, tokenID)
 	token, err := h.keyHandler.GetOne(tenantID, key)
 	if err != nil {
@@ -95,7 +96,7 @@ func (h *AccessTokenHandler) GetOne(tenantID string, userID string, tokenID stri
 }
 
 // GetAll retrieves all access tokens from Redis
-func (h *AccessTokenHandler) GetAll(tenantID string, userID string) ([]auth_models.TokenMetadata, error) {
+func (h *AccessTokenHandler) GetAll(tenantID string, userID string) ([]auth_cache_models.TokenMetadata, error) {
 	tokens, err := h.keyHandler.GetAll(tenantID, userID)
 	if err != nil {
 		return nil, err
@@ -104,7 +105,7 @@ func (h *AccessTokenHandler) GetAll(tenantID string, userID string) ([]auth_mode
 }
 
 // Validate checks if a token is valid (exists, not revoked, not expired)
-func (h *AccessTokenHandler) Validate(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
+func (h *AccessTokenHandler) Validate(tenantID string, userID string, tokenID string) (*auth_cache_models.TokenMetadata, error) {
 	metadata, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return nil, err

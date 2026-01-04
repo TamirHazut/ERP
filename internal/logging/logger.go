@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	common_models "erp.localhost/internal/common/models"
+	shared_models "erp.localhost/internal/shared/models"
 	"github.com/rs/zerolog"
 )
 
@@ -17,7 +17,7 @@ type Logger struct {
 }
 
 // NewLogger creates a new logger for each module.
-func NewLogger(module common_models.Module) *Logger {
+func NewLogger(module shared_models.Module) *Logger {
 	baseLogger := zerolog.New(newConsoleWriter()).
 		With().
 		Timestamp().

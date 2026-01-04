@@ -2,7 +2,7 @@
 
 param(
     [Parameter(Mandatory=$false)]
-    [ValidateSet("all", "common", "auth", "config", "core")]
+    [ValidateSet("all", "shared", "auth", "config", "core")]
     [string]$Service = "all"
 )
 
@@ -16,23 +16,23 @@ Set-Location $PROJECT_ROOT
 # Configuration
 $MODULE = "erp.localhost"
 $PROTO_OUT = "."  # Output to project root (protoc will use go_package path relative to module)
-$PROTO_COMMON = "proto/common"
+$PROTO_COMMON = "proto/shared"
 $PROTO_AUTH = "internal/auth/proto"
 $PROTO_CONFIG = "internal/config/proto"
 $PROTO_CORE = "internal/core/proto"
 
 function Generate-Common {
-    Write-Host "Generating common proto files..." -ForegroundColor Cyan
-    if (Test-Path "$PROTO_COMMON/common.proto") {
+    Write-Host "Generating shared proto files..." -ForegroundColor Cyan
+    if (Test-Path "$PROTO_COMMON/shared.proto") {
         protoc --go_out=$PROTO_OUT `
             --go_opt=module=$MODULE `
             --go-grpc_out=$PROTO_OUT `
             --go-grpc_opt=module=$MODULE `
             -I=proto `
-            "$PROTO_COMMON/common.proto"
+            "$PROTO_COMMON/shared.proto"
         Write-Host "✓ Common proto files generated" -ForegroundColor Green
     } else {
-        Write-Host "⚠ No common.proto file found, skipping..." -ForegroundColor Yellow
+        Write-Host "⚠ No shared.proto file found, skipping..." -ForegroundColor Yellow
     }
 }
 
@@ -94,7 +94,7 @@ switch ($Service) {
         Generate-Config
         Generate-Core
     }
-    "common" { Generate-Common }
+    "shared" { Generate-Common }
     "auth" { Generate-Auth }
     "config" { Generate-Config }
     "core" { Generate-Core }

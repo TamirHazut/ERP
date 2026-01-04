@@ -5,9 +5,10 @@ import (
 	"errors"
 	"time"
 
-	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	mongo_models "erp.localhost/internal/shared/models/db/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -15,21 +16,21 @@ import (
 
 type MongoDBManager struct {
 	client *mongo.Client
-	dbName DBName
+	dbName mongo_models.DBName
 	db     *mongo.Database
 	logger *logging.Logger
 }
 
-func NewMongoDBManager(dbName DBName) *MongoDBManager {
-	logger := logging.NewLogger(common_models.ModuleDB)
-	db := GetDBNameFromCollection(string(dbName))
+func NewMongoDBManager(dbName mongo_models.DBName) *MongoDBManager {
+	logger := logging.NewLogger(shared_models.ModuleDB)
+	db := mongo_models.GetDBNameFromCollection(string(dbName))
 	if db == "" {
 		logger.Fatal("db not found", "db", dbName)
 		return nil
 	}
 
 	m := &MongoDBManager{
-		dbName: DBName(db),
+		dbName: mongo_models.DBName(db),
 		logger: logger,
 	}
 

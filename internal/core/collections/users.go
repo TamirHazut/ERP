@@ -1,0 +1,143 @@
+package collection
+
+import (
+	"time"
+
+	"erp.localhost/internal/db/mongo"
+	erp_errors "erp.localhost/internal/errors"
+	"erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	core_models "erp.localhost/internal/shared/models/core"
+	mongo_models "erp.localhost/internal/shared/models/db/mongo"
+)
+
+type UserCollection struct {
+	collection mongo.CollectionHandler[core_models.User]
+	logger     *logging.Logger
+}
+
+func NewUserCollection(collection mongo.CollectionHandler[core_models.User]) *UserCollection {
+	logger := logging.NewLogger(shared_models.ModuleAuth)
+	if collection == nil {
+		collectionHandler := mongo.NewBaseCollectionHandler[core_models.User](string(mongo_models.UsersCollection), logger)
+		if collectionHandler == nil {
+			logger.Fatal("failed to create users collection handler")
+			return nil
+		}
+		collection = collectionHandler
+	}
+	return &UserCollection{
+		collection: collection,
+		logger:     logger,
+	}
+}
+
+func (r *UserCollection) CreateUser(user core_models.User) (string, error) {
+	if err := user.Validate(true); err != nil {
+		return "", err
+	}
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
+	r.logger.Debug("Creating user", "user", user)
+	return r.collection.Create(user)
+}
+
+func (r *UserCollection) GetUserByID(tenantID, userID string) (*core_models.User, error) {
+	filter := map[string]any{
+		"tenant_id": tenantID,
+		"_id":       userID,
+	}
+	r.logger.Debug("Getting user by id", "filter", filter)
+	return r.findUserByFilter(filter)
+}
+
+func (r *UserCollection) GetUserByEmail(tenantID, email string) (*core_models.User, error) {
+	filter := map[string]any{
+		"tenant_id": tenantID,
+		"email":     email,
+	}
+	r.logger.Debug("Getting user by email", "filter", filter)
+	return r.findUserByFilter(filter)
+}
+
+func (r *UserCollection) GetUserByUsername(tenantID, username string) (*core_models.User, error) {
+	filter := map[string]any{
+		"tenant_id": tenantID,
+		"username":  username,
+	}
+	r.logger.Debug("Getting user by username", "filter", filter)
+	return r.findUserByFilter(filter)
+}
+
+func (r *UserCollection) GetUsersByTenantID(tenantID string) ([]core_models.User, error) {
+	filter := map[string]any{
+		"tenant_id": tenantID,
+	}
+	r.logger.Debug("Getting users by tenant id", "filter", filter)
+	return r.findUsersByFilter(filter)
+}
+
+func (r *UserCollection) GetUsersByRoleID(tenantID, roleID string) ([]core_models.User, error) {
+	filter := map[string]any{
+		"tenant_id": tenantID,
+		"role_id":   roleID,
+	}
+	r.logger.Debug("Getting users by role id", "filter", filter)
+	return r.findUsersByFilter(filter)
+}
+
+func (r *UserCollection) UpdateUser(user core_models.User) error {
+	if err := user.Validate(false); err != nil {
+		return err
+	}
+	userID := user.ID.String()
+	r.logger.Debug("Updating user", "user", user)
+	currentUser, err := r.GetUserByID(user.TenantID, userID)
+	if err != nil {
+		return err
+	}
+	if user.Username != currentUser.Username ||
+		user.CreatedAt != currentUser.CreatedAt {
+		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "Username", "CreatedAt")
+	}
+	filter := map[string]any{
+		"tenant_id": user.TenantID,
+		"_id":       user.ID,
+	}
+	user.UpdatedAt = time.Now()
+	return r.collection.Update(filter, user)
+}
+
+func (r *UserCollection) DeleteUser(tenantID, userID string) error {
+	if tenantID == "" || userID == "" {
+		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID", "UserID")
+	}
+	filter := map[string]any{
+		"tenant_id": tenantID,
+		"_id":       userID,
+	}
+	r.logger.Debug("Deleting user", "filter", filter)
+	return r.collection.Delete(filter)
+}
+
+func (r *UserCollection) findUserByFilter(filter map[string]any) (*core_models.User, error) {
+	if _, ok := filter["tenant_id"]; !ok {
+		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id")
+	}
+	user, err := r.collection.FindOne(filter)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (r *UserCollection) findUsersByFilter(filter map[string]any) ([]core_models.User, error) {
+	if _, ok := filter["tenant_id"]; !ok {
+		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id")
+	}
+	users, err := r.collection.FindAll(filter)
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}

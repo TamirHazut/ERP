@@ -5,187 +5,62 @@ import (
 	"slices"
 
 	collection "erp.localhost/internal/auth/collections"
-	"erp.localhost/internal/auth/models"
-	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	auth_models "erp.localhost/internal/shared/models/auth"
 )
 
 type RBACManager struct {
 	logger                *logging.Logger
-	userCollection        *collection.UserCollection
 	rolesCollection       *collection.RolesCollection
 	permissionsCollection *collection.PermissionsCollection
-	auditLogsCollection   *collection.AuditLogsCollection
 }
 
 func NewRBACManager() *RBACManager {
-	logger := logging.NewLogger(common_models.ModuleAuth)
+	logger := logging.NewLogger(shared_models.ModuleAuth)
 	return &RBACManager{
 		logger:                logger,
-		userCollection:        collection.NewUserCollection(nil),
 		rolesCollection:       collection.NewRoleCollection(nil),
 		permissionsCollection: collection.NewPermissionCollection(nil),
-		auditLogsCollection:   collection.NewAuditLogsCollection(nil),
 	}
 }
 
 /* CRUD Resource Functions */
-func (r *RBACManager) CreateResource(tenantID string, userID string, resourceType string, resource any) (string, error) {
-	permission := fmt.Sprintf("%s:%s", resourceType, models.PermissionActionCreate)
+func (r *RBACManager) CreateResource(tenantID string, userID string, resourceType string, resource any) error {
+	permission := fmt.Sprintf("%s:%s", resourceType, auth_models.PermissionActionCreate)
 
-	if err := r.HasPermission(tenantID, userID, permission); err != nil {
-		return "", err
-	}
-
-	invalidResourceValueTypeError := erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("invalid resource value type"))
-	switch resourceType {
-	case models.ResourceTypeUser:
-		user, ok := resource.(models.User)
-		if !ok {
-			return "", invalidResourceValueTypeError
-		}
-		return r.userCollection.CreateUser(user)
-	case models.ResourceTypeRole:
-		role, ok := resource.(models.Role)
-		if !ok {
-			return "", invalidResourceValueTypeError
-		}
-		return r.rolesCollection.CreateRole(role)
-	case models.ResourceTypePermission:
-		permission, ok := resource.(models.Permission)
-		if !ok {
-			return "", invalidResourceValueTypeError
-		}
-		return r.permissionsCollection.CreatePermission(permission)
-	default:
-		return "", erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("unsupported resource type"))
-	}
+	return r.HasPermission(tenantID, userID, permission)
 }
 
 func (r *RBACManager) UpdateResource(tenantID string, userID string, resourceType string, resource any) error {
-	permission := fmt.Sprintf("%s:%s", resourceType, models.PermissionActionUpdate)
+	permission := fmt.Sprintf("%s:%s", resourceType, auth_models.PermissionActionUpdate)
 
-	if err := r.HasPermission(tenantID, userID, permission); err != nil {
-		return err
-	}
-
-	invalidResourceValueTypeError := erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("invalid resource value type"))
-	switch resourceType {
-	case models.ResourceTypeUser:
-		user, ok := resource.(models.User)
-		if !ok {
-			return invalidResourceValueTypeError
-		}
-		return r.userCollection.UpdateUser(user)
-	case models.ResourceTypeRole:
-		role, ok := resource.(models.Role)
-		if !ok {
-			return invalidResourceValueTypeError
-		}
-		return r.rolesCollection.UpdateRole(role)
-	case models.ResourceTypePermission:
-		permission, ok := resource.(models.Permission)
-		if !ok {
-			return invalidResourceValueTypeError
-		}
-		return r.permissionsCollection.UpdatePermission(permission)
-	default:
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("unsupported resource type"))
-	}
+	return r.HasPermission(tenantID, userID, permission)
 }
 
 func (r *RBACManager) DeleteResource(tenantID string, userID string, resourceType string, resource any) error {
-	permission := fmt.Sprintf("%s:%s", resourceType, models.PermissionActionDelete)
-	if err := r.HasPermission(tenantID, userID, permission); err != nil {
-		return err
-	}
-	invalidResourceValueTypeError := erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("invalid resource value type"))
-	switch resourceType {
-	case models.ResourceTypeUser:
-		user, ok := resource.(models.User)
-		if !ok {
-			return invalidResourceValueTypeError
-		}
-		return r.userCollection.DeleteUser(tenantID, user.ID.String())
-	case models.ResourceTypeRole:
-		role, ok := resource.(models.Role)
-		if !ok {
-			return invalidResourceValueTypeError
-		}
-		return r.rolesCollection.DeleteRole(tenantID, role.ID.String())
-	case models.ResourceTypePermission:
-		permission, ok := resource.(models.Permission)
-		if !ok {
-			return invalidResourceValueTypeError
-		}
-		return r.permissionsCollection.DeletePermission(tenantID, permission.ID.String())
-	default:
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("unsupported resource type"))
-	}
+	permission := fmt.Sprintf("%s:%s", resourceType, auth_models.PermissionActionDelete)
+
+	return r.HasPermission(tenantID, userID, permission)
 }
 
-func (r *RBACManager) GetResource(tenantID string, userID string, resourceType string, resourceID string) (any, error) {
-	permission := fmt.Sprintf("%s:%s", resourceType, models.PermissionActionRead)
-	if err := r.HasPermission(tenantID, userID, permission); err != nil {
-		return nil, err
-	}
-	switch resourceType {
-	case models.ResourceTypeUser:
-		return r.userCollection.GetUserByID(tenantID, resourceID)
-	case models.ResourceTypeRole:
-		return r.rolesCollection.GetRoleByID(tenantID, resourceID)
-	case models.ResourceTypePermission:
-		return r.permissionsCollection.GetPermissionByID(tenantID, resourceID)
-	default:
-		return nil, erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("unsupported resource type"))
-	}
+func (r *RBACManager) GetResource(tenantID string, userID string, resourceType string, resourceID string) error {
+	permission := fmt.Sprintf("%s:%s", resourceType, auth_models.PermissionActionRead)
+
+	return r.HasPermission(tenantID, userID, permission)
 }
 
-func (r *RBACManager) GetResources(tenantID string, userID string, resourceType string) ([]any, error) {
-	permission := fmt.Sprintf("%s:%s", resourceType, models.PermissionActionRead)
-	if err := r.HasPermission(tenantID, userID, permission); err != nil {
-		return nil, err
-	}
-	switch resourceType {
-	case models.ResourceTypeUser:
-		users, err := r.userCollection.GetUsersByTenantID(tenantID)
-		if err != nil {
-			return nil, err
-		}
-		usersAny := make([]any, 0)
-		for _, user := range users {
-			usersAny = append(usersAny, user)
-		}
-		return usersAny, nil
-	case models.ResourceTypeRole:
-		roles, err := r.rolesCollection.GetRolesByTenantID(tenantID)
-		if err != nil {
-			return nil, err
-		}
-		rolesAny := make([]any, 0)
-		for _, role := range roles {
-			rolesAny = append(rolesAny, role)
-		}
-		return rolesAny, nil
-	case models.ResourceTypePermission:
-		permissions, err := r.permissionsCollection.GetPermissionsByTenantID(tenantID)
-		if err != nil {
-			return nil, err
-		}
-		permissionsAny := make([]any, 0)
-		for _, permission := range permissions {
-			permissionsAny = append(permissionsAny, permission)
-		}
-		return permissionsAny, nil
-	default:
-		return nil, erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("unsupported resource type"))
-	}
+func (r *RBACManager) GetResources(tenantID string, userID string, resourceType string) error {
+	permission := fmt.Sprintf("%s:%s", resourceType, auth_models.PermissionActionRead)
+
+	return r.HasPermission(tenantID, userID, permission)
 }
 
 /* Get Functions */
+// TODO: uncomment when user grpc service is ready
 func (r *RBACManager) GetUserPermissions(tenantID string, userID string) (map[string]bool, error) {
-	user, err := r.userCollection.GetUserByID(tenantID, userID)
+	/*user, err := r.userCollection.GetUserByID(tenantID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -206,19 +81,22 @@ func (r *RBACManager) GetUserPermissions(tenantID string, userID string) (map[st
 	for _, permission := range user.RevokedPermissions {
 		userPermissions[permission] = false
 	}
-	return userPermissions, nil
+	return userPermissions, nil*/
+	return map[string]bool{}, nil
 }
 
+// TODO: uncomment when user grpc service is ready
 func (r *RBACManager) GetUserRoles(tenantID string, userID string) ([]string, error) {
-	user, err := r.userCollection.GetUserByID(tenantID, userID)
-	if err != nil {
-		return nil, err
-	}
-	userRoles := make([]string, 0)
-	for _, userRole := range user.Roles {
-		userRoles = append(userRoles, userRole.RoleID)
-	}
-	return userRoles, nil
+	// user, err := r.userCollection.GetUserByID(tenantID, userID)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// userRoles := make([]string, 0)
+	// for _, userRole := range user.Roles {
+	// 	userRoles = append(userRoles, userRole.RoleID)
+	// }
+	// return userRoles, nil
+	return []string{}, nil
 }
 
 func (r *RBACManager) GetRolePermissions(tenantID string, roleID string) ([]string, error) {
@@ -237,7 +115,7 @@ func (r *RBACManager) CheckUserPermissions(tenantID string, userID string, permi
 
 	// Verify permissions format
 	for _, permission := range permissions {
-		if !models.IsValidPermissionFormat(permission) {
+		if !auth_models.IsValidPermissionFormat(permission) {
 			return nil, erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("invalid permission format"))
 		}
 	}

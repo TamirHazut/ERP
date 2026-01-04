@@ -6,8 +6,10 @@ option go_package = "erp.localhost/internal/auth/proto/auth/v1;authv1";
 
 message UserAuth {
     string tenant_id = 1;
-    string email = 2;
-    string username = 3;
+    oneof account_id {
+        string email = 2;
+        string username = 3;
+    }
 }
 
 message UserIdentifier {
@@ -25,6 +27,11 @@ message ExpiresIn {
     int64 refresh_token = 2;
 }
 
+message TokensResponse {
+    Tokens tokens = 1;
+    ExpiresIn expires_in = 2;
+}
+
 message PermissionResponse {
     string permission = 1;
     bool has_permission = 2;
@@ -35,11 +42,6 @@ message AuthenticateRequest {
     string password = 2;
 }
 
-message AuthenticateResponse {
-    UserIdentifier user = 1;
-    Tokens tokens = 2;
-    ExpiresIn expires_in = 3;
-}
 
 message VerifyTokenRequest {
     string access_token = 1;
@@ -54,12 +56,6 @@ message RefreshTokenRequest {
     string refresh_token = 2;
 }
 
-message RefreshTokenResponse {
-    UserIdentifier user = 1;
-    Tokens tokens = 2;
-    ExpiresIn expires_in = 3;
-}
-
 message RevokeTokenRequest {
     UserIdentifier user = 1;
     Tokens tokens = 2;
@@ -67,17 +63,16 @@ message RevokeTokenRequest {
 }
 
 message RevokeTokenResponse {
-    UserIdentifier user = 1;
-    bool revoked = 2;
+    bool revoked = 1;
 }
 
 message LogoutRequest {
-    Tokens tokens = 1;
+    string tenant_id = 1;
+    Tokens tokens = 2;
 }
 
 message LogoutResponse {
-    UserIdentifier user = 1;
-    string message = 2;
+    string message = 1;
 }
 
 message CheckPermissionsRequest {
@@ -85,16 +80,11 @@ message CheckPermissionsRequest {
     repeated string permissions = 2;
 }
 
-message CheckPermissionsResponse {
-    UserIdentifier user = 1;
-    repeated PermissionResponse permissions = 2;
-}
-
 service AuthService {
-    rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+    rpc Authenticate(AuthenticateRequest) returns (TokensResponse);
     rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
-    rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+    rpc RefreshToken(RefreshTokenRequest) returns (TokensResponse);
     rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
     rpc Logout(LogoutRequest) returns (LogoutResponse);
-    rpc CheckPermissions(CheckPermissionsRequest) returns (CheckPermissionsResponse);
+    rpc CheckPermissions(CheckPermissionsRequest) returns (stream PermissionResponse);
 }

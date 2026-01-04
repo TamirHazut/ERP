@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"testing"
 
-	common_models "erp.localhost/internal/common/models"
 	db_mocks "erp.localhost/internal/db/mocks"
 	logging "erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -56,7 +56,7 @@ func TestKeyHandler_Set(t *testing.T) {
 			mockHandler := db_mocks.NewMockDBHandler(ctrl)
 			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
 			mockHandler.EXPECT().Create(formattedKey, tc.value).Return(tc.returnID, tc.returnError).Times(tc.expectedCallTimes)
-			handler := NewBaseKeyHandler[TestModel](mockHandler, logging.NewLogger(common_models.ModuleDB))
+			handler := NewBaseKeyHandler[TestModel](mockHandler, logging.NewLogger(shared_models.ModuleDB))
 			err := handler.Set(tc.tenantID, tc.key, tc.value)
 			if tc.returnError != nil {
 				require.Error(t, err)
@@ -114,7 +114,7 @@ func TestKeyHandler_GetOne(t *testing.T) {
 			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
 			mockHandler.EXPECT().FindOne(formattedKey, nil).Return(tc.returnData, tc.returnError).Times(tc.expectedCallTimes)
 
-			handler := NewBaseKeyHandler[TestModel](mockHandler, logging.NewLogger(common_models.ModuleDB))
+			handler := NewBaseKeyHandler[TestModel](mockHandler, logging.NewLogger(shared_models.ModuleDB))
 
 			result, err := handler.GetOne(tc.tenantID, tc.key)
 			if tc.returnError != nil {
@@ -185,7 +185,7 @@ func TestKeyHandler_GetAll(t *testing.T) {
 			mockHandler := db_mocks.NewMockDBHandler(ctrl)
 			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
 			mockHandler.EXPECT().FindAll(formattedKey, nil).Return(tc.returnData, tc.returnError).Times(tc.expectedCallTimes)
-			handler := NewBaseKeyHandler[TestModel](mockHandler, logging.NewLogger(common_models.ModuleDB))
+			handler := NewBaseKeyHandler[TestModel](mockHandler, logging.NewLogger(shared_models.ModuleDB))
 
 			result, err := handler.GetAll(tc.tenantID, tc.key)
 			if tc.returnError != nil {
@@ -232,7 +232,7 @@ func TestKeyHandler_Update(t *testing.T) {
 			mockHandler := db_mocks.NewMockDBHandler(ctrl)
 			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
 			mockHandler.EXPECT().Update(formattedKey, nil, tc.value).Return(tc.returnError).Times(tc.expectedCallTimes)
-			handler := NewBaseKeyHandler[TestModel](mockHandler, logging.NewLogger(common_models.ModuleDB))
+			handler := NewBaseKeyHandler[TestModel](mockHandler, logging.NewLogger(shared_models.ModuleDB))
 
 			err := handler.Update(tc.tenantID, tc.key, tc.value)
 			if tc.returnError != nil {
@@ -275,7 +275,7 @@ func TestKeyHandler_Delete(t *testing.T) {
 			mockHandler := db_mocks.NewMockDBHandler(ctrl)
 			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
 			mockHandler.EXPECT().Delete(formattedKey, nil).Return(tc.returnError).Times(tc.expectedCallTimes)
-			handler := NewBaseKeyHandler[TestModel](mockHandler, logging.NewLogger(common_models.ModuleDB))
+			handler := NewBaseKeyHandler[TestModel](mockHandler, logging.NewLogger(shared_models.ModuleDB))
 
 			err := handler.Delete(tc.tenantID, tc.key)
 			if tc.returnError != nil {

@@ -8,12 +8,12 @@ import (
 	"errors"
 	"time"
 
-	"erp.localhost/internal/auth/models"
-	auth_models "erp.localhost/internal/auth/models/cache"
 	handlers "erp.localhost/internal/auth/token/handlers"
-	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	auth_models "erp.localhost/internal/shared/models/auth"
+	auth_cache_models "erp.localhost/internal/shared/models/auth/cache"
 	"github.com/google/uuid"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -31,8 +31,8 @@ type TokenManager struct {
 	secretKey            string
 	tokenDuration        time.Duration
 	refreshTokenDuration time.Duration
-	accessTokenHandler   handlers.TokenHandler[auth_models.TokenMetadata]
-	refreshTokenHandler  handlers.TokenHandler[models.RefreshToken]
+	accessTokenHandler   handlers.TokenHandler[auth_cache_models.TokenMetadata]
+	refreshTokenHandler  handlers.TokenHandler[auth_models.RefreshToken]
 	logger               *logging.Logger
 }
 
@@ -84,7 +84,7 @@ func (i *GenerateAccessTokenInput) Validate() error {
 
 // NewTokenManager creates a new TokenManager
 func NewTokenManager(secretKey string, tokenDuration time.Duration, refreshTokenDuration time.Duration) *TokenManager {
-	logger := logging.NewLogger(common_models.ModuleAuth)
+	logger := logging.NewLogger(shared_models.ModuleAuth)
 	if secretKey == "" {
 		logger.Fatal("secret key is required")
 		return nil
@@ -119,7 +119,7 @@ func (tm *TokenManager) GenerateAccessToken(input *GenerateAccessTokenInput) (st
 	}
 	currentTimestamp := time.Now().Unix()
 	expiresAt := time.Now().Add(tm.tokenDuration)
-	claims := &models.AccessTokenClaims{
+	claims := &auth_models.AccessTokenClaims{
 		UserID:      input.UserID,
 		TenantID:    input.TenantID,
 		Username:    input.Username,
@@ -151,7 +151,7 @@ func (tm *TokenManager) GenerateAccessToken(input *GenerateAccessTokenInput) (st
 }
 
 // VerifyAccessToken verifies if the given JWT token is a valid access token
-func (tm *TokenManager) VerifyAccessToken(tokenString string) (*auth_models.TokenMetadata, error) {
+func (tm *TokenManager) VerifyAccessToken(tokenString string) (*auth_cache_models.TokenMetadata, error) {
 	if tokenString == "" {
 		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("token is required"))
 	}
@@ -177,9 +177,9 @@ func (tm *TokenManager) VerifyAccessToken(tokenString string) (*auth_models.Toke
 }
 
 // GenerateRefreshToken generates a new refresh token for the given user
-func (tm *TokenManager) GenerateRefreshToken(input GenerateRefreshTokenInput) (models.RefreshToken, error) {
+func (tm *TokenManager) GenerateRefreshToken(input GenerateRefreshTokenInput) (auth_models.RefreshToken, error) {
 	if input.UserID == "" {
-		return models.RefreshToken{}, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("user_id is required"))
+		return auth_models.RefreshToken{}, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("user_id is required"))
 	}
 
 	tm.logger.Debug("Generating refresh token", "input", input)
@@ -193,14 +193,14 @@ func (tm *TokenManager) GenerateRefreshToken(input GenerateRefreshTokenInput) (m
 	// 32 bytes = 256 bits of entropy (very secure)
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
-		return models.RefreshToken{}, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
+		return auth_models.RefreshToken{}, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
 	}
 
 	// Encode to base64 URL-safe string (no padding)
 	tokenString := base64.RawURLEncoding.EncodeToString(tokenBytes)
 
 	// Create refresh token storage model with metadata
-	refreshToken := models.RefreshToken{
+	refreshToken := auth_models.RefreshToken{
 		Token:      tokenString,
 		UserID:     input.UserID,
 		TenantID:   input.TenantID,
@@ -217,7 +217,7 @@ func (tm *TokenManager) GenerateRefreshToken(input GenerateRefreshTokenInput) (m
 
 	// Validate before storing
 	if err := refreshToken.Validate(); err != nil {
-		return models.RefreshToken{}, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
+		return auth_models.RefreshToken{}, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(err)
 	}
 
 	// // Store refresh token in Redis (use tokenString as tokenID)
@@ -228,7 +228,7 @@ func (tm *TokenManager) GenerateRefreshToken(input GenerateRefreshTokenInput) (m
 }
 
 // VerifyRefreshToken verifies if the given refresh token is valid
-func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, tokenString string) (*models.RefreshToken, error) {
+func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, tokenString string) (*auth_models.RefreshToken, error) {
 	tm.logger.Debug("Verifying refresh token", "tenantID", tenantID, "userID", userID, "token", tokenString)
 	if tokenString == "" {
 		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("token is required"))
@@ -292,7 +292,7 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 
 // StoreTokens stores both access and refresh tokens in Redis
 // This is typically called after successful authentication
-func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenID string, refreshTokenID string, accessTokenMetadata auth_models.TokenMetadata, refreshToken models.RefreshToken) error {
+func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenID string, refreshTokenID string, accessTokenMetadata auth_cache_models.TokenMetadata, refreshToken auth_models.RefreshToken) error {
 	// Store access token
 	if err := tm.accessTokenHandler.Store(tenantID, userID, accessTokenID, accessTokenMetadata); err != nil {
 		tm.logger.Error("Failed to store access token", "error", err, "tenantID", tenantID, "userID", userID)
@@ -312,17 +312,17 @@ func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenI
 }
 
 // ValidateAccessTokenFromRedis validates an access token from Redis
-func (tm *TokenManager) ValidateAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
+func (tm *TokenManager) ValidateAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*auth_cache_models.TokenMetadata, error) {
 	return tm.accessTokenHandler.Validate(tenantID, userID, tokenID)
 }
 
 // ValidateRefreshTokenFromRedis validates a refresh token from Redis
-func (tm *TokenManager) ValidateRefreshTokenFromRedis(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
+func (tm *TokenManager) ValidateRefreshTokenFromRedis(tenantID string, userID string, tokenID string) (*auth_models.RefreshToken, error) {
 	return tm.refreshTokenHandler.Validate(tenantID, userID, tokenID)
 }
 
 // RefreshTokens generates new tokens and revokes old refresh token (token rotation)
-func (tm *TokenManager) RefreshTokens(tenantID string, userID string, oldRefreshTokenID string, newAccessTokenID string, newRefreshTokenID string, newAccessTokenMetadata auth_models.TokenMetadata, newRefreshToken models.RefreshToken) error {
+func (tm *TokenManager) RefreshTokens(tenantID string, userID string, oldRefreshTokenID string, newAccessTokenID string, newRefreshTokenID string, newAccessTokenMetadata auth_cache_models.TokenMetadata, newRefreshToken auth_models.RefreshToken) error {
 	// Validate old refresh token
 	_, err := tm.refreshTokenHandler.Validate(tenantID, userID, oldRefreshTokenID)
 	if err != nil {
@@ -384,22 +384,22 @@ func (tm *TokenManager) RevokeAllTokens(tenantID string, userID string, revokedB
 }
 
 // // GetAccessTokenFromRedis retrieves access token metadata from Redis
-// func (tm *TokenManager) GetAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*auth_models.TokenMetadata, error) {
+// func (tm *TokenManager) GetAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*auth_cache_models.TokenMetadata, error) {
 // 	return tm.accessTokenHandler.GetOne(tenantID, userID, tokenID)
 // }
 
 // // GetAllAccessTokensFromRedis retrieves all access tokens from Redis
-// func (tm *TokenManager) GetAllAccessTokensFromRedis(tenantID string, userID string) ([]auth_models.TokenMetadata, error) {
+// func (tm *TokenManager) GetAllAccessTokensFromRedis(tenantID string, userID string) ([]auth_cache_models.TokenMetadata, error) {
 // 	return tm.accessTokenHandler.GetAll(tenantID, userID)
 // }
 
 // // GetRefreshTokenFromRedis retrieves refresh token from Redis
-// func (tm *TokenManager) GetRefreshTokenFromRedis(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
+// func (tm *TokenManager) GetRefreshTokenFromRedis(tenantID string, userID string, tokenID string) (*auth_models.RefreshToken, error) {
 // 	return tm.refreshTokenHandler.GetOne(tenantID, userID, tokenID)
 // }
 
 // // GetAllRefreshTokensFromRedis retrieves all refresh tokens from Redis
-// func (tm *TokenManager) GetAllRefreshTokensFromRedis(tenantID string, userID string) ([]models.RefreshToken, error) {
+// func (tm *TokenManager) GetAllRefreshTokensFromRedis(tenantID string, userID string) ([]auth_models.RefreshToken, error) {
 // 	return tm.refreshTokenHandler.GetAll(tenantID, userID)
 // }
 
@@ -478,8 +478,11 @@ func (tm *TokenManager) RevokeAllUserRefreshTokens(tenantID string, userID strin
 	return nil
 }
 
-func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*auth_models.TokenMetadata, error) {
-	claims := &models.AccessTokenClaims{}
+func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*auth_cache_models.TokenMetadata, error) {
+	if accessTokenString == "" {
+		return nil, erp_errors.Auth(erp_errors.AuthTokenInvalid).WithError(errors.New("empty access token"))
+	}
+	claims := &auth_models.AccessTokenClaims{}
 
 	token, err := jwt.Parse(accessTokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

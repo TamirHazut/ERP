@@ -4,32 +4,33 @@ import (
 	"fmt"
 	"time"
 
-	"erp.localhost/internal/auth/models"
 	token "erp.localhost/internal/auth/token"
-	common_models "erp.localhost/internal/common/models"
 	redis "erp.localhost/internal/db/redis"
 	redis_handlers "erp.localhost/internal/db/redis/handlers"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	auth_models "erp.localhost/internal/shared/models/auth"
+	redis_models "erp.localhost/internal/shared/models/db/redis"
 )
 
 // RefreshTokenHandler handles refresh token operations in Redis
 // Key pattern: refresh_tokens:{tenant_id}:{user_id}:{token_id}
 // Note: Multiple refresh tokens per user per tenant are allowed (for different devices/sessions)
 type RefreshTokenHandler struct {
-	keyHandler redis_handlers.KeyHandler[models.RefreshToken]
+	keyHandler redis_handlers.KeyHandler[auth_models.RefreshToken]
 	tokenIndex *token.TokenIndex
 	logger     *logging.Logger
 }
 
 // NewRefreshTokenHandler creates a new RefreshTokenHandler
-func NewRefreshTokenHandler(keyHandler redis_handlers.KeyHandler[models.RefreshToken], tokenIndex *token.TokenIndex, logger *logging.Logger) *RefreshTokenHandler {
+func NewRefreshTokenHandler(keyHandler redis_handlers.KeyHandler[auth_models.RefreshToken], tokenIndex *token.TokenIndex, logger *logging.Logger) *RefreshTokenHandler {
 	if logger == nil {
-		logger = logging.NewLogger(common_models.ModuleAuth)
+		logger = logging.NewLogger(shared_models.ModuleAuth)
 	}
 	if keyHandler == nil {
-		dbHandler := redis.NewBaseRedisHandler(redis.KeyPrefix(redis.RedisKeyRefreshToken))
-		keyHandler = redis_handlers.NewBaseKeyHandler[models.RefreshToken](dbHandler, logger)
+		dbHandler := redis.NewBaseRedisHandler(redis_models.KeyPrefix(redis_models.RedisKeyRefreshToken))
+		keyHandler = redis_handlers.NewBaseKeyHandler[auth_models.RefreshToken](dbHandler, logger)
 	}
 	return &RefreshTokenHandler{
 		keyHandler: keyHandler,
@@ -41,7 +42,7 @@ func NewRefreshTokenHandler(keyHandler redis_handlers.KeyHandler[models.RefreshT
 // Store stores a refresh token in Redis
 // Key: refresh_tokens:{tenant_id}:{user_id}:{token_id}
 // tokenID should be unique (e.g., JTI from JWT or a UUID)
-func (h *RefreshTokenHandler) Store(tenantID string, userID string, tokenID string, refreshToken models.RefreshToken) error {
+func (h *RefreshTokenHandler) Store(tenantID string, userID string, tokenID string, refreshToken auth_models.RefreshToken) error {
 	if err := refreshToken.Validate(); err != nil {
 		h.logger.Error("Failed to validate refresh token", "error", err)
 		return err
@@ -75,7 +76,7 @@ func (h *RefreshTokenHandler) Store(tenantID string, userID string, tokenID stri
 	return nil
 }
 
-func (h *RefreshTokenHandler) GetOne(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
+func (h *RefreshTokenHandler) GetOne(tenantID string, userID string, tokenID string) (*auth_models.RefreshToken, error) {
 	key := fmt.Sprintf("%s:%s", userID, tokenID)
 	token, err := h.keyHandler.GetOne(tenantID, key)
 	if err != nil {
@@ -85,7 +86,7 @@ func (h *RefreshTokenHandler) GetOne(tenantID string, userID string, tokenID str
 }
 
 // Get retrieves a refresh token from Redis
-func (h *RefreshTokenHandler) GetAll(tenantID string, userID string) ([]models.RefreshToken, error) {
+func (h *RefreshTokenHandler) GetAll(tenantID string, userID string) ([]auth_models.RefreshToken, error) {
 	tokens, err := h.keyHandler.GetAll(tenantID, userID)
 	if err != nil {
 		return nil, err
@@ -94,7 +95,7 @@ func (h *RefreshTokenHandler) GetAll(tenantID string, userID string) ([]models.R
 }
 
 // Validate checks if a refresh token is valid (exists, not revoked, not expired)
-func (h *RefreshTokenHandler) Validate(tenantID string, userID string, tokenID string) (*models.RefreshToken, error) {
+func (h *RefreshTokenHandler) Validate(tenantID string, userID string, tokenID string) (*auth_models.RefreshToken, error) {
 	token, err := h.GetOne(tenantID, userID, tokenID)
 	if err != nil {
 		return nil, err

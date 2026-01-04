@@ -1,7 +1,7 @@
 # ERP System Root Makefile
 # Delegates to service-specific Makefiles
 
-.PHONY: proto proto-auth proto-config proto-core proto-common \
+.PHONY: proto proto-auth proto-config proto-core proto-shared \
         build build-auth build-config build-core \
         run-auth run-config run-core \
         test test-coverage lint clean tidy help \
@@ -15,7 +15,7 @@ help: ## Show this help message
 	@echo ""
 	@echo "Proto Generation:"
 	@echo "  make proto          - Generate all proto files"
-	@echo "  make proto-common   - Generate common proto files"
+	@echo "  make proto-shared   - Generate shared proto files"
 	@echo "  make proto-auth     - Generate auth service proto files"
 	@echo "  make proto-config   - Generate config service proto files"
 	@echo "  make proto-core     - Generate core service proto files"
@@ -55,10 +55,10 @@ help: ## Show this help message
 # PROTO GENERATION TARGETS
 # ============================================================================
 
-proto: proto-common proto-auth proto-config proto-core ## Generate all proto files
+proto: proto-shared proto-auth proto-config proto-core ## Generate all proto files
 
-proto-common: ## Generate common proto files
-	@bash scripts/generate-proto.sh common
+proto-shared: ## Generate shared proto files
+	@bash scripts/generate-proto.sh shared
 
 proto-auth: ## Generate auth service proto files
 	@$(MAKE) -C internal/auth proto

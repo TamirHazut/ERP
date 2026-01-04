@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"erp.localhost/internal/auth/models"
 	mongo_mocks "erp.localhost/internal/db/mongo/mocks"
+	auth_models "erp.localhost/internal/shared/models/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -15,11 +15,11 @@ import (
 
 // permissionMatcher is a custom gomock matcher for Permission objects
 type permissionMatcher struct {
-	expected models.Permission
+	expected auth_models.Permission
 }
 
 func (m permissionMatcher) Matches(x interface{}) bool {
-	perm, ok := x.(models.Permission)
+	perm, ok := x.(auth_models.Permission)
 	if !ok {
 		return false
 	}
@@ -40,7 +40,7 @@ func TestNewPermissionCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+	mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
 	collection := NewPermissionCollection(mockHandler)
 
 	require.NotNil(t, collection)
@@ -51,7 +51,7 @@ func TestNewPermissionCollection(t *testing.T) {
 func TestPermissionCollection_CreatePermission(t *testing.T) {
 	testCases := []struct {
 		name              string
-		permission        models.Permission
+		permission        auth_models.Permission
 		returnID          string
 		returnError       error
 		wantErr           bool
@@ -59,7 +59,7 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 	}{
 		{
 			name: "successful create",
-			permission: models.Permission{
+			permission: auth_models.Permission{
 				TenantID:         "tenant1",
 				Resource:         "products",
 				Action:           "read",
@@ -74,7 +74,7 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 		},
 		{
 			name: "create with validation error - missing tenant ID",
-			permission: models.Permission{
+			permission: auth_models.Permission{
 				Resource:         "products",
 				Action:           "read",
 				PermissionString: "products:read",
@@ -88,7 +88,7 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 		},
 		{
 			name: "create with database error",
-			permission: models.Permission{
+			permission: auth_models.Permission{
 				TenantID:         "tenant1",
 				Resource:         "products",
 				Action:           "read",
@@ -108,7 +108,7 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					Create(permissionMatcher{expected: tc.permission}).
@@ -137,7 +137,7 @@ func TestPermissionCollection_GetPermissionByID(t *testing.T) {
 		tenantID         string
 		permissionID     string
 		expectedFilter   map[string]any
-		returnPermission *models.Permission
+		returnPermission *auth_models.Permission
 		returnError      error
 		wantErr          bool
 	}{
@@ -149,7 +149,7 @@ func TestPermissionCollection_GetPermissionByID(t *testing.T) {
 				"tenant_id": "tenant1",
 				"_id":       "507f1f77bcf86cd799439011",
 			},
-			returnPermission: &models.Permission{
+			returnPermission: &auth_models.Permission{
 				ID:       permissionID,
 				TenantID: "tenant1",
 				Resource: "products",
@@ -189,7 +189,7 @@ func TestPermissionCollection_GetPermissionByID(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindOne(tc.expectedFilter).
 				Return(tc.returnPermission, tc.returnError)
@@ -212,7 +212,7 @@ func TestPermissionCollection_GetPermissionByName(t *testing.T) {
 		tenantID         string
 		permissionName   string
 		expectedFilter   map[string]any
-		returnPermission *models.Permission
+		returnPermission *auth_models.Permission
 		returnError      error
 		wantErr          bool
 	}{
@@ -224,7 +224,7 @@ func TestPermissionCollection_GetPermissionByName(t *testing.T) {
 				"tenant_id": "tenant1",
 				"name":      "Read Products",
 			},
-			returnPermission: &models.Permission{
+			returnPermission: &auth_models.Permission{
 				TenantID:    "tenant1",
 				DisplayName: "Read Products",
 				Resource:    "products",
@@ -264,7 +264,7 @@ func TestPermissionCollection_GetPermissionByName(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindOne(tc.expectedFilter).
 				Return(tc.returnPermission, tc.returnError)
@@ -286,7 +286,7 @@ func TestPermissionCollection_GetPermissionsByTenantID(t *testing.T) {
 		name              string
 		tenantID          string
 		expectedFilter    map[string]any
-		returnPermissions []models.Permission
+		returnPermissions []auth_models.Permission
 		returnError       error
 		wantCount         int
 		wantErr           bool
@@ -297,9 +297,9 @@ func TestPermissionCollection_GetPermissionsByTenantID(t *testing.T) {
 			expectedFilter: map[string]any{
 				"tenant_id": "tenant1",
 			},
-			returnPermissions: []models.Permission{
-				models.Permission{TenantID: "tenant1", DisplayName: "Read Products"},
-				models.Permission{TenantID: "tenant1", DisplayName: "Write Products"},
+			returnPermissions: []auth_models.Permission{
+				auth_models.Permission{TenantID: "tenant1", DisplayName: "Read Products"},
+				auth_models.Permission{TenantID: "tenant1", DisplayName: "Write Products"},
 			},
 			returnError: nil,
 			wantCount:   2,
@@ -311,7 +311,7 @@ func TestPermissionCollection_GetPermissionsByTenantID(t *testing.T) {
 			expectedFilter: map[string]any{
 				"tenant_id": "tenant1",
 			},
-			returnPermissions: []models.Permission{},
+			returnPermissions: []auth_models.Permission{},
 			returnError:       nil,
 			wantCount:         0,
 			wantErr:           false,
@@ -322,7 +322,7 @@ func TestPermissionCollection_GetPermissionsByTenantID(t *testing.T) {
 			expectedFilter: map[string]any{
 				"tenant_id": "tenant1",
 			},
-			returnPermissions: []models.Permission{},
+			returnPermissions: []auth_models.Permission{},
 			returnError:       errors.New("database query failed"),
 			wantCount:         0,
 			wantErr:           true,
@@ -334,7 +334,7 @@ func TestPermissionCollection_GetPermissionsByTenantID(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnPermissions, tc.returnError)
@@ -357,7 +357,7 @@ func TestPermissionCollection_GetPermissionsByResource(t *testing.T) {
 		tenantID          string
 		resource          string
 		expectedFilter    map[string]any
-		returnPermissions []models.Permission
+		returnPermissions []auth_models.Permission
 		returnError       error
 		wantCount         int
 		wantErr           bool
@@ -370,9 +370,9 @@ func TestPermissionCollection_GetPermissionsByResource(t *testing.T) {
 				"tenant_id": "tenant1",
 				"resource":  "products",
 			},
-			returnPermissions: []models.Permission{
-				models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
-				models.Permission{TenantID: "tenant1", Resource: "products", Action: "write"},
+			returnPermissions: []auth_models.Permission{
+				auth_models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
+				auth_models.Permission{TenantID: "tenant1", Resource: "products", Action: "write"},
 			},
 			returnError: nil,
 			wantCount:   2,
@@ -386,7 +386,7 @@ func TestPermissionCollection_GetPermissionsByResource(t *testing.T) {
 				"tenant_id": "tenant1",
 				"resource":  "products",
 			},
-			returnPermissions: []models.Permission{},
+			returnPermissions: []auth_models.Permission{},
 			returnError:       errors.New("database query failed"),
 			wantCount:         0,
 			wantErr:           true,
@@ -398,7 +398,7 @@ func TestPermissionCollection_GetPermissionsByResource(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnPermissions, tc.returnError)
@@ -421,7 +421,7 @@ func TestPermissionCollection_GetPermissionsByAction(t *testing.T) {
 		tenantID          string
 		action            string
 		expectedFilter    map[string]any
-		returnPermissions []models.Permission
+		returnPermissions []auth_models.Permission
 		returnError       error
 		wantCount         int
 		wantErr           bool
@@ -434,9 +434,9 @@ func TestPermissionCollection_GetPermissionsByAction(t *testing.T) {
 				"tenant_id": "tenant1",
 				"action":    "read",
 			},
-			returnPermissions: []models.Permission{
-				models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
-				models.Permission{TenantID: "tenant1", Resource: "orders", Action: "read"},
+			returnPermissions: []auth_models.Permission{
+				auth_models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
+				auth_models.Permission{TenantID: "tenant1", Resource: "orders", Action: "read"},
 			},
 			returnError: nil,
 			wantCount:   2,
@@ -450,7 +450,7 @@ func TestPermissionCollection_GetPermissionsByAction(t *testing.T) {
 				"tenant_id": "tenant1",
 				"action":    "read",
 			},
-			returnPermissions: []models.Permission{},
+			returnPermissions: []auth_models.Permission{},
 			returnError:       errors.New("database query failed"),
 			wantCount:         0,
 			wantErr:           true,
@@ -462,7 +462,7 @@ func TestPermissionCollection_GetPermissionsByAction(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnPermissions, tc.returnError)
@@ -486,7 +486,7 @@ func TestPermissionCollection_GetPermissionsByResourceAndAction(t *testing.T) {
 		resource          string
 		action            string
 		expectedFilter    map[string]any
-		returnPermissions []models.Permission
+		returnPermissions []auth_models.Permission
 		returnError       error
 		wantCount         int
 		wantErr           bool
@@ -501,8 +501,8 @@ func TestPermissionCollection_GetPermissionsByResourceAndAction(t *testing.T) {
 				"resource":  "products",
 				"action":    "read",
 			},
-			returnPermissions: []models.Permission{
-				models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
+			returnPermissions: []auth_models.Permission{
+				auth_models.Permission{TenantID: "tenant1", Resource: "products", Action: "read"},
 			},
 			returnError: nil,
 			wantCount:   1,
@@ -518,7 +518,7 @@ func TestPermissionCollection_GetPermissionsByResourceAndAction(t *testing.T) {
 				"resource":  "products",
 				"action":    "read",
 			},
-			returnPermissions: []models.Permission{},
+			returnPermissions: []auth_models.Permission{},
 			returnError:       errors.New("database query failed"),
 			wantCount:         0,
 			wantErr:           true,
@@ -530,7 +530,7 @@ func TestPermissionCollection_GetPermissionsByResourceAndAction(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnPermissions, tc.returnError)
@@ -553,9 +553,9 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 
 	testCases := []struct {
 		name                 string
-		permission           models.Permission
+		permission           auth_models.Permission
 		expectedFindFilter   map[string]any
-		returnFindPermission *models.Permission
+		returnFindPermission *auth_models.Permission
 		returnFindError      error
 		expectedUpdateFilter map[string]any
 		returnUpdateError    error
@@ -565,7 +565,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 	}{
 		{
 			name: "successful update",
-			permission: models.Permission{
+			permission: auth_models.Permission{
 				ID:               permissionID,
 				TenantID:         "tenant1",
 				Resource:         "products",
@@ -579,7 +579,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 				"tenant_id": "tenant1",
 				"_id":       permissionID.String(),
 			},
-			returnFindPermission: &models.Permission{
+			returnFindPermission: &auth_models.Permission{
 				ID:        permissionID,
 				TenantID:  "tenant1",
 				CreatedAt: createdAt,
@@ -596,7 +596,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 		},
 		{
 			name: "update with validation error",
-			permission: models.Permission{
+			permission: auth_models.Permission{
 				TenantID: "tenant1",
 			},
 			expectedFindFilter:   nil,
@@ -610,7 +610,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 		},
 		{
 			name: "update with permission not found",
-			permission: models.Permission{
+			permission: auth_models.Permission{
 				ID:               permissionID,
 				TenantID:         "tenant1",
 				Resource:         "products",
@@ -634,7 +634,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 		},
 		{
 			name: "update with database error",
-			permission: models.Permission{
+			permission: auth_models.Permission{
 				ID:               permissionID,
 				TenantID:         "tenant1",
 				Resource:         "products",
@@ -648,7 +648,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 				"tenant_id": "tenant1",
 				"_id":       permissionID.String(),
 			},
-			returnFindPermission: &models.Permission{
+			returnFindPermission: &auth_models.Permission{
 				ID:        permissionID,
 				TenantID:  "tenant1",
 				CreatedAt: createdAt,
@@ -670,7 +670,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			if tc.expectedFindCalls > 0 {
 				mockHandler.EXPECT().
 					FindOne(tc.expectedFindFilter).
@@ -754,7 +754,7 @@ func TestPermissionCollection_DeletePermission(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[models.Permission](ctrl)
+			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					Delete(tc.expectedFilter).

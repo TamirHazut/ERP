@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package shared.v1;
+
+option go_package = "erp.localhost/internal/shared/proto/v1;sharedv1";
+
+// Error category enumeration
+enum ErrorCategory {
+  ERROR_CATEGORY_UNSPECIFIED = 0;
+  ERROR_CATEGORY_AUTH = 1;
+  ERROR_CATEGORY_VALIDATION = 2;
+  ERROR_CATEGORY_NOT_FOUND = 3;
+  ERROR_CATEGORY_CONFLICT = 4;
+  ERROR_CATEGORY_BUSINESS = 5;
+  ERROR_CATEGORY_INTERNAL = 6;
+}
+
+// Common error response
+message Error {
+  string code = 1;              // Error code (e.g., "AUTH_INVALID_CREDENTIALS")
+  string message = 2;           // User-friendly error message
+  ErrorCategory category = 3;   // Error category for handling
+  map<string, string> details = 4; // Optional metadata/details
+}
+
+// Common response wrapper
+message Response {
+  bool success = 1;
+  Error error = 2;
+}
+
+// Pagination parameters
+message PaginationRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+// Pagination response
+message PaginationResponse {
+  int32 page = 1;
+  int32 page_size = 2;
+  int64 total_items = 3;
+  int32 total_pages = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+

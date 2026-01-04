@@ -3,11 +3,12 @@ package token
 import (
 	"time"
 
-	common_models "erp.localhost/internal/common/models"
 	"erp.localhost/internal/db/redis"
 	redis_handlers "erp.localhost/internal/db/redis/handlers"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	redis_models "erp.localhost/internal/shared/models/db/redis"
 )
 
 var (
@@ -28,13 +29,13 @@ type TokenIndex struct {
 
 // NewTokenIndex creates a new TokenIndex
 func NewTokenIndex(accessTokenSetHandler redis_handlers.SetHandler, refreshTokenSetHandler redis_handlers.SetHandler) *TokenIndex {
-	logger := logging.NewLogger(common_models.ModuleAuth)
+	logger := logging.NewLogger(shared_models.ModuleAuth)
 	if accessTokenSetHandler == nil {
-		accessTokenRedisHandler := redis.NewBaseRedisHandler(redis.KeyPrefix(redis.RedisKeyUserAccessTokens))
+		accessTokenRedisHandler := redis.NewBaseRedisHandler(redis_models.KeyPrefix(redis_models.RedisKeyUserAccessTokens))
 		accessTokenSetHandler = redis_handlers.NewBaseSetHandler(accessTokenRedisHandler, logger)
 	}
 	if refreshTokenSetHandler == nil {
-		refreshTokenRedisHandler := redis.NewBaseRedisHandler(redis.KeyPrefix(redis.RedisKeyUserRefreshTokens))
+		refreshTokenRedisHandler := redis.NewBaseRedisHandler(redis_models.KeyPrefix(redis_models.RedisKeyUserRefreshTokens))
 		refreshTokenSetHandler = redis_handlers.NewBaseSetHandler(refreshTokenRedisHandler, logger)
 	}
 

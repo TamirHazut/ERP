@@ -37,7 +37,7 @@ type PaginatedResponse struct {
 	HasPrev    bool        `json:"has_prev"`
 }
 
-// FilterParams represents common filter parameters
+// FilterParams represents shared filter parameters
 type FilterParams struct {
 	TenantID  string                 `json:"tenant_id"`
 	Status    string                 `json:"status,omitempty"`

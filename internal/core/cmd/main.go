@@ -4,17 +4,19 @@ import (
 	"fmt"
 	"time"
 
-	"erp.localhost/internal/auth/models"
 	auth "erp.localhost/internal/auth/utils"
-	common_models "erp.localhost/internal/common/models"
 	"erp.localhost/internal/db"
 	"erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	auth_models "erp.localhost/internal/shared/models/auth"
+	core_models "erp.localhost/internal/shared/models/core"
+	mongo_models "erp.localhost/internal/shared/models/db/mongo"
 )
 
 var (
-	permissionAllString = fmt.Sprintf("%s:%s", models.ResourceTypeAll, models.PermissionActionAll)
+	permissionAllString = fmt.Sprintf("%s:%s", auth_models.ResourceTypeAll, auth_models.PermissionActionAll)
 )
 
 func Main() {
@@ -24,33 +26,33 @@ func Main() {
 }
 
 func createDefaultData() error {
-	logger := logging.NewLogger(common_models.ModuleAuth)
+	logger := logging.NewLogger(shared_models.ModuleAuth)
 
 	logger.Debug("Creating default data")
 
 	logger.Debug("Creating system tenant")
-	if err := createSystemTenant(mongo.NewBaseCollectionHandler[models.Tenant](string(mongo.TenantsCollection), logging.NewLogger(common_models.ModuleAuth))); err != nil {
+	if err := createSystemTenant(mongo.NewBaseCollectionHandler[core_models.Tenant](string(mongo_models.TenantsCollection), logging.NewLogger(shared_models.ModuleAuth))); err != nil {
 		logger.Fatal("failed to create system tenant", "error", err)
 		return err
 	}
 	logger.Debug("System tenant created")
 
 	logger.Debug("Creating system admin role")
-	if err := createSystemAdminRole(mongo.NewBaseCollectionHandler[models.Role](string(mongo.RolesCollection), logging.NewLogger(common_models.ModuleAuth))); err != nil {
+	if err := createSystemAdminRole(mongo.NewBaseCollectionHandler[auth_models.Role](string(mongo_models.RolesCollection), logging.NewLogger(shared_models.ModuleAuth))); err != nil {
 		logger.Fatal("failed to create system admin role", "error", err)
 		return err
 	}
 	logger.Debug("System admin role created")
 
 	logger.Debug("Creating system admin permission")
-	if err := createSystemAdminPermission(mongo.NewBaseCollectionHandler[models.Permission](string(mongo.PermissionsCollection), logging.NewLogger(common_models.ModuleAuth))); err != nil {
+	if err := createSystemAdminPermission(mongo.NewBaseCollectionHandler[auth_models.Permission](string(mongo_models.PermissionsCollection), logging.NewLogger(shared_models.ModuleAuth))); err != nil {
 		logger.Fatal("failed to create system admin permission", "error", err)
 		return err
 	}
 	logger.Debug("System admin permission created")
 
 	logger.Debug("Creating system admin user")
-	if err := createSystemAdminUser(mongo.NewBaseCollectionHandler[models.User](string(mongo.UsersCollection), logging.NewLogger(common_models.ModuleAuth))); err != nil {
+	if err := createSystemAdminUser(mongo.NewBaseCollectionHandler[core_models.User](string(mongo_models.UsersCollection), logging.NewLogger(shared_models.ModuleAuth))); err != nil {
 		logger.Fatal("failed to create system admin user", "error", err)
 		return err
 	}
@@ -58,10 +60,10 @@ func createDefaultData() error {
 	return nil
 }
 
-func createSystemTenant(collection mongo.CollectionHandler[models.Tenant]) error {
-	tenant := models.Tenant{
+func createSystemTenant(collection mongo.CollectionHandler[core_models.Tenant]) error {
+	tenant := core_models.Tenant{
 		Name:      "System",
-		Status:    models.TenantStatusActive,
+		Status:    auth_models.TenantStatusActive,
 		CreatedBy: "System",
 	}
 	systemTenantID, err := collection.Create(tenant)
@@ -72,8 +74,8 @@ func createSystemTenant(collection mongo.CollectionHandler[models.Tenant]) error
 	return nil
 }
 
-func createSystemAdminRole(collection mongo.CollectionHandler[models.Role]) error {
-	role := models.Role{
+func createSystemAdminRole(collection mongo.CollectionHandler[auth_models.Role]) error {
+	role := auth_models.Role{
 		Name:        "SystemAdmin",
 		Description: "System admin role",
 		Permissions: []string{permissionAllString},
@@ -86,12 +88,12 @@ func createSystemAdminRole(collection mongo.CollectionHandler[models.Role]) erro
 	return nil
 }
 
-func createSystemAdminPermission(collection mongo.CollectionHandler[models.Permission]) error {
+func createSystemAdminPermission(collection mongo.CollectionHandler[auth_models.Permission]) error {
 
-	permission := models.Permission{
+	permission := auth_models.Permission{
 		TenantID:         db.SystemTenantID,
-		Resource:         models.ResourceTypeAll,
-		Action:           models.PermissionActionAll,
+		Resource:         auth_models.ResourceTypeAll,
+		Action:           auth_models.PermissionActionAll,
 		CreatedBy:        "System",
 		DisplayName:      "System Controller",
 		PermissionString: permissionAllString,
@@ -105,16 +107,16 @@ func createSystemAdminPermission(collection mongo.CollectionHandler[models.Permi
 	return nil
 }
 
-func createSystemAdminUser(collectionHandler mongo.CollectionHandler[models.User]) error {
+func createSystemAdminUser(collectionHandler mongo.CollectionHandler[core_models.User]) error {
 	hash, _ := auth.HashPassword(db.SystemAdminPassword)
-	user := models.User{
+	user := core_models.User{
 		TenantID:     db.SystemTenantID,
 		Username:     db.SystemAdminUser,
 		Email:        db.SystemAdminEmail,
 		PasswordHash: hash,
-		Status:       models.UserStatusActive,
+		Status:       auth_models.UserStatusActive,
 		CreatedBy:    "System",
-		Roles: []models.UserRole{
+		Roles: []core_models.UserRole{
 			{
 				TenantID:   db.SystemTenantID,
 				RoleID:     db.SystemAdminRoleID,

@@ -1,0 +1,7 @@
+# Common Proto Definitions
+
+This directory contains shared protobuf definitions used across multiple services.
+
+## Structure
+- `shared.proto` - Common types, error definitions, base messages
+

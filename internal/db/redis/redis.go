@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	redis_models "erp.localhost/internal/shared/models/db/redis"
 	redis "github.com/redis/go-redis/v9"
 )
 
@@ -18,12 +19,12 @@ var (
 type BaseRedisHandler struct {
 	client    *redis.Client
 	logger    *logging.Logger
-	keyPrefix KeyPrefix
+	keyPrefix redis_models.KeyPrefix
 }
 
-func NewBaseRedisHandler(keyPrefix KeyPrefix) *BaseRedisHandler {
+func NewBaseRedisHandler(keyPrefix redis_models.KeyPrefix) *BaseRedisHandler {
 	redisHandler := &BaseRedisHandler{
-		logger:    logging.NewLogger(common_models.ModuleDB),
+		logger:    logging.NewLogger(shared_models.ModuleDB),
 		keyPrefix: keyPrefix,
 	}
 	if err := redisHandler.init(); err != nil {
@@ -34,7 +35,7 @@ func NewBaseRedisHandler(keyPrefix KeyPrefix) *BaseRedisHandler {
 }
 
 func (r *BaseRedisHandler) init() error {
-	r.logger = logging.NewLogger(common_models.ModuleDB)
+	r.logger = logging.NewLogger(shared_models.ModuleDB)
 	uri := "redis://:supersecretredis@localhost:6379"
 	options, err := redis.ParseURL(uri)
 	if err != nil {

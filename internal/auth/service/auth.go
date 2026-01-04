@@ -4,19 +4,21 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"time"
 
-	collection "erp.localhost/internal/auth/collections"
-	"erp.localhost/internal/auth/models"
-	auth_models "erp.localhost/internal/auth/models/cache"
 	auth_proto "erp.localhost/internal/auth/proto/auth/v1"
 	"erp.localhost/internal/auth/rbac"
 	token "erp.localhost/internal/auth/token/manager"
 	token_manager "erp.localhost/internal/auth/token/manager"
-	common_models "erp.localhost/internal/common/models"
 	mongo "erp.localhost/internal/db/mongo"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	auth_models "erp.localhost/internal/shared/models/auth"
+	auth_cache_models "erp.localhost/internal/shared/models/auth/cache"
+	core_models "erp.localhost/internal/shared/models/core"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -38,32 +40,32 @@ type NewTokenResponse struct {
 	RefreshTokenExpiresAt int64  `json:"refresh_token_expires_at"`
 }
 
+// TODO: Add logs to all functions
 type AuthService struct {
-	logger              *logging.Logger
-	userCollection      *collection.UserCollection
-	tokenManager        *token_manager.TokenManager
-	rbacManager         *rbac.RBACManager
-	auditLogsCollection *collection.AuditLogsCollection
+	logger *logging.Logger
+	// userCollection      *collection.UserCollection
+	tokenManager *token_manager.TokenManager
+	rbacManager  *rbac.RBACManager
 	auth_proto.UnimplementedAuthServiceServer
 }
 
 func newCollectionHandler[T any](collection string) *mongo.BaseCollectionHandler[T] {
-	logger := logging.NewLogger(common_models.ModuleAuth)
+	logger := logging.NewLogger(shared_models.ModuleAuth)
 	return mongo.NewBaseCollectionHandler[T](string(collection), logger)
 }
 
 func NewAuthService() *AuthService {
-	logger := logging.NewLogger(common_models.ModuleAuth)
-	userCollectionHandler := newCollectionHandler[models.User](string(mongo.UsersCollection))
-	if userCollectionHandler == nil {
-		logger.Fatal("failed to create users collection handler")
-		return nil
-	}
-	userCollection := collection.NewUserCollection(userCollectionHandler)
-	if userCollection == nil {
-		logger.Fatal("failed to create users collection handler")
-		return nil
-	}
+	logger := logging.NewLogger(shared_models.ModuleAuth)
+	// userCollectionHandler := newCollectionHandler[models.User](string(mongo.UsersCollection))
+	// if userCollectionHandler == nil {
+	// 	logger.Fatal("failed to create users collection handler")
+	// 	return nil
+	// }
+	// userCollection := collection.NewUserCollection(userCollectionHandler)
+	// if userCollection == nil {
+	// 	logger.Fatal("failed to create users collection handler")
+	// 	return nil
+	// }
 	tokenManager := token.NewTokenManager(secretKey, tokenDuration, refreshTokenDuration)
 	if tokenManager == nil {
 		logger.Fatal("failed to create token manager")
@@ -74,55 +76,49 @@ func NewAuthService() *AuthService {
 		logger.Fatal("failed to create rbac manager")
 		return nil
 	}
-	auditLogsCollectionHandler := newCollectionHandler[models.AuditLog](string(mongo.AuditLogsCollection))
-	if auditLogsCollectionHandler == nil {
-		logger.Fatal("failed to create audit logs collection handler")
-		return nil
-	}
-	auditLogsCollection := collection.NewAuditLogsCollection(auditLogsCollectionHandler)
 	return &AuthService{
-		logger:              logger,
-		userCollection:      userCollection,
-		tokenManager:        tokenManager,
-		rbacManager:         rbacManager,
-		auditLogsCollection: auditLogsCollection,
+		logger: logger,
+		// userCollection:      userCollection,
+		tokenManager: tokenManager,
+		rbacManager:  rbacManager,
 	}
 }
 
-func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.AuthenticateRequest) (*auth_proto.AuthenticateResponse, error) {
-	email := req.User.Email
-	username := req.User.Username
-
-	// Validate email or username are provided
-	authEmail := true
-	if email == "" && username == "" {
-		err := erp_errors.Validation(erp_errors.ValidationRequiredFields, "email", "username").Error()
-		s.logger.Error(err, "function", "Authenticate")
-		return nil, status.Error(codes.InvalidArgument, err)
-	} else if username != "" {
-		authEmail = false
-	}
-
-	// Get user by email or username
-	tenantID := req.User.TenantId
+func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.AuthenticateRequest) (*auth_proto.TokensResponse, error) {
+	// input validations
+	tenantID := req.GetUser().GetTenantId()
 	if tenantID == "" {
 		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id").Error())
 	}
-	var user *models.User
-	var err error
-	if authEmail {
-		s.logger.Info("Authenticating user", "email", email)
-		user, err = s.userCollection.GetUserByEmail(tenantID, email)
-		if err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-	} else {
-		s.logger.Info("Authenticating user", "username", username)
-		user, err = s.userCollection.GetUserByUsername(tenantID, username)
-		if err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
+	account_id := req.GetUser().GetAccountId()
+	if account_id == nil {
+		err := erp_errors.Validation(erp_errors.ValidationRequiredFields).WithError(errors.New("missing account identifienr 'email' or 'username'")).Error()
+		s.logger.Error(err, "function", "Authenticate")
+		return nil, status.Error(codes.InvalidArgument, err)
 	}
+
+	// Proccess request
+	var user *core_models.User
+	var err error
+	// TODO: uncomment when user grpc service is ready
+	// switch account_id.(type) {
+	// case *auth_proto.UserAuth_Email:
+	// 	email := req.GetUser().GetEmail()
+	// 	s.logger.Info("Authenticating user", "email", email)
+	// 	user, err = s.userCollection.GetUserByEmail(tenantID, email)
+	// 	if err != nil {
+	// 		return nil, status.Error(codes.Internal, err.Error())
+	// 	}
+	// case *auth_proto.UserAuth_Username:
+	// 	username := req.GetUser().GetUsername()
+	// 	s.logger.Info("Authenticating user", "username", username)
+	// 	user, err = s.userCollection.GetUserByUsername(tenantID, username)
+	// 	if err != nil {
+	// 		return nil, status.Error(codes.Internal, err.Error())
+	// 	}
+	// default:
+	// 	return nil, status.Error(codes.InvalidArgument, errors.New("unknown account identifier type").Error())
+	// }
 
 	newTokenResponse, err := s.generateAndStoreTokens(user)
 	if err != nil {
@@ -130,11 +126,7 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 	}
 
 	// Return response
-	return &auth_proto.AuthenticateResponse{
-		User: &auth_proto.UserIdentifier{
-			TenantId: newTokenResponse.TenantID,
-			UserId:   newTokenResponse.UserID,
-		},
+	return &auth_proto.TokensResponse{
 		Tokens: &auth_proto.Tokens{
 			AccessToken:  newTokenResponse.AccessToken,
 			RefreshToken: newTokenResponse.RefreshToken,
@@ -160,7 +152,7 @@ func (s *AuthService) VerifyToken(ctx context.Context, req *auth_proto.VerifyTok
 	}, nil
 }
 
-func (s *AuthService) RefreshToken(ctx context.Context, req *auth_proto.RefreshTokenRequest) (*auth_proto.RefreshTokenResponse, error) {
+func (s *AuthService) RefreshToken(ctx context.Context, req *auth_proto.RefreshTokenRequest) (*auth_proto.TokensResponse, error) {
 	user := req.User
 	if user == nil || user.TenantId == "" || user.UserId == "" {
 		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "user").Error())
@@ -172,12 +164,13 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *auth_proto.RefreshT
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	userData, err := s.userCollection.GetUserByID(user.TenantId, user.UserId)
-	if err != nil {
-		s.logger.Error("Failed to get user by id", "error", err, "tenant_id", user.TenantId, "user_id", user.UserId)
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
+	// TODO: uncomment when user grpc service is ready
+	// userData, err := s.userCollection.GetUserByID(user.TenantId, user.UserId)
+	// if err != nil {
+	// 	s.logger.Error("Failed to get user by id", "error", err, "tenant_id", user.TenantId, "user_id", user.UserId)
+	// 	return nil, status.Error(codes.Internal, err.Error())
+	// }
+	var userData *core_models.User
 	newTokenResponse, err := s.generateAndStoreTokens(userData)
 	if err != nil {
 		s.logger.Error("Failed to generate and store tokens", "error", err, "tenant_id", user.TenantId, "user_id", user.UserId)
@@ -190,11 +183,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *auth_proto.RefreshT
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &auth_proto.RefreshTokenResponse{
-		User: &auth_proto.UserIdentifier{
-			TenantId: newTokenResponse.TenantID,
-			UserId:   newTokenResponse.UserID,
-		},
+	return &auth_proto.TokensResponse{
 		Tokens: &auth_proto.Tokens{
 			AccessToken:  newTokenResponse.AccessToken,
 			RefreshToken: newTokenResponse.RefreshToken,
@@ -212,12 +201,22 @@ func (s *AuthService) RevokeToken(ctx context.Context, req *auth_proto.RevokeTok
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &auth_proto.RevokeTokenResponse{
-		User:    req.User,
 		Revoked: true,
 	}, nil
 }
 
 func (s *AuthService) Logout(ctx context.Context, req *auth_proto.LogoutRequest) (*auth_proto.LogoutResponse, error) {
+	// input validation
+	tenantID := req.GetTenantId()
+	if tenantID == "" {
+		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id").Error())
+	}
+	accessToken := req.GetTokens().GetAccessToken()
+	if accessToken == "" {
+		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "access_token").Error())
+	}
+
+	// proccess request
 	metadata, err := s.tokenManager.GetTokenMetadata(req.Tokens.AccessToken)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -262,65 +261,63 @@ func (s *AuthService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 		return nil, status.Error(codes.Internal, revokeError.Error())
 	}
 	return &auth_proto.LogoutResponse{
-		User:    user,
 		Message: message,
 	}, nil
 }
 
-func (s *AuthService) CheckPermissions(ctx context.Context, req *auth_proto.CheckPermissionsRequest) (*auth_proto.CheckPermissionsResponse, error) {
-	tenantID := req.User.TenantId
+func (s *AuthService) CheckPermissions(req *auth_proto.CheckPermissionsRequest, stream grpc.ServerStreamingServer[auth_proto.PermissionResponse]) error {
+	// Validate input
+	tenantID := req.User.GetTenantId()
 	if tenantID == "" {
-		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id").Error())
+		return status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id").Error())
 	}
-	userID := req.User.UserId
+	userID := req.User.GetUserId()
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "user_id").Error())
+		return status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "user_id").Error())
 	}
 	// Validate permissions
-	permissions := req.Permissions
+	permissions := req.GetPermissions()
 	if len(permissions) == 0 {
-		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "permissions").Error())
+		return status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "permissions").Error())
 	}
 
+	// proccess request
 	permissionsCheckResponse, err := s.rbacManager.CheckUserPermissions(tenantID, userID, permissions)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return status.Error(codes.Internal, err.Error())
 	}
-	permissionsResponses := make([]*auth_proto.PermissionResponse, 0)
 	for permission, hasPermission := range permissionsCheckResponse {
-		permissionsResponses = append(permissionsResponses, &auth_proto.PermissionResponse{
+		permissionRes := &auth_proto.PermissionResponse{
 			Permission:    permission,
 			HasPermission: hasPermission,
-		})
+		}
+		if err := stream.Send(permissionRes); err != nil {
+			return err
+		}
 	}
-	return &auth_proto.CheckPermissionsResponse{
-		User: &auth_proto.UserIdentifier{
-			TenantId: tenantID,
-			UserId:   userID,
-		},
-		Permissions: permissionsResponses,
-	}, err
+	return nil
 }
 
 func (s *AuthService) revokeTokens(user *auth_proto.UserIdentifier, tokens *auth_proto.Tokens, requestBy string) error {
-	if user == nil || user.TenantId == "" || user.UserId == "" {
+	if user.GetTenantId() == "" || user.GetUserId() == "" {
 		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "user")
 	}
 	if requestBy == "" {
 		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "requestedBy")
 	}
 
-	var requestor *models.User
+	var requestor core_models.User
 	var err error
-	if tokens.AccessToken != "" || tokens.RefreshToken != "" {
-		requestor, err = s.userCollection.GetUserByUsername(user.TenantId, requestBy)
-		if err != nil {
-			return erp_errors.Validation(erp_errors.ValidationRequiredFields, "permissions")
-		}
-	}
+	// TODO: uncomment when user grpc service is ready
+	// if tokens.AccessToken != "" || tokens.RefreshToken != "" {
+	// 	requestor, err = s.userCollection.GetUserByID(user.TenantId, requestBy)
+	// 	if err != nil {
+	// 		return erp_errors.Internal(erp_errors.InternalDatabaseError, errors.New("requestedBy id was not found"))
+	// 	}
+	// }
 	if tokens.AccessToken != "" {
 		// Validate user permission to revoke access_token
-		permission, _ := models.CreatePermissionString(models.ResourceAccessToken, models.PermissionActionDelete)
+		permission, _ := auth_models.CreatePermissionString(auth_models.ResourceAccessToken, auth_models.PermissionActionDelete)
 		if err = s.rbacManager.HasPermission(requestor.TenantID, requestor.ID.String(), permission); err != nil {
 			return err
 		}
@@ -332,7 +329,7 @@ func (s *AuthService) revokeTokens(user *auth_proto.UserIdentifier, tokens *auth
 	}
 	if tokens.RefreshToken != "" {
 		// Validate user permission to revoke refresh_token
-		permission, _ := models.CreatePermissionString(models.ResourceRefreshToken, models.PermissionActionDelete)
+		permission, _ := auth_models.CreatePermissionString(auth_models.ResourceRefreshToken, auth_models.PermissionActionDelete)
 		if err = s.rbacManager.HasPermission(requestor.TenantID, requestor.ID.String(), permission); err != nil {
 			return err
 		}
@@ -345,7 +342,7 @@ func (s *AuthService) revokeTokens(user *auth_proto.UserIdentifier, tokens *auth
 	return nil
 }
 
-func (s *AuthService) generateAccessToken(user *models.User) (auth_models.TokenMetadata, error) {
+func (s *AuthService) generateAccessToken(user *core_models.User) (auth_cache_models.TokenMetadata, error) {
 
 	roles := []string{}
 	for _, role := range user.Roles {
@@ -364,7 +361,7 @@ func (s *AuthService) generateAccessToken(user *models.User) (auth_models.TokenM
 		Permissions: permissions,
 	})
 	if err != nil {
-		return auth_models.TokenMetadata{}, status.Error(codes.Internal, err.Error())
+		return auth_cache_models.TokenMetadata{}, status.Error(codes.Internal, err.Error())
 	}
 
 	hashedAccessToken := sha256.Sum256([]byte(accessToken))
@@ -373,7 +370,7 @@ func (s *AuthService) generateAccessToken(user *models.User) (auth_models.TokenM
 	issuedAt := time.Now()
 	accessTokenExpiresAt := issuedAt.Add(tokenDuration)
 
-	accessTokenMetadata := auth_models.TokenMetadata{
+	accessTokenMetadata := auth_cache_models.TokenMetadata{
 		TokenID:   accessTokenID,
 		JTI:       accessToken,
 		UserID:    user.ID.String(),
@@ -392,7 +389,7 @@ func (s *AuthService) generateAccessToken(user *models.User) (auth_models.TokenM
 	return accessTokenMetadata, nil
 }
 
-func (s *AuthService) generateRefreshToken(user *models.User) (models.RefreshToken, error) {
+func (s *AuthService) generateRefreshToken(user *core_models.User) (auth_models.RefreshToken, error) {
 	issuedAt := time.Now()
 	// Generate refresh token
 	refreshToken, err := s.tokenManager.GenerateRefreshToken(token.GenerateRefreshTokenInput{
@@ -401,12 +398,12 @@ func (s *AuthService) generateRefreshToken(user *models.User) (models.RefreshTok
 		CreatedAt: issuedAt,
 	})
 	if err != nil {
-		return models.RefreshToken{}, status.Error(codes.Internal, err.Error())
+		return auth_models.RefreshToken{}, status.Error(codes.Internal, err.Error())
 	}
 	return refreshToken, nil
 }
 
-func (s *AuthService) generateAndStoreTokens(user *models.User) (*NewTokenResponse, error) {
+func (s *AuthService) generateAndStoreTokens(user *core_models.User) (*NewTokenResponse, error) {
 	accessTokenMetadata, err := s.generateAccessToken(user)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())

@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"erp.localhost/internal/auth/models"
-	auth_models "erp.localhost/internal/auth/models/cache"
 	handlers_mocks "erp.localhost/internal/auth/token/handlers/mocks"
-	common_models "erp.localhost/internal/common/models"
 	erp_errors "erp.localhost/internal/errors"
 	logging "erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	auth_models "erp.localhost/internal/shared/models/auth"
+	auth_cache_models "erp.localhost/internal/shared/models/auth/cache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -31,8 +31,8 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 		userID                    string
 		accessTokenID             string
 		refreshTokenID            string
-		accessTokenMetadata       auth_models.TokenMetadata
-		refreshToken              models.RefreshToken
+		accessTokenMetadata       auth_cache_models.TokenMetadata
+		refreshToken              auth_models.RefreshToken
 		accessStoreError          error
 		refreshStoreError         error
 		deleteError               error
@@ -47,12 +47,12 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			userID:         "user-1",
 			accessTokenID:  "token-1",
 			refreshTokenID: "refresh-1",
-			accessTokenMetadata: auth_models.TokenMetadata{
+			accessTokenMetadata: auth_cache_models.TokenMetadata{
 				TokenID:  "token-1",
 				UserID:   "user-1",
 				TenantID: "tenant-1",
 			},
-			refreshToken: models.RefreshToken{
+			refreshToken: auth_models.RefreshToken{
 				Token:     "refresh-1",
 				UserID:    "user-1",
 				TenantID:  "tenant-1",
@@ -71,12 +71,12 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			userID:         "user-1",
 			accessTokenID:  "token-1",
 			refreshTokenID: "refresh-1",
-			accessTokenMetadata: auth_models.TokenMetadata{
+			accessTokenMetadata: auth_cache_models.TokenMetadata{
 				TokenID:  "token-1",
 				UserID:   "user-1",
 				TenantID: "tenant-1",
 			},
-			refreshToken: models.RefreshToken{
+			refreshToken: auth_models.RefreshToken{
 				Token:     "refresh-1",
 				UserID:    "user-1",
 				TenantID:  "tenant-1",
@@ -95,12 +95,12 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			userID:         "user-1",
 			accessTokenID:  "token-1",
 			refreshTokenID: "refresh-1",
-			accessTokenMetadata: auth_models.TokenMetadata{
+			accessTokenMetadata: auth_cache_models.TokenMetadata{
 				TokenID:  "token-1",
 				UserID:   "user-1",
 				TenantID: "tenant-1",
 			},
-			refreshToken: models.RefreshToken{
+			refreshToken: auth_models.RefreshToken{
 				Token:     "refresh-1",
 				UserID:    "user-1",
 				TenantID:  "tenant-1",
@@ -122,8 +122,8 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			accessMock := handlers_mocks.NewMockTokenHandler[auth_models.TokenMetadata](ctrl)
-			refreshMock := handlers_mocks.NewMockTokenHandler[models.RefreshToken](ctrl)
+			accessMock := handlers_mocks.NewMockTokenHandler[auth_cache_models.TokenMetadata](ctrl)
+			refreshMock := handlers_mocks.NewMockTokenHandler[auth_models.RefreshToken](ctrl)
 
 			if tc.expectedAccessStoreCalls > 0 {
 				accessMock.EXPECT().
@@ -148,7 +148,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			tm := &TokenManager{
 				accessTokenHandler:  accessMock,
 				refreshTokenHandler: refreshMock,
-				logger:              logging.NewLogger(common_models.ModuleAuth),
+				logger:              logging.NewLogger(shared_models.ModuleAuth),
 			}
 
 			err := tm.StoreTokens(
@@ -172,7 +172,7 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 		tenantID                  string
 		userID                    string
 		tokenID                   string
-		returnMetadata            *auth_models.TokenMetadata
+		returnMetadata            *auth_cache_models.TokenMetadata
 		returnError               error
 		wantErr                   bool
 		expectedValidateCallTimes int
@@ -182,7 +182,7 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 			tenantID: "tenant-1",
 			userID:   "user-1",
 			tokenID:  "token-1",
-			returnMetadata: &auth_models.TokenMetadata{
+			returnMetadata: &auth_cache_models.TokenMetadata{
 				TokenID:   "token-1",
 				TenantID:  "tenant-1",
 				UserID:    "user-1",
@@ -210,7 +210,7 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mock := handlers_mocks.NewMockTokenHandler[auth_models.TokenMetadata](ctrl)
+			mock := handlers_mocks.NewMockTokenHandler[auth_cache_models.TokenMetadata](ctrl)
 			if tc.expectedValidateCallTimes > 0 {
 				mock.EXPECT().
 					Validate(tc.tenantID, tc.userID, tc.tokenID).
@@ -220,7 +220,7 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 
 			tm := &TokenManager{
 				accessTokenHandler: mock,
-				logger:             logging.NewLogger(common_models.ModuleAuth),
+				logger:             logging.NewLogger(shared_models.ModuleAuth),
 			}
 
 			metadata, err := tm.ValidateAccessTokenFromRedis(tc.tenantID, tc.userID, tc.tokenID)
@@ -242,7 +242,7 @@ func TestTokenManager_ValidateRefreshToken(t *testing.T) {
 		tenantID                  string
 		userID                    string
 		tokenID                   string
-		returnToken               *models.RefreshToken
+		returnToken               *auth_models.RefreshToken
 		returnError               error
 		wantErr                   bool
 		expectedValidateCallTimes int
@@ -252,7 +252,7 @@ func TestTokenManager_ValidateRefreshToken(t *testing.T) {
 			tenantID: "tenant-1",
 			userID:   "user-1",
 			tokenID:  "refresh-1",
-			returnToken: &models.RefreshToken{
+			returnToken: &auth_models.RefreshToken{
 				Token:     "refresh-1",
 				UserID:    "user-1",
 				TenantID:  "tenant-1",
@@ -280,7 +280,7 @@ func TestTokenManager_ValidateRefreshToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mock := handlers_mocks.NewMockTokenHandler[models.RefreshToken](ctrl)
+			mock := handlers_mocks.NewMockTokenHandler[auth_models.RefreshToken](ctrl)
 			if tc.expectedValidateCallTimes > 0 {
 				mock.EXPECT().
 					Validate(tc.tenantID, tc.userID, tc.tokenID).
@@ -290,7 +290,7 @@ func TestTokenManager_ValidateRefreshToken(t *testing.T) {
 
 			tm := &TokenManager{
 				refreshTokenHandler: mock,
-				logger:              logging.NewLogger(common_models.ModuleAuth),
+				logger:              logging.NewLogger(shared_models.ModuleAuth),
 			}
 
 			token, err := tm.ValidateRefreshTokenFromRedis(tc.tenantID, tc.userID, tc.tokenID)
@@ -347,8 +347,8 @@ func TestTokenManager_RevokeAllTokens(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			accessMock := handlers_mocks.NewMockTokenHandler[auth_models.TokenMetadata](ctrl)
-			refreshMock := handlers_mocks.NewMockTokenHandler[models.RefreshToken](ctrl)
+			accessMock := handlers_mocks.NewMockTokenHandler[auth_cache_models.TokenMetadata](ctrl)
+			refreshMock := handlers_mocks.NewMockTokenHandler[auth_models.RefreshToken](ctrl)
 
 			if tc.expectedAccessRevokeCalls > 0 {
 				accessMock.EXPECT().
@@ -367,7 +367,7 @@ func TestTokenManager_RevokeAllTokens(t *testing.T) {
 			tm := &TokenManager{
 				accessTokenHandler:  accessMock,
 				refreshTokenHandler: refreshMock,
-				logger:              logging.NewLogger(common_models.ModuleAuth),
+				logger:              logging.NewLogger(shared_models.ModuleAuth),
 			}
 
 			err := tm.RevokeAllTokens(tc.tenantID, tc.userID, tc.revokedBy)

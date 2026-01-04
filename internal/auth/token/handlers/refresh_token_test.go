@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"erp.localhost/internal/auth/models"
-	common_models "erp.localhost/internal/common/models"
 	handlers_mocks "erp.localhost/internal/db/redis/handlers/mocks"
 	logging "erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	auth_models "erp.localhost/internal/shared/models/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -17,11 +17,11 @@ import (
 // refreshTokenMatcher is a custom gomock matcher for RefreshToken objects
 // It skips the LastUsedAt field which is set dynamically in UpdateLastUsed operations
 type refreshTokenMatcher struct {
-	expected models.RefreshToken
+	expected auth_models.RefreshToken
 }
 
 func (m refreshTokenMatcher) Matches(x interface{}) bool {
-	token, ok := x.(models.RefreshToken)
+	token, ok := x.(auth_models.RefreshToken)
 	if !ok {
 		return false
 	}
@@ -44,7 +44,7 @@ func TestNewRefreshTokenKeyHandler(t *testing.T) {
 }
 
 func TestRefreshTokenKeyHandler_Store(t *testing.T) {
-	validToken := models.RefreshToken{
+	validToken := auth_models.RefreshToken{
 		Token:     "refresh-token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -58,7 +58,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 		tenantID             string
 		userID               string
 		tokenID              string
-		refreshToken         models.RefreshToken
+		refreshToken         auth_models.RefreshToken
 		expectedTenantID     string
 		expectedKey          string
 		returnError          error
@@ -82,7 +82,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			refreshToken: models.RefreshToken{
+			refreshToken: auth_models.RefreshToken{
 				UserID:    "user-123",
 				TenantID:  "tenant-123",
 				ExpiresAt: time.Now().Add(24 * time.Hour),
@@ -99,7 +99,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			tenantID: "tenant-123",
 			userID:   "user-123",
 			tokenID:  "token-123",
-			refreshToken: models.RefreshToken{
+			refreshToken: auth_models.RefreshToken{
 				Token:     "refresh-token-123",
 				UserID:    "user-123",
 				TenantID:  "wrong-tenant",
@@ -131,7 +131,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := handlers_mocks.NewMockKeyHandler[models.RefreshToken](ctrl)
+			mockHandler := handlers_mocks.NewMockKeyHandler[auth_models.RefreshToken](ctrl)
 			if tc.expectedSetCallTimes > 0 {
 				mockHandler.EXPECT().
 					Set(tc.expectedTenantID, tc.expectedKey, tc.refreshToken).
@@ -139,7 +139,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 					Times(tc.expectedSetCallTimes)
 			}
 
-			logger := logging.NewLogger(common_models.ModuleAuth)
+			logger := logging.NewLogger(shared_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			err := handler.Store(tc.tenantID, tc.userID, tc.tokenID, tc.refreshToken)
@@ -153,7 +153,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 }
 
 func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
-	validToken := models.RefreshToken{
+	validToken := auth_models.RefreshToken{
 		Token:     "refresh-token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -169,9 +169,9 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 		tokenID                 string
 		expectedTenantID        string
 		expectedKey             string
-		returnToken             *models.RefreshToken
+		returnToken             *auth_models.RefreshToken
 		returnError             error
-		wantToken               *models.RefreshToken
+		wantToken               *auth_models.RefreshToken
 		wantErr                 bool
 		expectedGetOneCallTimes int
 	}{
@@ -221,7 +221,7 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := handlers_mocks.NewMockKeyHandler[models.RefreshToken](ctrl)
+			mockHandler := handlers_mocks.NewMockKeyHandler[auth_models.RefreshToken](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
 				mockHandler.EXPECT().
 					GetOne(tc.expectedTenantID, tc.expectedKey).
@@ -229,7 +229,7 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 					Times(tc.expectedGetOneCallTimes)
 			}
 
-			logger := logging.NewLogger(common_models.ModuleAuth)
+			logger := logging.NewLogger(shared_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			result, err := handler.GetOne(tc.tenantID, tc.userID, tc.tokenID)
@@ -247,7 +247,7 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 }
 
 func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
-	validToken := models.RefreshToken{
+	validToken := auth_models.RefreshToken{
 		Token:     "refresh-token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -262,7 +262,7 @@ func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
 		userID                  string
 		expectedTenantID        string
 		expectedUserID          string
-		returnTokens            []models.RefreshToken
+		returnTokens            []auth_models.RefreshToken
 		returnError             error
 		wantCount               int
 		wantErr                 bool
@@ -274,7 +274,7 @@ func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
 			userID:                  "user-123",
 			expectedTenantID:        "tenant-123",
 			expectedUserID:          "user-123",
-			returnTokens:            []models.RefreshToken{validToken},
+			returnTokens:            []auth_models.RefreshToken{validToken},
 			returnError:             nil,
 			wantCount:               1,
 			wantErr:                 false,
@@ -286,7 +286,7 @@ func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
 			userID:                  "user-123",
 			expectedTenantID:        "tenant-123",
 			expectedUserID:          "user-123",
-			returnTokens:            []models.RefreshToken{},
+			returnTokens:            []auth_models.RefreshToken{},
 			returnError:             nil,
 			wantCount:               0,
 			wantErr:                 false,
@@ -311,7 +311,7 @@ func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := handlers_mocks.NewMockKeyHandler[models.RefreshToken](ctrl)
+			mockHandler := handlers_mocks.NewMockKeyHandler[auth_models.RefreshToken](ctrl)
 			if tc.expectedGetAllCallTimes > 0 {
 				mockHandler.EXPECT().
 					GetAll(tc.expectedTenantID, tc.expectedUserID).
@@ -319,7 +319,7 @@ func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
 					Times(tc.expectedGetAllCallTimes)
 			}
 
-			logger := logging.NewLogger(common_models.ModuleAuth)
+			logger := logging.NewLogger(shared_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			result, err := handler.GetAll(tc.tenantID, tc.userID)
@@ -339,7 +339,7 @@ func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
 }
 
 func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
-	validToken := models.RefreshToken{
+	validToken := auth_models.RefreshToken{
 		Token:     "refresh-token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -347,7 +347,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 		CreatedAt: time.Now(),
 		IsRevoked: false,
 	}
-	expiredToken := models.RefreshToken{
+	expiredToken := auth_models.RefreshToken{
 		Token:     "refresh-token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -355,7 +355,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 		CreatedAt: time.Now().Add(-48 * time.Hour),
 		IsRevoked: false,
 	}
-	revokedToken := models.RefreshToken{
+	revokedToken := auth_models.RefreshToken{
 		Token:     "refresh-token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -371,7 +371,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 		tokenID                 string
 		expectedTenantID        string
 		expectedKey             string
-		returnToken             *models.RefreshToken
+		returnToken             *auth_models.RefreshToken
 		returnError             error
 		wantErr                 bool
 		expectedGetOneCallTimes int
@@ -431,7 +431,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := handlers_mocks.NewMockKeyHandler[models.RefreshToken](ctrl)
+			mockHandler := handlers_mocks.NewMockKeyHandler[auth_models.RefreshToken](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
 				mockHandler.EXPECT().
 					GetOne(tc.expectedTenantID, tc.expectedKey).
@@ -439,7 +439,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 					Times(tc.expectedGetOneCallTimes)
 			}
 
-			logger := logging.NewLogger(common_models.ModuleAuth)
+			logger := logging.NewLogger(shared_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			result, err := handler.Validate(tc.tenantID, tc.userID, tc.tokenID)
@@ -455,7 +455,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 }
 
 func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
-	validToken := models.RefreshToken{
+	validToken := auth_models.RefreshToken{
 		Token:     "refresh-token-123",
 		UserID:    "user-123",
 		TenantID:  "tenant-123",
@@ -473,7 +473,7 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 		expectedGetKey          string
 		expectedUpdateTenantID  string
 		expectedUpdateKey       string
-		returnGetToken          *models.RefreshToken
+		returnGetToken          *auth_models.RefreshToken
 		returnGetError          error
 		returnUpdateError       error
 		wantErr                 bool
@@ -535,7 +535,7 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := handlers_mocks.NewMockKeyHandler[models.RefreshToken](ctrl)
+			mockHandler := handlers_mocks.NewMockKeyHandler[auth_models.RefreshToken](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
 				mockHandler.EXPECT().
 					GetOne(tc.expectedGetTenantID, tc.expectedGetKey).
@@ -552,7 +552,7 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 					Times(tc.expectedUpdateCallTimes)
 			}
 
-			logger := logging.NewLogger(common_models.ModuleAuth)
+			logger := logging.NewLogger(shared_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			err := handler.Revoke(tc.tenantID, tc.userID, tc.tokenID, "system")
@@ -606,7 +606,7 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := handlers_mocks.NewMockKeyHandler[models.RefreshToken](ctrl)
+			mockHandler := handlers_mocks.NewMockKeyHandler[auth_models.RefreshToken](ctrl)
 			if tc.expectedDeleteCallTimes > 0 {
 				mockHandler.EXPECT().
 					Delete(tc.expectedDeleteTenantID, tc.expectedDeleteKey).
@@ -614,7 +614,7 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 					Times(tc.expectedDeleteCallTimes)
 			}
 
-			logger := logging.NewLogger(common_models.ModuleAuth)
+			logger := logging.NewLogger(shared_models.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
 			err := handler.Delete(tc.tenantID, tc.userID, tc.tokenID)

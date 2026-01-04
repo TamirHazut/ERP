@@ -3,18 +3,19 @@ package service
 import (
 	"context"
 
-	collection "erp.localhost/internal/auth/collections"
-	"erp.localhost/internal/auth/models"
-	common_models "erp.localhost/internal/common/models"
+	collection "erp.localhost/internal/core/collections"
 	user_proto "erp.localhost/internal/core/proto/user/v1"
 	mongo "erp.localhost/internal/db/mongo"
 	"erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	core_models "erp.localhost/internal/shared/models/core"
+	mongo_models "erp.localhost/internal/shared/models/db/mongo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 func newCollectionHandler[T any](collection string) *mongo.BaseCollectionHandler[T] {
-	logger := logging.NewLogger(common_models.ModuleCore)
+	logger := logging.NewLogger(shared_models.ModuleCore)
 	return mongo.NewBaseCollectionHandler[T](string(collection), logger)
 }
 
@@ -25,8 +26,8 @@ type UserService struct {
 }
 
 func NewUserService() *UserService {
-	logger := logging.NewLogger(common_models.ModuleAuth)
-	userCollectionHandler := newCollectionHandler[models.User](string(mongo.UsersCollection))
+	logger := logging.NewLogger(shared_models.ModuleAuth)
+	userCollectionHandler := newCollectionHandler[core_models.User](string(mongo_models.UsersCollection))
 	if userCollectionHandler == nil {
 		logger.Fatal("failed to create users collection handler")
 		return nil

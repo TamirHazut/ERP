@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	collection "erp.localhost/internal/auth/collections"
-	"erp.localhost/internal/auth/models"
-	common_models "erp.localhost/internal/common/models"
 	mongo_mocks "erp.localhost/internal/db/mongo/mocks"
 	"erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	auth_models "erp.localhost/internal/shared/models/auth"
+	core_models "erp.localhost/internal/shared/models/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -29,9 +30,9 @@ func TestRBACManager_GetUserPermissions(t *testing.T) {
 		name                string
 		tenantID            string
 		userID              string
-		mockUser            *models.User
+		mockUser            *core_models.User
 		mockUserError       error
-		mockRole            *models.Role
+		mockRole            *auth_models.Role
 		mockRoleError       error
 		expectedPermissions map[string]bool
 		wantErr             bool
@@ -40,17 +41,17 @@ func TestRBACManager_GetUserPermissions(t *testing.T) {
 			name:     "successful get user permissions with role permissions",
 			tenantID: tenantID,
 			userID:   userID,
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID},
 				},
 				AdditionalPermissions: []string{},
 				RevokedPermissions:    []string{},
 			},
 			mockUserError: nil,
-			mockRole: &models.Role{
+			mockRole: &auth_models.Role{
 				ID:          roleIDObjectID,
 				TenantID:    tenantID,
 				Permissions: []string{"user:create", "user:read"},
@@ -66,10 +67,10 @@ func TestRBACManager_GetUserPermissions(t *testing.T) {
 			name:     "user permissions with additional permissions",
 			tenantID: tenantID,
 			userID:   userID,
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:                    userIDObjectID,
 				TenantID:              tenantID,
-				Roles:                 []models.UserRole{},
+				Roles:                 []core_models.UserRole{},
 				AdditionalPermissions: []string{"user:delete"},
 				RevokedPermissions:    []string{},
 			},
@@ -83,17 +84,17 @@ func TestRBACManager_GetUserPermissions(t *testing.T) {
 			name:     "user permissions with revoked permissions",
 			tenantID: tenantID,
 			userID:   userID,
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID},
 				},
 				AdditionalPermissions: []string{},
 				RevokedPermissions:    []string{"user:create"},
 			},
 			mockUserError: nil,
-			mockRole: &models.Role{
+			mockRole: &auth_models.Role{
 				ID:          roleIDObjectID,
 				TenantID:    tenantID,
 				Permissions: []string{"user:create", "user:read"},
@@ -116,10 +117,10 @@ func TestRBACManager_GetUserPermissions(t *testing.T) {
 			name:     "role not found",
 			tenantID: tenantID,
 			userID:   userID,
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID},
 				},
 			},
@@ -134,8 +135,8 @@ func TestRBACManager_GetUserPermissions(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockUserHandler := mongo_mocks.NewMockCollectionHandler[models.User](ctrl)
-			mockRoleHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			mockUserHandler := mongo_mocks.NewMockCollectionHandler[core_models.User](ctrl)
+			mockRoleHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
 
 			userFilter := map[string]any{
 				"tenant_id": tc.tenantID,
@@ -158,11 +159,9 @@ func TestRBACManager_GetUserPermissions(t *testing.T) {
 			}
 
 			rbacManager := &RBACManager{
-				logger:                logging.NewLogger(common_models.ModuleAuth),
-				userCollection:        collection.NewUserCollection(mockUserHandler),
+				logger:                logging.NewLogger(shared_models.ModuleAuth),
 				rolesCollection:       collection.NewRoleCollection(mockRoleHandler),
 				permissionsCollection: nil,
-				auditLogsCollection:   nil,
 			}
 
 			permissions, err := rbacManager.GetUserPermissions(tc.tenantID, tc.userID)
@@ -194,7 +193,7 @@ func TestRBACManager_GetUserRoles(t *testing.T) {
 		name          string
 		tenantID      string
 		userID        string
-		mockUser      *models.User
+		mockUser      *core_models.User
 		mockUserError error
 		expectedRoles []string
 		wantErr       bool
@@ -203,10 +202,10 @@ func TestRBACManager_GetUserRoles(t *testing.T) {
 			name:     "successful get user roles",
 			tenantID: tenantID,
 			userID:   userID,
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID1},
 					{RoleID: roleID2},
 				},
@@ -219,10 +218,10 @@ func TestRBACManager_GetUserRoles(t *testing.T) {
 			name:     "user with no roles",
 			tenantID: tenantID,
 			userID:   userID,
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles:    []models.UserRole{},
+				Roles:    []core_models.UserRole{},
 			},
 			mockUserError: nil,
 			expectedRoles: []string{},
@@ -242,7 +241,7 @@ func TestRBACManager_GetUserRoles(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockUserHandler := mongo_mocks.NewMockCollectionHandler[models.User](ctrl)
+			mockUserHandler := mongo_mocks.NewMockCollectionHandler[core_models.User](ctrl)
 
 			userFilter := map[string]any{
 				"tenant_id": tc.tenantID,
@@ -254,11 +253,9 @@ func TestRBACManager_GetUserRoles(t *testing.T) {
 				Times(1)
 
 			rbacManager := &RBACManager{
-				logger:                logging.NewLogger(common_models.ModuleAuth),
-				userCollection:        collection.NewUserCollection(mockUserHandler),
+				logger:                logging.NewLogger(shared_models.ModuleAuth),
 				rolesCollection:       nil,
 				permissionsCollection: nil,
-				auditLogsCollection:   nil,
 			}
 
 			roles, err := rbacManager.GetUserRoles(tc.tenantID, tc.userID)
@@ -285,7 +282,7 @@ func TestRBACManager_GetRolePermissions(t *testing.T) {
 		name                string
 		tenantID            string
 		roleID              string
-		mockRole            *models.Role
+		mockRole            *auth_models.Role
 		mockRoleError       error
 		expectedPermissions []string
 		wantErr             bool
@@ -294,7 +291,7 @@ func TestRBACManager_GetRolePermissions(t *testing.T) {
 			name:     "successful get role permissions",
 			tenantID: tenantID,
 			roleID:   roleID,
-			mockRole: &models.Role{
+			mockRole: &auth_models.Role{
 				ID:          roleIDObjectID,
 				TenantID:    tenantID,
 				Permissions: []string{"user:create", "user:read", "user:update"},
@@ -307,7 +304,7 @@ func TestRBACManager_GetRolePermissions(t *testing.T) {
 			name:     "role with no permissions",
 			tenantID: tenantID,
 			roleID:   roleID,
-			mockRole: &models.Role{
+			mockRole: &auth_models.Role{
 				ID:          roleIDObjectID,
 				TenantID:    tenantID,
 				Permissions: []string{},
@@ -330,7 +327,7 @@ func TestRBACManager_GetRolePermissions(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockRoleHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			mockRoleHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
 
 			roleFilter := map[string]any{
 				"tenant_id": tc.tenantID,
@@ -342,11 +339,9 @@ func TestRBACManager_GetRolePermissions(t *testing.T) {
 				Times(1)
 
 			rbacManager := &RBACManager{
-				logger:                logging.NewLogger(common_models.ModuleAuth),
-				userCollection:        nil,
+				logger:                logging.NewLogger(shared_models.ModuleAuth),
 				rolesCollection:       collection.NewRoleCollection(mockRoleHandler),
 				permissionsCollection: nil,
-				auditLogsCollection:   nil,
 			}
 
 			permissions, err := rbacManager.GetRolePermissions(tc.tenantID, tc.roleID)
@@ -376,9 +371,9 @@ func TestRBACManager_CheckUserPermissions(t *testing.T) {
 		tenantID       string
 		userID         string
 		permissions    []string
-		mockUser       *models.User
+		mockUser       *core_models.User
 		mockUserError  error
-		mockRole       *models.Role
+		mockRole       *auth_models.Role
 		mockRoleError  error
 		expectedResult map[string]bool
 		wantErr        bool
@@ -388,15 +383,15 @@ func TestRBACManager_CheckUserPermissions(t *testing.T) {
 			tenantID:    tenantID,
 			userID:      userID,
 			permissions: []string{"user:create", "user:delete"},
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID},
 				},
 			},
 			mockUserError: nil,
-			mockRole: &models.Role{
+			mockRole: &auth_models.Role{
 				ID:          roleIDObjectID,
 				TenantID:    tenantID,
 				Permissions: []string{"user:create", "user:read"},
@@ -430,11 +425,11 @@ func TestRBACManager_CheckUserPermissions(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockUserHandler := mongo_mocks.NewMockCollectionHandler[models.User](ctrl)
-			mockRoleHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			mockUserHandler := mongo_mocks.NewMockCollectionHandler[core_models.User](ctrl)
+			mockRoleHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
 
-			if tc.mockUserError != nil || (tc.mockUser != nil && models.IsValidPermissionFormat(tc.permissions[0])) {
-				if models.IsValidPermissionFormat(tc.permissions[0]) {
+			if tc.mockUserError != nil || (tc.mockUser != nil && auth_models.IsValidPermissionFormat(tc.permissions[0])) {
+				if auth_models.IsValidPermissionFormat(tc.permissions[0]) {
 					userFilter := map[string]any{
 						"tenant_id": tc.tenantID,
 						"_id":       tc.userID,
@@ -458,11 +453,9 @@ func TestRBACManager_CheckUserPermissions(t *testing.T) {
 			}
 
 			rbacManager := &RBACManager{
-				logger:                logging.NewLogger(common_models.ModuleAuth),
-				userCollection:        collection.NewUserCollection(mockUserHandler),
+				logger:                logging.NewLogger(shared_models.ModuleAuth),
 				rolesCollection:       collection.NewRoleCollection(mockRoleHandler),
 				permissionsCollection: nil,
-				auditLogsCollection:   nil,
 			}
 
 			result, err := rbacManager.CheckUserPermissions(tc.tenantID, tc.userID, tc.permissions)
@@ -493,7 +486,7 @@ func TestRBACManager_VerifyUserRole(t *testing.T) {
 		tenantID       string
 		userID         string
 		roleID         string
-		mockUser       *models.User
+		mockUser       *core_models.User
 		mockUserError  error
 		expectedResult bool
 		wantErr        bool
@@ -503,10 +496,10 @@ func TestRBACManager_VerifyUserRole(t *testing.T) {
 			tenantID: tenantID,
 			userID:   userID,
 			roleID:   roleID1,
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID1},
 					{RoleID: roleID2},
 				},
@@ -520,10 +513,10 @@ func TestRBACManager_VerifyUserRole(t *testing.T) {
 			tenantID: tenantID,
 			userID:   userID,
 			roleID:   "00000000-0000-0000-0000-000000000099",
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID1},
 				},
 			},
@@ -546,7 +539,7 @@ func TestRBACManager_VerifyUserRole(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockUserHandler := mongo_mocks.NewMockCollectionHandler[models.User](ctrl)
+			mockUserHandler := mongo_mocks.NewMockCollectionHandler[core_models.User](ctrl)
 
 			userFilter := map[string]any{
 				"tenant_id": tc.tenantID,
@@ -558,11 +551,9 @@ func TestRBACManager_VerifyUserRole(t *testing.T) {
 				Times(1)
 
 			rbacManager := &RBACManager{
-				logger:                logging.NewLogger(common_models.ModuleAuth),
-				userCollection:        collection.NewUserCollection(mockUserHandler),
+				logger:                logging.NewLogger(shared_models.ModuleAuth),
 				rolesCollection:       nil,
 				permissionsCollection: nil,
-				auditLogsCollection:   nil,
 			}
 
 			result, err := rbacManager.VerifyUserRole(tc.tenantID, tc.userID, tc.roleID)
@@ -589,7 +580,7 @@ func TestRBACManager_VerifyRolePermissions(t *testing.T) {
 		tenantID       string
 		roleID         string
 		permissions    []string
-		mockRole       *models.Role
+		mockRole       *auth_models.Role
 		mockRoleError  error
 		expectedResult map[string]bool
 		wantErr        bool
@@ -599,7 +590,7 @@ func TestRBACManager_VerifyRolePermissions(t *testing.T) {
 			tenantID:    tenantID,
 			roleID:      roleID,
 			permissions: []string{"user:create", "user:delete"},
-			mockRole: &models.Role{
+			mockRole: &auth_models.Role{
 				ID:          roleIDObjectID,
 				TenantID:    tenantID,
 				Permissions: []string{"user:create", "user:read"},
@@ -626,7 +617,7 @@ func TestRBACManager_VerifyRolePermissions(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockRoleHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			mockRoleHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
 
 			roleFilter := map[string]any{
 				"tenant_id": tc.tenantID,
@@ -638,11 +629,9 @@ func TestRBACManager_VerifyRolePermissions(t *testing.T) {
 				Times(1)
 
 			rbacManager := &RBACManager{
-				logger:                logging.NewLogger(common_models.ModuleAuth),
-				userCollection:        nil,
+				logger:                logging.NewLogger(shared_models.ModuleAuth),
 				rolesCollection:       collection.NewRoleCollection(mockRoleHandler),
 				permissionsCollection: nil,
-				auditLogsCollection:   nil,
 			}
 
 			result, err := rbacManager.VerifyRolePermissions(tc.tenantID, tc.roleID, tc.permissions)
@@ -671,9 +660,9 @@ func TestRBACManager_HasPermission(t *testing.T) {
 		tenantID      string
 		userID        string
 		permission    string
-		mockUser      *models.User
+		mockUser      *core_models.User
 		mockUserError error
-		mockRole      *models.Role
+		mockRole      *auth_models.Role
 		mockRoleError error
 		wantErr       bool
 		expectedErr   string
@@ -683,17 +672,17 @@ func TestRBACManager_HasPermission(t *testing.T) {
 			tenantID:   tenantID,
 			userID:     userID,
 			permission: "user:create",
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID},
 				},
 				AdditionalPermissions: []string{},
 				RevokedPermissions:    []string{},
 			},
 			mockUserError: nil,
-			mockRole: &models.Role{
+			mockRole: &auth_models.Role{
 				ID:          roleIDObjectID,
 				TenantID:    tenantID,
 				Permissions: []string{"user:create", "user:read"},
@@ -706,10 +695,10 @@ func TestRBACManager_HasPermission(t *testing.T) {
 			tenantID:   tenantID,
 			userID:     userID,
 			permission: "user:delete",
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:                    userIDObjectID,
 				TenantID:              tenantID,
-				Roles:                 []models.UserRole{},
+				Roles:                 []core_models.UserRole{},
 				AdditionalPermissions: []string{"user:delete"},
 				RevokedPermissions:    []string{},
 			},
@@ -721,17 +710,17 @@ func TestRBACManager_HasPermission(t *testing.T) {
 			tenantID:   tenantID,
 			userID:     userID,
 			permission: "user:delete",
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID},
 				},
 				AdditionalPermissions: []string{},
 				RevokedPermissions:    []string{},
 			},
 			mockUserError: nil,
-			mockRole: &models.Role{
+			mockRole: &auth_models.Role{
 				ID:          roleIDObjectID,
 				TenantID:    tenantID,
 				Permissions: []string{"user:create", "user:read"},
@@ -745,17 +734,17 @@ func TestRBACManager_HasPermission(t *testing.T) {
 			tenantID:   tenantID,
 			userID:     userID,
 			permission: "user:create",
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID},
 				},
 				AdditionalPermissions: []string{},
 				RevokedPermissions:    []string{"user:create"},
 			},
 			mockUserError: nil,
-			mockRole: &models.Role{
+			mockRole: &auth_models.Role{
 				ID:          roleIDObjectID,
 				TenantID:    tenantID,
 				Permissions: []string{"user:create", "user:read"},
@@ -810,10 +799,10 @@ func TestRBACManager_HasPermission(t *testing.T) {
 			tenantID:   tenantID,
 			userID:     userID,
 			permission: "user:create",
-			mockUser: &models.User{
+			mockUser: &core_models.User{
 				ID:       userIDObjectID,
 				TenantID: tenantID,
-				Roles: []models.UserRole{
+				Roles: []core_models.UserRole{
 					{RoleID: roleID},
 				},
 			},
@@ -829,11 +818,11 @@ func TestRBACManager_HasPermission(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockUserHandler := mongo_mocks.NewMockCollectionHandler[models.User](ctrl)
-			mockRoleHandler := mongo_mocks.NewMockCollectionHandler[models.Role](ctrl)
+			mockUserHandler := mongo_mocks.NewMockCollectionHandler[core_models.User](ctrl)
+			mockRoleHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
 
 			// Setup mock expectations based on test case
-			if tc.tenantID != "" && tc.userID != "" && tc.permission != "" && models.IsValidPermissionFormat(tc.permission) {
+			if tc.tenantID != "" && tc.userID != "" && tc.permission != "" && auth_models.IsValidPermissionFormat(tc.permission) {
 				userFilter := map[string]any{
 					"tenant_id": tc.tenantID,
 					"_id":       tc.userID,
@@ -856,11 +845,9 @@ func TestRBACManager_HasPermission(t *testing.T) {
 			}
 
 			rbacManager := &RBACManager{
-				logger:                logging.NewLogger(common_models.ModuleAuth),
-				userCollection:        collection.NewUserCollection(mockUserHandler),
+				logger:                logging.NewLogger(shared_models.ModuleAuth),
 				rolesCollection:       collection.NewRoleCollection(mockRoleHandler),
 				permissionsCollection: nil,
-				auditLogsCollection:   nil,
 			}
 
 			err := rbacManager.HasPermission(tc.tenantID, tc.userID, tc.permission)

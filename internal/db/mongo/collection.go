@@ -3,10 +3,11 @@ package mongo
 import (
 	"errors"
 
-	common_models "erp.localhost/internal/common/models"
 	db "erp.localhost/internal/db"
 	erp_errors "erp.localhost/internal/errors"
 	"erp.localhost/internal/logging"
+	shared_models "erp.localhost/internal/shared/models"
+	mongo_models "erp.localhost/internal/shared/models/db/mongo"
 )
 
 // Generic Collection
@@ -18,14 +19,14 @@ type BaseCollectionHandler[T any] struct {
 
 func NewBaseCollectionHandler[T any](collection string, logger *logging.Logger) *BaseCollectionHandler[T] {
 	if logger == nil {
-		logger = logging.NewLogger(common_models.ModuleDB)
+		logger = logging.NewLogger(shared_models.ModuleDB)
 	}
-	dbName := GetDBNameFromCollection(collection)
+	dbName := mongo_models.GetDBNameFromCollection(collection)
 	if dbName == "" {
 		logger.Fatal("db not found", "collection", collection)
 		return nil
 	}
-	dbHandler := NewMongoDBManager(DBName(dbName))
+	dbHandler := NewMongoDBManager(mongo_models.DBName(dbName))
 	if dbHandler == nil {
 		logger.Fatal("failed to create db handler", "db", dbName, "collection", collection)
 		return nil
