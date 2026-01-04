@@ -5,7 +5,7 @@ import (
 
 	"erp.localhost/internal/config/utils"
 	"erp.localhost/internal/infra/logging"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	shared_models "erp.localhost/internal/infra/model/shared"
 )
 
 var (

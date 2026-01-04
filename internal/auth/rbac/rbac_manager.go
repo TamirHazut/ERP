@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"slices"
 
-	collection "erp.localhost/internal/auth/collections"
-	erp_errors "erp.localhost/internal/infra/errors"
+	collection "erp.localhost/internal/auth/collection"
+	erp_errors "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging"
-	auth_models "erp.localhost/internal/infra/models/auth"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	auth_models "erp.localhost/internal/infra/model/auth"
+	shared_models "erp.localhost/internal/infra/model/shared"
 )
 
 type RBACManager struct {

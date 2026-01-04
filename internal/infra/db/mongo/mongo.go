@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	erp_errors "erp.localhost/internal/infra/errors"
+	erp_errors "erp.localhost/internal/infra/error"
 	logging "erp.localhost/internal/infra/logging"
-	mongo_models "erp.localhost/internal/infra/models/db/mongo"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	mongo_models "erp.localhost/internal/infra/model/db/mongo"
+	shared_models "erp.localhost/internal/infra/model/shared"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

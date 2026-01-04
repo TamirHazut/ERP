@@ -7,8 +7,8 @@ import (
 
 	handlers_mocks "erp.localhost/internal/infra/db/redis/handlers/mocks"
 	logging "erp.localhost/internal/infra/logging"
-	auth_models "erp.localhost/internal/infra/models/auth"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	auth_models "erp.localhost/internal/infra/model/auth"
+	shared_models "erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"

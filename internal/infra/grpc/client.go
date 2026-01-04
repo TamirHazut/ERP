@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"erp.localhost/internal/infra/logging"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	shared_models "erp.localhost/internal/infra/model/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

@@ -5,10 +5,10 @@ import (
 
 	"erp.localhost/internal/infra/db/redis"
 	redis_handlers "erp.localhost/internal/infra/db/redis/handlers"
-	erp_errors "erp.localhost/internal/infra/errors"
+	erp_errors "erp.localhost/internal/infra/error"
 	logging "erp.localhost/internal/infra/logging"
-	redis_models "erp.localhost/internal/infra/models/db/redis"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	redis_models "erp.localhost/internal/infra/model/db/redis"
+	shared_models "erp.localhost/internal/infra/model/shared"
 )
 
 var (

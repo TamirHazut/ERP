@@ -6,10 +6,10 @@ import (
 	"sync"
 	"syscall"
 
-	configv1 "erp.localhost/internal/infra/proto/config/v1"
 	"erp.localhost/internal/config/service"
 	infra_grpc "erp.localhost/internal/infra/grpc"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	shared_models "erp.localhost/internal/infra/model/shared"
+	configv1 "erp.localhost/internal/infra/proto/config/v1"
 	"google.golang.org/grpc"
 )
 

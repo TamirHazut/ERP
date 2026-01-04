@@ -7,11 +7,11 @@ import (
 	token "erp.localhost/internal/auth/token"
 	redis "erp.localhost/internal/infra/db/redis"
 	redis_handlers "erp.localhost/internal/infra/db/redis/handlers"
-	erp_errors "erp.localhost/internal/infra/errors"
+	erp_errors "erp.localhost/internal/infra/error"
 	logging "erp.localhost/internal/infra/logging"
-	auth_cache_models "erp.localhost/internal/infra/models/auth/cache"
-	redis_models "erp.localhost/internal/infra/models/db/redis"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	auth_cache_models "erp.localhost/internal/infra/model/auth/cache"
+	redis_models "erp.localhost/internal/infra/model/db/redis"
+	shared_models "erp.localhost/internal/infra/model/shared"
 )
 
 // AccessTokenHandler handles access token operations in Redis

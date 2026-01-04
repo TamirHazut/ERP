@@ -7,17 +7,17 @@ import (
 	"errors"
 	"time"
 
-	auth_proto "erp.localhost/internal/infra/proto/auth/v1"
+	"erp.localhost/internal/auth/password"
 	"erp.localhost/internal/auth/rbac"
 	token "erp.localhost/internal/auth/token/manager"
 	token_manager "erp.localhost/internal/auth/token/manager"
-	mongo "erp.localhost/internal/infra/db/mongo"
-	erp_errors "erp.localhost/internal/infra/errors"
+	erp_errors "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging"
-	auth_models "erp.localhost/internal/infra/models/auth"
-	auth_cache_models "erp.localhost/internal/infra/models/auth/cache"
-	core_models "erp.localhost/internal/infra/models/core"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	auth_models "erp.localhost/internal/infra/model/auth"
+	auth_cache_models "erp.localhost/internal/infra/model/auth/cache"
+	core_models "erp.localhost/internal/infra/model/core"
+	shared_models "erp.localhost/internal/infra/model/shared"
+	auth_proto "erp.localhost/internal/infra/proto/auth/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -42,30 +42,14 @@ type NewTokenResponse struct {
 
 // TODO: Add logs to all functions
 type AuthService struct {
-	logger *logging.Logger
-	// userCollection      *collection.UserCollection
+	logger       *logging.Logger
 	tokenManager *token_manager.TokenManager
 	rbacManager  *rbac.RBACManager
 	auth_proto.UnimplementedAuthServiceServer
 }
 
-func newCollectionHandler[T any](collection string) *mongo.BaseCollectionHandler[T] {
-	logger := logging.NewLogger(shared_models.ModuleAuth)
-	return mongo.NewBaseCollectionHandler[T](string(collection), logger)
-}
-
 func NewAuthService() *AuthService {
 	logger := logging.NewLogger(shared_models.ModuleAuth)
-	// userCollectionHandler := newCollectionHandler[models.User](string(mongo.UsersCollection))
-	// if userCollectionHandler == nil {
-	// 	logger.Fatal("failed to create users collection handler")
-	// 	return nil
-	// }
-	// userCollection := collection.NewUserCollection(userCollectionHandler)
-	// if userCollection == nil {
-	// 	logger.Fatal("failed to create users collection handler")
-	// 	return nil
-	// }
 	tokenManager := token.NewTokenManager(secretKey, tokenDuration, refreshTokenDuration)
 	if tokenManager == nil {
 		logger.Fatal("failed to create token manager")
@@ -120,6 +104,17 @@ func (s *AuthService) Authenticate(ctx context.Context, req *auth_proto.Authenti
 	// 	return nil, status.Error(codes.InvalidArgument, errors.New("unknown account identifier type").Error())
 	// }
 
+	// Verify password
+	hashedPassword, err := password.HashPassword(req.Password)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if !password.VerifyPassword(hashedPassword, user.PasswordHash) {
+		return nil, status.Error(codes.Unauthenticated, "invalid login credentials")
+	}
+
+	// Generate tokens
 	newTokenResponse, err := s.generateAndStoreTokens(user)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())

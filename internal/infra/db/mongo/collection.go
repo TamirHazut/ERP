@@ -4,10 +4,10 @@ import (
 	"errors"
 
 	db "erp.localhost/internal/infra/db"
-	erp_errors "erp.localhost/internal/infra/errors"
+	erp_errors "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging"
-	mongo_models "erp.localhost/internal/infra/models/db/mongo"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	mongo_models "erp.localhost/internal/infra/model/db/mongo"
+	shared_models "erp.localhost/internal/infra/model/shared"
 )
 
 // Generic Collection

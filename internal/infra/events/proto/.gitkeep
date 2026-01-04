@@ -1,6 +1,0 @@
-# Events Service Proto Definitions
-
-This directory contains protobuf definitions for the Events service (if needed).
-
-Note: Events service primarily consumes Kafka events, but may need proto definitions for gRPC communication.
-

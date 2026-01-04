@@ -1,7 +1,0 @@
-# Auth Service Proto Definitions
-
-This directory contains protobuf definitions for the Auth service.
-
-## Files
-- `auth.proto` - Authentication and RBAC service definitions
-

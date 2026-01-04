@@ -8,18 +8,18 @@ import (
 	"syscall"
 	"time"
 
-	auth "erp.localhost/internal/auth/utils"
-	userv1 "erp.localhost/internal/infra/proto/core/v1"
+	"erp.localhost/internal/auth/password"
 	"erp.localhost/internal/core/service"
 	"erp.localhost/internal/infra/db"
 	"erp.localhost/internal/infra/db/mongo"
-	erp_errors "erp.localhost/internal/infra/errors"
+	erp_errors "erp.localhost/internal/infra/error"
 	infra_grpc "erp.localhost/internal/infra/grpc"
 	"erp.localhost/internal/infra/logging"
-	auth_models "erp.localhost/internal/infra/models/auth"
-	core_models "erp.localhost/internal/infra/models/core"
-	mongo_models "erp.localhost/internal/infra/models/db/mongo"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	auth_models "erp.localhost/internal/infra/model/auth"
+	core_models "erp.localhost/internal/infra/model/core"
+	mongo_models "erp.localhost/internal/infra/model/db/mongo"
+	shared_models "erp.localhost/internal/infra/model/shared"
+	userv1 "erp.localhost/internal/infra/proto/core/v1"
 	"google.golang.org/grpc"
 )
 
@@ -157,7 +157,7 @@ func createSystemAdminPermission(collection mongo.CollectionHandler[auth_models.
 }
 
 func createSystemAdminUser(collectionHandler mongo.CollectionHandler[core_models.User]) error {
-	hash, _ := auth.HashPassword(db.SystemAdminPassword)
+	hash, _ := password.HashPassword(db.SystemAdminPassword)
 	user := core_models.User{
 		TenantID:     db.SystemTenantID,
 		Username:     db.SystemAdminUser,

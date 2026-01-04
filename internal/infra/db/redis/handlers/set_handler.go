@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	erp_errors "erp.localhost/internal/infra/errors"
+	erp_errors "erp.localhost/internal/infra/error"
 	logging "erp.localhost/internal/infra/logging"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	shared_models "erp.localhost/internal/infra/model/shared"
 )
 
 type BaseSetHandler struct {

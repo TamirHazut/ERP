@@ -4,11 +4,11 @@ import (
 	"time"
 
 	"erp.localhost/internal/infra/db/mongo"
-	erp_errors "erp.localhost/internal/infra/errors"
+	erp_errors "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging"
-	core_models "erp.localhost/internal/infra/models/core"
-	mongo_models "erp.localhost/internal/infra/models/db/mongo"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	core_models "erp.localhost/internal/infra/model/core"
+	mongo_models "erp.localhost/internal/infra/model/db/mongo"
+	shared_models "erp.localhost/internal/infra/model/shared"
 )
 
 type TenantCollection struct {

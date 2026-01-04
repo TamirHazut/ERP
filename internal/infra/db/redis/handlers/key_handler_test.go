@@ -8,7 +8,7 @@ import (
 
 	db_mocks "erp.localhost/internal/infra/db/mocks"
 	logging "erp.localhost/internal/infra/logging"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	shared_models "erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )

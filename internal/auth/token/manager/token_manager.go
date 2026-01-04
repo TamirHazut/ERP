@@ -9,11 +9,11 @@ import (
 	"time"
 
 	handlers "erp.localhost/internal/auth/token/handlers"
-	erp_errors "erp.localhost/internal/infra/errors"
+	erp_errors "erp.localhost/internal/infra/error"
 	logging "erp.localhost/internal/infra/logging"
-	auth_models "erp.localhost/internal/infra/models/auth"
-	auth_cache_models "erp.localhost/internal/infra/models/auth/cache"
-	shared_models "erp.localhost/internal/infra/models/shared"
+	auth_models "erp.localhost/internal/infra/model/auth"
+	auth_cache_models "erp.localhost/internal/infra/model/auth/cache"
+	shared_models "erp.localhost/internal/infra/model/shared"
 	"github.com/google/uuid"
 
 	"github.com/golang-jwt/jwt/v5"

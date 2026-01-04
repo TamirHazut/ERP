@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	shared_models "erp.localhost/internal/infra/models/shared"
+	shared_models "erp.localhost/internal/infra/model/shared"
 	"github.com/rs/zerolog"
 )
 
