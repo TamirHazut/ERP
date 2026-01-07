@@ -12,7 +12,7 @@
 BIN_DIR := bin
 
 # Define services
-SERVICES := auth config core #gateway events
+SERVICES := auth config core #gateway event
 
 # Define entire system modules including non services
 MODULES := infra $(SERVICES)
@@ -23,7 +23,7 @@ help: ## Show this help message
 	@echo "Proto Generation:"
 	@echo "  make proto          	- Generate all proto files"
 	@echo "  make proto-infra     	- Generate infra service proto files"
-	@echo "  make proto-<service>	- Generate service proto files (services: auth, config, core, gateway, events)"
+	@echo "  make proto-<service>	- Generate service proto files (services: auth, config, core, gateway, event)"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build          	- Build all services"
@@ -98,7 +98,7 @@ proto-clean: ## Remove all generated proto files
 build: ## Build all services
 	@echo "Building all services..."
 	@for service in $(SERVICES); do \
-		$(MAKE) -C internal/$$service build
+		$(MAKE) -C internal/$$service build; \
 	done
 	@echo "✓ All services built"
 
@@ -122,7 +122,7 @@ run-core: ## Run core service
 test: mocks ## Run all tests from all services
 	@echo "Running all tests..."
 	@for module in $(MODULES); do \
-		$(MAKE) -C internal/$$module test
+		$(MAKE) -C internal/$$module test; \
 	done
 	@echo "✓ All tests complete"
 
@@ -141,7 +141,7 @@ test-coverage: ## Run tests with coverage for all services
 lint: ## Run linter on all services
 	@echo "Running linter on all services..."
 	@for module in $(MODULES); do \
-		$(MAKE) -C internal/$$module lint
+		$(MAKE) -C internal/$$module lint; \
 	done
 	@echo "✓ All linting complete"
 
@@ -159,7 +159,7 @@ clean: ## Clean build artifacts from all services
 	@rm -rf $(BIN_DIR)
 	@rm -f coverage.out coverage.html
 	@for module in $(MODULES); do \
-		$(MAKE) -C internal/$$module clean
+		$(MAKE) -C internal/$$module clean; \
 	done
 	@echo "✓ Clean complete"
 
@@ -195,7 +195,7 @@ docker-ps: ## List running containers
 mocks: mocks-clean
 	@echo "Generating mocks..."
 	@for module in $(MODULES); do \
-		$(MAKE) -C internal/$$module mocks
+		$(MAKE) -C internal/$$module mocks; \
 	done
 	@echo "✅ Mocks generated successfully"
 
@@ -203,7 +203,8 @@ mocks: mocks-clean
 mocks-clean:
 	@echo "Cleaning generated mocks..."
 	@for module in $(MODULES); do \
-		$(MAKE) -C internal/$$module mocks-clean
+		echo "Cleaning $$module mocks..." && \
+		$(MAKE) -C internal/$$module mocks-clean; \
 	done
 	@echo "✅ Mocks cleaned"
 
@@ -247,7 +248,7 @@ certs: certs-clean ## Create CA and certificates for all services
 	fi
 	@echo "Creating service certificates..."
 	@for service in $(SERVICES); do \
-		$(MAKE) -C internal/$$service certs
+		$(MAKE) -C internal/$$service certs; \
 	done
 	@echo "✓ All certificates created successfully"
 
@@ -255,6 +256,6 @@ certs-clean: ## Remove all certificates (CA and service certificates)
 	@echo "Removing all certificates..."
 	@rm -rf resources/certs
 	@for service in $(SERVICES); do \
-		$(MAKE) -C internal/$$service certs-clean
+		$(MAKE) -C internal/$$service certs-clean; \
 	done
 	@echo "✓ All certificates removed"

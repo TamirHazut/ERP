@@ -5,10 +5,9 @@ import (
 	"errors"
 	"time"
 
-	erp_errors "erp.localhost/internal/infra/error"
-	logging "erp.localhost/internal/infra/logging"
-	mongo_models "erp.localhost/internal/infra/model/db/mongo"
-	shared_models "erp.localhost/internal/infra/model/shared"
+	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/logging/logger"
+	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -16,24 +15,24 @@ import (
 
 type MongoDBManager struct {
 	client *mongo.Client
-	dbName mongo_models.DBName
+	dbName model_mongo.DBName
 	db     *mongo.Database
-	logger *logging.Logger
+	logger logger.Logger
 }
 
-func NewMongoDBManager(dbName mongo_models.DBName) *MongoDBManager {
-	logger := logging.NewLogger(shared_models.ModuleDB)
-	db := mongo_models.GetDBNameFromCollection(string(dbName))
+func NewMongoDBManager(dbName model_mongo.DBName, logger logger.Logger) *MongoDBManager {
+	if logger == nil {
+		return nil
+	}
+	db := model_mongo.GetDBNameFromCollection(string(dbName))
 	if db == "" {
 		logger.Fatal("db not found", "db", dbName)
 		return nil
 	}
-
 	m := &MongoDBManager{
-		dbName: mongo_models.DBName(db),
+		dbName: model_mongo.DBName(db),
 		logger: logger,
 	}
-
 	if err := m.Init(); err != nil {
 		return nil
 	}
@@ -72,7 +71,7 @@ func (m *MongoDBManager) CreateCollectionInDBIfNotExists(collectionName string) 
 	filter := bson.M{"name": collectionName}
 	names, err := m.db.ListCollectionNames(context.Background(), filter)
 	if err != nil {
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	if len(names) > 0 {
 		m.logger.Info("collection already exists", "db", m.dbName, "collection", collectionName)
@@ -80,7 +79,7 @@ func (m *MongoDBManager) CreateCollectionInDBIfNotExists(collectionName string) 
 	}
 	if err := m.db.CreateCollection(context.Background(), collectionName); err != nil {
 		m.logger.Error("failed to create collection", "db", m.dbName, "collection", collectionName, "error", err)
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	return nil
 }
@@ -88,7 +87,7 @@ func (m *MongoDBManager) CreateCollectionInDBIfNotExists(collectionName string) 
 func (m *MongoDBManager) createDBIfNotExists() error {
 	m.db = m.client.Database(string(m.dbName))
 	if m.db == nil {
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, errors.New("database not found"))
+		return infra_error.Internal(infra_error.InternalDatabaseError, errors.New("database not found"))
 	}
 	return nil
 }

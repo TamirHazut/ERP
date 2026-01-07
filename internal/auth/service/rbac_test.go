@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"erp.localhost/internal/infra/logging"
-	shared_models "erp.localhost/internal/infra/model/shared"
-	auth_proto "erp.localhost/internal/infra/proto/auth/v1"
-	infra_proto "erp.localhost/internal/infra/proto/infra/v1"
+	"erp.localhost/internal/infra/logging/logger"
+	model_shared "erp.localhost/internal/infra/model/shared"
+	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
+	proto_infra "erp.localhost/internal/infra/proto/infra/v1"
 )
 
 // TODO: Full test coverage requires RBACManager mock
@@ -18,7 +18,7 @@ import (
 
 // Helper function to create a minimal RBACService for testing helper methods
 func newTestRBACService() *RBACService {
-	logger := logging.NewLogger(shared_models.ModuleAuth)
+	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 	return &RBACService{
 		logger:      logger,
 		rbacManager: nil, // Not needed for helper method tests
@@ -32,7 +32,7 @@ func newTestRBACService() *RBACService {
 func TestCreateVerifyPermissionsResourceRequest_ValidPairs(t *testing.T) {
 	service := newTestRBACService()
 
-	identifier := &infra_proto.UserIdentifier{
+	identifier := &proto_infra.UserIdentifier{
 		TenantId: "tenant-123",
 		UserId:   "user-456",
 	}
@@ -46,7 +46,7 @@ func TestCreateVerifyPermissionsResourceRequest_ValidPairs(t *testing.T) {
 
 	require.NotNil(t, result)
 	assert.Equal(t, identifier, result.Identifier)
-	assert.Equal(t, auth_proto.ResourceType_RESOURCE_TYPE_PERMISSION, result.ResourceType)
+	assert.Equal(t, proto_auth.ResourceType_RESOURCE_TYPE_PERMISSION, result.ResourceType)
 	assert.Len(t, result.Resources, 3)
 
 	// Verify first permission
@@ -71,7 +71,7 @@ func TestCreateVerifyPermissionsResourceRequest_ValidPairs(t *testing.T) {
 func TestCreateVerifyPermissionsResourceRequest_EmptyIdentifiers(t *testing.T) {
 	service := newTestRBACService()
 
-	identifier := &infra_proto.UserIdentifier{
+	identifier := &proto_infra.UserIdentifier{
 		TenantId: "tenant-123",
 		UserId:   "user-456",
 	}
@@ -84,7 +84,7 @@ func TestCreateVerifyPermissionsResourceRequest_EmptyIdentifiers(t *testing.T) {
 func TestCreateVerifyPermissionsResourceRequest_OddNumberOfIdentifiers(t *testing.T) {
 	service := newTestRBACService()
 
-	identifier := &infra_proto.UserIdentifier{
+	identifier := &proto_infra.UserIdentifier{
 		TenantId: "tenant-123",
 		UserId:   "user-456",
 	}
@@ -102,7 +102,7 @@ func TestCreateVerifyPermissionsResourceRequest_OddNumberOfIdentifiers(t *testin
 func TestCreateVerifyPermissionsResourceRequest_SinglePair(t *testing.T) {
 	service := newTestRBACService()
 
-	identifier := &infra_proto.UserIdentifier{
+	identifier := &proto_infra.UserIdentifier{
 		TenantId: "tenant-123",
 		UserId:   "user-456",
 	}
@@ -128,7 +128,7 @@ func TestCreateVerifyPermissionsResourceRequest_SinglePair(t *testing.T) {
 func TestCreateVerifyRolesResourceRequest_ValidRoles(t *testing.T) {
 	service := newTestRBACService()
 
-	identifier := &infra_proto.UserIdentifier{
+	identifier := &proto_infra.UserIdentifier{
 		TenantId: "tenant-123",
 		UserId:   "user-456",
 	}
@@ -142,7 +142,7 @@ func TestCreateVerifyRolesResourceRequest_ValidRoles(t *testing.T) {
 
 	require.NotNil(t, result)
 	assert.Equal(t, identifier, result.Identifier)
-	assert.Equal(t, auth_proto.ResourceType_RESOURCE_TYPE_ROLE, result.ResourceType)
+	assert.Equal(t, proto_auth.ResourceType_RESOURCE_TYPE_ROLE, result.ResourceType)
 	assert.Len(t, result.Resources, 3)
 
 	// Verify first role
@@ -164,7 +164,7 @@ func TestCreateVerifyRolesResourceRequest_ValidRoles(t *testing.T) {
 func TestCreateVerifyRolesResourceRequest_EmptyRoles(t *testing.T) {
 	service := newTestRBACService()
 
-	identifier := &infra_proto.UserIdentifier{
+	identifier := &proto_infra.UserIdentifier{
 		TenantId: "tenant-123",
 		UserId:   "user-456",
 	}
@@ -177,7 +177,7 @@ func TestCreateVerifyRolesResourceRequest_EmptyRoles(t *testing.T) {
 func TestCreateVerifyRolesResourceRequest_SingleRole(t *testing.T) {
 	service := newTestRBACService()
 
-	identifier := &infra_proto.UserIdentifier{
+	identifier := &proto_infra.UserIdentifier{
 		TenantId: "tenant-123",
 		UserId:   "user-456",
 	}

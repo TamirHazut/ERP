@@ -7,7 +7,7 @@ import "time"
 // TTL: 30 minutes
 type ServiceConfigCache struct {
 	ConfigID    string                 `json:"config_id"`
-	ServiceName string                 `json:"service_name"` // core, auth, gateway, events
+	ServiceName string                 `json:"service_name"` // core, auth, gateway, event
 	Environment string                 `json:"environment"`  // development, staging, production
 	TenantID    string                 `json:"tenant_id,omitempty"`
 	Config      map[string]interface{} `json:"config"`

@@ -7,9 +7,9 @@ import (
 	"syscall"
 
 	"erp.localhost/internal/config/service"
-	infra_grpc "erp.localhost/internal/infra/grpc"
-	shared_models "erp.localhost/internal/infra/model/shared"
-	configv1 "erp.localhost/internal/infra/proto/config/v1"
+	grpc_server "erp.localhost/internal/infra/grpc/server"
+	model_shared "erp.localhost/internal/infra/model/shared"
+	proto_config "erp.localhost/internal/infra/proto/config/v1"
 	"google.golang.org/grpc"
 )
 
@@ -25,14 +25,14 @@ func Main() {
 	// Channel to signal the gRPC server goroutine to stop
 	quit := make(chan struct{})
 
-	certs := shared_models.NewCerts()
+	certs := model_shared.NewCerts()
 	if certs == nil {
 		return
 	}
 	services := map[*grpc.ServiceDesc]any{
-		&configv1.ConfigService_ServiceDesc: service.NewConfigService(),
+		&proto_config.ConfigService_ServiceDesc: service.NewConfigService(),
 	}
-	grpcServer := infra_grpc.NewGRPCServer(certs, shared_models.ModuleAuth, serverPort, services)
+	grpcServer := grpc_server.NewGRPCServer(certs, model_shared.ModuleAuth, serverPort, services)
 
 	if grpcServer == nil {
 		return

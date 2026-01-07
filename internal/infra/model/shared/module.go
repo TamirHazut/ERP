@@ -9,7 +9,7 @@ const (
 	ModuleConfig  Module = "Config"
 	ModuleCore    Module = "Core"
 	ModuleDB      Module = "DB"
-	ModuleEvents  Module = "Events"
+	ModuleEvent   Module = "Event"
 	ModuleGateway Module = "Gateway"
 	ModuleSidecar Module = "Sidecar"
 	ModuleWebUI   Module = "WebUI"
@@ -21,7 +21,7 @@ func IsValidModule(module string) bool {
 		strings.ToLower(string(ModuleConfig)):  true,
 		strings.ToLower(string(ModuleCore)):    true,
 		strings.ToLower(string(ModuleDB)):      true,
-		strings.ToLower(string(ModuleEvents)):  true,
+		strings.ToLower(string(ModuleEvent)):   true,
 		strings.ToLower(string(ModuleGateway)): true,
 		strings.ToLower(string(ModuleSidecar)): true,
 		strings.ToLower(string(ModuleWebUI)):   true,

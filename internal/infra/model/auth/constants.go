@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	erp_errors "erp.localhost/internal/infra/error"
+	infra_error "erp.localhost/internal/infra/error"
 )
 
 /* User */
@@ -60,11 +60,11 @@ func IsValidTenantStatus(tenantStatus string) bool {
 func CreatePermissionString(resource string, action string) (string, error) {
 	resource = strings.ToLower(resource)
 	if !IsValidResourceType(resource) {
-		return "", erp_errors.Validation(erp_errors.ValidationInvalidType, "resource")
+		return "", infra_error.Validation(infra_error.ValidationInvalidType, "resource")
 	}
 	action = strings.ToLower(action)
 	if !IsValidPermissionAction(action) {
-		return "", erp_errors.Validation(erp_errors.ValidationInvalidType, "action")
+		return "", infra_error.Validation(infra_error.ValidationInvalidType, "action")
 	}
 
 	return fmt.Sprintf("%s:%s", resource, action), nil

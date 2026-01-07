@@ -5,12 +5,21 @@ import (
 	"fmt"
 	"time"
 
-	erp_errors "erp.localhost/internal/infra/error"
-	logging "erp.localhost/internal/infra/logging"
-	redis_models "erp.localhost/internal/infra/model/db/redis"
-	shared_models "erp.localhost/internal/infra/model/shared"
+	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/logging/logger"
+	model_redis "erp.localhost/internal/infra/model/db/redis"
+	model_shared "erp.localhost/internal/infra/model/shared"
 	redis "github.com/redis/go-redis/v9"
 )
+
+//go:generate mockgen -destination=mock/mock_redis_handler.go -package=mock erp.localhost/internal/infra/db/redis RedisHandler
+type RedisHandler interface {
+	SAdd(key string, members ...any) error
+	SRem(key string, members ...any) error
+	SMembers(key string) ([]string, error)
+	Expire(key string, ttl int, unit time.Duration) error
+	Clear(key string) error
+}
 
 var (
 	redisContext = context.Background()
@@ -18,13 +27,13 @@ var (
 
 type BaseRedisHandler struct {
 	client    *redis.Client
-	logger    *logging.Logger
-	keyPrefix redis_models.KeyPrefix
+	logger    logger.Logger
+	keyPrefix model_redis.KeyPrefix
 }
 
-func NewBaseRedisHandler(keyPrefix redis_models.KeyPrefix) *BaseRedisHandler {
+func NewBaseRedisHandler(keyPrefix model_redis.KeyPrefix) *BaseRedisHandler {
 	redisHandler := &BaseRedisHandler{
-		logger:    logging.NewLogger(shared_models.ModuleDB),
+		logger:    logger.NewBaseLogger(model_shared.ModuleDB),
 		keyPrefix: keyPrefix,
 	}
 	if err := redisHandler.init(); err != nil {
@@ -35,7 +44,7 @@ func NewBaseRedisHandler(keyPrefix redis_models.KeyPrefix) *BaseRedisHandler {
 }
 
 func (r *BaseRedisHandler) init() error {
-	r.logger = logging.NewLogger(shared_models.ModuleDB)
+	r.logger = logger.NewBaseLogger(model_shared.ModuleDB)
 	uri := "redis://:supersecretredis@localhost:6379"
 	options, err := redis.ParseURL(uri)
 	if err != nil {
@@ -58,7 +67,7 @@ func (r *BaseRedisHandler) Close() error {
 func (r *BaseRedisHandler) Create(key string, value any, opts ...map[string]any) (string, error) {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
 	if _, err := r.FindOne(key, nil); err == nil {
-		return "", erp_errors.Conflict(erp_errors.ConflictDuplicateResource)
+		return "", infra_error.Conflict(infra_error.ConflictDuplicateResource)
 	}
 	result := r.client.Set(redisContext, formattedKey, value, 0)
 	if result.Err() != nil {

@@ -3,7 +3,7 @@ package core
 import (
 	"time"
 
-	erp_errors "erp.localhost/internal/infra/error"
+	infra_error "erp.localhost/internal/infra/error"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -41,7 +41,7 @@ func (t *Tenant) Validate(createOperation bool) error {
 		missingFields = append(missingFields, "CreatedBy")
 	}
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
 	return nil
 }

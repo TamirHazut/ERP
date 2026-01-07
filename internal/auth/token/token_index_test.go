@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	handler_mock "erp.localhost/internal/infra/db/redis/handler/mock"
-	"erp.localhost/internal/infra/logging"
-	shared_models "erp.localhost/internal/infra/model/shared"
+	mock_redis "erp.localhost/internal/infra/db/redis/mock"
+	"erp.localhost/internal/infra/logging/logger"
+	model_shared "erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -18,8 +18,8 @@ func TestNewTokenIndex(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAccessTokenHandler := handler_mock.NewMockSetHandler(ctrl)
-	mockRefreshTokenHandler := handler_mock.NewMockSetHandler(ctrl)
+	mockAccessTokenHandler := mock_redis.NewMockSetHandler(ctrl)
+	mockRefreshTokenHandler := mock_redis.NewMockSetHandler(ctrl)
 
 	tokenIndex := NewTokenIndex(mockAccessTokenHandler, mockRefreshTokenHandler)
 
@@ -76,7 +76,7 @@ func TestTokenIndex_AddAccessToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAccessTokenHandler := handler_mock.NewMockSetHandler(ctrl)
+			mockAccessTokenHandler := mock_redis.NewMockSetHandler(ctrl)
 
 			opts := map[string]any{
 				"ttl":      accessTokenTTL,
@@ -91,7 +91,7 @@ func TestTokenIndex_AddAccessToken(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  mockAccessTokenHandler,
 				refreshTokenSetHandler: nil,
-				logger:                 logging.NewLogger(shared_models.ModuleAuth),
+				logger:                 logger.NewBaseLogger(model_shared.ModuleAuth),
 			}
 
 			err := tokenIndex.AddAccessToken(tc.tenantID, tc.userID, tc.tokenID)
@@ -143,7 +143,7 @@ func TestTokenIndex_RemoveAccessToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAccessTokenHandler := handler_mock.NewMockSetHandler(ctrl)
+			mockAccessTokenHandler := mock_redis.NewMockSetHandler(ctrl)
 
 			mockAccessTokenHandler.EXPECT().
 				Remove(tc.tenantID, tc.userID, tc.tokenID).
@@ -153,7 +153,7 @@ func TestTokenIndex_RemoveAccessToken(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  mockAccessTokenHandler,
 				refreshTokenSetHandler: nil,
-				logger:                 logging.NewLogger(shared_models.ModuleAuth),
+				logger:                 logger.NewBaseLogger(model_shared.ModuleAuth),
 			}
 
 			err := tokenIndex.RemoveAccessToken(tc.tenantID, tc.userID, tc.tokenID)
@@ -215,7 +215,7 @@ func TestTokenIndex_GetAccessTokens(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAccessTokenHandler := handler_mock.NewMockSetHandler(ctrl)
+			mockAccessTokenHandler := mock_redis.NewMockSetHandler(ctrl)
 
 			mockAccessTokenHandler.EXPECT().
 				Members(tc.tenantID, tc.userID).
@@ -225,7 +225,7 @@ func TestTokenIndex_GetAccessTokens(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  mockAccessTokenHandler,
 				refreshTokenSetHandler: nil,
-				logger:                 logging.NewLogger(shared_models.ModuleAuth),
+				logger:                 logger.NewBaseLogger(model_shared.ModuleAuth),
 			}
 
 			tokens, err := tokenIndex.GetAccessTokens(tc.tenantID, tc.userID)
@@ -276,7 +276,7 @@ func TestTokenIndex_ClearAccessTokens(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAccessTokenHandler := handler_mock.NewMockSetHandler(ctrl)
+			mockAccessTokenHandler := mock_redis.NewMockSetHandler(ctrl)
 
 			mockAccessTokenHandler.EXPECT().
 				Clear(tc.tenantID, tc.userID).
@@ -286,7 +286,7 @@ func TestTokenIndex_ClearAccessTokens(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  mockAccessTokenHandler,
 				refreshTokenSetHandler: nil,
-				logger:                 logging.NewLogger(shared_models.ModuleAuth),
+				logger:                 logger.NewBaseLogger(model_shared.ModuleAuth),
 			}
 
 			err := tokenIndex.ClearAccessTokens(tc.tenantID, tc.userID)
@@ -338,7 +338,7 @@ func TestTokenIndex_AddRefreshToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockRefreshTokenHandler := handler_mock.NewMockSetHandler(ctrl)
+			mockRefreshTokenHandler := mock_redis.NewMockSetHandler(ctrl)
 
 			opts := map[string]any{
 				"ttl":      refreshTokenTTL,
@@ -353,7 +353,7 @@ func TestTokenIndex_AddRefreshToken(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  nil,
 				refreshTokenSetHandler: mockRefreshTokenHandler,
-				logger:                 logging.NewLogger(shared_models.ModuleAuth),
+				logger:                 logger.NewBaseLogger(model_shared.ModuleAuth),
 			}
 
 			err := tokenIndex.AddRefreshToken(tc.tenantID, tc.userID, tc.tokenID)
@@ -405,7 +405,7 @@ func TestTokenIndex_RemoveRefreshToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockRefreshTokenHandler := handler_mock.NewMockSetHandler(ctrl)
+			mockRefreshTokenHandler := mock_redis.NewMockSetHandler(ctrl)
 
 			mockRefreshTokenHandler.EXPECT().
 				Remove(tc.tenantID, tc.userID, tc.tokenID).
@@ -415,7 +415,7 @@ func TestTokenIndex_RemoveRefreshToken(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  nil,
 				refreshTokenSetHandler: mockRefreshTokenHandler,
-				logger:                 logging.NewLogger(shared_models.ModuleAuth),
+				logger:                 logger.NewBaseLogger(model_shared.ModuleAuth),
 			}
 
 			err := tokenIndex.RemoveRefreshToken(tc.tenantID, tc.userID, tc.tokenID)
@@ -477,7 +477,7 @@ func TestTokenIndex_GetRefreshTokens(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockRefreshTokenHandler := handler_mock.NewMockSetHandler(ctrl)
+			mockRefreshTokenHandler := mock_redis.NewMockSetHandler(ctrl)
 
 			mockRefreshTokenHandler.EXPECT().
 				Members(tc.tenantID, tc.userID).
@@ -487,7 +487,7 @@ func TestTokenIndex_GetRefreshTokens(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  nil,
 				refreshTokenSetHandler: mockRefreshTokenHandler,
-				logger:                 logging.NewLogger(shared_models.ModuleAuth),
+				logger:                 logger.NewBaseLogger(model_shared.ModuleAuth),
 			}
 
 			tokens, err := tokenIndex.GetRefreshTokens(tc.tenantID, tc.userID)
@@ -538,7 +538,7 @@ func TestTokenIndex_ClearRefreshTokens(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockRefreshTokenHandler := handler_mock.NewMockSetHandler(ctrl)
+			mockRefreshTokenHandler := mock_redis.NewMockSetHandler(ctrl)
 
 			mockRefreshTokenHandler.EXPECT().
 				Clear(tc.tenantID, tc.userID).
@@ -548,7 +548,7 @@ func TestTokenIndex_ClearRefreshTokens(t *testing.T) {
 			tokenIndex := &TokenIndex{
 				accessTokenSetHandler:  nil,
 				refreshTokenSetHandler: mockRefreshTokenHandler,
-				logger:                 logging.NewLogger(shared_models.ModuleAuth),
+				logger:                 logger.NewBaseLogger(model_shared.ModuleAuth),
 			}
 
 			err := tokenIndex.ClearRefreshTokens(tc.tenantID, tc.userID)
@@ -573,8 +573,8 @@ func TestTokenIndex_MultipleOperations(t *testing.T) {
 	token1 := "token-1"
 	token2 := "token-2"
 
-	mockAccessTokenHandler := handler_mock.NewMockSetHandler(ctrl)
-	mockRefreshTokenHandler := handler_mock.NewMockSetHandler(ctrl)
+	mockAccessTokenHandler := mock_redis.NewMockSetHandler(ctrl)
+	mockRefreshTokenHandler := mock_redis.NewMockSetHandler(ctrl)
 
 	tokenIndex := NewTokenIndex(mockAccessTokenHandler, mockRefreshTokenHandler)
 

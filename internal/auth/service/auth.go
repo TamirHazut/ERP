@@ -8,16 +8,15 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/password"
-	token "erp.localhost/internal/auth/token/manager"
-	token_manager "erp.localhost/internal/auth/token/manager"
-	erp_errors "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging"
-	auth_models "erp.localhost/internal/infra/model/auth"
-	auth_cache_models "erp.localhost/internal/infra/model/auth/cache"
-	core_models "erp.localhost/internal/infra/model/core"
-	shared_models "erp.localhost/internal/infra/model/shared"
-	auth_proto "erp.localhost/internal/infra/proto/auth/v1"
-	infra_proto "erp.localhost/internal/infra/proto/infra/v1"
+	token "erp.localhost/internal/auth/token"
+	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/logging/logger"
+	model_auth "erp.localhost/internal/infra/model/auth"
+	model_auth_cache "erp.localhost/internal/infra/model/auth/cache"
+	model_core "erp.localhost/internal/infra/model/core"
+	model_shared "erp.localhost/internal/infra/model/shared"
+	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
+	proto_infra "erp.localhost/internal/infra/proto/infra/v1"
 	"erp.localhost/internal/infra/proto/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -42,56 +41,50 @@ type NewTokenResponse struct {
 
 // TODO: Add logs to all functions
 type AuthService struct {
-	logger       *logging.Logger
-	tokenManager *token_manager.TokenManager
-	rbacChecker  RBACChecker
-	auth_proto.UnimplementedAuthServiceServer
+	logger       logger.Logger
+	tokenManager *token.TokenManager
+	proto_auth.UnimplementedAuthServiceServer
 }
 
-func NewAuthService(rbacChecker RBACChecker) *AuthService {
-	logger := logging.NewLogger(shared_models.ModuleAuth)
+func NewAuthService() *AuthService {
+	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 	tokenManager := token.NewTokenManager(secretKey, tokenDuration, refreshTokenDuration)
 	if tokenManager == nil {
 		logger.Fatal("failed to create token manager")
 		return nil
 	}
-	if rbacChecker == nil {
-		logger.Fatal("failed to create rbac service")
-		return nil
-	}
 	return &AuthService{
 		logger:       logger,
 		tokenManager: tokenManager,
-		rbacChecker:  rbacChecker,
 	}
 }
 
-func (s *AuthService) Login(ctx context.Context, req *auth_proto.LoginRequest) (*auth_proto.TokensResponse, error) {
+func (s *AuthService) Login(ctx context.Context, req *proto_auth.LoginRequest) (*proto_auth.TokensResponse, error) {
 	// input validations
 	tenantID := req.GetTenantId()
 	if tenantID == "" {
-		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id").Error())
+		return nil, status.Error(codes.InvalidArgument, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id").Error())
 	}
 	account_id := req.GetAccountId()
 	if account_id == nil {
-		err := erp_errors.Validation(erp_errors.ValidationRequiredFields).WithError(errors.New("missing account identifienr 'email' or 'username'")).Error()
+		err := infra_error.Validation(infra_error.ValidationRequiredFields).WithError(errors.New("missing account identifienr 'email' or 'username'")).Error()
 		s.logger.Error(err, "function", "Authenticate")
 		return nil, status.Error(codes.InvalidArgument, err)
 	}
 
 	// Proccess request
-	var user *core_models.User
+	var user *model_core.User
 	var err error
 	// TODO: uncomment when user grpc service is ready
 	// switch account_id.(type) {
-	// case *auth_proto.UserAuth_Email:
+	// case *proto_auth.UserAuth_Email:
 	// 	email := req.GetUser().GetEmail()
 	// 	s.logger.Info("Authenticating user", "email", email)
 	// 	user, err = s.userCollection.GetUserByEmail(tenantID, email)
 	// 	if err != nil {
 	// 		return nil, status.Error(codes.Internal, err.Error())
 	// 	}
-	// case *auth_proto.UserAuth_Username:
+	// case *proto_auth.UserAuth_Username:
 	// 	username := req.GetUser().GetUsername()
 	// 	s.logger.Info("Authenticating user", "username", username)
 	// 	user, err = s.userCollection.GetUserByUsername(tenantID, username)
@@ -119,27 +112,27 @@ func (s *AuthService) Login(ctx context.Context, req *auth_proto.LoginRequest) (
 	}
 
 	// Return response
-	return &auth_proto.TokensResponse{
-		Tokens: &auth_proto.Tokens{
+	return &proto_auth.TokensResponse{
+		Tokens: &proto_auth.Tokens{
 			AccessToken:  newTokenResponse.AccessToken,
 			RefreshToken: newTokenResponse.RefreshToken,
 		},
-		ExpiresIn: &auth_proto.ExpiresIn{
+		ExpiresIn: &proto_auth.ExpiresIn{
 			AccessToken:  newTokenResponse.AccessTokenExpiresAt,
 			RefreshToken: newTokenResponse.RefreshTokenExpiresAt,
 		},
 	}, nil
 }
 
-func (s *AuthService) Logout(ctx context.Context, req *auth_proto.LogoutRequest) (*auth_proto.LogoutResponse, error) {
+func (s *AuthService) Logout(ctx context.Context, req *proto_auth.LogoutRequest) (*proto_auth.LogoutResponse, error) {
 	// input validation
 	tenantID := req.GetTenantId()
 	if tenantID == "" {
-		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id").Error())
+		return nil, status.Error(codes.InvalidArgument, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id").Error())
 	}
 	accessToken := req.GetTokens().GetAccessToken()
 	if accessToken == "" {
-		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "access_token").Error())
+		return nil, status.Error(codes.InvalidArgument, infra_error.Validation(infra_error.ValidationRequiredFields, "access_token").Error())
 	}
 
 	// proccess request
@@ -148,10 +141,10 @@ func (s *AuthService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	if metadata == nil {
-		return nil, status.Error(codes.Internal, erp_errors.Auth(erp_errors.AuthTokenInvalid).Error())
+		return nil, status.Error(codes.Internal, infra_error.Auth(infra_error.AuthTokenInvalid).Error())
 	}
 
-	user := &infra_proto.UserIdentifier{
+	user := &proto_infra.UserIdentifier{
 		TenantId: metadata.TenantID,
 		UserId:   metadata.UserID,
 	}
@@ -186,26 +179,26 @@ func (s *AuthService) Logout(ctx context.Context, req *auth_proto.LogoutRequest)
 	if revokeError != nil {
 		return nil, status.Error(codes.Internal, revokeError.Error())
 	}
-	return &auth_proto.LogoutResponse{
+	return &proto_auth.LogoutResponse{
 		Message: message,
 	}, nil
 }
 
-func (s *AuthService) VerifyToken(ctx context.Context, req *auth_proto.VerifyTokenRequest) (*auth_proto.VerifyTokenResponse, error) {
+func (s *AuthService) VerifyToken(ctx context.Context, req *proto_auth.VerifyTokenRequest) (*proto_auth.VerifyTokenResponse, error) {
 	token := req.GetAccessToken()
 	if token == "" {
-		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "access_token").Error())
+		return nil, status.Error(codes.InvalidArgument, infra_error.Validation(infra_error.ValidationRequiredFields, "access_token").Error())
 	}
 	_, err := s.tokenManager.VerifyAccessToken(token)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &auth_proto.VerifyTokenResponse{
+	return &proto_auth.VerifyTokenResponse{
 		Valid: true,
 	}, nil
 }
 
-func (s *AuthService) RefreshToken(ctx context.Context, req *auth_proto.RefreshTokenRequest) (*auth_proto.TokensResponse, error) {
+func (s *AuthService) RefreshToken(ctx context.Context, req *proto_auth.RefreshTokenRequest) (*proto_auth.TokensResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
 	err := validator.ValidateUserIdentifier(identifier)
@@ -216,7 +209,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *auth_proto.RefreshT
 	userID := identifier.GetUserId()
 	token := req.GetRefreshToken()
 	if token == "" {
-		return nil, status.Error(codes.InvalidArgument, erp_errors.Validation(erp_errors.ValidationRequiredFields, "refresh_token").Error())
+		return nil, status.Error(codes.InvalidArgument, infra_error.Validation(infra_error.ValidationRequiredFields, "refresh_token").Error())
 	}
 
 	refreshToken, err := s.tokenManager.VerifyRefreshToken(tenantID, userID, token)
@@ -231,7 +224,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *auth_proto.RefreshT
 	// 	s.logger.Error("Failed to get user by id", "error", err, "tenant_id", user.TenantId, "user_id", user.UserId)
 	// 	return nil, status.Error(codes.Internal, err.Error())
 	// }
-	var userData *core_models.User
+	var userData *model_core.User
 	newTokenResponse, err := s.generateAndStoreTokens(userData)
 	if err != nil {
 		s.logger.Error("Failed to generate and store tokens", "error", err, "tenant_id", tenantID, "user_id", userID)
@@ -244,19 +237,19 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *auth_proto.RefreshT
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &auth_proto.TokensResponse{
-		Tokens: &auth_proto.Tokens{
+	return &proto_auth.TokensResponse{
+		Tokens: &proto_auth.Tokens{
 			AccessToken:  newTokenResponse.AccessToken,
 			RefreshToken: newTokenResponse.RefreshToken,
 		},
-		ExpiresIn: &auth_proto.ExpiresIn{
+		ExpiresIn: &proto_auth.ExpiresIn{
 			AccessToken:  newTokenResponse.AccessTokenExpiresAt,
 			RefreshToken: newTokenResponse.RefreshTokenExpiresAt,
 		},
 	}, nil
 }
 
-func (s *AuthService) RevokeToken(ctx context.Context, req *auth_proto.RevokeTokenRequest) (*auth_proto.RevokeTokenResponse, error) {
+func (s *AuthService) RevokeToken(ctx context.Context, req *proto_auth.RevokeTokenRequest) (*proto_auth.RevokeTokenResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
 	err := validator.ValidateUserIdentifier(identifier)
@@ -267,46 +260,35 @@ func (s *AuthService) RevokeToken(ctx context.Context, req *auth_proto.RevokeTok
 	if err := s.revokeTokens(ctx, identifier, req.GetTokens(), req.GetRevokedBy()); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &auth_proto.RevokeTokenResponse{
+	return &proto_auth.RevokeTokenResponse{
 		Revoked: true,
 	}, nil
 }
 
-func (s *AuthService) revokeTokens(ctx context.Context, identifier *infra_proto.UserIdentifier, tokens *auth_proto.Tokens, revokedBy string) error {
+func (s *AuthService) revokeTokens(ctx context.Context, identifier *proto_infra.UserIdentifier, tokens *proto_auth.Tokens, revokedBy string) error {
 	if identifier.GetTenantId() == "" || identifier.GetUserId() == "" {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "user")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "user")
 	}
 	if revokedBy == "" {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "requestorUserID")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "requestorUserID")
 	}
 
-	// var requestor core_models.User
+	// var requestor model_core.User
 	// var err error
 	// TODO: uncomment when user grpc service is ready
 	// if tokens.AccessToken != "" || tokens.RefreshToken != "" {
 	// 	requestor, err = s.userCollection.GetUserByID(user.TenantId, requestBy)
 	// 	if err != nil {
-	// 		return erp_errors.Internal(erp_errors.InternalDatabaseError, errors.New("requestedBy id was not found"))
+	// 		return infra_error.Internal(infra_error.InternalDatabaseError, errors.New("requestedBy id was not found"))
 	// 	}
 	// }
 	if tokens.AccessToken != "" {
-		// Validate user permission to revoke access_token
-		verifyRequest := s.rbacChecker.CreateVerifyPermissionsResourceRequest(identifier, auth_models.ResourceAccessToken, auth_models.PermissionActionDelete)
-		if err := s.verifyUserPermissions(ctx, verifyRequest, auth_models.ResourceAccessToken, auth_models.PermissionActionDelete); err != nil {
-			return err
-		}
 		err := s.tokenManager.RevokeAccessToken(tokens.AccessToken, revokedBy)
 		if err != nil {
 			return err
 		}
 	}
 	if tokens.RefreshToken != "" {
-		// Validate user permission to revoke refresh_token
-		verifyRequest := s.rbacChecker.CreateVerifyPermissionsResourceRequest(identifier, auth_models.ResourceRefreshToken, auth_models.PermissionActionDelete)
-		if err := s.verifyUserPermissions(ctx, verifyRequest, auth_models.ResourceRefreshToken, auth_models.PermissionActionDelete); err != nil {
-			return err
-		}
-
 		err := s.tokenManager.RevokeRefreshToken(identifier.GetTenantId(), identifier.GetUserId(), tokens.RefreshToken, revokedBy, false)
 		if err != nil {
 			return err
@@ -315,28 +297,7 @@ func (s *AuthService) revokeTokens(ctx context.Context, identifier *infra_proto.
 	return nil
 }
 
-func (s *AuthService) verifyUserPermissions(ctx context.Context, verifyRequest *auth_proto.VerifyUserResourceRequest, permissionsIdentifiers ...string) error {
-	if len(permissionsIdentifiers) == 0 || len(permissionsIdentifiers)%2 != 0 {
-		return erp_errors.Auth(erp_errors.AuthPermissionDenied)
-	}
-	verifyResponse, err := s.rbacChecker.VerifyUserPermissions(ctx, verifyRequest)
-	if err != nil {
-		return err
-	}
-	if verifyResponse == nil || len(verifyResponse.GetResources()) == 0 {
-		return erp_errors.Auth(erp_errors.AuthPermissionDenied)
-	}
-	for _, response := range verifyResponse.GetResources() {
-		permission := response.GetPermission()
-		if permission == nil ||
-			!permission.GetHasPermission().GetValue() {
-			return erp_errors.Auth(erp_errors.AuthPermissionDenied)
-		}
-	}
-	return nil
-}
-
-func (s *AuthService) generateAccessToken(user *core_models.User) (auth_cache_models.TokenMetadata, error) {
+func (s *AuthService) generateAccessToken(user *model_core.User) (model_auth_cache.TokenMetadata, error) {
 
 	roles := []string{}
 	for _, role := range user.Roles {
@@ -355,7 +316,7 @@ func (s *AuthService) generateAccessToken(user *core_models.User) (auth_cache_mo
 		Permissions: permissions,
 	})
 	if err != nil {
-		return auth_cache_models.TokenMetadata{}, status.Error(codes.Internal, err.Error())
+		return model_auth_cache.TokenMetadata{}, status.Error(codes.Internal, err.Error())
 	}
 
 	hashedAccessToken := sha256.Sum256([]byte(accessToken))
@@ -364,7 +325,7 @@ func (s *AuthService) generateAccessToken(user *core_models.User) (auth_cache_mo
 	issuedAt := time.Now()
 	accessTokenExpiresAt := issuedAt.Add(tokenDuration)
 
-	accessTokenMetadata := auth_cache_models.TokenMetadata{
+	accessTokenMetadata := model_auth_cache.TokenMetadata{
 		TokenID:   accessTokenID,
 		JTI:       accessToken,
 		UserID:    user.ID.String(),
@@ -383,7 +344,7 @@ func (s *AuthService) generateAccessToken(user *core_models.User) (auth_cache_mo
 	return accessTokenMetadata, nil
 }
 
-func (s *AuthService) generateRefreshToken(user *core_models.User) (auth_models.RefreshToken, error) {
+func (s *AuthService) generateRefreshToken(user *model_core.User) (model_auth.RefreshToken, error) {
 	issuedAt := time.Now()
 	// Generate refresh token
 	refreshToken, err := s.tokenManager.GenerateRefreshToken(token.GenerateRefreshTokenInput{
@@ -392,12 +353,12 @@ func (s *AuthService) generateRefreshToken(user *core_models.User) (auth_models.
 		CreatedAt: issuedAt,
 	})
 	if err != nil {
-		return auth_models.RefreshToken{}, status.Error(codes.Internal, err.Error())
+		return model_auth.RefreshToken{}, status.Error(codes.Internal, err.Error())
 	}
 	return refreshToken, nil
 }
 
-func (s *AuthService) generateAndStoreTokens(user *core_models.User) (*NewTokenResponse, error) {
+func (s *AuthService) generateAndStoreTokens(user *model_core.User) (*NewTokenResponse, error) {
 	accessTokenMetadata, err := s.generateAccessToken(user)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())

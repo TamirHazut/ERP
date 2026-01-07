@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	auth_models "erp.localhost/internal/infra/model/auth"
-	authv1 "erp.localhost/internal/infra/proto/auth/v1"
+	model_auth "erp.localhost/internal/infra/model/auth"
+	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
 )
 
 // =============================================================================
@@ -20,11 +20,11 @@ func TestPermissionToProto_ValidPermission(t *testing.T) {
 	now := time.Now()
 	objectID := primitive.NewObjectID()
 
-	permission := &auth_models.Permission{
+	permission := &model_auth.Permission{
 		ID:               objectID,
 		TenantID:         "tenant-123",
-		Resource:         auth_models.ResourceTypeUser,
-		Action:           auth_models.PermissionActionCreate,
+		Resource:         model_auth.ResourceTypeUser,
+		Action:           model_auth.PermissionActionCreate,
 		PermissionString: "user:create",
 		DisplayName:      "Create User",
 		Description:      "Allows creating new users",
@@ -41,9 +41,9 @@ func TestPermissionToProto_ValidPermission(t *testing.T) {
 	assert.Equal(t, "Create User", result.Name)
 	assert.Equal(t, "user:create", result.Slug)
 	assert.Equal(t, "Allows creating new users", result.Description)
-	assert.Equal(t, auth_models.ResourceTypeUser, result.Resource)
-	assert.Equal(t, auth_models.PermissionActionCreate, result.Action)
-	assert.Equal(t, auth_models.PermissionStatusActive, result.Status)
+	assert.Equal(t, model_auth.ResourceTypeUser, result.Resource)
+	assert.Equal(t, model_auth.PermissionActionCreate, result.Action)
+	assert.Equal(t, model_auth.PermissionStatusActive, result.Status)
 	assert.Equal(t, "admin", result.CreatedBy)
 	assert.NotNil(t, result.CreatedAt)
 	assert.NotNil(t, result.UpdatedAt)
@@ -56,7 +56,7 @@ func TestPermissionToProto_NilInput(t *testing.T) {
 
 func TestPermissionToProto_InvalidPermission(t *testing.T) {
 	// Permission with invalid data that will fail validation
-	invalidPerm := &auth_models.Permission{
+	invalidPerm := &model_auth.Permission{
 		ID:       primitive.NewObjectID(),
 		TenantID: "", // Missing required field
 	}
@@ -71,12 +71,12 @@ func TestPermissionToProto_InvalidPermission(t *testing.T) {
 
 func TestPermissionsToProto_ValidSlice(t *testing.T) {
 	now := time.Now()
-	permissions := []auth_models.Permission{
+	permissions := []model_auth.Permission{
 		{
 			ID:               primitive.NewObjectID(),
 			TenantID:         "tenant-123",
-			Resource:         auth_models.ResourceTypeUser,
-			Action:           auth_models.PermissionActionCreate,
+			Resource:         model_auth.ResourceTypeUser,
+			Action:           model_auth.PermissionActionCreate,
 			PermissionString: "user:create",
 			DisplayName:      "Create User",
 			CreatedBy:        "admin",
@@ -86,8 +86,8 @@ func TestPermissionsToProto_ValidSlice(t *testing.T) {
 		{
 			ID:               primitive.NewObjectID(),
 			TenantID:         "tenant-123",
-			Resource:         auth_models.ResourceTypeUser,
-			Action:           auth_models.PermissionActionRead,
+			Resource:         model_auth.ResourceTypeUser,
+			Action:           model_auth.PermissionActionRead,
 			PermissionString: "user:read",
 			DisplayName:      "Read User",
 			CreatedBy:        "admin",
@@ -105,7 +105,7 @@ func TestPermissionsToProto_ValidSlice(t *testing.T) {
 }
 
 func TestPermissionsToProto_EmptySlice(t *testing.T) {
-	result := PermissionsToProto([]auth_models.Permission{})
+	result := PermissionsToProto([]model_auth.Permission{})
 
 	require.NotNil(t, result)
 	assert.Len(t, result, 0)
@@ -116,10 +116,10 @@ func TestPermissionsToProto_EmptySlice(t *testing.T) {
 // =============================================================================
 
 func TestCreatePermissionFromProto_ValidProto(t *testing.T) {
-	proto := &authv1.CreatePermissionData{
+	proto := &proto_auth.CreatePermissionData{
 		TenantId:    "tenant-123",
-		Resource:    auth_models.ResourceTypeUser,
-		Action:      auth_models.PermissionActionCreate,
+		Resource:    model_auth.ResourceTypeUser,
+		Action:      model_auth.PermissionActionCreate,
 		Slug:        "user:create",
 		Name:        "Create User",
 		Description: "Allows creating new users",
@@ -131,8 +131,8 @@ func TestCreatePermissionFromProto_ValidProto(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "tenant-123", result.TenantID)
-	assert.Equal(t, auth_models.ResourceTypeUser, result.Resource)
-	assert.Equal(t, auth_models.PermissionActionCreate, result.Action)
+	assert.Equal(t, model_auth.ResourceTypeUser, result.Resource)
+	assert.Equal(t, model_auth.PermissionActionCreate, result.Action)
 	assert.Equal(t, "user:create", result.PermissionString)
 	assert.Equal(t, "Create User", result.DisplayName)
 	assert.Equal(t, "Allows creating new users", result.Description)
@@ -159,11 +159,11 @@ func TestCreatePermissionFromProto_NilProto(t *testing.T) {
 // =============================================================================
 
 func TestUpdatePermissionFromProto_FullUpdate(t *testing.T) {
-	existing := &auth_models.Permission{
+	existing := &model_auth.Permission{
 		ID:               primitive.NewObjectID(),
 		TenantID:         "tenant-123",
-		Resource:         auth_models.ResourceTypeUser,
-		Action:           auth_models.PermissionActionCreate,
+		Resource:         model_auth.ResourceTypeUser,
+		Action:           model_auth.PermissionActionCreate,
 		PermissionString: "user:create",
 		DisplayName:      "Old Name",
 		Description:      "Old Description",
@@ -175,10 +175,10 @@ func TestUpdatePermissionFromProto_FullUpdate(t *testing.T) {
 	newName := "New Name"
 	newSlug := "user:update"
 	newDesc := "New Description"
-	newResource := auth_models.ResourceTypeRole
-	newAction := auth_models.PermissionActionUpdate
+	newResource := model_auth.ResourceTypeRole
+	newAction := model_auth.PermissionActionUpdate
 
-	proto := &authv1.UpdatePermissionData{
+	proto := &proto_auth.UpdatePermissionData{
 		Id:          existing.ID.Hex(),
 		Name:        &newName,
 		Slug:        &newSlug,
@@ -193,18 +193,18 @@ func TestUpdatePermissionFromProto_FullUpdate(t *testing.T) {
 	assert.Equal(t, "New Name", existing.DisplayName)
 	assert.Equal(t, "user:update", existing.PermissionString)
 	assert.Equal(t, "New Description", existing.Description)
-	assert.Equal(t, auth_models.ResourceTypeRole, existing.Resource)
-	assert.Equal(t, auth_models.PermissionActionUpdate, existing.Action)
+	assert.Equal(t, model_auth.ResourceTypeRole, existing.Resource)
+	assert.Equal(t, model_auth.PermissionActionUpdate, existing.Action)
 	// UpdatedAt should be updated to a recent time
 	assert.True(t, existing.UpdatedAt.After(existing.CreatedAt))
 }
 
 func TestUpdatePermissionFromProto_PartialUpdate(t *testing.T) {
-	existing := &auth_models.Permission{
+	existing := &model_auth.Permission{
 		ID:               primitive.NewObjectID(),
 		TenantID:         "tenant-123",
-		Resource:         auth_models.ResourceTypeUser,
-		Action:           auth_models.PermissionActionCreate,
+		Resource:         model_auth.ResourceTypeUser,
+		Action:           model_auth.PermissionActionCreate,
 		PermissionString: "user:create",
 		DisplayName:      "Original Name",
 		Description:      "Original Description",
@@ -217,7 +217,7 @@ func TestUpdatePermissionFromProto_PartialUpdate(t *testing.T) {
 	updatedName := "Updated Name"
 	updatedDesc := "Updated Description"
 
-	proto := &authv1.UpdatePermissionData{
+	proto := &proto_auth.UpdatePermissionData{
 		Id:          existing.ID.Hex(),
 		Name:        &updatedName,
 		Description: &updatedDesc,
@@ -231,13 +231,13 @@ func TestUpdatePermissionFromProto_PartialUpdate(t *testing.T) {
 	assert.Equal(t, "Updated Description", existing.Description)
 	// These should remain unchanged
 	assert.Equal(t, "user:create", existing.PermissionString)
-	assert.Equal(t, auth_models.ResourceTypeUser, existing.Resource)
-	assert.Equal(t, auth_models.PermissionActionCreate, existing.Action)
+	assert.Equal(t, model_auth.ResourceTypeUser, existing.Resource)
+	assert.Equal(t, model_auth.PermissionActionCreate, existing.Action)
 }
 
 func TestUpdatePermissionFromProto_NilExisting(t *testing.T) {
 	testName := "Test"
-	proto := &authv1.UpdatePermissionData{
+	proto := &proto_auth.UpdatePermissionData{
 		Id:   primitive.NewObjectID().Hex(),
 		Name: &testName,
 	}
@@ -249,7 +249,7 @@ func TestUpdatePermissionFromProto_NilExisting(t *testing.T) {
 }
 
 func TestUpdatePermissionFromProto_NilProto(t *testing.T) {
-	existing := &auth_models.Permission{
+	existing := &model_auth.Permission{
 		ID:       primitive.NewObjectID(),
 		TenantID: "tenant-123",
 	}
@@ -301,9 +301,9 @@ func TestPermissionObjectIDFromString_InvalidHex(t *testing.T) {
 // =============================================================================
 
 func TestPermissionIdentifierToString_ValidIdentifier(t *testing.T) {
-	identifier := &authv1.PermissionIdentifier{
-		Resource: auth_models.ResourceTypeUser,
-		Action:   auth_models.PermissionActionCreate,
+	identifier := &proto_auth.PermissionIdentifier{
+		Resource: model_auth.ResourceTypeUser,
+		Action:   model_auth.PermissionActionCreate,
 	}
 
 	result := PermissionIdentifierToString(identifier)

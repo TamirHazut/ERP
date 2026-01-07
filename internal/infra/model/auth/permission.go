@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	erp_errors "erp.localhost/internal/infra/error"
+	infra_error "erp.localhost/internal/infra/error"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -24,6 +24,11 @@ type Permission struct {
 	UpdatedAt        time.Time          `bson:"updated_at" json:"updated_at"`
 	CreatedBy        string             `bson:"created_by" json:"created_by"`
 	Metadata         PermissionMetadata `bson:"metadata,omitempty" json:"metadata,omitempty"`
+}
+
+// Update your models to implement this interface
+func (p *Permission) GetResourceType() string {
+	return ResourceTypePermission
 }
 
 func (p *Permission) Validate(createOperation bool) error {
@@ -52,7 +57,7 @@ func (p *Permission) Validate(createOperation bool) error {
 		missingFields = append(missingFields, "PermissionString")
 	}
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
 	return nil
 }

@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	auth_models "erp.localhost/internal/infra/model/auth"
-	authv1 "erp.localhost/internal/infra/proto/auth/v1"
+	model_auth "erp.localhost/internal/infra/model/auth"
+	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
 )
 
 // =============================================================================
@@ -20,7 +20,7 @@ func TestRoleToProto_ValidRole(t *testing.T) {
 	now := time.Now()
 	objectID := primitive.NewObjectID()
 
-	role := &auth_models.Role{
+	role := &model_auth.Role{
 		ID:           objectID,
 		TenantID:     "tenant-123",
 		Name:         "Admin",
@@ -34,7 +34,7 @@ func TestRoleToProto_ValidRole(t *testing.T) {
 		CreatedBy:    "system",
 		CreatedAt:    now,
 		UpdatedAt:    now,
-		Metadata: auth_models.RoleMetadata{
+		Metadata: model_auth.RoleMetadata{
 			Color:         "#FF0000",
 			Icon:          "admin-icon",
 			MaxAssignable: 5,
@@ -69,7 +69,7 @@ func TestRoleToProto_NilInput(t *testing.T) {
 }
 
 func TestRoleToProto_InvalidRole(t *testing.T) {
-	invalidRole := &auth_models.Role{
+	invalidRole := &model_auth.Role{
 		ID:       primitive.NewObjectID(),
 		TenantID: "", // Missing required field
 	}
@@ -83,7 +83,7 @@ func TestRoleToProto_InvalidRole(t *testing.T) {
 // =============================================================================
 
 func TestRoleMetadataToProto_ValidMetadata(t *testing.T) {
-	metadata := &auth_models.RoleMetadata{
+	metadata := &model_auth.RoleMetadata{
 		Color:         "#00FF00",
 		Icon:          "user-icon",
 		MaxAssignable: 10,
@@ -108,7 +108,7 @@ func TestRoleMetadataToProto_NilMetadata(t *testing.T) {
 
 func TestRolesToProto_ValidSlice(t *testing.T) {
 	now := time.Now()
-	roles := []auth_models.Role{
+	roles := []model_auth.Role{
 		{
 			ID:          primitive.NewObjectID(),
 			TenantID:    "tenant-123",
@@ -144,7 +144,7 @@ func TestRolesToProto_ValidSlice(t *testing.T) {
 }
 
 func TestRolesToProto_EmptySlice(t *testing.T) {
-	result := RolesToProto([]auth_models.Role{})
+	result := RolesToProto([]model_auth.Role{})
 
 	require.NotNil(t, result)
 	assert.Len(t, result, 0)
@@ -155,7 +155,7 @@ func TestRolesToProto_EmptySlice(t *testing.T) {
 // =============================================================================
 
 func TestCreateRoleFromProto_ValidProto(t *testing.T) {
-	proto := &authv1.CreateRoleData{
+	proto := &proto_auth.CreateRoleData{
 		TenantId:     "tenant-123",
 		Name:         "Editor",
 		Slug:         "editor",
@@ -187,11 +187,11 @@ func TestCreateRoleFromProto_ValidProto(t *testing.T) {
 }
 
 func TestCreateRoleFromProto_WithMetadata(t *testing.T) {
-	proto := &authv1.CreateRoleData{
+	proto := &proto_auth.CreateRoleData{
 		TenantId: "tenant-123",
 		Name:     "Manager",
 		Slug:     "manager",
-		Metadata: &authv1.RoleMetadata{
+		Metadata: &proto_auth.RoleMetadata{
 			Color:         "#0000FF",
 			Icon:          "manager-icon",
 			MaxAssignable: 3,
@@ -209,7 +209,7 @@ func TestCreateRoleFromProto_WithMetadata(t *testing.T) {
 }
 
 func TestCreateRoleFromProto_WithoutMetadata(t *testing.T) {
-	proto := &authv1.CreateRoleData{
+	proto := &proto_auth.CreateRoleData{
 		TenantId:  "tenant-123",
 		Name:      "Basic",
 		Slug:      "basic",
@@ -238,7 +238,7 @@ func TestCreateRoleFromProto_NilProto(t *testing.T) {
 // =============================================================================
 
 func TestUpdateRoleFromProto_FullUpdate(t *testing.T) {
-	existing := &auth_models.Role{
+	existing := &model_auth.Role{
 		ID:           primitive.NewObjectID(),
 		TenantID:     "tenant-123",
 		Name:         "Old Name",
@@ -262,7 +262,7 @@ func TestUpdateRoleFromProto_FullUpdate(t *testing.T) {
 	newPriority := int32(10)
 	newStatus := "active"
 
-	proto := &authv1.UpdateRoleData{
+	proto := &proto_auth.UpdateRoleData{
 		Id:           existing.ID.Hex(),
 		Name:         &newName,
 		Slug:         &newSlug,
@@ -289,7 +289,7 @@ func TestUpdateRoleFromProto_FullUpdate(t *testing.T) {
 }
 
 func TestUpdateRoleFromProto_PartialUpdate(t *testing.T) {
-	existing := &auth_models.Role{
+	existing := &model_auth.Role{
 		ID:          primitive.NewObjectID(),
 		TenantID:    "tenant-123",
 		Name:        "Original Name",
@@ -305,7 +305,7 @@ func TestUpdateRoleFromProto_PartialUpdate(t *testing.T) {
 	newName := "Updated Name"
 	newDesc := "Updated Description"
 
-	proto := &authv1.UpdateRoleData{
+	proto := &proto_auth.UpdateRoleData{
 		Id:          existing.ID.Hex(),
 		Name:        &newName,
 		Description: &newDesc,
@@ -325,7 +325,7 @@ func TestUpdateRoleFromProto_PartialUpdate(t *testing.T) {
 
 func TestUpdateRoleFromProto_NilExisting(t *testing.T) {
 	testName := "Test"
-	proto := &authv1.UpdateRoleData{
+	proto := &proto_auth.UpdateRoleData{
 		Id:   primitive.NewObjectID().Hex(),
 		Name: &testName,
 	}
@@ -337,7 +337,7 @@ func TestUpdateRoleFromProto_NilExisting(t *testing.T) {
 }
 
 func TestUpdateRoleFromProto_NilProto(t *testing.T) {
-	existing := &auth_models.Role{
+	existing := &model_auth.Role{
 		ID:       primitive.NewObjectID(),
 		TenantID: "tenant-123",
 	}

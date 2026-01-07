@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	erp_errors "erp.localhost/internal/infra/error"
+	infra_error "erp.localhost/internal/infra/error"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -47,10 +47,10 @@ func (c *AccessTokenClaims) Validate() error {
 		missingFields = append(missingFields, "ExpiresAt")
 	}
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
 	if c.IsExpired() {
-		return erp_errors.Auth(erp_errors.AuthTokenExpired)
+		return infra_error.Auth(infra_error.AuthTokenExpired)
 	}
 	return nil
 }
@@ -82,10 +82,10 @@ func (c *RefreshTokenClaims) Validate() error {
 		missingFields = append(missingFields, "ExpiresAt")
 	} else if time.Now().After(c.ExpiresAt.Time) {
 		// Only check if expired if ExpiresAt is not nil
-		return erp_errors.Auth(erp_errors.AuthTokenExpired)
+		return infra_error.Auth(infra_error.AuthTokenExpired)
 	}
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
 	return nil
 }

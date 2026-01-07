@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	erp_errors "erp.localhost/internal/infra/error"
+	infra_error "erp.localhost/internal/infra/error"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -23,6 +23,10 @@ type Role struct {
 	CreatedAt    time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt    time.Time          `bson:"updated_at" json:"updated_at"`
 	CreatedBy    string             `bson:"created_by" json:"created_by"`
+}
+
+func (r *Role) GetResourceType() string {
+	return ResourceTypeRole
 }
 
 func (r *Role) Validate(createOperation bool) error {
@@ -48,7 +52,7 @@ func (r *Role) Validate(createOperation bool) error {
 		missingFields = append(missingFields, "Permissions")
 	}
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
 	return nil
 }

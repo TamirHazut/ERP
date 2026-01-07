@@ -3,36 +3,25 @@ package collection
 import (
 	"time"
 
-	"erp.localhost/internal/infra/db/mongo"
-	erp_errors "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging"
-	auth_models "erp.localhost/internal/infra/model/auth"
-	mongo_models "erp.localhost/internal/infra/model/db/mongo"
-	shared_models "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/db/mongo/collection"
+	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/logging/logger"
+	model_auth "erp.localhost/internal/infra/model/auth"
 )
 
 type RolesCollection struct {
-	collection mongo.CollectionHandler[auth_models.Role]
-	logger     *logging.Logger
+	collection collection.CollectionHandler[model_auth.Role]
+	logger     logger.Logger
 }
 
-func NewRoleCollection(collection mongo.CollectionHandler[auth_models.Role]) *RolesCollection {
-	logger := logging.NewLogger(shared_models.ModuleAuth)
-	if collection == nil {
-		collectionHandler := mongo.NewBaseCollectionHandler[auth_models.Role](string(mongo_models.RolesCollection), logger)
-		if collectionHandler == nil {
-			logger.Fatal("failed to create roles collection handler")
-			return nil
-		}
-		collection = collectionHandler
-	}
+func NewRoleCollection(collection collection.CollectionHandler[model_auth.Role], logger logger.Logger) *RolesCollection {
 	return &RolesCollection{
 		collection: collection,
 		logger:     logger,
 	}
 }
 
-func (r *RolesCollection) CreateRole(role auth_models.Role) (string, error) {
+func (r *RolesCollection) CreateRole(role *model_auth.Role) (string, error) {
 	if err := role.Validate(true); err != nil {
 		return "", err
 	}
@@ -42,7 +31,7 @@ func (r *RolesCollection) CreateRole(role auth_models.Role) (string, error) {
 	return r.collection.Create(role)
 }
 
-func (r *RolesCollection) GetRoleByID(tenantID, roleID string) (*auth_models.Role, error) {
+func (r *RolesCollection) GetRoleByID(tenantID, roleID string) (*model_auth.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       roleID,
@@ -51,7 +40,7 @@ func (r *RolesCollection) GetRoleByID(tenantID, roleID string) (*auth_models.Rol
 	return r.findRoleByFilter(filter)
 }
 
-func (r *RolesCollection) GetRoleByName(tenantID, name string) (*auth_models.Role, error) {
+func (r *RolesCollection) GetRoleByName(tenantID, name string) (*model_auth.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"name":      name,
@@ -60,7 +49,7 @@ func (r *RolesCollection) GetRoleByName(tenantID, name string) (*auth_models.Rol
 	return r.findRoleByFilter(filter)
 }
 
-func (r *RolesCollection) GetRolesByTenantID(tenantID string) ([]auth_models.Role, error) {
+func (r *RolesCollection) GetRolesByTenantID(tenantID string) ([]*model_auth.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
@@ -68,7 +57,7 @@ func (r *RolesCollection) GetRolesByTenantID(tenantID string) ([]auth_models.Rol
 	return r.findRolesByFilter(filter)
 }
 
-func (r *RolesCollection) GetRolesByPermissionsIDs(tenantID string, permissionsIDs []string) ([]auth_models.Role, error) {
+func (r *RolesCollection) GetRolesByPermissionsIDs(tenantID string, permissionsIDs []string) ([]*model_auth.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"permissions": map[string]any{
@@ -79,7 +68,7 @@ func (r *RolesCollection) GetRolesByPermissionsIDs(tenantID string, permissionsI
 	return r.findRolesByFilter(filter)
 }
 
-func (r *RolesCollection) UpdateRole(role auth_models.Role) error {
+func (r *RolesCollection) UpdateRole(role *model_auth.Role) error {
 	if err := role.Validate(false); err != nil {
 		return err
 	}
@@ -93,7 +82,7 @@ func (r *RolesCollection) UpdateRole(role auth_models.Role) error {
 		return err
 	}
 	if role.CreatedAt != currentRole.CreatedAt {
-		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "CreatedAt")
+		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields, "CreatedAt")
 	}
 	role.UpdatedAt = time.Now()
 	return r.collection.Update(filter, role)
@@ -101,7 +90,7 @@ func (r *RolesCollection) UpdateRole(role auth_models.Role) error {
 
 func (r *RolesCollection) DeleteRole(tenantID, roleID string) error {
 	if tenantID == "" || roleID == "" {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID", "RoleID")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID", "RoleID")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
@@ -111,7 +100,10 @@ func (r *RolesCollection) DeleteRole(tenantID, roleID string) error {
 	return r.collection.Delete(filter)
 }
 
-func (r *RolesCollection) findRoleByFilter(filter map[string]any) (*auth_models.Role, error) {
+func (r *RolesCollection) findRoleByFilter(filter map[string]any) (*model_auth.Role, error) {
+	if tenant_id, ok := filter["tenant_id"]; !ok || tenant_id == nil {
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
+	}
 	role, err := r.collection.FindOne(filter)
 	if err != nil {
 		return nil, err
@@ -119,7 +111,10 @@ func (r *RolesCollection) findRoleByFilter(filter map[string]any) (*auth_models.
 	return role, nil
 }
 
-func (r *RolesCollection) findRolesByFilter(filter map[string]any) ([]auth_models.Role, error) {
+func (r *RolesCollection) findRolesByFilter(filter map[string]any) ([]*model_auth.Role, error) {
+	if tenant_id, ok := filter["tenant_id"]; !ok || tenant_id == nil {
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
+	}
 	roles, err := r.collection.FindAll(filter)
 	if err != nil {
 		return nil, err

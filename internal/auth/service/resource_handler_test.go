@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	auth_models "erp.localhost/internal/infra/model/auth"
-	auth_proto "erp.localhost/internal/infra/proto/auth/v1"
+	model_auth "erp.localhost/internal/infra/model/auth"
+	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
 )
 
 // =============================================================================
@@ -19,12 +19,12 @@ import (
 func TestPermissionHandler_ExtractAndConvertCreate_Success(t *testing.T) {
 	handler := &permissionHandler{}
 
-	req := &auth_proto.CreateResourceRequest{
-		Resource: &auth_proto.CreateResourceRequest_Permission{
-			Permission: &auth_proto.CreatePermissionData{
+	req := &proto_auth.CreateResourceRequest{
+		Resource: &proto_auth.CreateResourceRequest_Permission{
+			Permission: &proto_auth.CreatePermissionData{
 				TenantId:    "tenant-123",
-				Resource:    auth_models.ResourceTypeUser,
-				Action:      auth_models.PermissionActionCreate,
+				Resource:    model_auth.ResourceTypeUser,
+				Action:      model_auth.PermissionActionCreate,
 				Slug:        "user:create",
 				Name:        "Create User",
 				Description: "Allows creating users",
@@ -38,11 +38,11 @@ func TestPermissionHandler_ExtractAndConvertCreate_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	perm, ok := result.(*auth_models.Permission)
-	require.True(t, ok, "Result should be *auth_models.Permission")
+	perm, ok := result.(*model_auth.Permission)
+	require.True(t, ok, "Result should be *model_auth.Permission")
 	assert.Equal(t, "tenant-123", perm.TenantID)
-	assert.Equal(t, auth_models.ResourceTypeUser, perm.Resource)
-	assert.Equal(t, auth_models.PermissionActionCreate, perm.Action)
+	assert.Equal(t, model_auth.ResourceTypeUser, perm.Resource)
+	assert.Equal(t, model_auth.PermissionActionCreate, perm.Action)
 	assert.Equal(t, "user:create", perm.PermissionString)
 	assert.Equal(t, "Create User", perm.DisplayName)
 }
@@ -51,9 +51,9 @@ func TestPermissionHandler_ExtractAndConvertCreate_InvalidType(t *testing.T) {
 	handler := &permissionHandler{}
 
 	// Wrong type - Role instead of Permission
-	req := &auth_proto.CreateResourceRequest{
-		Resource: &auth_proto.CreateResourceRequest_Role{
-			Role: &auth_proto.CreateRoleData{
+	req := &proto_auth.CreateResourceRequest{
+		Resource: &proto_auth.CreateResourceRequest_Role{
+			Role: &proto_auth.CreateRoleData{
 				TenantId: "tenant-123",
 				Name:     "Admin",
 			},
@@ -71,8 +71,8 @@ func TestPermissionHandler_ExtractAndConvertCreate_ConversionError(t *testing.T)
 	handler := &permissionHandler{}
 
 	// Nil permission data will cause conversion error
-	req := &auth_proto.CreateResourceRequest{
-		Resource: &auth_proto.CreateResourceRequest_Permission{
+	req := &proto_auth.CreateResourceRequest{
+		Resource: &proto_auth.CreateResourceRequest_Permission{
 			Permission: nil,
 		},
 	}
@@ -88,13 +88,13 @@ func TestPermissionHandler_ExtractUpdateData_Success(t *testing.T) {
 	handler := &permissionHandler{}
 
 	updateName := "Updated Name"
-	updateProto := &auth_proto.UpdatePermissionData{
+	updateProto := &proto_auth.UpdatePermissionData{
 		Id:   primitive.NewObjectID().Hex(),
 		Name: &updateName,
 	}
 
-	req := &auth_proto.UpdateResourceRequest{
-		Resource: &auth_proto.UpdateResourceRequest_Permission{
+	req := &proto_auth.UpdateResourceRequest{
+		Resource: &proto_auth.UpdateResourceRequest_Permission{
 			Permission: updateProto,
 		},
 	}
@@ -104,7 +104,7 @@ func TestPermissionHandler_ExtractUpdateData_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	data, ok := result.(*auth_proto.UpdatePermissionData)
+	data, ok := result.(*proto_auth.UpdatePermissionData)
 	require.True(t, ok)
 	assert.Equal(t, updateProto, data)
 }
@@ -113,9 +113,9 @@ func TestPermissionHandler_ExtractUpdateData_InvalidType(t *testing.T) {
 	handler := &permissionHandler{}
 
 	// Wrong type - Role instead of Permission
-	req := &auth_proto.UpdateResourceRequest{
-		Resource: &auth_proto.UpdateResourceRequest_Role{
-			Role: &auth_proto.UpdateRoleData{
+	req := &proto_auth.UpdateResourceRequest{
+		Resource: &proto_auth.UpdateResourceRequest_Role{
+			Role: &proto_auth.UpdateRoleData{
 				Id: primitive.NewObjectID().Hex(),
 			},
 		},
@@ -132,7 +132,7 @@ func TestPermissionHandler_GetResourceIDFromUpdate(t *testing.T) {
 	handler := &permissionHandler{}
 
 	objectID := primitive.NewObjectID()
-	updateData := &auth_proto.UpdatePermissionData{
+	updateData := &proto_auth.UpdatePermissionData{
 		Id: objectID.Hex(),
 	}
 
@@ -144,11 +144,11 @@ func TestPermissionHandler_GetResourceIDFromUpdate(t *testing.T) {
 func TestPermissionHandler_ApplyUpdate_Success(t *testing.T) {
 	handler := &permissionHandler{}
 
-	existing := &auth_models.Permission{
+	existing := &model_auth.Permission{
 		ID:               primitive.NewObjectID(),
 		TenantID:         "tenant-123",
-		Resource:         auth_models.ResourceTypeUser,
-		Action:           auth_models.PermissionActionCreate,
+		Resource:         model_auth.ResourceTypeUser,
+		Action:           model_auth.PermissionActionCreate,
 		PermissionString: "user:create",
 		DisplayName:      "Old Name",
 		CreatedAt:        time.Now(),
@@ -156,7 +156,7 @@ func TestPermissionHandler_ApplyUpdate_Success(t *testing.T) {
 	}
 
 	newName := "New Name"
-	updateData := &auth_proto.UpdatePermissionData{
+	updateData := &proto_auth.UpdatePermissionData{
 		Id:   existing.ID.Hex(),
 		Name: &newName,
 	}
@@ -171,13 +171,13 @@ func TestPermissionHandler_ApplyUpdate_InvalidExistingType(t *testing.T) {
 	handler := &permissionHandler{}
 
 	// Wrong type - Role instead of Permission
-	existing := &auth_models.Role{
+	existing := &model_auth.Role{
 		ID:       primitive.NewObjectID(),
 		TenantID: "tenant-123",
 		Name:     "Admin",
 	}
 
-	updateData := &auth_proto.UpdatePermissionData{
+	updateData := &proto_auth.UpdatePermissionData{
 		Id: primitive.NewObjectID().Hex(),
 	}
 
@@ -190,13 +190,13 @@ func TestPermissionHandler_ApplyUpdate_InvalidExistingType(t *testing.T) {
 func TestPermissionHandler_ApplyUpdate_InvalidUpdateDataType(t *testing.T) {
 	handler := &permissionHandler{}
 
-	existing := &auth_models.Permission{
+	existing := &model_auth.Permission{
 		ID:       primitive.NewObjectID(),
 		TenantID: "tenant-123",
 	}
 
 	// Wrong type - Role update data instead of Permission
-	updateData := &auth_proto.UpdateRoleData{
+	updateData := &proto_auth.UpdateRoleData{
 		Id: primitive.NewObjectID().Hex(),
 	}
 
@@ -211,7 +211,7 @@ func TestPermissionHandler_GetResourceType(t *testing.T) {
 
 	result := handler.GetResourceType()
 
-	assert.Equal(t, auth_models.ResourceTypePermission, result)
+	assert.Equal(t, model_auth.ResourceTypePermission, result)
 }
 
 func TestPermissionHandler_GetResourceName(t *testing.T) {
@@ -229,9 +229,9 @@ func TestPermissionHandler_GetResourceName(t *testing.T) {
 func TestRoleHandler_ExtractAndConvertCreate_Success(t *testing.T) {
 	handler := &roleHandler{}
 
-	req := &auth_proto.CreateResourceRequest{
-		Resource: &auth_proto.CreateResourceRequest_Role{
-			Role: &auth_proto.CreateRoleData{
+	req := &proto_auth.CreateResourceRequest{
+		Resource: &proto_auth.CreateResourceRequest_Role{
+			Role: &proto_auth.CreateRoleData{
 				TenantId:    "tenant-123",
 				Name:        "Admin",
 				Slug:        "admin",
@@ -247,8 +247,8 @@ func TestRoleHandler_ExtractAndConvertCreate_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	role, ok := result.(*auth_models.Role)
-	require.True(t, ok, "Result should be *auth_models.Role")
+	role, ok := result.(*model_auth.Role)
+	require.True(t, ok, "Result should be *model_auth.Role")
 	assert.Equal(t, "tenant-123", role.TenantID)
 	assert.Equal(t, "Admin", role.Name)
 	assert.Equal(t, "admin", role.Slug)
@@ -259,9 +259,9 @@ func TestRoleHandler_ExtractAndConvertCreate_InvalidType(t *testing.T) {
 	handler := &roleHandler{}
 
 	// Wrong type - Permission instead of Role
-	req := &auth_proto.CreateResourceRequest{
-		Resource: &auth_proto.CreateResourceRequest_Permission{
-			Permission: &auth_proto.CreatePermissionData{
+	req := &proto_auth.CreateResourceRequest{
+		Resource: &proto_auth.CreateResourceRequest_Permission{
+			Permission: &proto_auth.CreatePermissionData{
 				TenantId: "tenant-123",
 				Name:     "Create User",
 			},
@@ -279,8 +279,8 @@ func TestRoleHandler_ExtractAndConvertCreate_ConversionError(t *testing.T) {
 	handler := &roleHandler{}
 
 	// Nil role data will cause conversion error
-	req := &auth_proto.CreateResourceRequest{
-		Resource: &auth_proto.CreateResourceRequest_Role{
+	req := &proto_auth.CreateResourceRequest{
+		Resource: &proto_auth.CreateResourceRequest_Role{
 			Role: nil,
 		},
 	}
@@ -296,13 +296,13 @@ func TestRoleHandler_ExtractUpdateData_Success(t *testing.T) {
 	handler := &roleHandler{}
 
 	updateName := "Updated Role"
-	updateProto := &auth_proto.UpdateRoleData{
+	updateProto := &proto_auth.UpdateRoleData{
 		Id:   primitive.NewObjectID().Hex(),
 		Name: &updateName,
 	}
 
-	req := &auth_proto.UpdateResourceRequest{
-		Resource: &auth_proto.UpdateResourceRequest_Role{
+	req := &proto_auth.UpdateResourceRequest{
+		Resource: &proto_auth.UpdateResourceRequest_Role{
 			Role: updateProto,
 		},
 	}
@@ -312,7 +312,7 @@ func TestRoleHandler_ExtractUpdateData_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	data, ok := result.(*auth_proto.UpdateRoleData)
+	data, ok := result.(*proto_auth.UpdateRoleData)
 	require.True(t, ok)
 	assert.Equal(t, updateProto, data)
 }
@@ -321,9 +321,9 @@ func TestRoleHandler_ExtractUpdateData_InvalidType(t *testing.T) {
 	handler := &roleHandler{}
 
 	// Wrong type - Permission instead of Role
-	req := &auth_proto.UpdateResourceRequest{
-		Resource: &auth_proto.UpdateResourceRequest_Permission{
-			Permission: &auth_proto.UpdatePermissionData{
+	req := &proto_auth.UpdateResourceRequest{
+		Resource: &proto_auth.UpdateResourceRequest_Permission{
+			Permission: &proto_auth.UpdatePermissionData{
 				Id: primitive.NewObjectID().Hex(),
 			},
 		},
@@ -340,7 +340,7 @@ func TestRoleHandler_GetResourceIDFromUpdate(t *testing.T) {
 	handler := &roleHandler{}
 
 	objectID := primitive.NewObjectID()
-	updateData := &auth_proto.UpdateRoleData{
+	updateData := &proto_auth.UpdateRoleData{
 		Id: objectID.Hex(),
 	}
 
@@ -352,7 +352,7 @@ func TestRoleHandler_GetResourceIDFromUpdate(t *testing.T) {
 func TestRoleHandler_ApplyUpdate_Success(t *testing.T) {
 	handler := &roleHandler{}
 
-	existing := &auth_models.Role{
+	existing := &model_auth.Role{
 		ID:          primitive.NewObjectID(),
 		TenantID:    "tenant-123",
 		Name:        "Old Name",
@@ -363,7 +363,7 @@ func TestRoleHandler_ApplyUpdate_Success(t *testing.T) {
 	}
 
 	newName := "New Name"
-	updateData := &auth_proto.UpdateRoleData{
+	updateData := &proto_auth.UpdateRoleData{
 		Id:   existing.ID.Hex(),
 		Name: &newName,
 	}
@@ -378,12 +378,12 @@ func TestRoleHandler_ApplyUpdate_InvalidExistingType(t *testing.T) {
 	handler := &roleHandler{}
 
 	// Wrong type - Permission instead of Role
-	existing := &auth_models.Permission{
+	existing := &model_auth.Permission{
 		ID:       primitive.NewObjectID(),
 		TenantID: "tenant-123",
 	}
 
-	updateData := &auth_proto.UpdateRoleData{
+	updateData := &proto_auth.UpdateRoleData{
 		Id: primitive.NewObjectID().Hex(),
 	}
 
@@ -396,13 +396,13 @@ func TestRoleHandler_ApplyUpdate_InvalidExistingType(t *testing.T) {
 func TestRoleHandler_ApplyUpdate_InvalidUpdateDataType(t *testing.T) {
 	handler := &roleHandler{}
 
-	existing := &auth_models.Role{
+	existing := &model_auth.Role{
 		ID:       primitive.NewObjectID(),
 		TenantID: "tenant-123",
 	}
 
 	// Wrong type - Permission update data instead of Role
-	updateData := &auth_proto.UpdatePermissionData{
+	updateData := &proto_auth.UpdatePermissionData{
 		Id: primitive.NewObjectID().Hex(),
 	}
 
@@ -417,7 +417,7 @@ func TestRoleHandler_GetResourceType(t *testing.T) {
 
 	result := handler.GetResourceType()
 
-	assert.Equal(t, auth_models.ResourceTypeRole, result)
+	assert.Equal(t, model_auth.ResourceTypeRole, result)
 }
 
 func TestRoleHandler_GetResourceName(t *testing.T) {
@@ -433,7 +433,7 @@ func TestRoleHandler_GetResourceName(t *testing.T) {
 // =============================================================================
 
 func TestGetResourceHandler_PermissionType(t *testing.T) {
-	handler, err := getResourceHandler(auth_proto.ResourceType_RESOURCE_TYPE_PERMISSION)
+	handler, err := getResourceHandler(proto_auth.ResourceType_RESOURCE_TYPE_PERMISSION)
 
 	require.NoError(t, err)
 	require.NotNil(t, handler)
@@ -444,7 +444,7 @@ func TestGetResourceHandler_PermissionType(t *testing.T) {
 }
 
 func TestGetResourceHandler_RoleType(t *testing.T) {
-	handler, err := getResourceHandler(auth_proto.ResourceType_RESOURCE_TYPE_ROLE)
+	handler, err := getResourceHandler(proto_auth.ResourceType_RESOURCE_TYPE_ROLE)
 
 	require.NoError(t, err)
 	require.NotNil(t, handler)
@@ -455,7 +455,7 @@ func TestGetResourceHandler_RoleType(t *testing.T) {
 }
 
 func TestGetResourceHandler_InvalidType(t *testing.T) {
-	handler, err := getResourceHandler(auth_proto.ResourceType_RESOURCE_TYPE_UNSPECIFIED)
+	handler, err := getResourceHandler(proto_auth.ResourceType_RESOURCE_TYPE_UNSPECIFIED)
 
 	assert.Error(t, err)
 	assert.Nil(t, handler)
@@ -464,7 +464,7 @@ func TestGetResourceHandler_InvalidType(t *testing.T) {
 
 func TestGetResourceHandler_UnknownType(t *testing.T) {
 	// Use a type value that doesn't exist in the registry
-	handler, err := getResourceHandler(auth_proto.ResourceType(999))
+	handler, err := getResourceHandler(proto_auth.ResourceType(999))
 
 	assert.Error(t, err)
 	assert.Nil(t, handler)

@@ -6,9 +6,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	erp_errors "erp.localhost/internal/infra/error"
-	auth_models "erp.localhost/internal/infra/model/auth"
-	authv1 "erp.localhost/internal/infra/proto/auth/v1"
+	infra_error "erp.localhost/internal/infra/error"
+	model_auth "erp.localhost/internal/infra/model/auth"
+	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
 )
 
 // =============================================================================
@@ -16,12 +16,12 @@ import (
 // =============================================================================
 
 // RoleToProto converts internal Role model to gRPC RoleData
-func RoleToProto(role *auth_models.Role) *authv1.RoleData {
+func RoleToProto(role *model_auth.Role) *proto_auth.RoleData {
 	if role == nil || role.Validate(false) != nil {
 		return nil
 	}
 
-	return &authv1.RoleData{
+	return &proto_auth.RoleData{
 		Id:           role.ID.Hex(),
 		TenantId:     role.TenantID,
 		Name:         role.Name,
@@ -40,12 +40,12 @@ func RoleToProto(role *auth_models.Role) *authv1.RoleData {
 }
 
 // RoleMetadataToProto converts metadata
-func RoleMetadataToProto(metadata *auth_models.RoleMetadata) *authv1.RoleMetadata {
+func RoleMetadataToProto(metadata *model_auth.RoleMetadata) *proto_auth.RoleMetadata {
 	if metadata == nil {
 		return nil
 	}
 
-	return &authv1.RoleMetadata{
+	return &proto_auth.RoleMetadata{
 		Color:         metadata.Color,
 		Icon:          metadata.Icon,
 		MaxAssignable: int32(metadata.MaxAssignable),
@@ -53,8 +53,8 @@ func RoleMetadataToProto(metadata *auth_models.RoleMetadata) *authv1.RoleMetadat
 }
 
 // RolesToProto converts slice of roles to proto
-func RolesToProto(roles []auth_models.Role) []*authv1.RoleData {
-	result := make([]*authv1.RoleData, len(roles))
+func RolesToProto(roles []model_auth.Role) []*proto_auth.RoleData {
+	result := make([]*proto_auth.RoleData, len(roles))
 	for i, role := range roles {
 		result[i] = RoleToProto(&role)
 	}
@@ -66,12 +66,12 @@ func RolesToProto(roles []auth_models.Role) []*authv1.RoleData {
 // =============================================================================
 
 // CreateRoleFromProto converts gRPC CreateRoleData to internal Role model
-func CreateRoleFromProto(proto *authv1.CreateRoleData) (*auth_models.Role, error) {
+func CreateRoleFromProto(proto *proto_auth.CreateRoleData) (*model_auth.Role, error) {
 	if proto == nil {
-		return nil, erp_errors.Validation(erp_errors.ValidationInvalidValue, "proto")
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "proto")
 	}
 
-	role := &auth_models.Role{
+	role := &model_auth.Role{
 		TenantID:     proto.TenantId,
 		Name:         proto.Name,
 		Slug:         proto.Slug,
@@ -88,7 +88,7 @@ func CreateRoleFromProto(proto *authv1.CreateRoleData) (*auth_models.Role, error
 
 	// Handle optional metadata
 	if proto.Metadata != nil {
-		role.Metadata = auth_models.RoleMetadata{
+		role.Metadata = model_auth.RoleMetadata{
 			Color:         proto.Metadata.Color,
 			Icon:          proto.Metadata.Icon,
 			MaxAssignable: int(proto.Metadata.MaxAssignable),
@@ -104,12 +104,12 @@ func CreateRoleFromProto(proto *authv1.CreateRoleData) (*auth_models.Role, error
 
 // UpdateRoleFromProto applies updates from gRPC UpdateRoleData to existing Role
 // Only updates fields that are provided (non-nil for optional fields)
-func UpdateRoleFromProto(existing *auth_models.Role, proto *authv1.UpdateRoleData) error {
+func UpdateRoleFromProto(existing *model_auth.Role, proto *proto_auth.UpdateRoleData) error {
 	if existing == nil {
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue, "existing")
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "existing")
 	}
 	if proto == nil {
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue, "proto")
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "proto")
 	}
 
 	// Update only fields that are set (non-nil for optional fields in proto3)
@@ -141,7 +141,7 @@ func UpdateRoleFromProto(existing *auth_models.Role, proto *authv1.UpdateRoleDat
 		existing.Status = *proto.Status
 	}
 	if proto.Metadata != nil {
-		existing.Metadata = auth_models.RoleMetadata{
+		existing.Metadata = model_auth.RoleMetadata{
 			Color:         proto.Metadata.Color,
 			Icon:          proto.Metadata.Icon,
 			MaxAssignable: int(proto.Metadata.MaxAssignable),
@@ -161,7 +161,7 @@ func UpdateRoleFromProto(existing *auth_models.Role, proto *authv1.UpdateRoleDat
 // RoleObjectIDFromString converts hex string to primitive.ObjectID
 func RoleObjectIDFromString(id string) (primitive.ObjectID, error) {
 	if id == "" {
-		return primitive.NilObjectID, erp_errors.Validation(erp_errors.ValidationInvalidValue, "id")
+		return primitive.NilObjectID, infra_error.Validation(infra_error.ValidationInvalidValue, "id")
 	}
 	return primitive.ObjectIDFromHex(id)
 }

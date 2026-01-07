@@ -4,11 +4,10 @@ import (
 	"time"
 
 	"erp.localhost/internal/infra/db/redis"
-	redis_handler "erp.localhost/internal/infra/db/redis/handler"
-	erp_errors "erp.localhost/internal/infra/error"
-	logging "erp.localhost/internal/infra/logging"
-	redis_models "erp.localhost/internal/infra/model/db/redis"
-	shared_models "erp.localhost/internal/infra/model/shared"
+	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/logging/logger"
+	model_redis "erp.localhost/internal/infra/model/db/redis"
+	model_shared "erp.localhost/internal/infra/model/shared"
 )
 
 var (
@@ -22,21 +21,21 @@ var (
 // Key pattern: user_access_tokens:{tenant_id}:{user_id} -> Set of token_ids
 // Key pattern: user_refresh_tokens:{tenant_id}:{user_id} -> Set of token_ids
 type TokenIndex struct {
-	accessTokenSetHandler  redis_handler.SetHandler
-	refreshTokenSetHandler redis_handler.SetHandler
-	logger                 *logging.Logger
+	accessTokenSetHandler  redis.SetHandler
+	refreshTokenSetHandler redis.SetHandler
+	logger                 logger.Logger
 }
 
 // NewTokenIndex creates a new TokenIndex
-func NewTokenIndex(accessTokenSetHandler redis_handler.SetHandler, refreshTokenSetHandler redis_handler.SetHandler) *TokenIndex {
-	logger := logging.NewLogger(shared_models.ModuleAuth)
+func NewTokenIndex(accessTokenSetHandler redis.SetHandler, refreshTokenSetHandler redis.SetHandler) *TokenIndex {
+	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 	if accessTokenSetHandler == nil {
-		accessTokenRedisHandler := redis.NewBaseRedisHandler(redis_models.KeyPrefix(redis_models.RedisKeyUserAccessTokens))
-		accessTokenSetHandler = redis_handler.NewBaseSetHandler(accessTokenRedisHandler, logger)
+		accessTokenRedisHandler := redis.NewBaseRedisHandler(model_redis.KeyPrefix(model_redis.RedisKeyUserAccessTokens))
+		accessTokenSetHandler = redis.NewBaseSetHandler(accessTokenRedisHandler, logger)
 	}
 	if refreshTokenSetHandler == nil {
-		refreshTokenRedisHandler := redis.NewBaseRedisHandler(redis_models.KeyPrefix(redis_models.RedisKeyUserRefreshTokens))
-		refreshTokenSetHandler = redis_handler.NewBaseSetHandler(refreshTokenRedisHandler, logger)
+		refreshTokenRedisHandler := redis.NewBaseRedisHandler(model_redis.KeyPrefix(model_redis.RedisKeyUserRefreshTokens))
+		refreshTokenSetHandler = redis.NewBaseSetHandler(refreshTokenRedisHandler, logger)
 	}
 
 	return &TokenIndex{
@@ -55,7 +54,7 @@ func (t *TokenIndex) AddAccessToken(tenantID string, userID string, tokenID stri
 	err := t.accessTokenSetHandler.Add(tenantID, userID, tokenID, opts)
 	if err != nil {
 		t.logger.Error("Failed to add access token to index", "error", err, "tenantID", tenantID, "userID", userID, "tokenID", tokenID)
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	t.logger.Debug("Access token added to index", "tenantID", tenantID, "userID", userID, "tokenID", tokenID)
 	return nil
@@ -66,7 +65,7 @@ func (t *TokenIndex) RemoveAccessToken(tenantID string, userID string, tokenID s
 	err := t.accessTokenSetHandler.Remove(tenantID, userID, tokenID)
 	if err != nil {
 		t.logger.Error("Failed to remove access token from index", "error", err, "tenantID", tenantID, "userID", userID, "tokenID", tokenID)
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
 	t.logger.Debug("Access token removed from index", "tenantID", tenantID, "userID", userID, "tokenID", tokenID)
@@ -78,7 +77,7 @@ func (t *TokenIndex) GetAccessTokens(tenantID string, userID string) ([]string, 
 	tokenIDs, err := t.accessTokenSetHandler.Members(tenantID, userID)
 	if err != nil {
 		t.logger.Error("Failed to get access tokens from index", "error", err, "tenantID", tenantID, "userID", userID)
-		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
 	return tokenIDs, nil
@@ -93,7 +92,7 @@ func (t *TokenIndex) AddRefreshToken(tenantID string, userID string, tokenID str
 	err := t.refreshTokenSetHandler.Add(tenantID, userID, tokenID, opts)
 	if err != nil {
 		t.logger.Error("Failed to add refresh token to index", "error", err, "tenantID", tenantID, "userID", userID, "tokenID", tokenID)
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
 	t.logger.Debug("Refresh token added to index", "tenantID", tenantID, "userID", userID, "tokenID", tokenID)
@@ -105,7 +104,7 @@ func (t *TokenIndex) RemoveRefreshToken(tenantID string, userID string, tokenID 
 	err := t.refreshTokenSetHandler.Remove(tenantID, userID, tokenID)
 	if err != nil {
 		t.logger.Error("Failed to remove refresh token from index", "error", err, "tenantID", tenantID, "userID", userID, "tokenID", tokenID)
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
 	t.logger.Debug("Refresh token removed from index", "tenantID", tenantID, "userID", userID, "tokenID", tokenID)
@@ -117,7 +116,7 @@ func (t *TokenIndex) GetRefreshTokens(tenantID string, userID string) ([]string,
 	tokenIDs, err := t.refreshTokenSetHandler.Members(tenantID, userID)
 	if err != nil {
 		t.logger.Error("Failed to get refresh tokens from index", "error", err, "tenantID", tenantID, "userID", userID)
-		return nil, erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
 	return tokenIDs, nil
@@ -128,7 +127,7 @@ func (t *TokenIndex) ClearAccessTokens(tenantID string, userID string) error {
 	err := t.accessTokenSetHandler.Clear(tenantID, userID)
 	if err != nil {
 		t.logger.Error("Failed to clear access tokens index", "error", err, "tenantID", tenantID, "userID", userID)
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
 	t.logger.Debug("Access tokens index cleared", "tenantID", tenantID, "userID", userID)
@@ -140,7 +139,7 @@ func (t *TokenIndex) ClearRefreshTokens(tenantID string, userID string) error {
 	err := t.refreshTokenSetHandler.Clear(tenantID, userID)
 	if err != nil {
 		t.logger.Error("Failed to clear refresh tokens index", "error", err, "tenantID", tenantID, "userID", userID)
-		return erp_errors.Internal(erp_errors.InternalDatabaseError, err)
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
 	t.logger.Debug("Refresh tokens index cleared", "tenantID", tenantID, "userID", userID)

@@ -3,7 +3,7 @@ package core
 import (
 	"testing"
 
-	auth_models "erp.localhost/internal/infra/model/auth"
+	model_auth "erp.localhost/internal/infra/model/auth"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -20,7 +20,7 @@ func TestTenant_Validate(t *testing.T) {
 			name: "valid tenant on create",
 			tenant: &Tenant{
 				Name:      "Test Tenant",
-				Status:    auth_models.TenantStatusActive,
+				Status:    model_auth.TenantStatusActive,
 				CreatedBy: "admin",
 			},
 			createOperation: true,
@@ -31,7 +31,7 @@ func TestTenant_Validate(t *testing.T) {
 			tenant: &Tenant{
 				ID:        primitive.NewObjectID(),
 				Name:      "Test Tenant",
-				Status:    auth_models.TenantStatusActive,
+				Status:    model_auth.TenantStatusActive,
 				CreatedBy: "admin",
 			},
 			createOperation: false,
@@ -41,7 +41,7 @@ func TestTenant_Validate(t *testing.T) {
 			name: "missing ID on update",
 			tenant: &Tenant{
 				Name:      "Test Tenant",
-				Status:    auth_models.TenantStatusActive,
+				Status:    model_auth.TenantStatusActive,
 				CreatedBy: "admin",
 			},
 			createOperation: false,
@@ -51,7 +51,7 @@ func TestTenant_Validate(t *testing.T) {
 		{
 			name: "missing name",
 			tenant: &Tenant{
-				Status:    auth_models.TenantStatusActive,
+				Status:    model_auth.TenantStatusActive,
 				CreatedBy: "admin",
 			},
 			createOperation: true,
@@ -72,7 +72,7 @@ func TestTenant_Validate(t *testing.T) {
 			name: "missing createdBy",
 			tenant: &Tenant{
 				Name:   "Test Tenant",
-				Status: auth_models.TenantStatusActive,
+				Status: model_auth.TenantStatusActive,
 			},
 			createOperation: true,
 			wantErr:         true,

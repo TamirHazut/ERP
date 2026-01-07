@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"erp.localhost/internal/infra/logging"
-	shared_models "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/logging/logger"
+	model_shared "erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,7 +58,7 @@ func TestLoadEnvironmentVariablesFromFile(t *testing.T) {
 				t.Fatalf("failed to write to temp file: %v", err)
 			}
 			tempFile.Close()
-			envVariables := LoadEnvironmentVariablesFromFile(tempFile.Name(), logging.NewLogger(shared_models.ModuleConfig))
+			envVariables := LoadEnvironmentVariablesFromFile(tempFile.Name(), logger.NewBaseLogger(model_shared.ModuleConfig))
 			assert.NotNil(t, envVariables)
 			assert.Equal(t, tc.expected, envVariables)
 			os.Remove(tempFile.Name())

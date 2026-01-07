@@ -7,9 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	erp_errors "erp.localhost/internal/infra/error"
-	auth_models "erp.localhost/internal/infra/model/auth"
-	authv1 "erp.localhost/internal/infra/proto/auth/v1"
+	infra_error "erp.localhost/internal/infra/error"
+	model_auth "erp.localhost/internal/infra/model/auth"
+	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
 )
 
 // =============================================================================
@@ -17,12 +17,12 @@ import (
 // =============================================================================
 
 // PermissionToProto converts internal Permission model to gRPC PermissionData
-func PermissionToProto(perm *auth_models.Permission) *authv1.PermissionData {
+func PermissionToProto(perm *model_auth.Permission) *proto_auth.PermissionData {
 	if perm == nil || perm.Validate(false) != nil {
 		return nil
 	}
 
-	return &authv1.PermissionData{
+	return &proto_auth.PermissionData{
 		Id:          perm.ID.Hex(),
 		TenantId:    perm.TenantID,
 		Name:        perm.DisplayName,      // Map DisplayName to Name in proto
@@ -30,7 +30,7 @@ func PermissionToProto(perm *auth_models.Permission) *authv1.PermissionData {
 		Description: perm.Description,
 		Resource:    perm.Resource,
 		Action:      perm.Action,
-		Status:      auth_models.PermissionStatusActive, // Default status (not in current model)
+		Status:      model_auth.PermissionStatusActive, // Default status (not in current model)
 		CreatedAt:   timestamppb.New(perm.CreatedAt),
 		UpdatedAt:   timestamppb.New(perm.UpdatedAt),
 		CreatedBy:   perm.CreatedBy,
@@ -38,8 +38,8 @@ func PermissionToProto(perm *auth_models.Permission) *authv1.PermissionData {
 }
 
 // PermissionsToProto converts slice of permissions to proto
-func PermissionsToProto(perms []auth_models.Permission) []*authv1.PermissionData {
-	result := make([]*authv1.PermissionData, len(perms))
+func PermissionsToProto(perms []model_auth.Permission) []*proto_auth.PermissionData {
+	result := make([]*proto_auth.PermissionData, len(perms))
 	for i, perm := range perms {
 		result[i] = PermissionToProto(&perm)
 	}
@@ -51,12 +51,12 @@ func PermissionsToProto(perms []auth_models.Permission) []*authv1.PermissionData
 // =============================================================================
 
 // CreatePermissionFromProto converts gRPC CreatePermissionData to internal Permission
-func CreatePermissionFromProto(proto *authv1.CreatePermissionData) (*auth_models.Permission, error) {
+func CreatePermissionFromProto(proto *proto_auth.CreatePermissionData) (*model_auth.Permission, error) {
 	if proto == nil {
-		return nil, erp_errors.Validation(erp_errors.ValidationInvalidValue, "proto")
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "proto")
 	}
 
-	perm := &auth_models.Permission{
+	perm := &model_auth.Permission{
 		TenantID:         proto.TenantId,
 		Resource:         proto.Resource,
 		Action:           proto.Action,
@@ -70,7 +70,7 @@ func CreatePermissionFromProto(proto *authv1.CreatePermissionData) (*auth_models
 		CreatedBy:        proto.CreatedBy,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
-		Metadata: auth_models.PermissionMetadata{
+		Metadata: model_auth.PermissionMetadata{
 			Module:  "", // Could be derived from resource
 			UIGroup: "", // Could be set based on category
 		},
@@ -85,12 +85,12 @@ func CreatePermissionFromProto(proto *authv1.CreatePermissionData) (*auth_models
 
 // UpdatePermissionFromProto applies updates from gRPC UpdatePermissionData to existing Permission
 // Only updates fields that are provided (non-nil for optional fields)
-func UpdatePermissionFromProto(existing *auth_models.Permission, proto *authv1.UpdatePermissionData) error {
+func UpdatePermissionFromProto(existing *model_auth.Permission, proto *proto_auth.UpdatePermissionData) error {
 	if existing == nil {
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue, "existing")
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "existing")
 	}
 	if proto == nil {
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue, "proto")
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "proto")
 	}
 
 	// Update only fields that are set (non-nil for optional fields in proto3)
@@ -125,7 +125,7 @@ func UpdatePermissionFromProto(existing *auth_models.Permission, proto *authv1.U
 // PermissionObjectIDFromString converts hex string to primitive.ObjectID
 func PermissionObjectIDFromString(id string) (primitive.ObjectID, error) {
 	if id == "" {
-		return primitive.NilObjectID, erp_errors.Validation(erp_errors.ValidationInvalidValue, "id")
+		return primitive.NilObjectID, infra_error.Validation(infra_error.ValidationInvalidValue, "id")
 	}
 	return primitive.ObjectIDFromHex(id)
 }
@@ -136,7 +136,7 @@ func PermissionObjectIDFromString(id string) (primitive.ObjectID, error) {
 
 // PermissionIdentifierToString converts permission identifier to a string format
 // Format: "resource:action" (e.g., "users:create")
-func PermissionIdentifierToString(identifier *authv1.PermissionIdentifier) string {
+func PermissionIdentifierToString(identifier *proto_auth.PermissionIdentifier) string {
 	if identifier == nil {
 		return ""
 	}
@@ -145,7 +145,7 @@ func PermissionIdentifierToString(identifier *authv1.PermissionIdentifier) strin
 
 // PermissionIdentifierFromString parses a permission string into components
 // Input format: "resource:action" (e.g., "users:create")
-func PermissionIdentifierFromString(permString string) *authv1.PermissionIdentifier {
+func PermissionIdentifierFromString(permString string) *proto_auth.PermissionIdentifier {
 	// This is a simple implementation - you may want to add validation
 	// Parse the permission string (format: "resource:action")
 	// For a more robust implementation, add proper parsing logic
@@ -153,10 +153,10 @@ func PermissionIdentifierFromString(permString string) *authv1.PermissionIdentif
 	if len(permSplt) != 2 {
 		return nil
 	}
-	if !auth_models.IsValidResourceType(permSplt[0]) || !auth_models.IsValidPermissionAction(permSplt[1]) {
+	if !model_auth.IsValidResourceType(permSplt[0]) || !model_auth.IsValidPermissionAction(permSplt[1]) {
 		return nil
 	}
-	return &authv1.PermissionIdentifier{
+	return &proto_auth.PermissionIdentifier{
 		Resource: strings.ToLower(permSplt[0]), // Parse from permString
 		Action:   strings.ToLower(permSplt[1]), // Parse from permString
 	}

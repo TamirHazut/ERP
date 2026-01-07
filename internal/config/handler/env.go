@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"erp.localhost/internal/config/env"
-	"erp.localhost/internal/infra/logging"
-	shared_models "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/logging/logger"
+	model_shared "erp.localhost/internal/infra/model/shared"
 )
 
 var (
@@ -14,11 +14,11 @@ var (
 
 type EnvHandler struct {
 	envVariables map[string]string
-	logger       *logging.Logger
+	logger       logger.Logger
 }
 
 func initEnvHandler() *EnvHandler {
-	logger := logging.NewLogger(shared_models.ModuleConfig)
+	logger := logger.NewBaseLogger(model_shared.ModuleConfig)
 	envFiles, err := os.ReadDir("configs/env")
 	if err != nil {
 		logger.Error("Failed to read env files", "error", err)

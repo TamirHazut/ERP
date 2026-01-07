@@ -1,7 +1,7 @@
 package password
 
 import (
-	erp_errors "erp.localhost/internal/infra/error"
+	infra_error "erp.localhost/internal/infra/error"
 	passwordvalidator "github.com/wagslane/go-password-validator"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -13,11 +13,11 @@ const (
 func HashPassword(password string) (string, error) {
 	err := passwordvalidator.Validate(password, minEntropyBits)
 	if err != nil {
-		return "", erp_errors.Validation(erp_errors.ValidationPasswordTooWeak)
+		return "", infra_error.Validation(infra_error.ValidationPasswordTooWeak)
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", erp_errors.Internal(erp_errors.InternalUnexpectedError, err)
+		return "", infra_error.Internal(infra_error.InternalUnexpectedError, err)
 	}
 	return string(hashedPassword), nil
 }

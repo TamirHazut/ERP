@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"erp.localhost/internal/infra/logging"
+	"erp.localhost/internal/infra/logging/logger"
 )
 
-func LoadEnvironmentVariablesFromFile(filePath string, logger *logging.Logger) map[string]string {
+func LoadEnvironmentVariablesFromFile(filePath string, logger logger.Logger) map[string]string {
 	envVariables := make(map[string]string)
 	file, err := os.Open(filePath)
 	if err != nil {

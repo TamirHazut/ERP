@@ -3,36 +3,25 @@ package collection
 import (
 	"time"
 
-	"erp.localhost/internal/infra/db/mongo"
-	erp_errors "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging"
-	core_models "erp.localhost/internal/infra/model/core"
-	mongo_models "erp.localhost/internal/infra/model/db/mongo"
-	shared_models "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/db/mongo/collection"
+	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/logging/logger"
+	model_core "erp.localhost/internal/infra/model/core"
 )
 
 type UserCollection struct {
-	collection mongo.CollectionHandler[core_models.User]
-	logger     *logging.Logger
+	collection collection.CollectionHandler[model_core.User]
+	logger     logger.Logger
 }
 
-func NewUserCollection(collection mongo.CollectionHandler[core_models.User]) *UserCollection {
-	logger := logging.NewLogger(shared_models.ModuleAuth)
-	if collection == nil {
-		collectionHandler := mongo.NewBaseCollectionHandler[core_models.User](string(mongo_models.UsersCollection), logger)
-		if collectionHandler == nil {
-			logger.Fatal("failed to create users collection handler")
-			return nil
-		}
-		collection = collectionHandler
-	}
+func NewUserCollection(collection collection.CollectionHandler[model_core.User], logger logger.Logger) *UserCollection {
 	return &UserCollection{
 		collection: collection,
 		logger:     logger,
 	}
 }
 
-func (r *UserCollection) CreateUser(user core_models.User) (string, error) {
+func (r *UserCollection) CreateUser(user *model_core.User) (string, error) {
 	if err := user.Validate(true); err != nil {
 		return "", err
 	}
@@ -42,7 +31,7 @@ func (r *UserCollection) CreateUser(user core_models.User) (string, error) {
 	return r.collection.Create(user)
 }
 
-func (r *UserCollection) GetUserByID(tenantID, userID string) (*core_models.User, error) {
+func (r *UserCollection) GetUserByID(tenantID, userID string) (*model_core.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       userID,
@@ -51,7 +40,7 @@ func (r *UserCollection) GetUserByID(tenantID, userID string) (*core_models.User
 	return r.findUserByFilter(filter)
 }
 
-func (r *UserCollection) GetUserByEmail(tenantID, email string) (*core_models.User, error) {
+func (r *UserCollection) GetUserByEmail(tenantID, email string) (*model_core.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"email":     email,
@@ -60,7 +49,7 @@ func (r *UserCollection) GetUserByEmail(tenantID, email string) (*core_models.Us
 	return r.findUserByFilter(filter)
 }
 
-func (r *UserCollection) GetUserByUsername(tenantID, username string) (*core_models.User, error) {
+func (r *UserCollection) GetUserByUsername(tenantID, username string) (*model_core.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"username":  username,
@@ -69,7 +58,7 @@ func (r *UserCollection) GetUserByUsername(tenantID, username string) (*core_mod
 	return r.findUserByFilter(filter)
 }
 
-func (r *UserCollection) GetUsersByTenantID(tenantID string) ([]core_models.User, error) {
+func (r *UserCollection) GetUsersByTenantID(tenantID string) ([]*model_core.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
@@ -77,7 +66,7 @@ func (r *UserCollection) GetUsersByTenantID(tenantID string) ([]core_models.User
 	return r.findUsersByFilter(filter)
 }
 
-func (r *UserCollection) GetUsersByRoleID(tenantID, roleID string) ([]core_models.User, error) {
+func (r *UserCollection) GetUsersByRoleID(tenantID, roleID string) ([]*model_core.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"role_id":   roleID,
@@ -86,7 +75,7 @@ func (r *UserCollection) GetUsersByRoleID(tenantID, roleID string) ([]core_model
 	return r.findUsersByFilter(filter)
 }
 
-func (r *UserCollection) UpdateUser(user core_models.User) error {
+func (r *UserCollection) UpdateUser(user *model_core.User) error {
 	if err := user.Validate(false); err != nil {
 		return err
 	}
@@ -98,7 +87,7 @@ func (r *UserCollection) UpdateUser(user core_models.User) error {
 	}
 	if user.Username != currentUser.Username ||
 		user.CreatedAt != currentUser.CreatedAt {
-		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "Username", "CreatedAt")
+		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields, "Username", "CreatedAt")
 	}
 	filter := map[string]any{
 		"tenant_id": user.TenantID,
@@ -110,7 +99,7 @@ func (r *UserCollection) UpdateUser(user core_models.User) error {
 
 func (r *UserCollection) DeleteUser(tenantID, userID string) error {
 	if tenantID == "" || userID == "" {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID", "UserID")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID", "UserID")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
@@ -120,9 +109,9 @@ func (r *UserCollection) DeleteUser(tenantID, userID string) error {
 	return r.collection.Delete(filter)
 }
 
-func (r *UserCollection) findUserByFilter(filter map[string]any) (*core_models.User, error) {
+func (r *UserCollection) findUserByFilter(filter map[string]any) (*model_core.User, error) {
 	if _, ok := filter["tenant_id"]; !ok {
-		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id")
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}
 	user, err := r.collection.FindOne(filter)
 	if err != nil {
@@ -131,9 +120,9 @@ func (r *UserCollection) findUserByFilter(filter map[string]any) (*core_models.U
 	return user, nil
 }
 
-func (r *UserCollection) findUsersByFilter(filter map[string]any) ([]core_models.User, error) {
+func (r *UserCollection) findUsersByFilter(filter map[string]any) ([]*model_core.User, error) {
 	if _, ok := filter["tenant_id"]; !ok {
-		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenant_id")
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}
 	users, err := r.collection.FindAll(filter)
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 type ServiceConfig struct {
 	ID          primitive.ObjectID     `bson:"_id,omitempty" json:"id"`
 	ConfigID    string                 `bson:"config_id" json:"config_id"`
-	ServiceName string                 `bson:"service_name" json:"service_name"` // core, auth, gateway, events
+	ServiceName string                 `bson:"service_name" json:"service_name"` // core, auth, gateway, event
 	Environment string                 `bson:"environment" json:"environment"`   // development, staging, production
 	TenantID    string                 `bson:"tenant_id,omitempty" json:"tenant_id,omitempty"`
 	Config      map[string]interface{} `bson:"config" json:"config"`

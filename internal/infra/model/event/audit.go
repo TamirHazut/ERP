@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	erp_errors "erp.localhost/internal/infra/error"
-	auth_models "erp.localhost/internal/infra/model/auth"
+	infra_error "erp.localhost/internal/infra/error"
+	model_auth "erp.localhost/internal/infra/model/auth"
 )
 
 type AuditLog struct {
@@ -111,37 +111,37 @@ func (a *AuditLog) Validate() error {
 	}
 
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
 
 	// Validate category
-	if !auth_models.IsValidCategory(a.Category) {
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue, "Category", a.Category)
+	if !model_auth.IsValidCategory(a.Category) {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "Category", a.Category)
 	}
 
 	// Validate action (basic check - action should not be empty and should be reasonable length)
 	if len(a.Action) > 100 {
-		return erp_errors.Validation(erp_errors.ValidationOutOfRange, "Action", a.Action)
+		return infra_error.Validation(infra_error.ValidationOutOfRange, "Action", a.Action)
 	}
 
 	// Validate severity
-	if !auth_models.IsValidSeverity(a.Severity) {
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue, "Severity", a.Severity)
+	if !model_auth.IsValidSeverity(a.Severity) {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "Severity", a.Severity)
 	}
 
 	// Validate result
-	if !auth_models.IsValidResult(a.Result) {
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue, "Result", a.Result)
+	if !model_auth.IsValidResult(a.Result) {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "Result", a.Result)
 	}
 
 	// Validate actor type if provided
-	if !auth_models.IsValidActorType(a.ActorType) {
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue, "ActorType", a.ActorType)
+	if !model_auth.IsValidActorType(a.ActorType) {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "ActorType", a.ActorType)
 	}
 
 	// Validate target type if provided
-	if !auth_models.IsValidTargetType(a.TargetType) {
-		return erp_errors.Validation(erp_errors.ValidationInvalidValue, "TargetType", a.TargetType)
+	if !model_auth.IsValidTargetType(a.TargetType) {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "TargetType", a.TargetType)
 	}
 
 	// Logical validations
@@ -171,7 +171,7 @@ func (c *Changes) Validate() error {
 	}
 
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
 
 	errors := []string{}
@@ -180,27 +180,27 @@ func (c *Changes) Validate() error {
 	if c.Fields != nil {
 		for fieldName, change := range c.Fields {
 			if fieldName == "" {
-				errors = append(errors, erp_errors.Validation(erp_errors.ValidationRequiredFields, "FieldName").Error())
+				errors = append(errors, infra_error.Validation(infra_error.ValidationRequiredFields, "FieldName").Error())
 			}
 
 			if change == nil {
-				errors = append(errors, erp_errors.Validation(erp_errors.ValidationRequiredFields, "FieldChange for "+fieldName).Error())
+				errors = append(errors, infra_error.Validation(infra_error.ValidationRequiredFields, "FieldChange for "+fieldName).Error())
 			}
 
 			// At least one of old or new value should be set
 			if change != nil && change.OldValue == nil && change.NewValue == nil {
-				errors = append(errors, erp_errors.Validation(erp_errors.ValidationRequiredFields, "FieldChange for "+fieldName+" must have at least old_value or new_value").Error())
+				errors = append(errors, infra_error.Validation(infra_error.ValidationRequiredFields, "FieldChange for "+fieldName+" must have at least old_value or new_value").Error())
 			}
 		}
 	}
 
 	// StatusFrom and StatusTo should be different
 	if c.StatusFrom != "" && c.StatusTo != "" && c.StatusFrom == c.StatusTo {
-		errors = append(errors, erp_errors.Validation(erp_errors.ValidationInvalidValue, "StatusFrom and StatusTo must be different").Error())
+		errors = append(errors, infra_error.Validation(infra_error.ValidationInvalidValue, "StatusFrom and StatusTo must be different").Error())
 	}
 
 	if len(errors) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, errors...)
+		return infra_error.Validation(infra_error.ValidationRequiredFields, errors...)
 	}
 
 	return nil
@@ -236,7 +236,7 @@ func (c *AuditContext) Validate() error {
 	}
 
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
 
 	return nil

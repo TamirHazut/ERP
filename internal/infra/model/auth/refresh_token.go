@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	erp_errors "erp.localhost/internal/infra/error"
+	infra_error "erp.localhost/internal/infra/error"
 )
 
 // RefreshToken - Refresh token stored in database/Redis
@@ -41,10 +41,10 @@ func (r *RefreshToken) Validate() error {
 		missingFields = append(missingFields, "CreatedAt")
 	}
 	if len(missingFields) > 0 {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, missingFields...)
+		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
 	if r.IsExpired() {
-		return erp_errors.Auth(erp_errors.AuthRefreshTokenExpired)
+		return infra_error.Auth(infra_error.AuthRefreshTokenExpired)
 	}
 	return nil
 }

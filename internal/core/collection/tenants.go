@@ -3,36 +3,25 @@ package collection
 import (
 	"time"
 
-	"erp.localhost/internal/infra/db/mongo"
-	erp_errors "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging"
-	core_models "erp.localhost/internal/infra/model/core"
-	mongo_models "erp.localhost/internal/infra/model/db/mongo"
-	shared_models "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/db/mongo/collection"
+	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/logging/logger"
+	model_core "erp.localhost/internal/infra/model/core"
 )
 
 type TenantCollection struct {
-	collection mongo.CollectionHandler[core_models.Tenant]
-	logger     *logging.Logger
+	collection collection.CollectionHandler[model_core.Tenant]
+	logger     logger.Logger
 }
 
-func NewTenantCollection(collection mongo.CollectionHandler[core_models.Tenant]) *TenantCollection {
-	logger := logging.NewLogger(shared_models.ModuleAuth)
-	if collection == nil {
-		collectionHandler := mongo.NewBaseCollectionHandler[core_models.Tenant](string(mongo_models.TenantsCollection), logger)
-		if collectionHandler == nil {
-			logger.Fatal("failed to create tenants collection handler")
-			return nil
-		}
-		collection = collectionHandler
-	}
+func NewTenantCollection(collection collection.CollectionHandler[model_core.Tenant], logger logger.Logger) *TenantCollection {
 	return &TenantCollection{
 		collection: collection,
 		logger:     logger,
 	}
 }
 
-func (r *TenantCollection) CreateTenant(tenant core_models.Tenant) (string, error) {
+func (r *TenantCollection) CreateTenant(tenant *model_core.Tenant) (string, error) {
 	if err := tenant.Validate(true); err != nil {
 		return "", err
 	}
@@ -42,9 +31,9 @@ func (r *TenantCollection) CreateTenant(tenant core_models.Tenant) (string, erro
 	return r.collection.Create(tenant)
 }
 
-func (r *TenantCollection) GetTenantByID(tenantID string) (*core_models.Tenant, error) {
+func (r *TenantCollection) GetTenantByID(tenantID string) (*model_core.Tenant, error) {
 	if tenantID == "" {
-		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID")
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID")
 	}
 	filter := map[string]any{
 		"_id": tenantID,
@@ -57,7 +46,7 @@ func (r *TenantCollection) GetTenantByID(tenantID string) (*core_models.Tenant, 
 	return tenant, nil
 }
 
-func (r *TenantCollection) UpdateTenant(tenant core_models.Tenant) error {
+func (r *TenantCollection) UpdateTenant(tenant *model_core.Tenant) error {
 	if err := tenant.Validate(false); err != nil {
 		return err
 	}
@@ -70,7 +59,7 @@ func (r *TenantCollection) UpdateTenant(tenant core_models.Tenant) error {
 		return err
 	}
 	if tenant.CreatedAt != currentTenant.CreatedAt {
-		return erp_errors.Validation(erp_errors.ValidationTryToChangeRestrictedFields, "CreatedAt")
+		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields, "CreatedAt")
 	}
 	tenant.UpdatedAt = time.Now()
 	return r.collection.Update(filter, tenant)
@@ -78,7 +67,7 @@ func (r *TenantCollection) UpdateTenant(tenant core_models.Tenant) error {
 
 func (r *TenantCollection) DeleteTenant(tenantID string) error {
 	if tenantID == "" {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "TenantID")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID")
 	}
 	filter := map[string]any{
 		"_id": tenantID,

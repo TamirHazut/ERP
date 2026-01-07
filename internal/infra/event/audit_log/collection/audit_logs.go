@@ -3,39 +3,28 @@ package collection
 import (
 	"time"
 
-	"erp.localhost/internal/infra/db/mongo"
-	erp_errors "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging"
-	mongo_models "erp.localhost/internal/infra/model/db/mongo"
-	events_models "erp.localhost/internal/infra/model/event"
-	shared_models "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/db/mongo/collection"
+	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/logging/logger"
+	model_event "erp.localhost/internal/infra/model/event"
 )
 
 // TODO: move this to Events service and consume from kafka topics
 type AuditLogsCollection struct {
-	collection mongo.CollectionHandler[events_models.AuditLog]
-	logger     *logging.Logger
+	collection collection.CollectionHandler[model_event.AuditLog]
+	logger     logger.Logger
 }
 
-func NewAuditLogsCollection(collection mongo.CollectionHandler[events_models.AuditLog]) *AuditLogsCollection {
-	logger := logging.NewLogger(shared_models.ModuleAuth)
-	if collection == nil {
-		collectionHandler := mongo.NewBaseCollectionHandler[events_models.AuditLog](string(mongo_models.AuditLogsCollection), logger)
-		if collectionHandler == nil {
-			logger.Fatal("failed to create audit logs collection handler")
-			return nil
-		}
-		collection = collectionHandler
-	}
+func NewAuditLogsCollection(collection collection.CollectionHandler[model_event.AuditLog], logger logger.Logger) *AuditLogsCollection {
 	return &AuditLogsCollection{
 		collection: collection,
 		logger:     logger,
 	}
 }
 
-func (c *AuditLogsCollection) CreateAuditLog(tenantID string, auditLog events_models.AuditLog) error {
+func (c *AuditLogsCollection) CreateAuditLog(tenantID string, auditLog *model_event.AuditLog) error {
 	if tenantID == "" {
-		return erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenantID")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "tenantID")
 	}
 	auditLog.TenantID = tenantID
 	if err := auditLog.Validate(); err != nil {
@@ -67,9 +56,9 @@ func (c *AuditLogsCollection) CreateAuditLog(tenantID string, auditLog events_mo
 // - resource_type
 // - resource_id
 // - resource_name
-func (c *AuditLogsCollection) GetAuditLogsByFilter(tenantID string, filter map[string]any) ([]events_models.AuditLog, error) {
+func (c *AuditLogsCollection) GetAuditLogsByFilter(tenantID string, filter map[string]any) ([]*model_event.AuditLog, error) {
 	if tenantID == "" {
-		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenantID")
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenantID")
 	}
 	if filter == nil {
 		filter = make(map[string]any)

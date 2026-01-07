@@ -3,7 +3,7 @@ package redis
 import (
 	"time"
 
-	core_models "erp.localhost/internal/infra/model/core"
+	model_core "erp.localhost/internal/infra/model/core"
 )
 
 // ============================================================================
@@ -16,14 +16,14 @@ import (
 // TTL: 10 minutes
 // Used by: Gateway (for auth checks), Core (for user lookups), Events (for notifications)
 type UserCache struct {
-	UserID   string                  `json:"user_id"`
-	TenantID string                  `json:"tenant_id"`
-	Email    string                  `json:"email"`
-	Username string                  `json:"username"`
-	Profile  core_models.UserProfile `json:"profile"`
-	Status   string                  `json:"status"`
-	Roles    []string                `json:"roles"`
-	CachedAt time.Time               `json:"cached_at"`
+	UserID   string                 `json:"user_id"`
+	TenantID string                 `json:"tenant_id"`
+	Email    string                 `json:"email"`
+	Username string                 `json:"username"`
+	Profile  model_core.UserProfile `json:"profile"`
+	Status   string                 `json:"status"`
+	Roles    []string               `json:"roles"`
+	CachedAt time.Time              `json:"cached_at"`
 }
 
 // TenantCache represents cached tenant data
@@ -31,12 +31,12 @@ type UserCache struct {
 // TTL: 30 minutes
 // Used by: All services for tenant validation and settings
 type TenantCache struct {
-	TenantID     string                     `json:"tenant_id"`
-	Name         string                     `json:"name"`
-	Status       string                     `json:"status"`
-	Subscription core_models.Subscription   `json:"subscription"`
-	Settings     core_models.TenantSettings `json:"settings"`
-	CachedAt     time.Time                  `json:"cached_at"`
+	TenantID     string                    `json:"tenant_id"`
+	Name         string                    `json:"name"`
+	Status       string                    `json:"status"`
+	Subscription model_core.Subscription   `json:"subscription"`
+	Settings     model_core.TenantSettings `json:"settings"`
+	CachedAt     time.Time                 `json:"cached_at"`
 }
 
 // ProductCache represents cached product data
@@ -44,14 +44,14 @@ type TenantCache struct {
 // TTL: 15 minutes
 // Used by: Core (product lookups), Gateway (GraphQL resolvers), Events (inventory updates)
 type ProductCache struct {
-	ProductID string                       `json:"product_id"`
-	TenantID  string                       `json:"tenant_id"`
-	SKU       string                       `json:"sku"`
-	Name      string                       `json:"name"`
-	Price     float64                      `json:"price"`
-	Inventory core_models.ProductInventory `json:"inventory"`
-	Status    string                       `json:"status"`
-	CachedAt  time.Time                    `json:"cached_at"`
+	ProductID string                      `json:"product_id"`
+	TenantID  string                      `json:"tenant_id"`
+	SKU       string                      `json:"sku"`
+	Name      string                      `json:"name"`
+	Price     float64                     `json:"price"`
+	Inventory model_core.ProductInventory `json:"inventory"`
+	Status    string                      `json:"status"`
+	CachedAt  time.Time                   `json:"cached_at"`
 }
 
 // OrderCache represents cached order data
