@@ -7,5 +7,7 @@ type ConfigService struct {
 }
 
 func NewConfigService() *ConfigService {
-	return &ConfigService{}
+	return &ConfigService{
+		configs: make(map[shared_models.Module]ConfigService),
+	}
 }

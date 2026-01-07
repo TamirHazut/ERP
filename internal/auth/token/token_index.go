@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"erp.localhost/internal/infra/db/redis"
-	redis_handlers "erp.localhost/internal/infra/db/redis/handlers"
+	redis_handler "erp.localhost/internal/infra/db/redis/handler"
 	erp_errors "erp.localhost/internal/infra/error"
 	logging "erp.localhost/internal/infra/logging"
 	redis_models "erp.localhost/internal/infra/model/db/redis"
@@ -22,21 +22,21 @@ var (
 // Key pattern: user_access_tokens:{tenant_id}:{user_id} -> Set of token_ids
 // Key pattern: user_refresh_tokens:{tenant_id}:{user_id} -> Set of token_ids
 type TokenIndex struct {
-	accessTokenSetHandler  redis_handlers.SetHandler
-	refreshTokenSetHandler redis_handlers.SetHandler
+	accessTokenSetHandler  redis_handler.SetHandler
+	refreshTokenSetHandler redis_handler.SetHandler
 	logger                 *logging.Logger
 }
 
 // NewTokenIndex creates a new TokenIndex
-func NewTokenIndex(accessTokenSetHandler redis_handlers.SetHandler, refreshTokenSetHandler redis_handlers.SetHandler) *TokenIndex {
+func NewTokenIndex(accessTokenSetHandler redis_handler.SetHandler, refreshTokenSetHandler redis_handler.SetHandler) *TokenIndex {
 	logger := logging.NewLogger(shared_models.ModuleAuth)
 	if accessTokenSetHandler == nil {
 		accessTokenRedisHandler := redis.NewBaseRedisHandler(redis_models.KeyPrefix(redis_models.RedisKeyUserAccessTokens))
-		accessTokenSetHandler = redis_handlers.NewBaseSetHandler(accessTokenRedisHandler, logger)
+		accessTokenSetHandler = redis_handler.NewBaseSetHandler(accessTokenRedisHandler, logger)
 	}
 	if refreshTokenSetHandler == nil {
 		refreshTokenRedisHandler := redis.NewBaseRedisHandler(redis_models.KeyPrefix(redis_models.RedisKeyUserRefreshTokens))
-		refreshTokenSetHandler = redis_handlers.NewBaseSetHandler(refreshTokenRedisHandler, logger)
+		refreshTokenSetHandler = redis_handler.NewBaseSetHandler(refreshTokenRedisHandler, logger)
 	}
 
 	return &TokenIndex{

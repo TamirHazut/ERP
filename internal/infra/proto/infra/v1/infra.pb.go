@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.2
-// source: infra.proto
+// source: infra/v1/infra.proto
 
 package infrav1
 
@@ -67,11 +67,11 @@ func (x ErrorCategory) String() string {
 }
 
 func (ErrorCategory) Descriptor() protoreflect.EnumDescriptor {
-	return file_infra_proto_enumTypes[0].Descriptor()
+	return file_infra_v1_infra_proto_enumTypes[0].Descriptor()
 }
 
 func (ErrorCategory) Type() protoreflect.EnumType {
-	return &file_infra_proto_enumTypes[0]
+	return &file_infra_v1_infra_proto_enumTypes[0]
 }
 
 func (x ErrorCategory) Number() protoreflect.EnumNumber {
@@ -80,7 +80,7 @@ func (x ErrorCategory) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ErrorCategory.Descriptor instead.
 func (ErrorCategory) EnumDescriptor() ([]byte, []int) {
-	return file_infra_proto_rawDescGZIP(), []int{0}
+	return file_infra_v1_infra_proto_rawDescGZIP(), []int{0}
 }
 
 // Common error response
@@ -96,7 +96,7 @@ type Error struct {
 
 func (x *Error) Reset() {
 	*x = Error{}
-	mi := &file_infra_proto_msgTypes[0]
+	mi := &file_infra_v1_infra_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -108,7 +108,7 @@ func (x *Error) String() string {
 func (*Error) ProtoMessage() {}
 
 func (x *Error) ProtoReflect() protoreflect.Message {
-	mi := &file_infra_proto_msgTypes[0]
+	mi := &file_infra_v1_infra_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -121,7 +121,7 @@ func (x *Error) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Error.ProtoReflect.Descriptor instead.
 func (*Error) Descriptor() ([]byte, []int) {
-	return file_infra_proto_rawDescGZIP(), []int{0}
+	return file_infra_v1_infra_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Error) GetCode() string {
@@ -163,7 +163,7 @@ type Response struct {
 
 func (x *Response) Reset() {
 	*x = Response{}
-	mi := &file_infra_proto_msgTypes[1]
+	mi := &file_infra_v1_infra_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +175,7 @@ func (x *Response) String() string {
 func (*Response) ProtoMessage() {}
 
 func (x *Response) ProtoReflect() protoreflect.Message {
-	mi := &file_infra_proto_msgTypes[1]
+	mi := &file_infra_v1_infra_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +188,7 @@ func (x *Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Response.ProtoReflect.Descriptor instead.
 func (*Response) Descriptor() ([]byte, []int) {
-	return file_infra_proto_rawDescGZIP(), []int{1}
+	return file_infra_v1_infra_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Response) GetSuccess() bool {
@@ -216,7 +216,7 @@ type PaginationRequest struct {
 
 func (x *PaginationRequest) Reset() {
 	*x = PaginationRequest{}
-	mi := &file_infra_proto_msgTypes[2]
+	mi := &file_infra_v1_infra_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -228,7 +228,7 @@ func (x *PaginationRequest) String() string {
 func (*PaginationRequest) ProtoMessage() {}
 
 func (x *PaginationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_infra_proto_msgTypes[2]
+	mi := &file_infra_v1_infra_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -241,7 +241,7 @@ func (x *PaginationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PaginationRequest.ProtoReflect.Descriptor instead.
 func (*PaginationRequest) Descriptor() ([]byte, []int) {
-	return file_infra_proto_rawDescGZIP(), []int{2}
+	return file_infra_v1_infra_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *PaginationRequest) GetPage() int32 {
@@ -273,7 +273,7 @@ type PaginationResponse struct {
 
 func (x *PaginationResponse) Reset() {
 	*x = PaginationResponse{}
-	mi := &file_infra_proto_msgTypes[3]
+	mi := &file_infra_v1_infra_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -285,7 +285,7 @@ func (x *PaginationResponse) String() string {
 func (*PaginationResponse) ProtoMessage() {}
 
 func (x *PaginationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_infra_proto_msgTypes[3]
+	mi := &file_infra_v1_infra_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -298,7 +298,7 @@ func (x *PaginationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PaginationResponse.ProtoReflect.Descriptor instead.
 func (*PaginationResponse) Descriptor() ([]byte, []int) {
-	return file_infra_proto_rawDescGZIP(), []int{3}
+	return file_infra_v1_infra_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PaginationResponse) GetPage() int32 {
@@ -343,11 +343,63 @@ func (x *PaginationResponse) GetHasPrev() bool {
 	return false
 }
 
-var File_infra_proto protoreflect.FileDescriptor
+type UserIdentifier struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_infra_proto_rawDesc = "" +
+func (x *UserIdentifier) Reset() {
+	*x = UserIdentifier{}
+	mi := &file_infra_v1_infra_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserIdentifier) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserIdentifier) ProtoMessage() {}
+
+func (x *UserIdentifier) ProtoReflect() protoreflect.Message {
+	mi := &file_infra_v1_infra_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserIdentifier.ProtoReflect.Descriptor instead.
+func (*UserIdentifier) Descriptor() ([]byte, []int) {
+	return file_infra_v1_infra_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UserIdentifier) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *UserIdentifier) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+var File_infra_v1_infra_proto protoreflect.FileDescriptor
+
+const file_infra_v1_infra_proto_rawDesc = "" +
 	"\n" +
-	"\vinfra.proto\x12\binfra.v1\"\xde\x01\n" +
+	"\x14infra/v1/infra.proto\x12\binfra.v1\"\xde\x01\n" +
 	"\x05Error\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x123\n" +
@@ -370,7 +422,10 @@ const file_infra_proto_rawDesc = "" +
 	"\vtotal_pages\x18\x04 \x01(\x05R\n" +
 	"totalPages\x12\x19\n" +
 	"\bhas_next\x18\x05 \x01(\bR\ahasNext\x12\x19\n" +
-	"\bhas_prev\x18\x06 \x01(\bR\ahasPrev*\xdc\x01\n" +
+	"\bhas_prev\x18\x06 \x01(\bR\ahasPrev\"F\n" +
+	"\x0eUserIdentifier\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId*\xdc\x01\n" +
 	"\rErrorCategory\x12\x1e\n" +
 	"\x1aERROR_CATEGORY_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13ERROR_CATEGORY_AUTH\x10\x01\x12\x1d\n" +
@@ -381,30 +436,31 @@ const file_infra_proto_rawDesc = "" +
 	"\x17ERROR_CATEGORY_INTERNAL\x10\x06B5Z3erp.localhost/internal/infra/proto/infra/v1;infrav1b\x06proto3"
 
 var (
-	file_infra_proto_rawDescOnce sync.Once
-	file_infra_proto_rawDescData []byte
+	file_infra_v1_infra_proto_rawDescOnce sync.Once
+	file_infra_v1_infra_proto_rawDescData []byte
 )
 
-func file_infra_proto_rawDescGZIP() []byte {
-	file_infra_proto_rawDescOnce.Do(func() {
-		file_infra_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_infra_proto_rawDesc), len(file_infra_proto_rawDesc)))
+func file_infra_v1_infra_proto_rawDescGZIP() []byte {
+	file_infra_v1_infra_proto_rawDescOnce.Do(func() {
+		file_infra_v1_infra_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_infra_v1_infra_proto_rawDesc), len(file_infra_v1_infra_proto_rawDesc)))
 	})
-	return file_infra_proto_rawDescData
+	return file_infra_v1_infra_proto_rawDescData
 }
 
-var file_infra_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_infra_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_infra_proto_goTypes = []any{
+var file_infra_v1_infra_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_infra_v1_infra_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_infra_v1_infra_proto_goTypes = []any{
 	(ErrorCategory)(0),         // 0: infra.v1.ErrorCategory
 	(*Error)(nil),              // 1: infra.v1.Error
 	(*Response)(nil),           // 2: infra.v1.Response
 	(*PaginationRequest)(nil),  // 3: infra.v1.PaginationRequest
 	(*PaginationResponse)(nil), // 4: infra.v1.PaginationResponse
-	nil,                        // 5: infra.v1.Error.DetailsEntry
+	(*UserIdentifier)(nil),     // 5: infra.v1.UserIdentifier
+	nil,                        // 6: infra.v1.Error.DetailsEntry
 }
-var file_infra_proto_depIdxs = []int32{
+var file_infra_v1_infra_proto_depIdxs = []int32{
 	0, // 0: infra.v1.Error.category:type_name -> infra.v1.ErrorCategory
-	5, // 1: infra.v1.Error.details:type_name -> infra.v1.Error.DetailsEntry
+	6, // 1: infra.v1.Error.details:type_name -> infra.v1.Error.DetailsEntry
 	1, // 2: infra.v1.Response.error:type_name -> infra.v1.Error
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
@@ -413,27 +469,27 @@ var file_infra_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_infra_proto_init() }
-func file_infra_proto_init() {
-	if File_infra_proto != nil {
+func init() { file_infra_v1_infra_proto_init() }
+func file_infra_v1_infra_proto_init() {
+	if File_infra_v1_infra_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_infra_proto_rawDesc), len(file_infra_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_infra_v1_infra_proto_rawDesc), len(file_infra_v1_infra_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_infra_proto_goTypes,
-		DependencyIndexes: file_infra_proto_depIdxs,
-		EnumInfos:         file_infra_proto_enumTypes,
-		MessageInfos:      file_infra_proto_msgTypes,
+		GoTypes:           file_infra_v1_infra_proto_goTypes,
+		DependencyIndexes: file_infra_v1_infra_proto_depIdxs,
+		EnumInfos:         file_infra_v1_infra_proto_enumTypes,
+		MessageInfos:      file_infra_v1_infra_proto_msgTypes,
 	}.Build()
-	File_infra_proto = out.File
-	file_infra_proto_goTypes = nil
-	file_infra_proto_depIdxs = nil
+	File_infra_v1_infra_proto = out.File
+	file_infra_v1_infra_proto_goTypes = nil
+	file_infra_v1_infra_proto_depIdxs = nil
 }

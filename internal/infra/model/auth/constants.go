@@ -56,6 +56,7 @@ func IsValidTenantStatus(tenantStatus string) bool {
 }
 
 /* RBAC */
+
 func CreatePermissionString(resource string, action string) (string, error) {
 	resource = strings.ToLower(resource)
 	if !IsValidResourceType(resource) {
@@ -67,6 +68,24 @@ func CreatePermissionString(resource string, action string) (string, error) {
 	}
 
 	return fmt.Sprintf("%s:%s", resource, action), nil
+}
+
+// Permission status
+const (
+	PermissionStatusActive   = "active"
+	PermissionStatusInactive = "inactive"
+)
+
+func IsValidPermissionStatus(permissionStatus string) bool {
+	if permissionStatus == "" {
+		return false
+	}
+	permissionStatus = strings.ToLower(permissionStatus)
+	validPermissionActions := map[string]bool{
+		PermissionStatusActive:   true,
+		PermissionStatusInactive: true,
+	}
+	return validPermissionActions[permissionStatus]
 }
 
 // Permission formats

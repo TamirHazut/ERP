@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	collection "erp.localhost/internal/core/collections"
+	collection "erp.localhost/internal/core/collection"
 	mongo "erp.localhost/internal/infra/db/mongo"
 	"erp.localhost/internal/infra/logging"
 	core_models "erp.localhost/internal/infra/model/core"
@@ -15,11 +15,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func newCollectionHandler[T any](collection string) *mongo.BaseCollectionHandler[T] {
-	logger := logging.NewLogger(shared_models.ModuleCore)
-	return mongo.NewBaseCollectionHandler[T](string(collection), logger)
-}
-
 type UserService struct {
 	logger         *logging.Logger
 	userCollection *collection.UserCollection
@@ -28,7 +23,8 @@ type UserService struct {
 
 func NewUserService() *UserService {
 	logger := logging.NewLogger(shared_models.ModuleAuth)
-	userCollectionHandler := newCollectionHandler[core_models.User](string(mongo_models.UsersCollection))
+
+	userCollectionHandler := mongo.NewBaseCollectionHandler[core_models.User](string(mongo_models.UsersCollection), logger)
 	if userCollectionHandler == nil {
 		logger.Fatal("failed to create users collection handler")
 		return nil
@@ -44,7 +40,7 @@ func NewUserService() *UserService {
 	}
 }
 
-func (s *UserService) CreateUser(ctx context.Context, req *core_proto.CreateUserRequest) (*core_proto.CreateUserResponse, error) {
+func (s *UserService) CreateUser(ctx context.Context, req *core_proto.CreateUserRequest) (*core_proto.UserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUser not implemented")
 }
 

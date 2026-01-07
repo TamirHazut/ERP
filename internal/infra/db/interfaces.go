@@ -1,6 +1,6 @@
 package db
 
-//go:generate mockgen -destination=mocks/mock_db_handler.go -package=mocks erp.localhost/internal/infra/db DBHandler
+//go:generate mockgen -destination=mock/mock_db_handler.go -package=mock erp.localhost/internal/infra/db DBHandler
 
 type DBHandler interface {
 	Close() error

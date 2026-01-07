@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	mongo_mocks "erp.localhost/internal/infra/db/mongo/mocks"
+	mongo_mock "erp.localhost/internal/infra/db/mongo/mock"
 	erp_errors "erp.localhost/internal/infra/error"
 	auth_models "erp.localhost/internal/infra/model/auth"
 	events_models "erp.localhost/internal/infra/model/event"
@@ -47,7 +47,7 @@ func TestNewAuditLogsCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockHandler := mongo_mocks.NewMockCollectionHandler[events_models.AuditLog](ctrl)
+	mockHandler := mongo_mock.NewMockCollectionHandler[events_models.AuditLog](ctrl)
 	collection := NewAuditLogsCollection(mockHandler)
 
 	require.NotNil(t, collection)
@@ -135,7 +135,7 @@ func TestAuditLogsCollection_CreateAuditLog(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[events_models.AuditLog](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[events_models.AuditLog](ctrl)
 
 			// Only expect Create call if we expect it to be called
 			if tc.expectedCallTimes > 0 {
@@ -294,7 +294,7 @@ func TestAuditLogsCollection_GetAuditLogsByFilter(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[events_models.AuditLog](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[events_models.AuditLog](ctrl)
 			// Only expect FindAll call if we expect it to be called
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().

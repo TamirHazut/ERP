@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	db_mocks "erp.localhost/internal/infra/db/mocks"
+	db_mock "erp.localhost/internal/infra/db/mock"
 	"erp.localhost/internal/infra/logging"
 	shared_models "erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +46,7 @@ func TestCollection_Create(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockHandler := db_mocks.NewMockDBHandler(ctrl)
+			mockHandler := db_mock.NewMockDBHandler(ctrl)
 			mockHandler.EXPECT().Create(tc.collection, tc.data).Return(tc.returnID, tc.returnError)
 
 			collectionHanlder := BaseCollectionHandler[TestModel]{
@@ -101,7 +101,7 @@ func TestCollection_FindOne(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockHandler := db_mocks.NewMockDBHandler(ctrl)
+			mockHandler := db_mock.NewMockDBHandler(ctrl)
 			mockHandler.EXPECT().FindOne(tc.collection, tc.filter).Return(tc.returnModel, tc.returnError)
 
 			collectionHanlder := BaseCollectionHandler[TestModel]{
@@ -164,7 +164,7 @@ func TestCollection_FindAll(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockHandler := db_mocks.NewMockDBHandler(ctrl)
+			mockHandler := db_mock.NewMockDBHandler(ctrl)
 			mockHandler.EXPECT().FindAll(tc.collection, tc.filter).Return(tc.returnModels, tc.returnError)
 
 			collectionHanlder := BaseCollectionHandler[TestModel]{
@@ -222,7 +222,7 @@ func TestCollection_Update(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockHandler := db_mocks.NewMockDBHandler(ctrl)
+			mockHandler := db_mock.NewMockDBHandler(ctrl)
 			mockHandler.EXPECT().Update(tc.collection, tc.filter, tc.item).Return(tc.returnError).Times(tc.expectedCallTimes)
 
 			collectionHanlder := BaseCollectionHandler[TestModel]{
@@ -275,7 +275,7 @@ func TestCollection_Delete(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockHandler := db_mocks.NewMockDBHandler(ctrl)
+			mockHandler := db_mock.NewMockDBHandler(ctrl)
 			mockHandler.EXPECT().Delete(tc.collection, tc.filter).Return(tc.returnError).Times(tc.expectedCallTimes)
 
 			collectionHanlder := BaseCollectionHandler[TestModel]{

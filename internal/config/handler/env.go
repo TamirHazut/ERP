@@ -3,7 +3,7 @@ package handler
 import (
 	"os"
 
-	"erp.localhost/internal/config/utils"
+	"erp.localhost/internal/config/env"
 	"erp.localhost/internal/infra/logging"
 	shared_models "erp.localhost/internal/infra/model/shared"
 )
@@ -26,7 +26,7 @@ func initEnvHandler() *EnvHandler {
 	}
 	envVariables := make(map[string]string)
 	for _, envFile := range envFiles {
-		envVariables := utils.LoadEnvironmentVariablesFromFile(envFile.Name(), logger)
+		envVariables := env.LoadEnvironmentVariablesFromFile(envFile.Name(), logger)
 		for key, value := range envVariables {
 			envVariables[key] = value
 		}

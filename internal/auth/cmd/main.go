@@ -30,8 +30,14 @@ func Main() {
 	if certs == nil {
 		return
 	}
+	rbacService := service.NewRBACService()
+	if rbacService == nil {
+		return
+	}
+	authService := service.NewAuthService(rbacService)
 	services := map[*grpc.ServiceDesc]any{
-		&authv1.AuthService_ServiceDesc: service.NewAuthService(),
+		&authv1.RBACService_ServiceDesc: rbacService,
+		&authv1.AuthService_ServiceDesc: authService,
 	}
 	grpcServer := infra_grpc.NewGRPCServer(certs, shared_models.ModuleAuth, serverPort, services)
 
@@ -45,7 +51,9 @@ func Main() {
 	go func() {
 		defer wg.Done()
 		// Run gRPC Server
-		grpcServer.ListenAndServe(quit)
+		if err := grpcServer.ListenAndServe(quit); err != nil {
+			return
+		}
 	}()
 
 	// Wait for OS signal

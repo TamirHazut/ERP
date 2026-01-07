@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: auth.proto
+// source: auth/v1/auth.proto
 
 package authv1
 
@@ -19,24 +19,24 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Authenticate_FullMethodName     = "/auth.v1.AuthService/Authenticate"
-	AuthService_VerifyToken_FullMethodName      = "/auth.v1.AuthService/VerifyToken"
-	AuthService_RefreshToken_FullMethodName     = "/auth.v1.AuthService/RefreshToken"
-	AuthService_RevokeToken_FullMethodName      = "/auth.v1.AuthService/RevokeToken"
-	AuthService_Logout_FullMethodName           = "/auth.v1.AuthService/Logout"
-	AuthService_CheckPermissions_FullMethodName = "/auth.v1.AuthService/CheckPermissions"
+	AuthService_Login_FullMethodName        = "/auth.v1.AuthService/Login"
+	AuthService_Logout_FullMethodName       = "/auth.v1.AuthService/Logout"
+	AuthService_VerifyToken_FullMethodName  = "/auth.v1.AuthService/VerifyToken"
+	AuthService_RefreshToken_FullMethodName = "/auth.v1.AuthService/RefreshToken"
+	AuthService_RevokeToken_FullMethodName  = "/auth.v1.AuthService/RevokeToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthServiceClient interface {
-	Authenticate(ctx context.Context, in *AuthenticateRequest, opts ...grpc.CallOption) (*TokensResponse, error)
+	// Login + Logout
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*TokensResponse, error)
+	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
+	// Access + Refresh Tokens
 	VerifyToken(ctx context.Context, in *VerifyTokenRequest, opts ...grpc.CallOption) (*VerifyTokenResponse, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*TokensResponse, error)
 	RevokeToken(ctx context.Context, in *RevokeTokenRequest, opts ...grpc.CallOption) (*RevokeTokenResponse, error)
-	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
-	CheckPermissions(ctx context.Context, in *CheckPermissionsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PermissionResponse], error)
 }
 
 type authServiceClient struct {
@@ -47,10 +47,20 @@ func NewAuthServiceClient(cc grpc.ClientConnInterface) AuthServiceClient {
 	return &authServiceClient{cc}
 }
 
-func (c *authServiceClient) Authenticate(ctx context.Context, in *AuthenticateRequest, opts ...grpc.CallOption) (*TokensResponse, error) {
+func (c *authServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*TokensResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TokensResponse)
-	err := c.cc.Invoke(ctx, AuthService_Authenticate_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthService_Login_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogoutResponse)
+	err := c.cc.Invoke(ctx, AuthService_Logout_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -87,45 +97,17 @@ func (c *authServiceClient) RevokeToken(ctx context.Context, in *RevokeTokenRequ
 	return out, nil
 }
 
-func (c *authServiceClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LogoutResponse)
-	err := c.cc.Invoke(ctx, AuthService_Logout_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authServiceClient) CheckPermissions(ctx context.Context, in *CheckPermissionsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PermissionResponse], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &AuthService_ServiceDesc.Streams[0], AuthService_CheckPermissions_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[CheckPermissionsRequest, PermissionResponse]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AuthService_CheckPermissionsClient = grpc.ServerStreamingClient[PermissionResponse]
-
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
 type AuthServiceServer interface {
-	Authenticate(context.Context, *AuthenticateRequest) (*TokensResponse, error)
+	// Login + Logout
+	Login(context.Context, *LoginRequest) (*TokensResponse, error)
+	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
+	// Access + Refresh Tokens
 	VerifyToken(context.Context, *VerifyTokenRequest) (*VerifyTokenResponse, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*TokensResponse, error)
 	RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error)
-	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
-	CheckPermissions(*CheckPermissionsRequest, grpc.ServerStreamingServer[PermissionResponse]) error
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -136,8 +118,11 @@ type AuthServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAuthServiceServer struct{}
 
-func (UnimplementedAuthServiceServer) Authenticate(context.Context, *AuthenticateRequest) (*TokensResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Authenticate not implemented")
+func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*TokensResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
+}
+func (UnimplementedAuthServiceServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
 }
 func (UnimplementedAuthServiceServer) VerifyToken(context.Context, *VerifyTokenRequest) (*VerifyTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyToken not implemented")
@@ -147,12 +132,6 @@ func (UnimplementedAuthServiceServer) RefreshToken(context.Context, *RefreshToke
 }
 func (UnimplementedAuthServiceServer) RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RevokeToken not implemented")
-}
-func (UnimplementedAuthServiceServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
-}
-func (UnimplementedAuthServiceServer) CheckPermissions(*CheckPermissionsRequest, grpc.ServerStreamingServer[PermissionResponse]) error {
-	return status.Error(codes.Unimplemented, "method CheckPermissions not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -175,20 +154,38 @@ func RegisterAuthServiceServer(s grpc.ServiceRegistrar, srv AuthServiceServer) {
 	s.RegisterService(&AuthService_ServiceDesc, srv)
 }
 
-func _AuthService_Authenticate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthenticateRequest)
+func _AuthService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).Authenticate(ctx, in)
+		return srv.(AuthServiceServer).Login(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_Authenticate_FullMethodName,
+		FullMethod: AuthService_Login_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Authenticate(ctx, req.(*AuthenticateRequest))
+		return srv.(AuthServiceServer).Login(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogoutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).Logout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_Logout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).Logout(ctx, req.(*LogoutRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -247,35 +244,6 @@ func _AuthService_RevokeToken_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LogoutRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).Logout(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_Logout_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Logout(ctx, req.(*LogoutRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthService_CheckPermissions_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(CheckPermissionsRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(AuthServiceServer).CheckPermissions(m, &grpc.GenericServerStream[CheckPermissionsRequest, PermissionResponse]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AuthService_CheckPermissionsServer = grpc.ServerStreamingServer[PermissionResponse]
-
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -284,8 +252,12 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*AuthServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Authenticate",
-			Handler:    _AuthService_Authenticate_Handler,
+			MethodName: "Login",
+			Handler:    _AuthService_Login_Handler,
+		},
+		{
+			MethodName: "Logout",
+			Handler:    _AuthService_Logout_Handler,
 		},
 		{
 			MethodName: "VerifyToken",
@@ -299,17 +271,7 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "RevokeToken",
 			Handler:    _AuthService_RevokeToken_Handler,
 		},
-		{
-			MethodName: "Logout",
-			Handler:    _AuthService_Logout_Handler,
-		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "CheckPermissions",
-			Handler:       _AuthService_CheckPermissions_Handler,
-			ServerStreams: true,
-		},
-	},
-	Metadata: "auth.proto",
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "auth/v1/auth.proto",
 }

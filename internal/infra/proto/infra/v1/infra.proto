@@ -45,3 +45,9 @@ message PaginationResponse {
   bool has_prev = 6;
 }
 
+
+message UserIdentifier {
+    string tenant_id = 1;
+    string user_id = 2;
+}
+

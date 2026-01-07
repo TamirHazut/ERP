@@ -37,17 +37,17 @@ func (r *RBACManager) CreateResource(tenantID string, userID string, resourceTyp
 	invalidResourceValueTypeError := erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("invalid resource value type"))
 	switch resourceType {
 	case auth_models.ResourceTypeRole:
-		role, ok := resource.(auth_models.Role)
+		role, ok := resource.(*auth_models.Role)
 		if !ok {
 			return "", invalidResourceValueTypeError
 		}
-		return r.rolesCollection.CreateRole(role)
+		return r.rolesCollection.CreateRole(*role)
 	case auth_models.ResourceTypePermission:
-		permission, ok := resource.(auth_models.Permission)
+		permission, ok := resource.(*auth_models.Permission)
 		if !ok {
 			return "", invalidResourceValueTypeError
 		}
-		return r.permissionsCollection.CreatePermission(permission)
+		return r.permissionsCollection.CreatePermission(*permission)
 	default:
 		return "", erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("unsupported resource type"))
 	}
@@ -63,43 +63,34 @@ func (r *RBACManager) UpdateResource(tenantID string, userID string, resourceTyp
 	invalidResourceValueTypeError := erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("invalid resource value type"))
 	switch resourceType {
 	case auth_models.ResourceTypeRole:
-		role, ok := resource.(auth_models.Role)
+		role, ok := resource.(*auth_models.Role)
 		if !ok {
 			return invalidResourceValueTypeError
 		}
-		return r.rolesCollection.UpdateRole(role)
+		return r.rolesCollection.UpdateRole(*role)
 	case auth_models.ResourceTypePermission:
-		permission, ok := resource.(auth_models.Permission)
+		permission, ok := resource.(*auth_models.Permission)
 		if !ok {
 			return invalidResourceValueTypeError
 		}
-		return r.permissionsCollection.UpdatePermission(permission)
+		return r.permissionsCollection.UpdatePermission(*permission)
 	default:
 		return erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("unsupported resource type"))
 	}
 }
 
-func (r *RBACManager) DeleteResource(tenantID string, userID string, resourceType string, resource any) error {
+func (r *RBACManager) DeleteResource(tenantID string, userID string, resourceType string, resourceID string) error {
 	permission := fmt.Sprintf("%s:%s", resourceType, auth_models.PermissionActionDelete)
 
 	if err := r.HasPermission(tenantID, userID, permission); err != nil {
 		return err
 	}
 
-	invalidResourceValueTypeError := erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("invalid resource value type"))
 	switch resourceType {
 	case auth_models.ResourceTypeRole:
-		role, ok := resource.(auth_models.Role)
-		if !ok {
-			return invalidResourceValueTypeError
-		}
-		return r.rolesCollection.DeleteRole(tenantID, role.ID.String())
+		return r.rolesCollection.DeleteRole(tenantID, resourceID)
 	case auth_models.ResourceTypePermission:
-		permission, ok := resource.(auth_models.Permission)
-		if !ok {
-			return invalidResourceValueTypeError
-		}
-		return r.permissionsCollection.DeletePermission(tenantID, permission.ID.String())
+		return r.permissionsCollection.DeletePermission(tenantID, resourceID)
 	default:
 		return erp_errors.Validation(erp_errors.ValidationInvalidValue).WithError(fmt.Errorf("unsupported resource type"))
 	}
@@ -120,6 +111,7 @@ func (r *RBACManager) GetResource(tenantID string, userID string, resourceType s
 	}
 }
 
+// TODO: add support in pagination and filter
 func (r *RBACManager) GetResources(tenantID string, userID string, resourceType string) ([]any, error) {
 	permission := fmt.Sprintf("%s:%s", resourceType, auth_models.PermissionActionRead)
 	if err := r.HasPermission(tenantID, userID, permission); err != nil {
@@ -229,6 +221,24 @@ func (r *RBACManager) CheckUserPermissions(tenantID string, userID string, permi
 		}
 	}
 	return permissionsCheckResponse, nil
+}
+
+func (r *RBACManager) CheckUserRoles(tenantID string, userID string, roles []string) (map[string]bool, error) {
+	if tenantID == "" || userID == "" || len(roles) == 0 {
+		return nil, erp_errors.Validation(erp_errors.ValidationRequiredFields, "tenantID", "userID", "roles")
+	}
+
+	// Get user permissions
+	userRoles, err := r.GetUserRoles(tenantID, userID)
+	if err != nil {
+		return nil, err
+	}
+	// Check requested permissions status
+	rolesCheckResponse := make(map[string]bool, 0)
+	for _, role := range roles {
+		rolesCheckResponse[role] = slices.Contains(userRoles, role)
+	}
+	return rolesCheckResponse, nil
 }
 
 func (r *RBACManager) VerifyUserRole(tenantID string, userID string, roleID string) (bool, error) {

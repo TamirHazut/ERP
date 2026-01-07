@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	handlers_mocks "erp.localhost/internal/auth/token/handlers/mocks"
+	handler_mock "erp.localhost/internal/auth/token/handler/mock"
 	erp_errors "erp.localhost/internal/infra/error"
 	logging "erp.localhost/internal/infra/logging"
 	auth_models "erp.localhost/internal/infra/model/auth"
@@ -122,8 +122,8 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			accessMock := handlers_mocks.NewMockTokenHandler[auth_cache_models.TokenMetadata](ctrl)
-			refreshMock := handlers_mocks.NewMockTokenHandler[auth_models.RefreshToken](ctrl)
+			accessMock := handler_mock.NewMockTokenHandler[auth_cache_models.TokenMetadata](ctrl)
+			refreshMock := handler_mock.NewMockTokenHandler[auth_models.RefreshToken](ctrl)
 
 			if tc.expectedAccessStoreCalls > 0 {
 				accessMock.EXPECT().
@@ -210,7 +210,7 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mock := handlers_mocks.NewMockTokenHandler[auth_cache_models.TokenMetadata](ctrl)
+			mock := handler_mock.NewMockTokenHandler[auth_cache_models.TokenMetadata](ctrl)
 			if tc.expectedValidateCallTimes > 0 {
 				mock.EXPECT().
 					Validate(tc.tenantID, tc.userID, tc.tokenID).
@@ -280,7 +280,7 @@ func TestTokenManager_ValidateRefreshToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mock := handlers_mocks.NewMockTokenHandler[auth_models.RefreshToken](ctrl)
+			mock := handler_mock.NewMockTokenHandler[auth_models.RefreshToken](ctrl)
 			if tc.expectedValidateCallTimes > 0 {
 				mock.EXPECT().
 					Validate(tc.tenantID, tc.userID, tc.tokenID).
@@ -347,8 +347,8 @@ func TestTokenManager_RevokeAllTokens(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			accessMock := handlers_mocks.NewMockTokenHandler[auth_cache_models.TokenMetadata](ctrl)
-			refreshMock := handlers_mocks.NewMockTokenHandler[auth_models.RefreshToken](ctrl)
+			accessMock := handler_mock.NewMockTokenHandler[auth_cache_models.TokenMetadata](ctrl)
+			refreshMock := handler_mock.NewMockTokenHandler[auth_models.RefreshToken](ctrl)
 
 			if tc.expectedAccessRevokeCalls > 0 {
 				accessMock.EXPECT().

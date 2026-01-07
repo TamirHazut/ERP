@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: user.proto
+// source: core/v1/user.proto
 
 package corev1
 
@@ -30,10 +30,10 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
-	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
+	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*UserResponse, error)
-	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UserResponse], error)
-	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
+	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*UsersResponse, error)
+	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
 }
 
@@ -45,9 +45,9 @@ func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
 	return &userServiceClient{cc}
 }
 
-func (c *userServiceClient) CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error) {
+func (c *userServiceClient) CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*UserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateUserResponse)
+	out := new(UserResponse)
 	err := c.cc.Invoke(ctx, UserService_CreateUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -65,28 +65,19 @@ func (c *userServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opt
 	return out, nil
 }
 
-func (c *userServiceClient) GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UserResponse], error) {
+func (c *userServiceClient) GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*UsersResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &UserService_ServiceDesc.Streams[0], UserService_GetUsers_FullMethodName, cOpts...)
+	out := new(UsersResponse)
+	err := c.cc.Invoke(ctx, UserService_GetUsers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[GetUsersRequest, UserResponse]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+	return out, nil
 }
 
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type UserService_GetUsersClient = grpc.ServerStreamingClient[UserResponse]
-
-func (c *userServiceClient) UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error) {
+func (c *userServiceClient) UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateUserResponse)
+	out := new(UserResponse)
 	err := c.cc.Invoke(ctx, UserService_UpdateUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -108,10 +99,10 @@ func (c *userServiceClient) DeleteUser(ctx context.Context, in *DeleteUserReques
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
 type UserServiceServer interface {
-	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
+	CreateUser(context.Context, *CreateUserRequest) (*UserResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*UserResponse, error)
-	GetUsers(*GetUsersRequest, grpc.ServerStreamingServer[UserResponse]) error
-	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
+	GetUsers(context.Context, *GetUsersRequest) (*UsersResponse, error)
+	UpdateUser(context.Context, *UpdateUserRequest) (*UserResponse, error)
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
@@ -123,16 +114,16 @@ type UserServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedUserServiceServer struct{}
 
-func (UnimplementedUserServiceServer) CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error) {
+func (UnimplementedUserServiceServer) CreateUser(context.Context, *CreateUserRequest) (*UserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUser not implemented")
 }
 func (UnimplementedUserServiceServer) GetUser(context.Context, *GetUserRequest) (*UserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUser not implemented")
 }
-func (UnimplementedUserServiceServer) GetUsers(*GetUsersRequest, grpc.ServerStreamingServer[UserResponse]) error {
-	return status.Error(codes.Unimplemented, "method GetUsers not implemented")
+func (UnimplementedUserServiceServer) GetUsers(context.Context, *GetUsersRequest) (*UsersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUsers not implemented")
 }
-func (UnimplementedUserServiceServer) UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error) {
+func (UnimplementedUserServiceServer) UpdateUser(context.Context, *UpdateUserRequest) (*UserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateUser not implemented")
 }
 func (UnimplementedUserServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error) {
@@ -195,16 +186,23 @@ func _UserService_GetUser_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_GetUsers_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetUsersRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+func _UserService_GetUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
 	}
-	return srv.(UserServiceServer).GetUsers(m, &grpc.GenericServerStream[GetUsersRequest, UserResponse]{ServerStream: stream})
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetUsers(ctx, req.(*GetUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type UserService_GetUsersServer = grpc.ServerStreamingServer[UserResponse]
 
 func _UserService_UpdateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateUserRequest)
@@ -258,6 +256,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_GetUser_Handler,
 		},
 		{
+			MethodName: "GetUsers",
+			Handler:    _UserService_GetUsers_Handler,
+		},
+		{
 			MethodName: "UpdateUser",
 			Handler:    _UserService_UpdateUser_Handler,
 		},
@@ -266,12 +268,6 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_DeleteUser_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "GetUsers",
-			Handler:       _UserService_GetUsers_Handler,
-			ServerStreams: true,
-		},
-	},
-	Metadata: "user.proto",
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "core/v1/user.proto",
 }

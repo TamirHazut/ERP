@@ -3,9 +3,8 @@ package shared
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
-
-	"erp.localhost/internal/infra/shared"
 )
 
 const (
@@ -26,7 +25,7 @@ func NewCerts() *Certs {
 	if !ok {
 		return nil
 	}
-	relativePath, err := shared.GetRelativeDir(filename)
+	relativePath, err := getRelativeDir(filename)
 	if err != nil {
 		return nil
 	}
@@ -52,4 +51,22 @@ func (c *Certs) IsValidCerts() bool {
 	}
 
 	return true
+}
+
+func getRelativeDir(filename string) (string, error) {
+	functionFileDir := filepath.Dir(filename)
+
+	// 2. Get the current working directory
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	// 3. Calculate the relative path from CWD to the function's file directory
+	relativePath, err := filepath.Rel(workingDir, functionFileDir)
+	if err != nil {
+		return "", err
+	}
+
+	return relativePath, nil
 }

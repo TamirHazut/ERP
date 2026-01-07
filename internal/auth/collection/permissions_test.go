@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	mongo_mocks "erp.localhost/internal/infra/db/mongo/mocks"
+	mongo_mock "erp.localhost/internal/infra/db/mongo/mock"
 	auth_models "erp.localhost/internal/infra/model/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,7 +40,7 @@ func TestNewPermissionCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
+	mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Permission](ctrl)
 	collection := NewPermissionCollection(mockHandler)
 
 	require.NotNil(t, collection)
@@ -108,7 +108,7 @@ func TestPermissionCollection_CreatePermission(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					Create(permissionMatcher{expected: tc.permission}).
@@ -189,7 +189,7 @@ func TestPermissionCollection_GetPermissionByID(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindOne(tc.expectedFilter).
 				Return(tc.returnPermission, tc.returnError)
@@ -264,7 +264,7 @@ func TestPermissionCollection_GetPermissionByName(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindOne(tc.expectedFilter).
 				Return(tc.returnPermission, tc.returnError)
@@ -334,7 +334,7 @@ func TestPermissionCollection_GetPermissionsByTenantID(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnPermissions, tc.returnError)
@@ -398,7 +398,7 @@ func TestPermissionCollection_GetPermissionsByResource(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnPermissions, tc.returnError)
@@ -462,7 +462,7 @@ func TestPermissionCollection_GetPermissionsByAction(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnPermissions, tc.returnError)
@@ -530,7 +530,7 @@ func TestPermissionCollection_GetPermissionsByResourceAndAction(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnPermissions, tc.returnError)
@@ -670,7 +670,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			if tc.expectedFindCalls > 0 {
 				mockHandler.EXPECT().
 					FindOne(tc.expectedFindFilter).
@@ -754,7 +754,7 @@ func TestPermissionCollection_DeletePermission(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Permission](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Permission](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					Delete(tc.expectedFilter).

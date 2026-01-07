@@ -1,6 +1,6 @@
 # Config Service Makefile
 
-.PHONY: build run test test-coverage lint clean help certs certs-clean
+.PHONY: build run test test-coverage lint clean help certs certs-clean mocks mocks-clean
 
 # Service configuration
 SERVICE_NAME := config

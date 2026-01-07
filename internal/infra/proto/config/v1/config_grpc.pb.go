@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: config.proto
+// source: config/v1/config.proto
 
 package configv1
 
@@ -193,5 +193,5 @@ var ConfigService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "config.proto",
+	Metadata: "config/v1/config.proto",
 }

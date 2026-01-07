@@ -4,46 +4,49 @@ package core.v1;
 
 option go_package = "erp.localhost/internal/infra/proto/core/v1;corev1";
 
+ import "infra/v1/infra.proto";
+
 message UserResponse {
 
 }
 
-message CreateUserRequest {
-
+message UsersResponse {
+    repeated UserResponse users = 1;
 }
 
-message CreateUserResponse {
+message CreateUserRequest {
+    infra.v1.UserIdentifier identifier = 1;
 
 }
 
 message GetUserRequest {
-    string tenant_id = 1;
+    infra.v1.UserIdentifier identifier = 1;
 }
 
 message GetUsersRequest {
-
+    infra.v1.UserIdentifier identifier = 1;
 }
 
 message UpdateUserRequest {
-
+    infra.v1.UserIdentifier identifier = 1;
 }
 
 message UpdateUserResponse {
-
+    infra.v1.UserIdentifier identifier = 1;
 }
 
 message DeleteUserRequest {
-
+    infra.v1.UserIdentifier identifier = 1;
 }
 
 message DeleteUserResponse {
-
+    bool deleted = 1;
 }
 
 service UserService {
-    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+    rpc CreateUser(CreateUserRequest) returns (UserResponse);
     rpc GetUser(GetUserRequest) returns (UserResponse);
-    rpc GetUsers(GetUsersRequest) returns (stream UserResponse);
-    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+    rpc GetUsers(GetUsersRequest) returns (UsersResponse);
+    rpc UpdateUser(UpdateUserRequest) returns (UserResponse);
     rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
 }

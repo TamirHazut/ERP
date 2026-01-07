@@ -1,6 +1,6 @@
 package mongo
 
-//go:generate mockgen -destination=mocks/mock_collection_handler.go -package=mocks erp.localhost/internal/infra/db/mongo CollectionHandler
+//go:generate mockgen -destination=mock/mock_collection_handler.go -package=mock erp.localhost/internal/infra/db/mongo CollectionHandler
 
 type CollectionHandler[T any] interface {
 	Create(item T) (string, error)

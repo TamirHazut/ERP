@@ -272,7 +272,7 @@ func TestAppError_WithDetails(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := New(testAuthError)
-			err.WithDetails(tc.key, tc.value)
+			err = err.WithDetails(tc.key, tc.value)
 			assert.Equal(t, tc.wantValue, err.Details[tc.wantKey])
 		})
 	}
@@ -284,7 +284,7 @@ func TestAppError_WithError(t *testing.T) {
 	err := New(testAuthError)
 	assert.Nil(t, err.Err)
 
-	err.WithError(originalErr)
+	err = err.WithError(originalErr)
 	assert.Equal(t, originalErr, err.Err)
 }
 

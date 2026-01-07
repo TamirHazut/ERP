@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	mongo_mocks "erp.localhost/internal/infra/db/mongo/mocks"
+	mongo_mock "erp.localhost/internal/infra/db/mongo/mock"
 	auth_models "erp.localhost/internal/infra/model/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,7 +40,7 @@ func TestNewRoleCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
+	mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Role](ctrl)
 	collection := NewRoleCollection(mockHandler)
 
 	require.NotNil(t, collection)
@@ -105,7 +105,7 @@ func TestRoleCollection_CreateRole(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Role](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					Create(roleMatcher{expected: tc.role}).
@@ -185,7 +185,7 @@ func TestRoleCollection_GetRoleByID(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Role](ctrl)
 			mockHandler.EXPECT().
 				FindOne(tc.expectedFilter).
 				Return(tc.returnRole, tc.returnError)
@@ -258,7 +258,7 @@ func TestRoleCollection_GetRoleByName(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Role](ctrl)
 			mockHandler.EXPECT().
 				FindOne(tc.expectedFilter).
 				Return(tc.returnRole, tc.returnError)
@@ -328,7 +328,7 @@ func TestRoleCollection_GetRolesByTenantID(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Role](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnRoles, tc.returnError)
@@ -395,7 +395,7 @@ func TestRoleCollection_GetRolesByPermissionsIDs(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Role](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnRoles, tc.returnError)
@@ -560,7 +560,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Role](ctrl)
 			if tc.expectedFindCalls > 0 {
 				mockHandler.EXPECT().
 					FindOne(tc.expectedFindFilter).
@@ -644,7 +644,7 @@ func TestRoleCollection_DeleteRole(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mongo_mocks.NewMockCollectionHandler[auth_models.Role](ctrl)
+			mockHandler := mongo_mock.NewMockCollectionHandler[auth_models.Role](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					Delete(tc.expectedFilter).

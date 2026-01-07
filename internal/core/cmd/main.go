@@ -58,7 +58,9 @@ func Main() {
 	go func() {
 		defer wg.Done()
 		// Run gRPC Server
-		grpcServer.ListenAndServe(quit)
+		if err := grpcServer.ListenAndServe(quit); err != nil {
+			return
+		}
 	}()
 
 	if err := createDefaultData(); err != nil {
