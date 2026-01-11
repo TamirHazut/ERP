@@ -77,7 +77,7 @@ func (r *RolesCollection) UpdateRole(role *model_auth.Role) error {
 		"_id":       role.ID,
 	}
 	r.logger.Debug("Updating role", "role", role)
-	currentRole, err := r.GetRoleByID(role.TenantID, role.ID.String())
+	currentRole, err := r.GetRoleByID(role.TenantID, role.ID.Hex())
 	if err != nil {
 		return err
 	}

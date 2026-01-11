@@ -6,23 +6,11 @@ option go_package = "erp.localhost/internal/infra/proto/auth/v1;authv1";
 
 import "infra/v1/infra.proto";
 
-// Login + Logout
-message LoginRequest {
-    string tenant_id = 1;
-    oneof account_id {
-        string email = 2;
-        string username = 3;
-    }
-    string password = 4;
-}
-
-message LogoutRequest {
-    string tenant_id = 1;
-    Tokens tokens = 3;
-}
-
-message LogoutResponse {
-    string message = 1;
+// Authentication
+message AuthenticateRequest {
+    infra.v1.UserIdentifier identifier = 1;
+    string user_password = 2;
+    string user_hash = 3;
 }
 
 // Tokens
@@ -65,9 +53,8 @@ message RevokeTokenResponse {
 }
 
 service AuthService {
-    // Login + Logout
-    rpc Login(LoginRequest) returns (TokensResponse);
-    rpc Logout(LogoutRequest) returns (LogoutResponse);
+    // Authentication
+    rpc Authenticate(AuthenticateRequest) returns (TokensResponse);
 
     // Access + Refresh Tokens
     rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);

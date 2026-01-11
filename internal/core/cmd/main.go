@@ -9,7 +9,7 @@ import (
 	"erp.localhost/internal/core/service"
 	grpc_server "erp.localhost/internal/infra/grpc/server"
 	model_shared "erp.localhost/internal/infra/model/shared"
-	proto_user "erp.localhost/internal/infra/proto/core/v1"
+	proto_core "erp.localhost/internal/infra/proto/core/v1"
 	"google.golang.org/grpc"
 )
 
@@ -31,7 +31,8 @@ func Main() {
 		return
 	}
 	services := map[*grpc.ServiceDesc]any{
-		&proto_user.UserService_ServiceDesc: service.NewUserService(),
+		&proto_core.UserService_ServiceDesc:   service.NewUserService(),
+		&proto_core.TenantService_ServiceDesc: service.NewTenantService(),
 	}
 	grpcServer := grpc_server.NewGRPCServer(certs, model_shared.ModuleCore, serverPort, services)
 	if grpcServer == nil {

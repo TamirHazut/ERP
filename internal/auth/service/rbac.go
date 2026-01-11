@@ -29,6 +29,7 @@ type RBACService struct {
 }
 
 // TODO: add logs
+// TODO: remove user retreive function calls and accept them as function aguments - This service only deals with roles and permissions not with users!
 func NewRBACService() *RBACService {
 	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 	pc := mongo_collection.NewBaseCollectionHandler[model_auth.Permission](model_mongo.AuthDB, model_mongo.RolesCollection, logger)

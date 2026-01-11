@@ -4,49 +4,193 @@ package core.v1;
 
 option go_package = "erp.localhost/internal/infra/proto/core/v1;corev1";
 
- import "infra/v1/infra.proto";
+import "infra/v1/infra.proto";
+import "auth/v1/auth.proto";
+import "google/protobuf/timestamp.proto";
+
+// =============================================================================
+// Nested Data Messages
+// =============================================================================
+
+message UserProfileData {
+    string first_name = 1;
+    string last_name = 2;
+    string display_name = 3;
+    string avatar_url = 4;
+    string phone = 5;
+    string title = 6;
+    string department = 7;
+}
+
+message UserRoleData {
+    string role_id = 1;
+    string tenant_id = 2;
+    google.protobuf.Timestamp assigned_at = 3;
+    string assigned_by = 4;
+    google.protobuf.Timestamp expires_at = 5;
+}
+
+message NotificationSettingsData {
+    bool email = 1;
+    bool push = 2;
+    bool sms = 3;
+}
+
+message UserPreferencesData {
+    string language = 1;
+    string timezone = 2;
+    string theme = 3;
+    NotificationSettingsData notifications = 4;
+}
+
+// =============================================================================
+// Main User Data Message
+// =============================================================================
+
+message UserData {
+    string id = 1;
+    string tenant_id = 2;
+    string email = 3;
+    string username = 4;
+    UserProfileData profile = 5;
+    repeated UserRoleData roles = 6;
+    repeated string additional_permissions = 7;
+    repeated string revoked_permissions = 8;
+    string status = 9;
+    bool email_verified = 10;
+    bool phone_verified = 11;
+    bool mfa_enabled = 12;
+    google.protobuf.Timestamp last_login = 13;
+    google.protobuf.Timestamp last_password_change = 14;
+    UserPreferencesData preferences = 15;
+    google.protobuf.Timestamp created_at = 16;
+    google.protobuf.Timestamp updated_at = 17;
+    string created_by = 18;
+    google.protobuf.Timestamp last_activity = 19;
+}
+
+// =============================================================================
+// Create/Update Messages
+// =============================================================================
+
+message CreateUserData {
+    string tenant_id = 1;
+    string email = 2;
+    string username = 3;
+    string password_hash = 4;
+    UserProfileData profile = 5;
+    repeated string role_ids = 6;
+    repeated string additional_permissions = 7;
+    string status = 8;
+    string created_by = 9;
+    UserPreferencesData preferences = 10;
+}
+
+message UpdateRolesData {
+    repeated string add_role_ids = 1;
+    repeated string remove_role_ids = 2;
+}
+
+message UpdatePermissionsData {
+    repeated string add_permissions = 1;
+    repeated string remove_permissions = 2;
+    repeated string revoke_permissions = 3;
+    repeated string unrevoke_permissions = 4;
+}
+
+message UpdateUserData {
+    string id = 1;
+    string tenant_id = 2;
+    optional string email = 3;
+    optional string username = 4;
+    optional UserProfileData profile = 5;
+    optional UpdateRolesData roles = 6;
+    optional UpdatePermissionsData permissions = 7;
+    optional string status = 8;
+    optional bool email_verified = 9;
+    optional bool phone_verified = 10;
+    optional UserPreferencesData preferences = 11;
+}
+
+// =============================================================================
+// Response Messages
+// =============================================================================
 
 message UserResponse {
-
+    UserData user = 1;
 }
 
 message UsersResponse {
-    repeated UserResponse users = 1;
+    repeated UserData users = 1;
+    infra.v1.PaginationResponse pagination = 2;
 }
 
 message CreateUserRequest {
     infra.v1.UserIdentifier identifier = 1;
+    CreateUserData user = 2;
+}
 
+message CreateUserResponse {
+    string user_id = 1;
 }
 
 message GetUserRequest {
     infra.v1.UserIdentifier identifier = 1;
+    string account_id = 2;
 }
 
 message GetUsersRequest {
     infra.v1.UserIdentifier identifier = 1;
+    optional string role_id = 2;
 }
 
 message UpdateUserRequest {
     infra.v1.UserIdentifier identifier = 1;
+    UpdateUserData user = 2;
 }
 
 message UpdateUserResponse {
-    infra.v1.UserIdentifier identifier = 1;
+    bool updated = 2;
 }
 
 message DeleteUserRequest {
     infra.v1.UserIdentifier identifier = 1;
+    string account_id = 2;
 }
 
 message DeleteUserResponse {
     bool deleted = 1;
 }
 
+
+// Login + Logout
+message LoginRequest {
+    string tenant_id = 1;
+    oneof account_id {
+        string email = 2;
+        string username = 3;
+    }
+    string password = 4;
+}
+
+message LogoutRequest {
+    infra.v1.UserIdentifier identifier = 1;
+    auth.v1.Tokens tokens = 2;
+}
+
+message LogoutResponse {
+    string message = 1;
+}
+
 service UserService {
-    rpc CreateUser(CreateUserRequest) returns (UserResponse);
+    // CRUD
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
     rpc GetUser(GetUserRequest) returns (UserResponse);
     rpc GetUsers(GetUsersRequest) returns (UsersResponse);
-    rpc UpdateUser(UpdateUserRequest) returns (UserResponse);
+    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
     rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+
+    // Login + Logout
+    rpc Login(LoginRequest) returns (auth.v1.TokensResponse);
+    rpc Logout(LogoutRequest) returns (LogoutResponse);
 }

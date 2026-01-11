@@ -94,7 +94,7 @@ func (r *PermissionsCollection) UpdatePermission(permission *model_auth.Permissi
 		"_id":       permission.ID,
 	}
 	r.logger.Debug("Updating permission", "permission", permission)
-	currentPermission, err := r.GetPermissionByID(permission.TenantID, permission.ID.String())
+	currentPermission, err := r.GetPermissionByID(permission.TenantID, permission.ID.Hex())
 	if err != nil {
 		return err
 	}

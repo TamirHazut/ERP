@@ -7,7 +7,6 @@ import (
 
 	mock_collection "erp.localhost/internal/infra/db/mongo/collection/mock"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
 	model_core "erp.localhost/internal/infra/model/core"
 	model_shared "erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
@@ -66,7 +65,7 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 			name: "successful create",
 			tenant: &model_core.Tenant{
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    model_core.TenantStatusActive,
 				CreatedBy: "admin",
 			},
 			returnID:          "tenant-id-123",
@@ -77,7 +76,7 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 		{
 			name: "create with validation error - missing name",
 			tenant: &model_core.Tenant{
-				Status:    model_auth.TenantStatusActive,
+				Status:    model_core.TenantStatusActive,
 				CreatedBy: "admin",
 			},
 			returnID:          "",
@@ -89,7 +88,7 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 			name: "create with database error",
 			tenant: &model_core.Tenant{
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    model_core.TenantStatusActive,
 				CreatedBy: "admin",
 			},
 			returnID:          "",
@@ -146,7 +145,7 @@ func TestTenantCollection_GetTenantByID(t *testing.T) {
 			returnTenant: &model_core.Tenant{
 				ID:     tenantID,
 				Name:   "Test Company",
-				Status: model_auth.TenantStatusActive,
+				Status: model_core.TenantStatusActive,
 			},
 			returnError:       nil,
 			wantErr:           false,
@@ -231,7 +230,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 			tenant: &model_core.Tenant{
 				ID:        tenantID,
 				Name:      "Updated Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    model_core.TenantStatusActive,
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
@@ -244,7 +243,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 			returnFindTenant: &model_core.Tenant{
 				ID:        tenantID,
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    model_core.TenantStatusActive,
 				CreatedAt: createdAt,
 			},
 			returnFindError:     nil,
@@ -272,7 +271,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 			tenant: &model_core.Tenant{
 				ID:        tenantID,
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    model_core.TenantStatusActive,
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
@@ -292,7 +291,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 			tenant: &model_core.Tenant{
 				ID:        tenantID,
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    model_core.TenantStatusActive,
 				CreatedBy: "admin",
 				CreatedAt: time.Now(),
 			},
@@ -315,7 +314,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 			tenant: &model_core.Tenant{
 				ID:        tenantID,
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    model_core.TenantStatusActive,
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},

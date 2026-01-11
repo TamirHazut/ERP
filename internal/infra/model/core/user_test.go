@@ -3,7 +3,6 @@ package core
 import (
 	"testing"
 
-	model_auth "erp.localhost/internal/infra/model/auth"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -22,7 +21,7 @@ func TestUser_Validate(t *testing.T) {
 				TenantID:     "tenant-123",
 				Email:        "test@example.com",
 				PasswordHash: "hashed-password",
-				Status:       model_auth.UserStatusActive,
+				Status:       UserStatusActive,
 				CreatedBy:    "admin",
 				Roles:        []UserRole{{RoleID: "role-1", TenantID: "tenant-123"}},
 			},
@@ -36,7 +35,7 @@ func TestUser_Validate(t *testing.T) {
 				TenantID:     "tenant-123",
 				Email:        "test@example.com",
 				PasswordHash: "hashed-password",
-				Status:       model_auth.UserStatusActive,
+				Status:       UserStatusActive,
 				CreatedBy:    "admin",
 				Roles:        []UserRole{{RoleID: "role-1", TenantID: "tenant-123"}},
 			},
@@ -49,7 +48,7 @@ func TestUser_Validate(t *testing.T) {
 				TenantID:     "tenant-123",
 				Email:        "test@example.com",
 				PasswordHash: "hashed-password",
-				Status:       model_auth.UserStatusActive,
+				Status:       UserStatusActive,
 				CreatedBy:    "admin",
 				Roles:        []UserRole{{RoleID: "role-1", TenantID: "tenant-123"}},
 			},
@@ -62,7 +61,7 @@ func TestUser_Validate(t *testing.T) {
 			user: &User{
 				Email:        "test@example.com",
 				PasswordHash: "hashed-password",
-				Status:       model_auth.UserStatusActive,
+				Status:       UserStatusActive,
 				CreatedBy:    "admin",
 				Roles:        []UserRole{{RoleID: "role-1"}},
 			},
@@ -75,7 +74,7 @@ func TestUser_Validate(t *testing.T) {
 			user: &User{
 				TenantID:     "tenant-123",
 				PasswordHash: "hashed-password",
-				Status:       model_auth.UserStatusActive,
+				Status:       UserStatusActive,
 				CreatedBy:    "admin",
 				Roles:        []UserRole{{RoleID: "role-1", TenantID: "tenant-123"}},
 			},
@@ -88,7 +87,7 @@ func TestUser_Validate(t *testing.T) {
 			user: &User{
 				TenantID:  "tenant-123",
 				Email:     "test@example.com",
-				Status:    model_auth.UserStatusActive,
+				Status:    UserStatusActive,
 				CreatedBy: "admin",
 				Roles:     []UserRole{{RoleID: "role-1", TenantID: "tenant-123"}},
 			},
@@ -115,7 +114,7 @@ func TestUser_Validate(t *testing.T) {
 				TenantID:     "tenant-123",
 				Email:        "test@example.com",
 				PasswordHash: "hashed-password",
-				Status:       model_auth.UserStatusActive,
+				Status:       UserStatusActive,
 				Roles:        []UserRole{{RoleID: "role-1", TenantID: "tenant-123"}},
 			},
 			createOperation: true,
@@ -128,7 +127,7 @@ func TestUser_Validate(t *testing.T) {
 				TenantID:     "tenant-123",
 				Email:        "test@example.com",
 				PasswordHash: "hashed-password",
-				Status:       model_auth.UserStatusActive,
+				Status:       UserStatusActive,
 				CreatedBy:    "admin",
 			},
 			createOperation: true,

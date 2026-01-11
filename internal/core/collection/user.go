@@ -32,6 +32,9 @@ func (r *UserCollection) CreateUser(user *model_core.User) (string, error) {
 }
 
 func (r *UserCollection) GetUserByID(tenantID, userID string) (*model_core.User, error) {
+	if userID == "" {
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "userID")
+	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       userID,
@@ -41,6 +44,9 @@ func (r *UserCollection) GetUserByID(tenantID, userID string) (*model_core.User,
 }
 
 func (r *UserCollection) GetUserByEmail(tenantID, email string) (*model_core.User, error) {
+	if email == "" {
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "email")
+	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"email":     email,
@@ -50,6 +56,9 @@ func (r *UserCollection) GetUserByEmail(tenantID, email string) (*model_core.Use
 }
 
 func (r *UserCollection) GetUserByUsername(tenantID, username string) (*model_core.User, error) {
+	if username == "" {
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "username")
+	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"username":  username,
@@ -67,6 +76,9 @@ func (r *UserCollection) GetUsersByTenantID(tenantID string) ([]*model_core.User
 }
 
 func (r *UserCollection) GetUsersByRoleID(tenantID, roleID string) ([]*model_core.User, error) {
+	if roleID == "" {
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "roleID")
+	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"role_id":   roleID,
@@ -79,7 +91,7 @@ func (r *UserCollection) UpdateUser(user *model_core.User) error {
 	if err := user.Validate(false); err != nil {
 		return err
 	}
-	userID := user.ID.String()
+	userID := user.ID.Hex()
 	r.logger.Debug("Updating user", "user", user)
 	currentUser, err := r.GetUserByID(user.TenantID, userID)
 	if err != nil {

@@ -7,7 +7,6 @@ import (
 
 	mock_collection "erp.localhost/internal/infra/db/mongo/collection/mock"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
 	model_core "erp.localhost/internal/infra/model/core"
 	model_shared "erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
@@ -73,7 +72,7 @@ func TestUserCollection_CreateUser(t *testing.T) {
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       model_core.UserStatusActive,
 				CreatedBy:    "admin",
 				Roles:        []model_core.UserRole{},
 			},
@@ -88,7 +87,7 @@ func TestUserCollection_CreateUser(t *testing.T) {
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       model_core.UserStatusActive,
 				CreatedBy:    "admin",
 				Roles:        []model_core.UserRole{},
 			},
@@ -104,7 +103,7 @@ func TestUserCollection_CreateUser(t *testing.T) {
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       model_core.UserStatusActive,
 				CreatedBy:    "admin",
 				Roles:        []model_core.UserRole{},
 			},
@@ -453,7 +452,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 				Email:        "updated@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       model_core.UserStatusActive,
 				CreatedBy:    "admin",
 				CreatedAt:    createdAt,
 				Roles:        []model_core.UserRole{},
@@ -500,7 +499,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       model_core.UserStatusActive,
 				CreatedBy:    "admin",
 				CreatedAt:    createdAt,
 				Roles:        []model_core.UserRole{},
@@ -525,7 +524,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 				Email:        "test@example.com",
 				Username:     "newusername",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       model_core.UserStatusActive,
 				CreatedBy:    "admin",
 				CreatedAt:    createdAt,
 				Roles:        []model_core.UserRole{},
@@ -555,7 +554,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       model_core.UserStatusActive,
 				CreatedBy:    "admin",
 				CreatedAt:    createdAt,
 				Roles:        []model_core.UserRole{},

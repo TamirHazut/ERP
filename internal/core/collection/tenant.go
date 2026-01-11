@@ -54,7 +54,7 @@ func (r *TenantCollection) UpdateTenant(tenant *model_core.Tenant) error {
 		"_id": tenant.ID,
 	}
 	r.logger.Debug("Updating tenant", "tenant", tenant)
-	currentTenant, err := r.GetTenantByID(tenant.ID.String())
+	currentTenant, err := r.GetTenantByID(tenant.ID.Hex())
 	if err != nil {
 		return err
 	}

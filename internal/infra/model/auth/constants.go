@@ -7,54 +7,6 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 )
 
-/* User */
-// User statuses
-const (
-	UserStatusActive    = "active"
-	UserStatusInactive  = "inactive"
-	UserStatusSuspended = "suspended"
-	UserStatusInvited   = "invited"
-)
-
-func IsValidUserStatus(userStatus string) bool {
-	if userStatus == "" {
-		return false
-	}
-	userStatus = strings.ToLower(userStatus)
-	validUserStatuses := map[string]bool{
-		UserStatusActive:    true,
-		UserStatusInactive:  true,
-		UserStatusSuspended: true,
-		UserStatusInvited:   true,
-	}
-
-	return validUserStatuses[userStatus]
-}
-
-/* Tenant */
-// Tenant statuses
-const (
-	TenantStatusActive    = "active"
-	TenantStatusSuspended = "suspended"
-	TenantStatusInactive  = "inactive"
-	TenantStatusTrial     = "trial"
-)
-
-func IsValidTenantStatus(tenantStatus string) bool {
-	if tenantStatus == "" {
-		return false
-	}
-	tenantStatus = strings.ToLower(tenantStatus)
-	validTenantStatuses := map[string]bool{
-		TenantStatusActive:    true,
-		TenantStatusSuspended: true,
-		TenantStatusInactive:  true,
-		TenantStatusTrial:     true,
-	}
-
-	return validTenantStatuses[tenantStatus]
-}
-
 /* RBAC */
 
 func CreatePermissionString(resource string, action string) (string, error) {
@@ -111,11 +63,13 @@ func IsValidPermissionFormat(permissionFormat string) bool {
 
 // Permission actions
 const (
-	PermissionActionAll    = "*"
-	PermissionActionCreate = "create"
-	PermissionActionRead   = "read"
-	PermissionActionUpdate = "update"
-	PermissionActionDelete = "delete"
+	PermissionActionAll              = "*"
+	PermissionActionCreate           = "create"
+	PermissionActionRead             = "read"
+	PermissionActionUpdate           = "update"
+	PermissionActionDelete           = "delete"
+	PermissionActionModifyPermission = "permission"
+	PermissionActionModifyRole       = "role"
 )
 
 func IsValidPermissionAction(permissionAction string) bool {
@@ -124,10 +78,12 @@ func IsValidPermissionAction(permissionAction string) bool {
 	}
 	permissionAction = strings.ToLower(permissionAction)
 	validPermissionActions := map[string]bool{
-		PermissionActionCreate: true,
-		PermissionActionRead:   true,
-		PermissionActionUpdate: true,
-		PermissionActionDelete: true,
+		PermissionActionCreate:           true,
+		PermissionActionRead:             true,
+		PermissionActionUpdate:           true,
+		PermissionActionDelete:           true,
+		PermissionActionModifyPermission: true,
+		PermissionActionModifyRole:       true,
 	}
 	return validPermissionActions[permissionAction]
 }

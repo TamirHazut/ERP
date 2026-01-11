@@ -19,8 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Login_FullMethodName        = "/auth.v1.AuthService/Login"
-	AuthService_Logout_FullMethodName       = "/auth.v1.AuthService/Logout"
+	AuthService_Authenticate_FullMethodName = "/auth.v1.AuthService/Authenticate"
 	AuthService_VerifyToken_FullMethodName  = "/auth.v1.AuthService/VerifyToken"
 	AuthService_RefreshToken_FullMethodName = "/auth.v1.AuthService/RefreshToken"
 	AuthService_RevokeToken_FullMethodName  = "/auth.v1.AuthService/RevokeToken"
@@ -30,9 +29,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthServiceClient interface {
-	// Login + Logout
-	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*TokensResponse, error)
-	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
+	// Authentication
+	Authenticate(ctx context.Context, in *AuthenticateRequest, opts ...grpc.CallOption) (*TokensResponse, error)
 	// Access + Refresh Tokens
 	VerifyToken(ctx context.Context, in *VerifyTokenRequest, opts ...grpc.CallOption) (*VerifyTokenResponse, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*TokensResponse, error)
@@ -47,20 +45,10 @@ func NewAuthServiceClient(cc grpc.ClientConnInterface) AuthServiceClient {
 	return &authServiceClient{cc}
 }
 
-func (c *authServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*TokensResponse, error) {
+func (c *authServiceClient) Authenticate(ctx context.Context, in *AuthenticateRequest, opts ...grpc.CallOption) (*TokensResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TokensResponse)
-	err := c.cc.Invoke(ctx, AuthService_Login_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authServiceClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LogoutResponse)
-	err := c.cc.Invoke(ctx, AuthService_Logout_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthService_Authenticate_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,9 +89,8 @@ func (c *authServiceClient) RevokeToken(ctx context.Context, in *RevokeTokenRequ
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
 type AuthServiceServer interface {
-	// Login + Logout
-	Login(context.Context, *LoginRequest) (*TokensResponse, error)
-	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
+	// Authentication
+	Authenticate(context.Context, *AuthenticateRequest) (*TokensResponse, error)
 	// Access + Refresh Tokens
 	VerifyToken(context.Context, *VerifyTokenRequest) (*VerifyTokenResponse, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*TokensResponse, error)
@@ -118,11 +105,8 @@ type AuthServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAuthServiceServer struct{}
 
-func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*TokensResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
-}
-func (UnimplementedAuthServiceServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
+func (UnimplementedAuthServiceServer) Authenticate(context.Context, *AuthenticateRequest) (*TokensResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Authenticate not implemented")
 }
 func (UnimplementedAuthServiceServer) VerifyToken(context.Context, *VerifyTokenRequest) (*VerifyTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyToken not implemented")
@@ -154,38 +138,20 @@ func RegisterAuthServiceServer(s grpc.ServiceRegistrar, srv AuthServiceServer) {
 	s.RegisterService(&AuthService_ServiceDesc, srv)
 }
 
-func _AuthService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LoginRequest)
+func _AuthService_Authenticate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthenticateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).Login(ctx, in)
+		return srv.(AuthServiceServer).Authenticate(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_Login_FullMethodName,
+		FullMethod: AuthService_Authenticate_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Login(ctx, req.(*LoginRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LogoutRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).Logout(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_Logout_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Logout(ctx, req.(*LogoutRequest))
+		return srv.(AuthServiceServer).Authenticate(ctx, req.(*AuthenticateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -252,12 +218,8 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*AuthServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Login",
-			Handler:    _AuthService_Login_Handler,
-		},
-		{
-			MethodName: "Logout",
-			Handler:    _AuthService_Logout_Handler,
+			MethodName: "Authenticate",
+			Handler:    _AuthService_Authenticate_Handler,
 		},
 		{
 			MethodName: "VerifyToken",
