@@ -21,40 +21,63 @@ func NewTenantCollection(collection collection.CollectionHandler[model_core.Tena
 	}
 }
 
-func (r *TenantCollection) CreateTenant(tenant *model_core.Tenant) (string, error) {
+func (t *TenantCollection) CreateTenant(tenant *model_core.Tenant) (string, error) {
 	if err := tenant.Validate(true); err != nil {
 		return "", err
 	}
 	tenant.CreatedAt = time.Now()
 	tenant.UpdatedAt = time.Now()
-	r.logger.Debug("Creating tenant", "tenant", tenant)
-	return r.collection.Create(tenant)
+	t.logger.Debug("Creating tenant", "tenant", tenant)
+	return t.collection.Create(tenant)
 }
 
-func (r *TenantCollection) GetTenantByID(tenantID string) (*model_core.Tenant, error) {
+func (t *TenantCollection) GetTenantByID(tenantID string) (*model_core.Tenant, error) {
 	if tenantID == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID")
 	}
 	filter := map[string]any{
 		"_id": tenantID,
 	}
-	r.logger.Debug("Getting tenant by id", "filter", filter)
-	tenant, err := r.collection.FindOne(filter)
-	if err != nil {
-		return nil, err
-	}
-	return tenant, nil
+	t.logger.Debug("Getting tenant by id", "filter", filter)
+	return t.findTenantByFilter(filter)
 }
 
-func (r *TenantCollection) UpdateTenant(tenant *model_core.Tenant) error {
+func (t *TenantCollection) GetTenantByName(name string) (*model_core.Tenant, error) {
+	if name == "" {
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID")
+	}
+	filter := map[string]any{
+		"name": name,
+	}
+	t.logger.Debug("Getting tenant by id", "filter", filter)
+	return t.findTenantByFilter(filter)
+}
+
+func (t *TenantCollection) GetTenants() ([]*model_core.Tenant, error) {
+	t.logger.Debug("Getting all tenants")
+	return t.findTenantsByFilter(nil)
+}
+
+func (t *TenantCollection) GetTenantsByStatus(status string) ([]*model_core.Tenant, error) {
+	if status == "" {
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "status")
+	}
+	filter := map[string]any{
+		"status": status,
+	}
+	t.logger.Debug("Getting all tenants by status")
+	return t.findTenantsByFilter(filter)
+}
+
+func (t *TenantCollection) UpdateTenant(tenant *model_core.Tenant) error {
 	if err := tenant.Validate(false); err != nil {
 		return err
 	}
 	filter := map[string]any{
 		"_id": tenant.ID,
 	}
-	r.logger.Debug("Updating tenant", "tenant", tenant)
-	currentTenant, err := r.GetTenantByID(tenant.ID.Hex())
+	t.logger.Debug("Updating tenant", "tenant", tenant)
+	currentTenant, err := t.GetTenantByID(tenant.ID.Hex())
 	if err != nil {
 		return err
 	}
@@ -62,16 +85,34 @@ func (r *TenantCollection) UpdateTenant(tenant *model_core.Tenant) error {
 		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields, "CreatedAt")
 	}
 	tenant.UpdatedAt = time.Now()
-	return r.collection.Update(filter, tenant)
+	return t.collection.Update(filter, tenant)
 }
 
-func (r *TenantCollection) DeleteTenant(tenantID string) error {
+func (t *TenantCollection) DeleteTenant(tenantID string) error {
 	if tenantID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID")
 	}
 	filter := map[string]any{
 		"_id": tenantID,
 	}
-	r.logger.Debug("Deleting tenant", "filter", filter)
-	return r.collection.Delete(filter)
+	t.logger.Debug("Deleting tenant", "filter", filter)
+	return t.collection.Delete(filter)
+}
+
+func (t *TenantCollection) findTenantByFilter(filter map[string]any) (*model_core.Tenant, error) {
+	if len(filter) == 0 {
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "filter")
+	}
+	tenant, err := t.collection.FindOne(filter)
+	if err != nil {
+		return nil, err
+	}
+	return tenant, nil
+}
+func (t *TenantCollection) findTenantsByFilter(filter map[string]any) ([]*model_core.Tenant, error) {
+	tenants, err := t.collection.FindAll(filter)
+	if err != nil {
+		return nil, err
+	}
+	return tenants, nil
 }

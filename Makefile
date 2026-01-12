@@ -2,6 +2,7 @@
 # Delegates to service-specific Makefiles
 
 .PHONY: proto $(addprefix proto-,$(MODULES)) proto-clean \
+		run $(addprefix run-,$(SERVICES)) \
         build \
         run-auth run-config run-core \
         test test-coverage lint clean tidy help \
@@ -102,18 +103,39 @@ build: ## Build all services
 	done
 	@echo "✓ All services built"
 
+build-init:
+	$(MAKE) -C internal/init build
+
 # ============================================================================
 # RUN TARGETS
 # ============================================================================
 
-run-auth: ## Run auth service
-	@$(MAKE) -C internal/auth run
+# Function to generate proto for any service
+define run_service
+	@$(MAKE) -C internal/$(1) run
+endef
 
-run-config: ## Run config service
-	@$(MAKE) -C internal/config run
+run: ## Generate all proto files
+	@go run ./cmd/
+# @for module in $(MODULES); do \
+# 	$(MAKE) run-$$module; \
+# done
+# @echo "✓ All services started"
 
-run-core: ## Run core service
-	@$(MAKE) -C internal/core run
+run-%:
+	$(call run_service,$*)
+
+# run-auth: ## Run auth service
+# 	@$(MAKE) -C internal/auth run
+
+# run-config: ## Run config service
+# 	@$(MAKE) -C internal/config run
+
+# run-core: ## Run core service
+# 	@$(MAKE) -C internal/core run
+
+# run-init:
+# 	$(MAKE) -C internal/init run
 
 # ============================================================================
 # TEST TARGETS

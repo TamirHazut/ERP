@@ -88,33 +88,31 @@ func (mr *MockDBHandlerMockRecorder) Delete(db, filter any) *gomock.Call {
 }
 
 // FindAll mocks base method.
-func (m *MockDBHandler) FindAll(db string, filter map[string]any) ([]any, error) {
+func (m *MockDBHandler) FindAll(db string, filter map[string]any, result any) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindAll", db, filter)
-	ret0, _ := ret[0].([]any)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "FindAll", db, filter, result)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // FindAll indicates an expected call of FindAll.
-func (mr *MockDBHandlerMockRecorder) FindAll(db, filter any) *gomock.Call {
+func (mr *MockDBHandlerMockRecorder) FindAll(db, filter, result any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAll", reflect.TypeOf((*MockDBHandler)(nil).FindAll), db, filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAll", reflect.TypeOf((*MockDBHandler)(nil).FindAll), db, filter, result)
 }
 
 // FindOne mocks base method.
-func (m *MockDBHandler) FindOne(db string, filter map[string]any) (any, error) {
+func (m *MockDBHandler) FindOne(db string, filter map[string]any, result any) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindOne", db, filter)
-	ret0, _ := ret[0].(any)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "FindOne", db, filter, result)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // FindOne indicates an expected call of FindOne.
-func (mr *MockDBHandlerMockRecorder) FindOne(db, filter any) *gomock.Call {
+func (mr *MockDBHandlerMockRecorder) FindOne(db, filter, result any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOne", reflect.TypeOf((*MockDBHandler)(nil).FindOne), db, filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOne", reflect.TypeOf((*MockDBHandler)(nil).FindOne), db, filter, result)
 }
 
 // Update mocks base method.

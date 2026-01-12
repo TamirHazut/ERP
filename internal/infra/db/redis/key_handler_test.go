@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -69,13 +68,12 @@ func TestKeyHandler_Set(t *testing.T) {
 
 func TestKeyHandler_GetOne(t *testing.T) {
 	testModel := TestModel{ID: "1", Name: "test"}
-	jsonData, _ := json.Marshal(testModel)
 
 	testCases := []struct {
 		name              string
 		tenantID          string
 		key               string
-		returnData        any
+		returnData        TestModel
 		returnError       error
 		expectedResult    TestModel
 		expectedCallTimes int
@@ -84,7 +82,7 @@ func TestKeyHandler_GetOne(t *testing.T) {
 			name:              "successful get one",
 			tenantID:          "1",
 			key:               "test-key",
-			returnData:        string(jsonData),
+			returnData:        testModel,
 			returnError:       nil,
 			expectedResult:    testModel,
 			expectedCallTimes: 1,
@@ -93,16 +91,8 @@ func TestKeyHandler_GetOne(t *testing.T) {
 			name:              "get one with error",
 			tenantID:          "1",
 			key:               "test-key",
-			returnData:        nil,
+			returnData:        TestModel{},
 			returnError:       errors.New("get one failed"),
-			expectedCallTimes: 1,
-		},
-		{
-			name:              "get one with error incompatible type",
-			tenantID:          "1",
-			key:               "test-key",
-			returnData:        "invalid json",
-			returnError:       errors.New("invalid json"),
 			expectedCallTimes: 1,
 		},
 	}
@@ -112,7 +102,16 @@ func TestKeyHandler_GetOne(t *testing.T) {
 			defer ctrl.Finish()
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
 			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
-			mockHandler.EXPECT().FindOne(formattedKey, nil).Return(tc.returnData, tc.returnError).Times(tc.expectedCallTimes)
+			model := &TestModel{}
+			mockHandler.EXPECT().
+				FindOne(formattedKey, nil, model).
+				DoAndReturn(func(formattedKey string, filter map[string]any, result any) error {
+					// Cast result to the correct type and set its value
+					if m, ok := result.(*TestModel); ok {
+						*m = tc.returnData
+					}
+					return tc.returnError
+				}).Times(tc.expectedCallTimes)
 
 			handler := NewBaseKeyHandler[TestModel](mockHandler, logger.NewBaseLogger(model_shared.ModuleDB))
 
@@ -128,8 +127,6 @@ func TestKeyHandler_GetOne(t *testing.T) {
 }
 
 func TestKeyHandler_GetAll(t *testing.T) {
-	testModel := TestModel{ID: "1", Name: "test"}
-	jsonData, _ := json.Marshal(testModel)
 
 	testCases := []struct {
 		name              string
@@ -137,16 +134,22 @@ func TestKeyHandler_GetAll(t *testing.T) {
 		key               string
 		returnData        []any
 		returnError       error
-		expectedResult    []TestModel
+		expectedResult    []*TestModel
 		expectedCallTimes int
 	}{
 		{
-			name:              "successful get",
-			tenantID:          "1",
-			key:               "test-key",
-			returnData:        []any{string(jsonData)},
-			returnError:       nil,
-			expectedResult:    []TestModel{testModel},
+			name:     "successful get",
+			tenantID: "1",
+			key:      "test-key",
+			returnData: []any{
+				&TestModel{ID: "1", Name: "test1"},
+				&TestModel{ID: "2", Name: "test2"},
+			},
+			returnError: nil,
+			expectedResult: []*TestModel{
+				{ID: "1", Name: "test1"},
+				{ID: "2", Name: "test2"},
+			},
 			expectedCallTimes: 1,
 		},
 		{
@@ -155,7 +158,7 @@ func TestKeyHandler_GetAll(t *testing.T) {
 			key:               "test-key",
 			returnData:        []any{},
 			returnError:       nil,
-			expectedResult:    []TestModel{},
+			expectedResult:    []*TestModel{},
 			expectedCallTimes: 1,
 		},
 		{
@@ -164,16 +167,7 @@ func TestKeyHandler_GetAll(t *testing.T) {
 			key:               "test-key",
 			returnData:        []any{},
 			returnError:       errors.New("database query failed"),
-			expectedResult:    []TestModel{},
-			expectedCallTimes: 1,
-		},
-		{
-			name:              "invalid JSON",
-			tenantID:          "1",
-			key:               "test-key",
-			returnData:        []any{"invalid json"},
-			returnError:       errors.New("invalid json"),
-			expectedResult:    []TestModel{},
+			expectedResult:    []*TestModel{},
 			expectedCallTimes: 1,
 		},
 	}
@@ -184,7 +178,21 @@ func TestKeyHandler_GetAll(t *testing.T) {
 			defer ctrl.Finish()
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
 			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
-			mockHandler.EXPECT().FindAll(formattedKey, nil).Return(tc.returnData, tc.returnError).Times(tc.expectedCallTimes)
+
+			models := make([]*TestModel, 0)
+			mockHandler.EXPECT().
+				FindAll(formattedKey, nil, &models).
+				DoAndReturn(func(formattedKey string, filter map[string]any, result any) error {
+					if m, ok := result.(*[]*TestModel); ok {
+						*m = make([]*TestModel, len(tc.returnData))
+						for i, item := range tc.returnData {
+							(*m)[i] = item.(*TestModel)
+						}
+					}
+					return tc.returnError
+				}).Times(tc.expectedCallTimes)
+
+			// mockHandler.EXPECT().FindAll(formattedKey, nil).Return(tc.returnData, tc.returnError).Times(tc.expectedCallTimes)
 			handler := NewBaseKeyHandler[TestModel](mockHandler, logger.NewBaseLogger(model_shared.ModuleDB))
 
 			result, err := handler.GetAll(tc.tenantID, tc.key)

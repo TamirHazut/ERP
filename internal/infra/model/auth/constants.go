@@ -33,11 +33,11 @@ func IsValidPermissionStatus(permissionStatus string) bool {
 		return false
 	}
 	permissionStatus = strings.ToLower(permissionStatus)
-	validPermissionActions := map[string]bool{
+	validPermissionStatus := map[string]bool{
 		PermissionStatusActive:   true,
 		PermissionStatusInactive: true,
 	}
-	return validPermissionActions[permissionStatus]
+	return validPermissionStatus[permissionStatus]
 }
 
 // Permission formats
@@ -89,6 +89,23 @@ func IsValidPermissionAction(permissionAction string) bool {
 }
 
 // Role types
+const (
+	RoleStatusActive   = "active"
+	RoleStatusInactive = "inactive"
+)
+
+func IsValidRoleStatus(roleStatus string) bool {
+	if roleStatus == "" {
+		return false
+	}
+	roleStatus = strings.ToLower(roleStatus)
+	validRoleStatus := map[string]bool{
+		RoleStatusActive:   true,
+		RoleStatusInactive: true,
+	}
+	return validRoleStatus[roleStatus]
+}
+
 const (
 	RoleSystemAdmin = "system_admin"
 	RoleTenantAdmin = "tenant_admin"

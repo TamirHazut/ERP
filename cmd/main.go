@@ -1,11 +1,11 @@
 package main
 
 import (
-	auth_server "erp.localhost/internal/auth/cmd"
-	core_server "erp.localhost/internal/core/cmd"
+	server_init "erp.localhost/internal/init/cmd"
 )
 
 func main() {
-	core_server.Main()
-	auth_server.Main()
+	server_init.Main()
+	// server_core.Main()
+	// server_auth.Main()
 }

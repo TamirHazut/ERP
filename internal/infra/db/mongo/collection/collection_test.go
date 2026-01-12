@@ -102,7 +102,16 @@ func TestCollection_FindOne(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
-			mockHandler.EXPECT().FindOne(tc.collection, tc.filter).Return(tc.returnModel, tc.returnError)
+			model := &TestModel{}
+			mockHandler.EXPECT().
+				FindOne(tc.collection, tc.filter, model).
+				DoAndReturn(func(collection string, filter map[string]any, result any) error {
+					// Cast result to the correct type and set its value
+					if m, ok := result.(*TestModel); ok {
+						*m = tc.returnModel
+					}
+					return tc.returnError
+				})
 
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
@@ -165,7 +174,19 @@ func TestCollection_FindAll(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
-			mockHandler.EXPECT().FindAll(tc.collection, tc.filter).Return(tc.returnModels, tc.returnError)
+
+			models := make([]*TestModel, 0)
+			mockHandler.EXPECT().
+				FindAll(tc.collection, tc.filter, &models).
+				DoAndReturn(func(collection string, filter map[string]any, result any) error {
+					if m, ok := result.(*[]*TestModel); ok {
+						*m = make([]*TestModel, len(tc.returnModels))
+						for i, item := range tc.returnModels {
+							(*m)[i] = item.(*TestModel)
+						}
+					}
+					return tc.returnError
+				})
 
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,

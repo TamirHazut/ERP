@@ -1,8 +1,6 @@
 package collection
 
 import (
-	"errors"
-
 	db "erp.localhost/internal/infra/db"
 	"erp.localhost/internal/infra/db/mongo"
 	infra_error "erp.localhost/internal/infra/error"
@@ -66,46 +64,36 @@ func (r *BaseCollectionHandler[T]) Create(item *T) (string, error) {
 
 func (r *BaseCollectionHandler[T]) FindOne(filter map[string]any) (*T, error) {
 	r.logger.Debug("Finding item", "collection", r.collection, "filter", filter)
-	item, err := r.dbHandler.FindOne(r.collection, filter)
+	result := new(T)
+	err := r.dbHandler.FindOne(r.collection, filter, result)
 	if err != nil {
 		err = infra_error.Internal(infra_error.InternalDatabaseError, err)
 		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
 		return nil, err
 	}
-	if item == nil {
+	if result == nil {
 		err = infra_error.NotFound(infra_error.NotFoundResource, r.collection, filter)
 		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
 		return nil, err
 	}
-	res, ok := item.(T)
-	if !ok {
-		err = infra_error.Internal(infra_error.InternalDatabaseError, errors.New("type assertion failed"))
-		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
-		return nil, err
-	}
 
-	return &res, nil
+	return result, nil
 }
 
 func (r *BaseCollectionHandler[T]) FindAll(filter map[string]any) ([]*T, error) {
+	if filter == nil {
+		r.logger.Debug("nil filter found", "collection", r.collection)
+		filter = make(map[string]any)
+	}
 	r.logger.Debug("Finding items", "collection", r.collection, "filter", filter)
-	items, err := r.dbHandler.FindAll(r.collection, filter)
+	result := make([]*T, 0)
+	err := r.dbHandler.FindAll(r.collection, filter, &result)
 	if err != nil {
 		err = infra_error.Internal(infra_error.InternalDatabaseError, err)
 		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
 		return nil, err
 	}
-	res := []*T{}
-	for _, item := range items {
-		obj, ok := item.(*T)
-		if !ok {
-			err = infra_error.Internal(infra_error.InternalDatabaseError, errors.New("type assertion failed"))
-			r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
-			return nil, err
-		}
-		res = append(res, obj)
-	}
-	return res, nil
+	return result, nil
 }
 
 func (r *BaseCollectionHandler[T]) Update(filter map[string]any, item *T) error {

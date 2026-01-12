@@ -1,0 +1,27 @@
+package cmd
+
+import (
+	"os"
+
+	"erp.localhost/internal/infra/logging/logger"
+	model_shared "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/init/seeder"
+)
+
+func Main() {
+	// Initialize logger
+	logger := logger.NewBaseLogger(model_shared.ModuleInit)
+	logger.Info("ERP System - Init Service Started")
+
+	// Run seeding
+	logger.Info("Starting system data seeding")
+	s := seeder.NewSeeder(logger)
+	if err := s.SeedSystemData(); err != nil {
+		logger.Error("Seeding failed", "error", err)
+		os.Exit(1)
+	}
+
+	logger.Info("System data seeded successfully")
+	logger.Info("Init Service - Exiting")
+	os.Exit(0)
+}

@@ -5,8 +5,8 @@ package db
 type DBHandler interface {
 	Close() error
 	Create(db string, data any, opts ...map[string]any) (string, error)
-	FindOne(db string, filter map[string]any) (any, error)
-	FindAll(db string, filter map[string]any) ([]any, error)
+	FindOne(db string, filter map[string]any, result any) error
+	FindAll(db string, filter map[string]any, result any) error
 	Update(db string, filter map[string]any, data any, opts ...map[string]any) error
 	Delete(db string, filter map[string]any) error
 }

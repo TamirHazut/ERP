@@ -3,6 +3,7 @@
 .PHONY: build test test-coverage lint clean help mocks mocks-clean
 
 # Service configuration
+SERVICE_NAME := infra
 BIN_DIR := ../../bin
 CMD_DIR := ../../cmd/$(SERVICE_NAME)
 INTERNAL_DIR := .
@@ -14,8 +15,6 @@ help: ## Show this help message
 	@echo "  make test           - Run infra service tests"
 	@echo "  make test-coverage  - Run tests with coverage"
 	@echo "  make lint           - Run linter on infra service"
-	@echo "  make certs          - Generate mTLS certificates for infra service"
-	@echo "  make certs-clean    - Remove infra service certificates"
 	@echo "  make clean          - Clean build artifacts"
 	@echo ""
 

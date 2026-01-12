@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"encoding/json"
 	"fmt"
 
 	db "erp.localhost/internal/infra/db"
@@ -43,54 +42,28 @@ func (k *BaseKeyHandler[T]) Set(tenantID string, key string, value T, opts ...ma
 func (k *BaseKeyHandler[T]) GetOne(tenantID string, key string) (*T, error) {
 	k.logger.Debug("Getting key", "tenantID", tenantID, "key", key)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
-	value, err := k.dbHandler.FindOne(formattedKey, nil)
+	result := new(T)
+	err := k.dbHandler.FindOne(formattedKey, nil, result)
 	if err != nil {
 		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
 	// Handle case where value is nil (not found)
-	if value == nil {
+	if result == nil {
 		return nil, infra_error.NotFound(infra_error.NotFoundResource, "key", formattedKey)
 	}
-
-	// Handle case where mock returns struct directly
-	if typedValue, ok := value.(T); ok {
-		return &typedValue, nil
-	}
-
-	// Handle case where Redis returns JSON string
-	var result T
-	err = json.Unmarshal([]byte(value.(string)), &result)
-	if err != nil {
-		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
-	}
-	return &result, nil
+	return result, nil
 }
 
-func (k *BaseKeyHandler[T]) GetAll(tenantID string, userID string) ([]T, error) {
+func (k *BaseKeyHandler[T]) GetAll(tenantID string, userID string) ([]*T, error) {
 	k.logger.Debug("Getting key", "tenantID", tenantID, "userID", userID)
+	result := make([]*T, 0)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, userID)
-	values, err := k.dbHandler.FindAll(formattedKey, nil)
+	err := k.dbHandler.FindAll(formattedKey, nil, &result)
 	if err != nil {
 		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
-	results := make([]T, len(values))
-	for i, value := range values {
-		// Handle case where mock returns struct directly
-		if typedValue, ok := value.(T); ok {
-			results[i] = typedValue
-			continue
-		}
-
-		// Handle case where Redis returns JSON string
-		var result T
-		err = json.Unmarshal([]byte(value.(string)), &result)
-		if err != nil {
-			return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
-		}
-		results[i] = result
-	}
-	return results, nil
+	return result, nil
 }
 
 func (k *BaseKeyHandler[T]) Update(tenantID string, key string, value T, opts ...map[string]any) error {
