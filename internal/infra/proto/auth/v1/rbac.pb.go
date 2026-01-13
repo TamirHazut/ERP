@@ -1192,10 +1192,14 @@ func (x *GetResourceRequest) GetId() string {
 }
 
 type DeleteResourceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Identifier    *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
-	ResourceType  ResourceType           `protobuf:"varint,2,opt,name=resource_type,json=resourceType,proto3,enum=auth.v1.ResourceType" json:"resource_type,omitempty"`
-	Id            string                 `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Identifier   *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	ResourceType ResourceType           `protobuf:"varint,2,opt,name=resource_type,json=resourceType,proto3,enum=auth.v1.ResourceType" json:"resource_type,omitempty"`
+	// Types that are valid to be assigned to Resource:
+	//
+	//	*DeleteResourceRequest_ResourceId
+	//	*DeleteResourceRequest_TenantId
+	Resource      isDeleteResourceRequest_Resource `protobuf_oneof:"resource"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1244,12 +1248,46 @@ func (x *DeleteResourceRequest) GetResourceType() ResourceType {
 	return ResourceType_RESOURCE_TYPE_UNSPECIFIED
 }
 
-func (x *DeleteResourceRequest) GetId() string {
+func (x *DeleteResourceRequest) GetResource() isDeleteResourceRequest_Resource {
 	if x != nil {
-		return x.Id
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *DeleteResourceRequest) GetResourceId() string {
+	if x != nil {
+		if x, ok := x.Resource.(*DeleteResourceRequest_ResourceId); ok {
+			return x.ResourceId
+		}
 	}
 	return ""
 }
+
+func (x *DeleteResourceRequest) GetTenantId() string {
+	if x != nil {
+		if x, ok := x.Resource.(*DeleteResourceRequest_TenantId); ok {
+			return x.TenantId
+		}
+	}
+	return ""
+}
+
+type isDeleteResourceRequest_Resource interface {
+	isDeleteResourceRequest_Resource()
+}
+
+type DeleteResourceRequest_ResourceId struct {
+	ResourceId string `protobuf:"bytes,3,opt,name=resource_id,json=resourceId,proto3,oneof"`
+}
+
+type DeleteResourceRequest_TenantId struct {
+	TenantId string `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3,oneof"`
+}
+
+func (*DeleteResourceRequest_ResourceId) isDeleteResourceRequest_Resource() {}
+
+func (*DeleteResourceRequest_TenantId) isDeleteResourceRequest_Resource() {}
 
 type ListResourcesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2135,13 +2173,17 @@ const file_auth_v1_rbac_proto_rawDesc = "" +
 	"identifier\x18\x01 \x01(\v2\x18.infra.v1.UserIdentifierR\n" +
 	"identifier\x12:\n" +
 	"\rresource_type\x18\x02 \x01(\x0e2\x15.auth.v1.ResourceTypeR\fresourceType\x12\x0e\n" +
-	"\x02id\x18\x03 \x01(\tR\x02id\"\x9d\x01\n" +
+	"\x02id\x18\x03 \x01(\tR\x02id\"\xdb\x01\n" +
 	"\x15DeleteResourceRequest\x128\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\v2\x18.infra.v1.UserIdentifierR\n" +
 	"identifier\x12:\n" +
-	"\rresource_type\x18\x02 \x01(\x0e2\x15.auth.v1.ResourceTypeR\fresourceType\x12\x0e\n" +
-	"\x02id\x18\x03 \x01(\tR\x02id\"\x85\x02\n" +
+	"\rresource_type\x18\x02 \x01(\x0e2\x15.auth.v1.ResourceTypeR\fresourceType\x12!\n" +
+	"\vresource_id\x18\x03 \x01(\tH\x00R\n" +
+	"resourceId\x12\x1d\n" +
+	"\ttenant_id\x18\x04 \x01(\tH\x00R\btenantIdB\n" +
+	"\n" +
+	"\bresource\"\x85\x02\n" +
 	"\x14ListResourcesRequest\x128\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\v2\x18.infra.v1.UserIdentifierR\n" +
@@ -2345,6 +2387,10 @@ func file_auth_v1_rbac_proto_init() {
 	file_auth_v1_rbac_proto_msgTypes[9].OneofWrappers = []any{
 		(*UpdateResourceRequest_Role)(nil),
 		(*UpdateResourceRequest_Permission)(nil),
+	}
+	file_auth_v1_rbac_proto_msgTypes[11].OneofWrappers = []any{
+		(*DeleteResourceRequest_ResourceId)(nil),
+		(*DeleteResourceRequest_TenantId)(nil),
 	}
 	file_auth_v1_rbac_proto_msgTypes[12].OneofWrappers = []any{}
 	file_auth_v1_rbac_proto_msgTypes[19].OneofWrappers = []any{

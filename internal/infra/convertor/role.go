@@ -61,6 +61,34 @@ func RolesToProto(roles []model_auth.Role) []*proto_auth.RoleData {
 	return result
 }
 
+func ProtoToRole(pb *proto_auth.RoleData) (*model_auth.Role, error) {
+	if pb == nil {
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "role")
+	}
+	id, _ := primitive.ObjectIDFromHex(pb.Id)
+
+	return &model_auth.Role{
+		ID:           id,
+		TenantID:     pb.TenantId,
+		Name:         pb.Name,
+		Slug:         pb.Slug,
+		Description:  pb.Description,
+		Type:         pb.Type,
+		IsSystemRole: pb.IsSystemRole,
+		Permissions:  pb.Permissions,
+		Priority:     int(pb.Priority),
+		Status:       pb.Status,
+		Metadata: model_auth.RoleMetadata{
+			Color:         pb.Metadata.GetColor(),
+			Icon:          pb.Metadata.GetIcon(),
+			MaxAssignable: int(pb.Metadata.GetMaxAssignable()),
+		},
+		CreatedAt: pb.CreatedAt.AsTime(),
+		UpdatedAt: pb.UpdatedAt.AsTime(),
+		CreatedBy: pb.CreatedBy,
+	}, nil
+}
+
 // =============================================================================
 // Proto → Domain Model (for create operations)
 // =============================================================================
@@ -96,6 +124,29 @@ func CreateRoleFromProto(proto *proto_auth.CreateRoleData) (*model_auth.Role, er
 	}
 
 	return role, nil
+}
+
+func RoleToCreateProto(role *model_auth.Role) (*proto_auth.CreateRoleData, error) {
+	if role == nil {
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "role")
+	}
+	return &proto_auth.CreateRoleData{
+		TenantId:     role.TenantID,
+		Name:         role.Name,
+		Slug:         role.Slug,
+		Description:  role.Description,
+		Type:         role.Type,
+		IsSystemRole: role.IsSystemRole,
+		Permissions:  role.Permissions,
+		Priority:     int32(role.Priority),
+		Status:       role.Status,
+		Metadata: &proto_auth.RoleMetadata{
+			Color:         role.Metadata.Color,
+			Icon:          role.Metadata.Icon,
+			MaxAssignable: int32(role.Metadata.MaxAssignable),
+		},
+		CreatedBy: role.CreatedBy,
+	}, nil
 }
 
 // =============================================================================
@@ -154,6 +205,29 @@ func UpdateRoleFromProto(existing *model_auth.Role, proto *proto_auth.UpdateRole
 	return nil
 }
 
+func RoleToUpdateProto(role *model_auth.Role) (*proto_auth.UpdateRoleData, error) {
+	if role == nil {
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "role")
+	}
+	return &proto_auth.UpdateRoleData{
+		Id:           role.ID.Hex(),
+		TenantId:     role.TenantID,
+		Name:         &role.Name,
+		Slug:         &role.Slug,
+		Description:  &role.Description,
+		Type:         &role.Type,
+		IsSystemRole: &role.IsSystemRole,
+		Permissions:  role.Permissions,
+		Priority:     ptrInt32(int32(role.Priority)),
+		Status:       &role.Status,
+		Metadata: &proto_auth.RoleMetadata{
+			Color:         role.Metadata.Color,
+			Icon:          role.Metadata.Icon,
+			MaxAssignable: int32(role.Metadata.MaxAssignable),
+		},
+	}, nil
+}
+
 // =============================================================================
 // Helper Functions
 // =============================================================================
@@ -164,4 +238,12 @@ func RoleObjectIDFromString(id string) (primitive.ObjectID, error) {
 		return primitive.NilObjectID, infra_error.Validation(infra_error.ValidationInvalidValue, "id")
 	}
 	return primitive.ObjectIDFromHex(id)
+}
+
+// ============================================================================
+// Helper functions
+// ============================================================================
+
+func ptrInt32(v int32) *int32 {
+	return &v
 }

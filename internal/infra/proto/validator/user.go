@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	infra_error "erp.localhost/internal/infra/error"
-	core_model "erp.localhost/internal/infra/model/core"
-	proto_core "erp.localhost/internal/infra/proto/core/v1"
+	model_auth "erp.localhost/internal/infra/model/auth"
+	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
 	proto_infra "erp.localhost/internal/infra/proto/infra/v1"
 )
 
@@ -65,7 +65,7 @@ func isValidPhone(phone string) bool {
 	return phoneRegex.MatchString(phone)
 }
 
-func validateUserProfile(profile *proto_core.UserProfileData) error {
+func validateUserProfile(profile *proto_auth.UserProfileData) error {
 	if profile == nil {
 		return nil // Profile is optional
 	}
@@ -95,7 +95,7 @@ func validateUserProfile(profile *proto_core.UserProfileData) error {
 	return nil
 }
 
-func validateUserPreferences(preferences *proto_core.UserPreferencesData) error {
+func validateUserPreferences(preferences *proto_auth.UserPreferencesData) error {
 	if preferences == nil {
 		return nil // Preferences are optional
 	}
@@ -122,7 +122,7 @@ func validateUserPreferences(preferences *proto_core.UserPreferencesData) error 
 }
 
 // ValidateUserData validates complete user data (used for responses/read operations)
-func ValidateUserData(userData *proto_core.UserData) error {
+func ValidateUserData(userData *proto_auth.UserData) error {
 	if userData == nil {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "user_data")
 	}
@@ -152,7 +152,7 @@ func ValidateUserData(userData *proto_core.UserData) error {
 	}
 
 	// Validate status
-	if userData.Status != "" && !core_model.IsValidUserStatus(userData.Status) {
+	if userData.Status != "" && !model_auth.IsValidUserStatus(userData.Status) {
 		return infra_error.Validation(infra_error.ValidationInvalidValue, "status")
 	}
 
@@ -168,7 +168,7 @@ func ValidateUserData(userData *proto_core.UserData) error {
 }
 
 // ValidateCreateUserData validates data for creating a new user
-func ValidateCreateUserData(userData *proto_core.CreateUserData) error {
+func ValidateCreateUserData(userData *proto_auth.CreateUserData) error {
 	if userData == nil {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "user_data")
 	}
@@ -201,7 +201,7 @@ func ValidateCreateUserData(userData *proto_core.CreateUserData) error {
 	}
 
 	// Validate status if provided
-	if userData.Status != "" && !core_model.IsValidUserStatus(userData.Status) {
+	if userData.Status != "" && !model_auth.IsValidUserStatus(userData.Status) {
 		return infra_error.Validation(infra_error.ValidationInvalidValue, "status")
 	}
 
@@ -217,7 +217,7 @@ func ValidateCreateUserData(userData *proto_core.CreateUserData) error {
 }
 
 // ValidateUpdateUserData validates data for updating an existing user
-func ValidateUpdateUserData(userData *proto_core.UpdateUserData) error {
+func ValidateUpdateUserData(userData *proto_auth.UpdateUserData) error {
 	if userData == nil {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "user_data")
 	}
@@ -246,7 +246,7 @@ func ValidateUpdateUserData(userData *proto_core.UpdateUserData) error {
 
 	// Validate status if provided
 	if userData.Status != nil && *userData.Status != "" {
-		if !core_model.IsValidUserStatus(*userData.Status) {
+		if !model_auth.IsValidUserStatus(*userData.Status) {
 			return infra_error.Validation(infra_error.ValidationInvalidValue, "status")
 		}
 	}

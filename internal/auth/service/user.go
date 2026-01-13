@@ -4,17 +4,15 @@ import (
 	"context"
 	"errors"
 
-	collection "erp.localhost/internal/core/collection"
+	collection "erp.localhost/internal/auth/collection"
 	"erp.localhost/internal/infra/convertor"
 	mongo_collection "erp.localhost/internal/infra/db/mongo/collection"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
-	model_core "erp.localhost/internal/infra/model/core"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 	model_shared "erp.localhost/internal/infra/model/shared"
 	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
-	proto_core "erp.localhost/internal/infra/proto/core/v1"
 	proto_infra "erp.localhost/internal/infra/proto/infra/v1"
 	"erp.localhost/internal/infra/proto/validator"
 	"google.golang.org/grpc/codes"
@@ -35,14 +33,14 @@ type UserService struct {
 	userCollection *collection.UserCollection
 	rbacGRPCClient proto_auth.RBACServiceClient
 	authGRPCClient proto_auth.AuthServiceClient
-	proto_core.UnimplementedUserServiceServer
+	proto_auth.UnimplementedUserServiceServer
 }
 
 // TODO: allow system admin create user in other tenants
 func NewUserService() *UserService {
 	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 
-	uc := mongo_collection.NewBaseCollectionHandler[model_core.User](model_mongo.CoreDB, model_mongo.UsersCollection, logger)
+	uc := mongo_collection.NewBaseCollectionHandler[model_auth.User](model_mongo.CoreDB, model_mongo.UsersCollection, logger)
 	if uc == nil {
 		logger.Fatal("failed to create users collection handler")
 		return nil
@@ -60,7 +58,7 @@ func NewUserService() *UserService {
 	}
 }
 
-func (u *UserService) CreateUser(ctx context.Context, req *proto_core.CreateUserRequest) (*proto_core.CreateUserResponse, error) {
+func (u *UserService) CreateUser(ctx context.Context, req *proto_auth.CreateUserRequest) (*proto_auth.CreateUserResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
@@ -111,12 +109,12 @@ func (u *UserService) CreateUser(ctx context.Context, req *proto_core.CreateUser
 		return nil, status.Error(codes.Aborted, err.Error())
 	}
 
-	return &proto_core.CreateUserResponse{
+	return &proto_auth.CreateUserResponse{
 		UserId: id,
 	}, nil
 }
 
-func (u *UserService) GetUser(ctx context.Context, req *proto_core.GetUserRequest) (*proto_core.UserResponse, error) {
+func (u *UserService) GetUser(ctx context.Context, req *proto_auth.GetUserRequest) (*proto_auth.UserResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
@@ -155,12 +153,12 @@ func (u *UserService) GetUser(ctx context.Context, req *proto_core.GetUserReques
 		return nil, status.Error(codes.Aborted, err.Error())
 	}
 
-	return &proto_core.UserResponse{
+	return &proto_auth.UserResponse{
 		User: userProto,
 	}, nil
 }
 
-func (u *UserService) GetUsers(ctx context.Context, req *proto_core.GetUsersRequest) (*proto_core.UsersResponse, error) {
+func (u *UserService) GetUsers(ctx context.Context, req *proto_auth.GetUsersRequest) (*proto_auth.UsersResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
@@ -177,7 +175,7 @@ func (u *UserService) GetUsers(ctx context.Context, req *proto_core.GetUsersRequ
 		return nil, status.Error(codes.PermissionDenied, errMsg)
 	}
 
-	var users []*model_core.User
+	var users []*model_auth.User
 	var err error
 	roleID := req.GetRoleId()
 	if roleID != "" {
@@ -195,12 +193,12 @@ func (u *UserService) GetUsers(ctx context.Context, req *proto_core.GetUsersRequ
 	// convertor from model user to proto user
 	usersProto := convertor.UsersToProto(users)
 
-	return &proto_core.UsersResponse{
+	return &proto_auth.UsersResponse{
 		Users: usersProto,
 	}, nil
 }
 
-func (u *UserService) UpdateUser(ctx context.Context, req *proto_core.UpdateUserRequest) (*proto_core.UpdateUserResponse, error) {
+func (u *UserService) UpdateUser(ctx context.Context, req *proto_auth.UpdateUserRequest) (*proto_auth.UpdateUserResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
@@ -251,12 +249,12 @@ func (u *UserService) UpdateUser(ctx context.Context, req *proto_core.UpdateUser
 		u.logger.Error("failed to update account", "tenantID", tenantID, "error", errMsg)
 		err = status.Error(codes.Aborted, errMsg)
 	}
-	return &proto_core.UpdateUserResponse{
+	return &proto_auth.UpdateUserResponse{
 		Updated: err != nil,
 	}, err
 }
 
-func (u *UserService) DeleteUser(ctx context.Context, req *proto_core.DeleteUserRequest) (*proto_core.DeleteUserResponse, error) {
+func (u *UserService) DeleteUser(ctx context.Context, req *proto_auth.DeleteUserRequest) (*proto_auth.DeleteUserResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
@@ -266,12 +264,9 @@ func (u *UserService) DeleteUser(ctx context.Context, req *proto_core.DeleteUser
 	}
 
 	tenantID := identifier.GetTenantId()
-
 	accountID := req.GetAccountId()
 	if accountID == "" {
-		errMsg := infra_error.Validation(infra_error.ValidationRequiredFields, "id").Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		tenantID = req.GetTenantId()
 	}
 
 	if hasPermission, err := u.verifyPermission(ctx, identifier, model_auth.PermissionActionDelete); err != nil || !hasPermission {
@@ -286,12 +281,12 @@ func (u *UserService) DeleteUser(ctx context.Context, req *proto_core.DeleteUser
 		u.logger.Error("failed to delete account", "tenantID", tenantID, "error", errMsg)
 		err = status.Error(codes.Aborted, errMsg)
 	}
-	return &proto_core.DeleteUserResponse{
+	return &proto_auth.DeleteUserResponse{
 		Deleted: err == nil,
 	}, err
 }
 
-func (u *UserService) Login(ctx context.Context, req *proto_core.LoginRequest) (*proto_auth.TokensResponse, error) {
+func (u *UserService) Login(ctx context.Context, req *proto_auth.LoginRequest) (*proto_auth.TokensResponse, error) {
 	tenantID := req.GetTenantId()
 	if tenantID == "" {
 		errMsg := infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id").Error()
@@ -315,10 +310,10 @@ func (u *UserService) Login(ctx context.Context, req *proto_core.LoginRequest) (
 	var filterType filterType
 
 	switch v := accountID.(type) {
-	case *proto_core.LoginRequest_Email:
+	case *proto_auth.LoginRequest_Email:
 		userIdentifier = v.Email
 		filterType = filterTypeEmail
-	case *proto_core.LoginRequest_Username:
+	case *proto_auth.LoginRequest_Username:
 		userIdentifier = v.Username
 		filterType = filterTypeUsername
 	default:
@@ -344,7 +339,7 @@ func (u *UserService) Login(ctx context.Context, req *proto_core.LoginRequest) (
 	return res, err
 }
 
-func (u *UserService) Logout(ctx context.Context, req *proto_core.LogoutRequest) (*proto_core.LogoutResponse, error) {
+func (u *UserService) Logout(ctx context.Context, req *proto_auth.LogoutRequest) (*proto_auth.LogoutResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
@@ -368,7 +363,7 @@ func (u *UserService) Logout(ctx context.Context, req *proto_core.LogoutRequest)
 	} else {
 		message = "logout successful"
 	}
-	return &proto_core.LogoutResponse{
+	return &proto_auth.LogoutResponse{
 		Message: message,
 	}, err
 }
@@ -385,8 +380,10 @@ func (u *UserService) authenticate(ctx context.Context, identifier *proto_infra.
 func (u *UserService) revokeTokens(ctx context.Context, identifier *proto_infra.UserIdentifier, tokens *proto_auth.Tokens, revokedBy string) (bool, error) {
 	req := &proto_auth.RevokeTokenRequest{
 		Identifier: identifier,
-		Tokens:     tokens,
-		RevokedBy:  revokedBy,
+		Resource: &proto_auth.RevokeTokenRequest_Tokens{
+			Tokens: tokens,
+		},
+		RevokedBy: revokedBy,
 	}
 	res, err := u.authGRPCClient.RevokeToken(ctx, req)
 	return res.GetRevoked(), err
@@ -422,7 +419,7 @@ func (u *UserService) verifyPermission(ctx context.Context, identifier *proto_in
 	return resources[0].GetPermission().GetHasPermission().GetValue(), nil
 }
 
-func (u *UserService) getUser(tenantID string, accountID string, filterType filterType) (*model_core.User, error) {
+func (u *UserService) getUser(tenantID string, accountID string, filterType filterType) (*model_auth.User, error) {
 	switch filterType {
 	case filterTypeID:
 		return u.userCollection.GetUserByID(tenantID, accountID)

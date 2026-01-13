@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"os"
+	"strconv"
 	"time"
 
 	"erp.localhost/internal/auth/password"
@@ -21,13 +23,48 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
+// TokenConfig holds configuration for token management
+type TokenConfig struct {
+	SecretKey            string
+	TokenDuration        time.Duration
+	RefreshTokenDuration time.Duration
+}
 
-	// TODO: Get secret key and durations from environment variable
-	secretKey            = "secret"
-	tokenDuration        = 1 * time.Hour
-	refreshTokenDuration = 7 * 24 * time.Hour
-)
+// LoadTokenConfig loads token configuration from environment variables with defaults
+func LoadTokenConfig() *TokenConfig {
+	return &TokenConfig{
+		SecretKey:            getEnv("JWT_SECRET_KEY", "secret"),
+		TokenDuration:        parseDuration(getEnv("ACCESS_TOKEN_DURATION", "1h"), 1*time.Hour),
+		RefreshTokenDuration: parseDuration(getEnv("REFRESH_TOKEN_DURATION", "168h"), 7*24*time.Hour),
+	}
+}
+
+// getEnv gets an environment variable or returns a default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// parseDuration parses a duration string or returns a default value
+func parseDuration(value string, defaultDuration time.Duration) time.Duration {
+	if value == "" {
+		return defaultDuration
+	}
+
+	// Try parsing as duration string (e.g., "1h", "24h")
+	if duration, err := time.ParseDuration(value); err == nil {
+		return duration
+	}
+
+	// Try parsing as seconds (e.g., "3600" for 1 hour)
+	if seconds, err := strconv.ParseInt(value, 10, 64); err == nil {
+		return time.Duration(seconds) * time.Second
+	}
+
+	return defaultDuration
+}
 
 type NewTokenResponse struct {
 	UserID                string `json:"user_id"`
@@ -44,12 +81,20 @@ type NewTokenResponse struct {
 type AuthService struct {
 	logger       logger.Logger
 	tokenManager *token.TokenManager
+	config       *TokenConfig
 	proto_auth.UnimplementedAuthServiceServer
 }
 
 func NewAuthService() *AuthService {
 	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
-	tokenManager := token.NewTokenManager(secretKey, tokenDuration, refreshTokenDuration)
+
+	// Load configuration from environment variables
+	config := LoadTokenConfig()
+	logger.Info("Token configuration loaded",
+		"access_token_duration", config.TokenDuration.String(),
+		"refresh_token_duration", config.RefreshTokenDuration.String())
+
+	tokenManager := token.NewTokenManager(config.SecretKey, config.TokenDuration, config.RefreshTokenDuration)
 	if tokenManager == nil {
 		logger.Fatal("failed to create token manager")
 		return nil
@@ -57,6 +102,7 @@ func NewAuthService() *AuthService {
 	return &AuthService{
 		logger:       logger,
 		tokenManager: tokenManager,
+		config:       config,
 	}
 }
 
@@ -142,6 +188,14 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *proto_auth.RefreshT
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	// Revoke old access tokens to prevent orphaned tokens
+	// Note: We only revoke access tokens, not refresh tokens, since the refresh token
+	// is still valid and will be revoked explicitly below
+	if err := s.tokenManager.RevokeAllAccessTokens(tenantID, userID, "system"); err != nil {
+		s.logger.Warn("Failed to revoke old access tokens before refresh", "error", err, "tenant_id", tenantID, "user_id", userID)
+		// Continue anyway - non-critical failure
+	}
+
 	newTokenResponse, err := s.generateAndStoreTokens(tenantID, userID)
 	if err != nil {
 		s.logger.Error("Failed to generate and store tokens", "error", err, "tenant_id", tenantID, "user_id", userID)
@@ -182,6 +236,39 @@ func (s *AuthService) RevokeToken(ctx context.Context, req *proto_auth.RevokeTok
 	}, nil
 }
 
+func (s *AuthService) RevokeAllTenantTokens(ctx context.Context, req *proto_auth.RevokeAllTenantTokensRequest) (*proto_auth.RevokeAllTenantTokensResponse, error) {
+	// Validate input
+	tenantID := req.GetTenantId()
+	revokedBy := req.GetRevokedBy()
+
+	if tenantID == "" {
+		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
+	}
+	if revokedBy == "" {
+		return nil, status.Error(codes.InvalidArgument, "revoked_by is required")
+	}
+
+	s.logger.Warn("Revoking all tenant tokens", "tenant_id", tenantID, "revoked_by", revokedBy)
+
+	// TODO: Add RBAC check - only system admins should be able to revoke all tenant tokens
+	// This is a critical operation that should require elevated permissions
+
+	// Revoke all tokens for this tenant
+	accessCount, refreshCount, err := s.tokenManager.RevokeAllTenantTokens(tenantID, revokedBy)
+	if err != nil {
+		s.logger.Error("Failed to revoke tenant tokens", "error", err, "tenant_id", tenantID)
+		return nil, status.Error(codes.Internal, "failed to revoke tenant tokens")
+	}
+
+	s.logger.Info("All tenant tokens revoked", "tenant_id", tenantID, "access_tokens_revoked", accessCount, "refresh_tokens_revoked", refreshCount)
+
+	return &proto_auth.RevokeAllTenantTokensResponse{
+		Revoked:              true,
+		AccessTokensRevoked:  int32(accessCount),
+		RefreshTokensRevoked: int32(refreshCount),
+	}, nil
+}
+
 func (s *AuthService) revokeTokens(identifier *proto_infra.UserIdentifier, tokens *proto_auth.Tokens, revokedBy string) error {
 	if identifier.GetTenantId() == "" || identifier.GetUserId() == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "user")
@@ -219,7 +306,7 @@ func (s *AuthService) generateAccessToken(tenantID string, userID string) (model
 	accessTokenID := hex.EncodeToString(hashedAccessToken[:])
 
 	issuedAt := time.Now()
-	accessTokenExpiresAt := issuedAt.Add(tokenDuration)
+	accessTokenExpiresAt := issuedAt.Add(s.config.TokenDuration)
 
 	accessTokenMetadata := model_auth_cache.TokenMetadata{
 		TokenID:   accessTokenID,
@@ -263,7 +350,9 @@ func (s *AuthService) generateAndStoreTokens(tenantID string, userID string) (*N
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	err = s.tokenManager.StoreTokens(tenantID, userID, accessTokenMetadata.TokenID, refreshToken.Token, accessTokenMetadata, refreshToken)
+
+	// Store tokens (single token per user - automatically replaces existing)
+	err = s.tokenManager.StoreTokens(tenantID, userID, accessTokenMetadata, refreshToken)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

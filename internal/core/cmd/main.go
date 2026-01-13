@@ -1,20 +1,23 @@
 package cmd
 
 import (
+	"context"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
-	"erp.localhost/internal/core/service"
+	"erp.localhost/internal/infra/grpc/client"
+	"erp.localhost/internal/infra/grpc/server"
 	grpc_server "erp.localhost/internal/infra/grpc/server"
+	"erp.localhost/internal/infra/logging/logger"
 	model_shared "erp.localhost/internal/infra/model/shared"
-	proto_core "erp.localhost/internal/infra/proto/core/v1"
-	"google.golang.org/grpc"
 )
 
 const (
-	serverPort = 5001
+	ServerPort = 5001
 )
 
 func Main() {
@@ -25,17 +28,37 @@ func Main() {
 	// Channel to signal the gRPC server goroutine to stop
 	quit := make(chan struct{})
 
-	// Create gRPC Server
+	insecure := false
 	certs := model_shared.NewCerts()
 	if certs == nil {
-		return
+		insecure = true
 	}
-	services := map[*grpc.ServiceDesc]any{
-		&proto_core.UserService_ServiceDesc:   service.NewUserService(),
-		&proto_core.TenantService_ServiceDesc: service.NewTenantService(),
+
+	ctx := context.Background()
+	logger := logger.NewBaseLogger(model_shared.ModuleCore)
+	// Create RBAC client
+	rbacClient, err := client.NewRBACClient(ctx, &client.Config{
+		Address:  "localhost:5000",
+		Module:   model_shared.ModuleCore,
+		Insecure: insecure,
+		Certs:    certs,
+	}, logger)
+	if err != nil {
+		log.Fatal(err)
 	}
-	grpcServer := grpc_server.NewGRPCServer(certs, model_shared.ModuleCore, serverPort, services)
-	if grpcServer == nil {
+	defer rbacClient.Close()
+
+	// Create server
+	srv, err := grpc_server.NewGRPCServer(&server.Config{
+		Port:             ServerPort,
+		Module:           model_shared.ModuleCore,
+		Insecure:         insecure, // Set to false for production with certs
+		Certs:            certs,
+		EnableReflection: true,
+		KeepAliveTime:    30 * time.Second,
+		KeepAliveTimeout: 10 * time.Second,
+	})
+	if err != nil {
 		return
 	}
 
@@ -45,7 +68,7 @@ func Main() {
 	go func() {
 		defer wg.Done()
 		// Run gRPC Server
-		if err := grpcServer.ListenAndServe(quit); err != nil {
+		if err := srv.ListenAndServe(quit); err != nil {
 			return
 		}
 	}()

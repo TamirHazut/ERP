@@ -158,7 +158,10 @@ message GetResourceRequest {
 message DeleteResourceRequest {
     infra.v1.UserIdentifier identifier = 1;
     ResourceType resource_type = 2;
-    string id = 3;
+    oneof resource {
+        string resource_id = 3;
+        string tenant_id = 4;
+    }
 }
 
 // ============================================================================

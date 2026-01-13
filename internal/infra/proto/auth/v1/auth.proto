@@ -45,11 +45,26 @@ message RefreshTokenRequest {
 message RevokeTokenRequest {
     infra.v1.UserIdentifier identifier = 1;
     string revoked_by = 2;
-    Tokens tokens = 3;
+    oneof resource {
+        Tokens tokens = 3;
+        string tenant_id = 4;
+    }
 }
 
 message RevokeTokenResponse {
     bool revoked = 1;
+}
+
+// Tenant-level token management
+message RevokeAllTenantTokensRequest {
+    string tenant_id = 1;
+    string revoked_by = 2;
+}
+
+message RevokeAllTenantTokensResponse {
+    bool revoked = 1;
+    int32 access_tokens_revoked = 2;
+    int32 refresh_tokens_revoked = 3;
 }
 
 service AuthService {
@@ -60,4 +75,7 @@ service AuthService {
     rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
     rpc RefreshToken(RefreshTokenRequest) returns (TokensResponse);
     rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+
+    // Tenant-level token management
+    rpc RevokeAllTenantTokens(RevokeAllTenantTokensRequest) returns (RevokeAllTenantTokensResponse);
 }

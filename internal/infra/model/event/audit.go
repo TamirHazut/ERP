@@ -5,7 +5,6 @@ import (
 	"time"
 
 	infra_error "erp.localhost/internal/infra/error"
-	model_auth "erp.localhost/internal/infra/model/auth"
 )
 
 type AuditLog struct {
@@ -115,7 +114,7 @@ func (a *AuditLog) Validate() error {
 	}
 
 	// Validate category
-	if !model_auth.IsValidCategory(a.Category) {
+	if !IsValidCategory(a.Category) {
 		return infra_error.Validation(infra_error.ValidationInvalidValue, "Category", a.Category)
 	}
 
@@ -125,22 +124,22 @@ func (a *AuditLog) Validate() error {
 	}
 
 	// Validate severity
-	if !model_auth.IsValidSeverity(a.Severity) {
+	if !IsValidSeverity(a.Severity) {
 		return infra_error.Validation(infra_error.ValidationInvalidValue, "Severity", a.Severity)
 	}
 
 	// Validate result
-	if !model_auth.IsValidResult(a.Result) {
+	if !IsValidResult(a.Result) {
 		return infra_error.Validation(infra_error.ValidationInvalidValue, "Result", a.Result)
 	}
 
 	// Validate actor type if provided
-	if !model_auth.IsValidActorType(a.ActorType) {
+	if !IsValidActorType(a.ActorType) {
 		return infra_error.Validation(infra_error.ValidationInvalidValue, "ActorType", a.ActorType)
 	}
 
 	// Validate target type if provided
-	if !model_auth.IsValidTargetType(a.TargetType) {
+	if !IsValidTargetType(a.TargetType) {
 		return infra_error.Validation(infra_error.ValidationInvalidValue, "TargetType", a.TargetType)
 	}
 

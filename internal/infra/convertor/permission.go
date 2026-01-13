@@ -46,6 +46,26 @@ func PermissionsToProto(perms []model_auth.Permission) []*proto_auth.PermissionD
 	return result
 }
 
+func ProtoToPermission(pb *proto_auth.PermissionData) (*model_auth.Permission, error) {
+	if pb == nil {
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "permission")
+	}
+	id, _ := primitive.ObjectIDFromHex(pb.Id)
+
+	return &model_auth.Permission{
+		ID:               id,
+		TenantID:         pb.TenantId,
+		Resource:         pb.Resource,
+		Action:           pb.Action,
+		PermissionString: pb.Slug,
+		DisplayName:      pb.Name,
+		Description:      pb.Description,
+		CreatedAt:        pb.CreatedAt.AsTime(),
+		UpdatedAt:        pb.UpdatedAt.AsTime(),
+		CreatedBy:        pb.CreatedBy,
+	}, nil
+}
+
 // =============================================================================
 // Proto → Domain Model (for create operations)
 // =============================================================================
@@ -77,6 +97,22 @@ func CreatePermissionFromProto(proto *proto_auth.CreatePermissionData) (*model_a
 	}
 
 	return perm, nil
+}
+
+func PermissionToCreateProto(perm *model_auth.Permission) (*proto_auth.CreatePermissionData, error) {
+	if perm == nil {
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "permission")
+	}
+	return &proto_auth.CreatePermissionData{
+		TenantId:    perm.TenantID,
+		Name:        perm.DisplayName,
+		Slug:        perm.PermissionString,
+		Description: perm.Description,
+		Resource:    perm.Resource,
+		Action:      perm.Action,
+		Status:      "active", // Default status
+		CreatedBy:   perm.CreatedBy,
+	}, nil
 }
 
 // =============================================================================
@@ -116,6 +152,21 @@ func UpdatePermissionFromProto(existing *model_auth.Permission, proto *proto_aut
 	existing.UpdatedAt = time.Now()
 
 	return nil
+}
+
+func PermissionToUpdateProto(perm *model_auth.Permission) (*proto_auth.UpdatePermissionData, error) {
+	if perm == nil {
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "permission")
+	}
+	return &proto_auth.UpdatePermissionData{
+		Id:          perm.ID.Hex(),
+		TenantId:    perm.TenantID,
+		Name:        &perm.DisplayName,
+		Slug:        &perm.PermissionString,
+		Description: &perm.Description,
+		Resource:    &perm.Resource,
+		Action:      &perm.Action,
+	}, nil
 }
 
 // =============================================================================

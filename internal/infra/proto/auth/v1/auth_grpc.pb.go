@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Authenticate_FullMethodName = "/auth.v1.AuthService/Authenticate"
-	AuthService_VerifyToken_FullMethodName  = "/auth.v1.AuthService/VerifyToken"
-	AuthService_RefreshToken_FullMethodName = "/auth.v1.AuthService/RefreshToken"
-	AuthService_RevokeToken_FullMethodName  = "/auth.v1.AuthService/RevokeToken"
+	AuthService_Authenticate_FullMethodName          = "/auth.v1.AuthService/Authenticate"
+	AuthService_VerifyToken_FullMethodName           = "/auth.v1.AuthService/VerifyToken"
+	AuthService_RefreshToken_FullMethodName          = "/auth.v1.AuthService/RefreshToken"
+	AuthService_RevokeToken_FullMethodName           = "/auth.v1.AuthService/RevokeToken"
+	AuthService_RevokeAllTenantTokens_FullMethodName = "/auth.v1.AuthService/RevokeAllTenantTokens"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -35,6 +36,8 @@ type AuthServiceClient interface {
 	VerifyToken(ctx context.Context, in *VerifyTokenRequest, opts ...grpc.CallOption) (*VerifyTokenResponse, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*TokensResponse, error)
 	RevokeToken(ctx context.Context, in *RevokeTokenRequest, opts ...grpc.CallOption) (*RevokeTokenResponse, error)
+	// Tenant-level token management
+	RevokeAllTenantTokens(ctx context.Context, in *RevokeAllTenantTokensRequest, opts ...grpc.CallOption) (*RevokeAllTenantTokensResponse, error)
 }
 
 type authServiceClient struct {
@@ -85,6 +88,16 @@ func (c *authServiceClient) RevokeToken(ctx context.Context, in *RevokeTokenRequ
 	return out, nil
 }
 
+func (c *authServiceClient) RevokeAllTenantTokens(ctx context.Context, in *RevokeAllTenantTokensRequest, opts ...grpc.CallOption) (*RevokeAllTenantTokensResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeAllTenantTokensResponse)
+	err := c.cc.Invoke(ctx, AuthService_RevokeAllTenantTokens_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -95,6 +108,8 @@ type AuthServiceServer interface {
 	VerifyToken(context.Context, *VerifyTokenRequest) (*VerifyTokenResponse, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*TokensResponse, error)
 	RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error)
+	// Tenant-level token management
+	RevokeAllTenantTokens(context.Context, *RevokeAllTenantTokensRequest) (*RevokeAllTenantTokensResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -116,6 +131,9 @@ func (UnimplementedAuthServiceServer) RefreshToken(context.Context, *RefreshToke
 }
 func (UnimplementedAuthServiceServer) RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RevokeToken not implemented")
+}
+func (UnimplementedAuthServiceServer) RevokeAllTenantTokens(context.Context, *RevokeAllTenantTokensRequest) (*RevokeAllTenantTokensResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RevokeAllTenantTokens not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -210,6 +228,24 @@ func _AuthService_RevokeToken_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_RevokeAllTenantTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeAllTenantTokensRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).RevokeAllTenantTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_RevokeAllTenantTokens_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).RevokeAllTenantTokens(ctx, req.(*RevokeAllTenantTokensRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -232,6 +268,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RevokeToken",
 			Handler:    _AuthService_RevokeToken_Handler,
+		},
+		{
+			MethodName: "RevokeAllTenantTokens",
+			Handler:    _AuthService_RevokeAllTenantTokens_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

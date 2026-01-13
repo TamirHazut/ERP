@@ -1,14 +1,20 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"os"
+	"time"
 
+	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/grpc/interceptor"
 	"erp.localhost/internal/infra/logging/logger"
 	model_shared "erp.localhost/internal/infra/model/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 //go:generate mockgen -destination=mock/mock_rpc_client.go -package=mock erp.localhost/internal/infra/grpc/client RPCClient
@@ -17,76 +23,103 @@ type RPCClient interface {
 	Close() error
 }
 
+type Config struct {
+	Address        string
+	Certs          *model_shared.Certs
+	Module         model_shared.Module
+	Insecure       bool
+	ConnectTimeout time.Duration
+	RequestTimeout time.Duration
+}
+
 type GRPCClient struct {
-	client *grpc.ClientConn
-	certs  *model_shared.Certs
+	conn   *grpc.ClientConn
+	config *Config
 	logger logger.Logger
 }
 
-func NewGRPCClient(address string, certs *model_shared.Certs, module model_shared.Module) *GRPCClient {
-	logger := logger.NewBaseLogger(module)
+func NewGRPCClient(ctx context.Context, config *Config, logger logger.Logger) (*GRPCClient, error) {
 	// Build dial options
-	opts := getmTLSClientOptions(certs, logger)
-	if opts == nil {
-		return nil
-	}
-
-	// Create connection
-	conn, err := grpc.NewClient(address, opts...)
+	opts, err := buildDialOptions(config, logger)
 	if err != nil {
-		logger.Error("failed to connect to gRPC server", "address", address, "error", err)
-		return nil
+		logger.Error("failed to build options", "error", err)
+		return nil, err
 	}
 
-	logger.Info("connected to gRPC server", "address", address)
+	conn, err := grpc.NewClient(config.Address, opts...)
+	if err != nil {
+		logger.Error("failed to connect to gRPC server", "address", config.Address, "error", err)
+		return nil, err
+	}
+
+	logger.Info("connected to gRPC server", "address", config.Address)
 
 	return &GRPCClient{
-		client: conn,
-		certs:  certs,
+		conn:   conn,
+		config: config,
 		logger: logger,
-	}
+	}, nil
 }
 
 // Conn returns the underlying connection for creating service clients
 func (c *GRPCClient) Conn() *grpc.ClientConn {
-	return c.client
+	return c.conn
 }
 
 // Close closes the gRPC connection
 func (c *GRPCClient) Close() error {
-	if c.client != nil {
+	if c.Conn() != nil {
 		c.logger.Info("closing gRPC client connection")
-		return c.client.Close()
+		return c.Conn().Close()
 	}
 	return nil
 }
 
-func getmTLSClientOptions(certs *model_shared.Certs, logger logger.Logger) []grpc.DialOption {
-	// If no certs provided, use insecure connection
-	if certs == nil || certs.CACert == "" || certs.Cert == "" || certs.Key == "" {
-		logger.Error("no certificates provided")
-		return nil
+func buildDialOptions(config *Config, logger logger.Logger) ([]grpc.DialOption, error) {
+	opts := []grpc.DialOption{
+		grpc.WithChainUnaryInterceptor(
+			interceptor.ClientLoggingInterceptor(logger),
+			// Add more interceptors as needed
+		),
+	}
+
+	// Handle credentials
+	if config.Insecure {
+		logger.Warn("using insecure connection (no TLS)")
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	} else {
+		tlsOpts, err := buildTLSOptions(config.Certs)
+		if err != nil {
+			logger.Error("failed to configure mTLS", "error", err)
+			return nil, err
+		}
+		opts = append(opts, tlsOpts...)
+	}
+
+	return opts, nil
+}
+
+func buildTLSOptions(certs *model_shared.Certs) ([]grpc.DialOption, error) {
+	if certs == nil || !certs.IsValidCerts() {
+		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("invalid or missing certificates"))
 	}
 
 	// Load client certificate
 	clientCert, err := tls.LoadX509KeyPair(certs.Cert, certs.Key)
 	if err != nil {
-		logger.Error("failed to load client certificate", "error", err)
-		return nil
+		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to load client certificate")).WithError(err)
 	}
 
 	// Load CA certificate
 	caCert, err := os.ReadFile(certs.CACert)
 	if err != nil {
-		logger.Error("failed to read CA certificate", "error", err)
-		return nil
+		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to read CA certificate")).WithError(err)
 	}
 
 	// Create cert pool
 	caCertPool := x509.NewCertPool()
 	if !caCertPool.AppendCertsFromPEM(caCert) {
-		logger.Error("failed to append CA certificate")
-		return nil
+		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to append CA certificate"))
 	}
 
 	// Create TLS config
@@ -99,5 +132,5 @@ func getmTLSClientOptions(certs *model_shared.Certs, logger logger.Logger) []grp
 
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(creds),
-	}
+	}, nil
 }

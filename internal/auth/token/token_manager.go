@@ -241,9 +241,18 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 	tm.logger.Debug("Verifying refresh token", "tenantID", tenantID, "userID", userID, "token", tokenString)
 
 	// Validate the token (this also retrieves it)
-	refreshToken, err := tm.refreshTokenHandler.Validate(tenantID, userID, tokenString)
+	refreshToken, err := tm.refreshTokenHandler.Validate(tenantID, userID)
 	if err != nil {
 		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
+	}
+
+	// SECURITY: Verify the stored token matches the provided token
+	// This is critical for detecting stolen/old tokens
+	if refreshToken.Token != tokenString {
+		tm.logger.Warn("Attempted use of invalid refresh token", "tenantID", tenantID, "userID", userID)
+		// Revoke the current valid token (security measure)
+		_ = tm.RevokeAllTokens(tenantID, userID, "system")
+		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("token mismatch - possible theft detected"))
 	}
 
 	// Basic validation
@@ -259,7 +268,7 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 	// Check if expired
 	if refreshToken.IsExpired() {
 		// Auto-cleanup expired token
-		if err := tm.refreshTokenHandler.Delete(tenantID, userID, tokenString); err != nil {
+		if err := tm.refreshTokenHandler.Delete(tenantID, userID); err != nil {
 			return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 		}
 		return nil, infra_error.Auth(infra_error.AuthRefreshTokenExpired).WithError(errors.New("token has expired"))
@@ -272,18 +281,21 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 		if timeSinceLastUse < 1*time.Minute {
 			// Token used twice within 1 minute - possible token theft
 			// Revoke all user tokens as security measure
-			if err := tm.refreshTokenHandler.RevokeAll(tenantID, refreshToken.UserID, "system"); err != nil {
+			tm.logger.Warn("Suspicious: Token reused within 1 minute", "tenantID", tenantID, "userID", userID)
+			if err := tm.RevokeAllTokens(tenantID, refreshToken.UserID, "system"); err != nil {
 				return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 			}
 			return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("suspicious activity detected - all sessions terminated"))
 		}
 	}
 
-	refreshTokenHandler := tm.refreshTokenHandler.(*RefreshTokenHandler)
-	// Update last used timestamp
-	if err := refreshTokenHandler.UpdateLastUsed(tenantID, userID, tokenString); err != nil {
-		// Log but don't fail
-		tm.logger.Warn("Failed to update last used timestamp", "error", err)
+	// Update last used timestamp with safe type assertion
+	if refreshTokenHandler, ok := tm.refreshTokenHandler.(*RefreshTokenHandler); ok {
+		if err := refreshTokenHandler.UpdateLastUsed(tenantID, userID, tokenString); err != nil {
+			tm.logger.Warn("Failed to update last used timestamp", "error", err)
+		}
+	} else {
+		tm.logger.Debug("UpdateLastUsed not available for this token handler implementation")
 	}
 
 	return refreshToken, nil
@@ -295,66 +307,36 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 
 // StoreTokens stores both access and refresh tokens in Redis
 // This is typically called after successful authentication
-func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenID string, refreshTokenID string, accessTokenMetadata model_auth_cache.TokenMetadata, refreshToken model_auth.RefreshToken) error {
-	// Store access token
-	if err := tm.accessTokenHandler.Store(tenantID, userID, accessTokenID, accessTokenMetadata); err != nil {
+// Single token per user - automatically replaces any existing tokens
+func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenMetadata model_auth_cache.TokenMetadata, refreshToken model_auth.RefreshToken) error {
+	tm.logger.Info("Storing token pair (single token per user - replaces existing)", "tenantID", tenantID, "userID", userID)
+
+	// Store access token (automatically replaces existing)
+	if err := tm.accessTokenHandler.Store(tenantID, userID, accessTokenMetadata); err != nil {
 		tm.logger.Error("Failed to store access token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
 	}
 
-	// Store refresh token
-	if err := tm.refreshTokenHandler.Store(tenantID, userID, refreshTokenID, refreshToken); err != nil {
+	// Store refresh token (automatically replaces existing)
+	if err := tm.refreshTokenHandler.Store(tenantID, userID, refreshToken); err != nil {
 		// If refresh token storage fails, try to clean up access token
 		tm.logger.Error("Failed to store refresh token", "error", err, "tenantID", tenantID, "userID", userID)
-		_ = tm.accessTokenHandler.Delete(tenantID, userID, accessTokenID)
+		_ = tm.accessTokenHandler.Delete(tenantID, userID)
 		return err
 	}
 
-	tm.logger.Debug("Tokens stored successfully", "tenantID", tenantID, "userID", userID, "accessTokenID", accessTokenID, "refreshTokenID", refreshTokenID)
+	tm.logger.Info("Token pair stored successfully", "tenantID", tenantID, "userID", userID)
 	return nil
 }
 
 // ValidateAccessTokenFromRedis validates an access token from Redis
-func (tm *TokenManager) ValidateAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*model_auth_cache.TokenMetadata, error) {
-	return tm.accessTokenHandler.Validate(tenantID, userID, tokenID)
+func (tm *TokenManager) ValidateAccessTokenFromRedis(tenantID string, userID string) (*model_auth_cache.TokenMetadata, error) {
+	return tm.accessTokenHandler.Validate(tenantID, userID)
 }
 
 // ValidateRefreshTokenFromRedis validates a refresh token from Redis
-func (tm *TokenManager) ValidateRefreshTokenFromRedis(tenantID string, userID string, tokenID string) (*model_auth.RefreshToken, error) {
-	return tm.refreshTokenHandler.Validate(tenantID, userID, tokenID)
-}
-
-// RefreshTokens generates new tokens and revokes old refresh token (token rotation)
-func (tm *TokenManager) RefreshTokens(tenantID string, userID string, oldRefreshTokenID string, newAccessTokenID string, newRefreshTokenID string, newAccessTokenMetadata model_auth_cache.TokenMetadata, newRefreshToken model_auth.RefreshToken) error {
-	// Validate old refresh token
-	_, err := tm.refreshTokenHandler.Validate(tenantID, userID, oldRefreshTokenID)
-	if err != nil {
-		tm.logger.Error("Invalid refresh token", "error", err, "tenantID", tenantID, "userID", userID, "tokenID", oldRefreshTokenID)
-		return err
-	}
-
-	// Revoke old refresh token
-	if err := tm.refreshTokenHandler.Revoke(tenantID, userID, oldRefreshTokenID, "system"); err != nil {
-		tm.logger.Error("Failed to revoke old refresh token", "error", err, "tenantID", tenantID, "userID", userID, "tokenID", oldRefreshTokenID)
-		return err
-	}
-
-	// Store new access token
-	if err := tm.accessTokenHandler.Store(tenantID, userID, newAccessTokenID, newAccessTokenMetadata); err != nil {
-		tm.logger.Error("Failed to store new access token", "error", err, "tenantID", tenantID, "userID", userID)
-		return err
-	}
-
-	// Store new refresh token
-	if err := tm.refreshTokenHandler.Store(tenantID, userID, newRefreshTokenID, newRefreshToken); err != nil {
-		// If new refresh token storage fails, try to clean up new access token
-		tm.logger.Error("Failed to store new refresh token", "error", err, "tenantID", tenantID, "userID", userID)
-		_ = tm.accessTokenHandler.Delete(tenantID, userID, newAccessTokenID)
-		return err
-	}
-
-	tm.logger.Debug("Tokens refreshed successfully", "tenantID", tenantID, "userID", userID, "oldRefreshTokenID", oldRefreshTokenID, "newAccessTokenID", newAccessTokenID, "newRefreshTokenID", newRefreshTokenID)
-	return nil
+func (tm *TokenManager) ValidateRefreshTokenFromRedis(tenantID string, userID string) (*model_auth.RefreshToken, error) {
+	return tm.refreshTokenHandler.Validate(tenantID, userID)
 }
 
 // // RevokeAccessTokenFromRedis revokes a single access token in Redis
@@ -367,18 +349,30 @@ func (tm *TokenManager) RefreshTokens(tenantID string, userID string, oldRefresh
 // 	return tm.refreshTokenHandler.Revoke(tenantID, userID, tokenID, revokedBy)
 // }
 
+// RevokeAllAccessTokens revokes the access token for a user (but not refresh token)
+// This is typically called during token refresh to prevent orphaned access tokens
+func (tm *TokenManager) RevokeAllAccessTokens(tenantID string, userID string, revokedBy string) error {
+	if err := tm.accessTokenHandler.Revoke(tenantID, userID, revokedBy); err != nil {
+		tm.logger.Error("Failed to revoke access token", "error", err, "tenantID", tenantID, "userID", userID)
+		return err
+	}
+
+	tm.logger.Debug("Access token revoked", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy)
+	return nil
+}
+
 // RevokeAllTokens revokes all tokens (both access and refresh) for a user
 // This is typically called on logout or security incidents
 func (tm *TokenManager) RevokeAllTokens(tenantID string, userID string, revokedBy string) error {
-	// Revoke all access tokens
-	if err := tm.accessTokenHandler.RevokeAll(tenantID, userID, revokedBy); err != nil {
-		tm.logger.Error("Failed to revoke all access tokens", "error", err, "tenantID", tenantID, "userID", userID)
-		// Continue with refresh tokens even if access tokens fail
+	// Revoke access token
+	if err := tm.accessTokenHandler.Revoke(tenantID, userID, revokedBy); err != nil {
+		tm.logger.Error("Failed to revoke access token", "error", err, "tenantID", tenantID, "userID", userID)
+		// Continue with refresh token even if access token fails
 	}
 
-	// Revoke all refresh tokens
-	if err := tm.refreshTokenHandler.RevokeAll(tenantID, userID, revokedBy); err != nil {
-		tm.logger.Error("Failed to revoke all refresh tokens", "error", err, "tenantID", tenantID, "userID", userID)
+	// Revoke refresh token
+	if err := tm.refreshTokenHandler.Revoke(tenantID, userID, revokedBy); err != nil {
+		tm.logger.Error("Failed to revoke refresh token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
 	}
 
@@ -407,19 +401,22 @@ func (tm *TokenManager) RevokeAllTokens(tenantID string, userID string, revokedB
 // }
 
 // UpdateRefreshTokenLastUsed updates the last used timestamp for a refresh token
-func (tm *TokenManager) UpdateRefreshTokenLastUsed(tenantID string, userID string, tokenID string) error {
-	refreshTokenHandler := tm.refreshTokenHandler.(*RefreshTokenHandler)
-	return refreshTokenHandler.UpdateLastUsed(tenantID, userID, tokenID)
+func (tm *TokenManager) UpdateRefreshTokenLastUsed(tenantID string, userID string, tokenString string) error {
+	if refreshTokenHandler, ok := tm.refreshTokenHandler.(*RefreshTokenHandler); ok {
+		return refreshTokenHandler.UpdateLastUsed(tenantID, userID, tokenString)
+	}
+	tm.logger.Debug("UpdateLastUsed not available for this token handler implementation")
+	return nil
 }
 
 // DeleteAccessTokenFromRedis permanently deletes an access token from Redis
-func (tm *TokenManager) DeleteAccessTokenFromRedis(tenantID string, userID string, tokenID string) error {
-	return tm.accessTokenHandler.Delete(tenantID, userID, tokenID)
+func (tm *TokenManager) DeleteAccessTokenFromRedis(tenantID string, userID string) error {
+	return tm.accessTokenHandler.Delete(tenantID, userID)
 }
 
 // DeleteRefreshTokenFromRedis permanently deletes a refresh token from Redis
-func (tm *TokenManager) DeleteRefreshTokenFromRedis(tenantID string, userID string, tokenID string) error {
-	return tm.refreshTokenHandler.Delete(tenantID, userID, tokenID)
+func (tm *TokenManager) DeleteRefreshTokenFromRedis(tenantID string, userID string) error {
+	return tm.refreshTokenHandler.Delete(tenantID, userID)
 }
 
 // RevokeAccessToken revokes a JWT access token (legacy method for compatibility)
@@ -440,7 +437,7 @@ func (tm *TokenManager) RevokeAccessToken(tokenString string, revokedBy string) 
 	if metadata.RevokedAt != nil && metadata.RevokedAt.Before(time.Now()) {
 		return infra_error.Auth(infra_error.AuthTokenRevoked).WithError(errors.New("access token has been revoked"))
 	}
-	if err := tm.accessTokenHandler.Revoke(metadata.TenantID, metadata.UserID, metadata.TokenID, revokedBy); err != nil {
+	if err := tm.accessTokenHandler.Revoke(metadata.TenantID, metadata.UserID, revokedBy); err != nil {
 		return err
 	}
 	return nil
@@ -460,7 +457,7 @@ func (tm *TokenManager) RevokeRefreshToken(tenantID string, userID string, token
 		}
 	}
 	// Revoke the token
-	if err := tm.refreshTokenHandler.Revoke(tenantID, userID, tokenString, revokedBy); err != nil {
+	if err := tm.refreshTokenHandler.Revoke(tenantID, userID, revokedBy); err != nil {
 		tm.logger.Error("Failed to revoke refresh token", "error", err, "tenantID", tenantID, "userID", userID, "token", tokenString, "requestBy", revokedBy)
 		return infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
 	}
@@ -474,11 +471,145 @@ func (tm *TokenManager) RevokeAllUserRefreshTokens(tenantID string, userID strin
 		return errors.New("user_id and tenant_id are required")
 	}
 
-	if err := tm.refreshTokenHandler.RevokeAll(tenantID, userID, requestBy); err != nil {
+	if err := tm.refreshTokenHandler.Revoke(tenantID, userID, requestBy); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// RevokeAllTenantTokens revokes all tokens for ALL users in a tenant
+// This is used for tenant suspension or security incidents
+// Returns the number of access and refresh tokens revoked
+func (tm *TokenManager) RevokeAllTenantTokens(tenantID string, revokedBy string) (int, int, error) {
+	if tenantID == "" {
+		return 0, 0, infra_error.Validation(infra_error.ValidationRequiredFields, "tenantID")
+	}
+	if revokedBy == "" {
+		return 0, 0, infra_error.Validation(infra_error.ValidationRequiredFields, "revokedBy")
+	}
+
+	tm.logger.Warn("Revoking ALL tokens for entire tenant", "tenantID", tenantID, "revokedBy", revokedBy)
+
+	var accessTokensRevoked, refreshTokensRevoked int
+
+	// Type assert to get concrete handlers
+	accessHandler, ok := tm.accessTokenHandler.(*AccessTokenHandler)
+	if !ok {
+		return 0, 0, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("accessTokenHandler is not *AccessTokenHandler"))
+	}
+
+	refreshHandler, ok := tm.refreshTokenHandler.(*RefreshTokenHandler)
+	if !ok {
+		return 0, 0, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("refreshTokenHandler is not *RefreshTokenHandler"))
+	}
+
+	// Scan all access token keys for this tenant
+	accessKeys, err := accessHandler.ScanKeys(tenantID)
+	if err != nil {
+		tm.logger.Error("Failed to scan access tokens", "error", err, "tenantID", tenantID)
+		// Continue with refresh tokens even if this fails
+	} else {
+		// Revoke each access token
+		for _, key := range accessKeys {
+			// Extract userID from key pattern: prefix:tokens:tenantID:userID
+			// Split and get the last part
+			parts := parseRedisKey(key)
+			if len(parts) >= 2 {
+				userID := parts[len(parts)-1]
+				if err := accessHandler.Revoke(tenantID, userID, revokedBy); err != nil {
+					tm.logger.Warn("Failed to revoke access token", "error", err, "tenantID", tenantID, "userID", userID)
+				} else {
+					accessTokensRevoked++
+				}
+			}
+		}
+	}
+
+	// Scan all refresh token keys for this tenant
+	refreshKeys, err := refreshHandler.ScanKeys(tenantID)
+	if err != nil {
+		tm.logger.Error("Failed to scan refresh tokens", "error", err, "tenantID", tenantID)
+		return accessTokensRevoked, refreshTokensRevoked, err
+	}
+
+	// Revoke each refresh token
+	for _, key := range refreshKeys {
+		// Extract userID from key pattern: prefix:refresh_tokens:tenantID:userID
+		parts := parseRedisKey(key)
+		if len(parts) >= 2 {
+			userID := parts[len(parts)-1]
+			if err := refreshHandler.Revoke(tenantID, userID, revokedBy); err != nil {
+				tm.logger.Warn("Failed to revoke refresh token", "error", err, "tenantID", tenantID, "userID", userID)
+			} else {
+				refreshTokensRevoked++
+			}
+		}
+	}
+
+	tm.logger.Info("All tenant tokens revoked", "tenantID", tenantID, "accessTokensRevoked", accessTokensRevoked, "refreshTokensRevoked", refreshTokensRevoked)
+	return accessTokensRevoked, refreshTokensRevoked, nil
+}
+
+// DeleteAllTenantTokens permanently deletes all tokens for ALL users in a tenant
+// This is used for tenant deletion (cascade cleanup)
+// Returns the number of access and refresh tokens deleted
+func (tm *TokenManager) DeleteAllTenantTokens(tenantID string) (int, int, error) {
+	if tenantID == "" {
+		return 0, 0, infra_error.Validation(infra_error.ValidationRequiredFields, "tenantID")
+	}
+
+	tm.logger.Warn("Deleting ALL tokens for entire tenant (hard delete)", "tenantID", tenantID)
+
+	// Type assert to get concrete handlers
+	accessHandler, ok := tm.accessTokenHandler.(*AccessTokenHandler)
+	if !ok {
+		return 0, 0, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("accessTokenHandler is not *AccessTokenHandler"))
+	}
+
+	refreshHandler, ok := tm.refreshTokenHandler.(*RefreshTokenHandler)
+	if !ok {
+		return 0, 0, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("refreshTokenHandler is not *RefreshTokenHandler"))
+	}
+
+	// Delete all access tokens using pattern
+	accessCount, err := accessHandler.DeleteByPattern(tenantID)
+	if err != nil {
+		tm.logger.Error("Failed to delete access tokens by pattern", "error", err, "tenantID", tenantID)
+		// Continue with refresh tokens
+	}
+
+	// Delete all refresh tokens using pattern
+	refreshCount, err := refreshHandler.DeleteByPattern(tenantID)
+	if err != nil {
+		tm.logger.Error("Failed to delete refresh tokens by pattern", "error", err, "tenantID", tenantID)
+		return accessCount, refreshCount, err
+	}
+
+	tm.logger.Info("All tenant tokens deleted", "tenantID", tenantID, "accessTokensDeleted", accessCount, "refreshTokensDeleted", refreshCount)
+	return accessCount, refreshCount, nil
+}
+
+// parseRedisKey extracts parts from a Redis key
+// Example: "tokens:tenant-123:user-456" -> ["tokens", "tenant-123", "user-456"]
+func parseRedisKey(key string) []string {
+	// Simple split by colon
+	result := []string{}
+	current := ""
+	for _, char := range key {
+		if char == ':' {
+			if current != "" {
+				result = append(result, current)
+				current = ""
+			}
+		} else {
+			current += string(char)
+		}
+	}
+	if current != "" {
+		result = append(result, current)
+	}
+	return result
 }
 
 func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*model_auth_cache.TokenMetadata, error) {
@@ -513,9 +644,8 @@ func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*model_auth_
 	if claims.TenantID == "" {
 		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("tenant_id is required"))
 	}
-	hashedAccessToken := sha256.Sum256([]byte(accessTokenString))
-	accessTokenID := hex.EncodeToString(hashedAccessToken[:])
-	accessTokenMetadata, err := tm.accessTokenHandler.GetOne(claims.TenantID, claims.UserID, accessTokenID)
+	// Get the single access token for this user
+	accessTokenMetadata, err := tm.accessTokenHandler.GetOne(claims.TenantID, claims.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -523,8 +653,12 @@ func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*model_auth_
 	if accessTokenMetadata == nil {
 		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("access token not found"))
 	}
+
+	// Verify the stored token matches the provided token
+	hashedAccessToken := sha256.Sum256([]byte(accessTokenString))
+	accessTokenID := hex.EncodeToString(hashedAccessToken[:])
 	if accessTokenMetadata.TokenID != accessTokenID {
-		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("access token ID mismatch"))
+		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("access token ID mismatch - possible token theft"))
 	}
 	return accessTokenMetadata, nil
 }

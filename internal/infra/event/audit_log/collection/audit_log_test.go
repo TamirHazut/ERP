@@ -8,7 +8,6 @@ import (
 	mock_collection "erp.localhost/internal/infra/db/mongo/collection/mock"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
 	model_event "erp.localhost/internal/infra/model/event"
 	model_shared "erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
@@ -64,14 +63,14 @@ func TestAuditLogsCollection_CreateAuditLog(t *testing.T) {
 			tenantID: "tenant-1",
 			auditLog: &model_event.AuditLog{
 				TenantID:   "tenant-1",
-				Action:     model_auth.ActionLogin,
-				Category:   model_auth.CategoryAuth,
-				Severity:   model_auth.SeverityInfo,
-				Result:     model_auth.ResultSuccess,
-				ActorType:  model_auth.ActorTypeUser,
+				Action:     model_event.ActionLogin,
+				Category:   model_event.CategoryAuth,
+				Severity:   model_event.SeverityInfo,
+				Result:     model_event.ResultSuccess,
+				ActorType:  model_event.ActorTypeUser,
 				ActorID:    "user-1",
 				ActorName:  "John Doe",
-				TargetType: model_auth.TargetTypeUser,
+				TargetType: model_event.TargetTypeUser,
 				TargetID:   "user-1",
 				TargetName: "John Doe",
 			},
@@ -106,14 +105,14 @@ func TestAuditLogsCollection_CreateAuditLog(t *testing.T) {
 			tenantID: "tenant-1",
 			auditLog: &model_event.AuditLog{
 				TenantID:   "tenant-1",
-				Action:     model_auth.ActionLogin,
-				Category:   model_auth.CategoryAuth,
-				Severity:   model_auth.SeverityInfo,
-				Result:     model_auth.ResultSuccess,
-				ActorType:  model_auth.ActorTypeUser,
+				Action:     model_event.ActionLogin,
+				Category:   model_event.CategoryAuth,
+				Severity:   model_event.SeverityInfo,
+				Result:     model_event.ResultSuccess,
+				ActorType:  model_event.ActorTypeUser,
 				ActorID:    "user-1",
 				ActorName:  "John Doe",
-				TargetType: model_auth.TargetTypeUser,
+				TargetType: model_event.TargetTypeUser,
 				TargetID:   "user-1",
 				TargetName: "John Doe",
 			},
@@ -159,7 +158,7 @@ func TestAuditLogsCollection_GetAuditLogsByFilter(t *testing.T) {
 		Severity:  "info",
 		Result:    "success",
 		Timestamp: time.Now(),
-		ActorType: model_auth.ActorTypeUser,
+		ActorType: model_event.ActorTypeUser,
 		ActorID:   "user-1",
 		ActorName: "John Doe",
 	}
@@ -171,7 +170,7 @@ func TestAuditLogsCollection_GetAuditLogsByFilter(t *testing.T) {
 		Severity:  "info",
 		Result:    "success",
 		Timestamp: time.Now(),
-		ActorType: model_auth.ActorTypeUser,
+		ActorType: model_event.ActorTypeUser,
 		ActorID:   "user-1",
 		ActorName: "John Doe",
 	}

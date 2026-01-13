@@ -5,12 +5,13 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"erp.localhost/internal/auth/service"
+	"erp.localhost/internal/infra/grpc/server"
 	grpc_server "erp.localhost/internal/infra/grpc/server"
 	model_shared "erp.localhost/internal/infra/model/shared"
 	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -26,27 +27,35 @@ func Main() {
 	// Channel to signal the gRPC server goroutine to stop
 	quit := make(chan struct{})
 
+	insecure := false
 	certs := model_shared.NewCerts()
 	if certs == nil {
-		return
+		insecure = true
 	}
-	rbacService := service.NewRBACService()
-	if rbacService == nil {
-		return
-	}
-	authService := service.NewAuthService()
-	if authService == nil {
-		return
-	}
-	services := map[*grpc.ServiceDesc]any{
-		&proto_auth.RBACService_ServiceDesc: rbacService,
-		&proto_auth.AuthService_ServiceDesc: authService,
-	}
-	grpcServer := grpc_server.NewGRPCServer(certs, model_shared.ModuleAuth, serverPort, services)
 
-	if grpcServer == nil {
+	// Create server
+	srv, err := grpc_server.NewGRPCServer(&server.Config{
+		Port:             serverPort,
+		Module:           model_shared.ModuleAuth,
+		Insecure:         insecure, // Set to false for production with certs
+		Certs:            certs,
+		EnableReflection: true,
+		KeepAliveTime:    30 * time.Second,
+		KeepAliveTimeout: 10 * time.Second,
+	})
+	if err != nil {
 		return
 	}
+
+	rbacService := service.NewRBACService()
+	srv.RegisterService(&proto_auth.RBACService_ServiceDesc, rbacService)
+	authService := service.NewAuthService()
+	srv.RegisterService(&proto_auth.AuthService_ServiceDesc, authService)
+	// Register your services
+	userService := service.NewUserService()
+	srv.RegisterService(&proto_auth.UserService_ServiceDesc, userService)
+	tenantService := service.NewTenantService(nil, nil)
+	srv.RegisterService(&proto_auth.TenantService_ServiceDesc, tenantService)
 
 	// WaitGroup to wait for the gRPC server goroutine to finish
 	var wg sync.WaitGroup
@@ -54,7 +63,7 @@ func Main() {
 	go func() {
 		defer wg.Done()
 		// Run gRPC Server
-		if err := grpcServer.ListenAndServe(quit); err != nil {
+		if err := srv.ListenAndServe(quit); err != nil {
 			return
 		}
 	}()

@@ -1,9 +1,10 @@
-package core
+package auth
 
 import (
 	"time"
 
 	infra_error "erp.localhost/internal/infra/error"
+	model_core "erp.localhost/internal/infra/model/core"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -75,9 +76,9 @@ type Hours struct {
 }
 
 type ContactInfo struct {
-	Email   string  `bson:"email" json:"email"`
-	Phone   string  `bson:"phone" json:"phone"`
-	Address Address `bson:"address" json:"address"`
+	Email   string             `bson:"email" json:"email"`
+	Phone   string             `bson:"phone" json:"phone"`
+	Address model_core.Address `bson:"address" json:"address"`
 }
 
 type Branding struct {

@@ -40,102 +40,103 @@ func (m *MockTokenHandler[T]) EXPECT() *MockTokenHandlerMockRecorder[T] {
 }
 
 // Delete mocks base method.
-func (m *MockTokenHandler[T]) Delete(tenantID, userID, tokenID string) error {
+func (m *MockTokenHandler[T]) Delete(tenantID, userID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", tenantID, userID, tokenID)
+	ret := m.ctrl.Call(m, "Delete", tenantID, userID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockTokenHandlerMockRecorder[T]) Delete(tenantID, userID, tokenID any) *gomock.Call {
+func (mr *MockTokenHandlerMockRecorder[T]) Delete(tenantID, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockTokenHandler[T])(nil).Delete), tenantID, userID, tokenID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockTokenHandler[T])(nil).Delete), tenantID, userID)
 }
 
-// GetAll mocks base method.
-func (m *MockTokenHandler[T]) GetAll(tenantID, userID string) ([]T, error) {
+// DeleteByPattern mocks base method.
+func (m *MockTokenHandler[T]) DeleteByPattern(tenantID string) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAll", tenantID, userID)
-	ret0, _ := ret[0].([]T)
+	ret := m.ctrl.Call(m, "DeleteByPattern", tenantID)
+	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAll indicates an expected call of GetAll.
-func (mr *MockTokenHandlerMockRecorder[T]) GetAll(tenantID, userID any) *gomock.Call {
+// DeleteByPattern indicates an expected call of DeleteByPattern.
+func (mr *MockTokenHandlerMockRecorder[T]) DeleteByPattern(tenantID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockTokenHandler[T])(nil).GetAll), tenantID, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByPattern", reflect.TypeOf((*MockTokenHandler[T])(nil).DeleteByPattern), tenantID)
 }
 
 // GetOne mocks base method.
-func (m *MockTokenHandler[T]) GetOne(tenantID, userID, tokenID string) (*T, error) {
+func (m *MockTokenHandler[T]) GetOne(tenantID, userID string) (*T, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOne", tenantID, userID, tokenID)
+	ret := m.ctrl.Call(m, "GetOne", tenantID, userID)
 	ret0, _ := ret[0].(*T)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetOne indicates an expected call of GetOne.
-func (mr *MockTokenHandlerMockRecorder[T]) GetOne(tenantID, userID, tokenID any) *gomock.Call {
+func (mr *MockTokenHandlerMockRecorder[T]) GetOne(tenantID, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOne", reflect.TypeOf((*MockTokenHandler[T])(nil).GetOne), tenantID, userID, tokenID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOne", reflect.TypeOf((*MockTokenHandler[T])(nil).GetOne), tenantID, userID)
 }
 
 // Revoke mocks base method.
-func (m *MockTokenHandler[T]) Revoke(tenantID, userID, tokenID, revokedBy string) error {
+func (m *MockTokenHandler[T]) Revoke(tenantID, userID, revokedBy string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Revoke", tenantID, userID, tokenID, revokedBy)
+	ret := m.ctrl.Call(m, "Revoke", tenantID, userID, revokedBy)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Revoke indicates an expected call of Revoke.
-func (mr *MockTokenHandlerMockRecorder[T]) Revoke(tenantID, userID, tokenID, revokedBy any) *gomock.Call {
+func (mr *MockTokenHandlerMockRecorder[T]) Revoke(tenantID, userID, revokedBy any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Revoke", reflect.TypeOf((*MockTokenHandler[T])(nil).Revoke), tenantID, userID, tokenID, revokedBy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Revoke", reflect.TypeOf((*MockTokenHandler[T])(nil).Revoke), tenantID, userID, revokedBy)
 }
 
-// RevokeAll mocks base method.
-func (m *MockTokenHandler[T]) RevokeAll(tenantID, userID, revokedBy string) error {
+// ScanKeys mocks base method.
+func (m *MockTokenHandler[T]) ScanKeys(tenantID string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RevokeAll", tenantID, userID, revokedBy)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "ScanKeys", tenantID)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// RevokeAll indicates an expected call of RevokeAll.
-func (mr *MockTokenHandlerMockRecorder[T]) RevokeAll(tenantID, userID, revokedBy any) *gomock.Call {
+// ScanKeys indicates an expected call of ScanKeys.
+func (mr *MockTokenHandlerMockRecorder[T]) ScanKeys(tenantID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeAll", reflect.TypeOf((*MockTokenHandler[T])(nil).RevokeAll), tenantID, userID, revokedBy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanKeys", reflect.TypeOf((*MockTokenHandler[T])(nil).ScanKeys), tenantID)
 }
 
 // Store mocks base method.
-func (m *MockTokenHandler[T]) Store(tenantID, userID, tokenID string, value T) error {
+func (m *MockTokenHandler[T]) Store(tenantID, userID string, value T) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Store", tenantID, userID, tokenID, value)
+	ret := m.ctrl.Call(m, "Store", tenantID, userID, value)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Store indicates an expected call of Store.
-func (mr *MockTokenHandlerMockRecorder[T]) Store(tenantID, userID, tokenID, value any) *gomock.Call {
+func (mr *MockTokenHandlerMockRecorder[T]) Store(tenantID, userID, value any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Store", reflect.TypeOf((*MockTokenHandler[T])(nil).Store), tenantID, userID, tokenID, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Store", reflect.TypeOf((*MockTokenHandler[T])(nil).Store), tenantID, userID, value)
 }
 
 // Validate mocks base method.
-func (m *MockTokenHandler[T]) Validate(tenantID, userID, tokenID string) (*T, error) {
+func (m *MockTokenHandler[T]) Validate(tenantID, userID string) (*T, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Validate", tenantID, userID, tokenID)
+	ret := m.ctrl.Call(m, "Validate", tenantID, userID)
 	ret0, _ := ret[0].(*T)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Validate indicates an expected call of Validate.
-func (mr *MockTokenHandlerMockRecorder[T]) Validate(tenantID, userID, tokenID any) *gomock.Call {
+func (mr *MockTokenHandlerMockRecorder[T]) Validate(tenantID, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockTokenHandler[T])(nil).Validate), tenantID, userID, tokenID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockTokenHandler[T])(nil).Validate), tenantID, userID)
 }

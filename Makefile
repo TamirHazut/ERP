@@ -13,7 +13,7 @@
 BIN_DIR := bin
 
 # Define services
-SERVICES := auth config core #gateway event
+SERVICES := auth config #core gateway event
 
 # Define entire system modules including non services
 MODULES := infra $(SERVICES)

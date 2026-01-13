@@ -1,55 +1,5 @@
 package core
 
-import "strings"
-
-/* User */
-// User statuses
-const (
-	UserStatusActive    = "active"
-	UserStatusInactive  = "inactive"
-	UserStatusSuspended = "suspended"
-	UserStatusInvited   = "invited"
-)
-
-func IsValidUserStatus(userStatus string) bool {
-	if userStatus == "" {
-		return false
-	}
-	userStatus = strings.ToLower(userStatus)
-	validUserStatuses := map[string]bool{
-		UserStatusActive:    true,
-		UserStatusInactive:  true,
-		UserStatusSuspended: true,
-		UserStatusInvited:   true,
-	}
-
-	return validUserStatuses[userStatus]
-}
-
-/* Tenant */
-// Tenant statuses
-const (
-	TenantStatusActive    = "active"
-	TenantStatusSuspended = "suspended"
-	TenantStatusInactive  = "inactive"
-	TenantStatusTrial     = "trial"
-)
-
-func IsValidTenantStatus(tenantStatus string) bool {
-	if tenantStatus == "" {
-		return false
-	}
-	tenantStatus = strings.ToLower(tenantStatus)
-	validTenantStatuses := map[string]bool{
-		TenantStatusActive:    true,
-		TenantStatusSuspended: true,
-		TenantStatusInactive:  true,
-		TenantStatusTrial:     true,
-	}
-
-	return validTenantStatuses[tenantStatus]
-}
-
 // Order statuses
 const (
 	OrderStatusDraft     = "draft"

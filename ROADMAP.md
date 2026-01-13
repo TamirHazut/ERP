@@ -1178,6 +1178,98 @@ Request Flow with Two-Tier RBAC:
 
 ## Future Features (To Be Planned)
 
+### Token Management Enhancements 🔐
+**Status:** 📝 Planned (after Phase 4: Test Infrastructure Update)
+
+Additional enhancements for the token management system:
+
+#### Option B: Security Enhancements 🛡️
+**Goal:** Add RBAC and audit improvements
+
+**What to Build:**
+- [ ] Implement RBAC check in `RevokeAllTenantTokens()` (currently has TODO)
+- [ ] Add comprehensive audit logging for all token operations
+  - [ ] Token creation, refresh, revocation events
+  - [ ] User authentication attempts (success/failure)
+  - [ ] Token validation failures
+- [ ] Implement token rotation policies
+  - [ ] Automatic token rotation after N days
+  - [ ] Force rotation on security events
+  - [ ] Grace period for old tokens during rotation
+- [ ] Add rate limiting for token refresh
+  - [ ] Prevent token refresh abuse
+  - [ ] Per-user and per-tenant rate limits
+  - [ ] Redis-based rate limiting counters
+
+**Benefits:**
+- Enhanced security posture
+- Better compliance with audit requirements
+- Prevention of token abuse
+- Improved security monitoring
+
+---
+
+#### Option C: Performance Optimization ⚡
+**Goal:** Optimize Redis operations
+
+**What to Build:**
+- [ ] Add Redis pipelining for bulk operations
+  - [ ] Batch token validation requests
+  - [ ] Optimize multi-token operations
+  - [ ] Reduce network round trips
+- [ ] Implement token caching strategies
+  - [ ] In-memory cache for frequently accessed tokens
+  - [ ] Cache invalidation on revocation
+  - [ ] TTL-based cache expiration
+- [ ] Add metrics/monitoring for token operations
+  - [ ] Token creation rate
+  - [ ] Token validation latency
+  - [ ] Redis operation performance
+  - [ ] Token cache hit/miss ratios
+- [ ] Optimize SCAN batch sizes based on tenant size
+  - [ ] Dynamic batch sizing
+  - [ ] Tenant-specific optimization
+  - [ ] Performance profiling and tuning
+
+**Benefits:**
+- Reduced latency for token operations
+- Better scalability for large tenants
+- Improved Redis resource utilization
+- Better observability of token system
+
+---
+
+#### Option D: Feature Completion 🎯
+**Goal:** Additional token management features
+
+**What to Build:**
+- [ ] Implement token blacklisting
+  - [ ] Immediate token invalidation
+  - [ ] Blacklist persistence
+  - [ ] Automatic blacklist cleanup
+- [ ] Add token metadata querying
+  - [ ] List active tokens for user
+  - [ ] Token creation timestamp and location
+  - [ ] Last used information
+  - [ ] Device/client information
+- [ ] Implement session management UI endpoints
+  - [ ] View active sessions
+  - [ ] Revoke specific sessions
+  - [ ] Session activity history
+- [ ] Add token analytics/reporting
+  - [ ] Token usage statistics
+  - [ ] Authentication patterns
+  - [ ] Security event reporting
+  - [ ] Tenant-level analytics
+
+**Benefits:**
+- Better user experience (session management)
+- Enhanced security visibility
+- Improved administrative capabilities
+- Data-driven security insights
+
+---
+
 ### Advanced gRPC Infrastructure Features 🔧
 **Status:** 📝 Planned (deferred from Priority 1.5)
 

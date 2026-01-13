@@ -29,7 +29,7 @@ type RBACService struct {
 }
 
 // TODO: add logs
-// TODO: remove user retreive function calls and accept them as function aguments - This service only deals with roles and permissions not with users!
+// TODO: add delete resources by filter
 func NewRBACService() *RBACService {
 	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 	pc := mongo_collection.NewBaseCollectionHandler[model_auth.Permission](model_mongo.AuthDB, model_mongo.RolesCollection, logger)
@@ -257,7 +257,6 @@ func (r *RBACService) ListResources(ctx context.Context, req *proto_auth.ListRes
 func (r *RBACService) DeleteResource(ctx context.Context, req *proto_auth.DeleteResourceRequest) (*proto_infra.Response, error) {
 	var err error
 	var resourceType string
-	var resourceID string
 	// Validate input
 	identifier := req.GetIdentifier()
 	err = validator.ValidateUserIdentifier(identifier)
@@ -270,6 +269,11 @@ func (r *RBACService) DeleteResource(ctx context.Context, req *proto_auth.Delete
 	tenantID := identifier.GetTenantId()
 	userID := identifier.GetUserId()
 
+	resourceID := req.GetResourceId()
+	if resourceID == "" {
+		tenantID = req.GetTenantId()
+	}
+
 	switch req.GetResourceType() {
 	case proto_auth.ResourceType_RESOURCE_TYPE_PERMISSION:
 		resourceType = model_auth.ResourceTypePermission
@@ -280,7 +284,7 @@ func (r *RBACService) DeleteResource(ctx context.Context, req *proto_auth.Delete
 	}
 
 	if err == nil {
-		r.logger.Debug("Deleting resource", "resourceType", resourceType, "resourceID", resourceID)
+		r.logger.Debug("Deleting resource", "tenantID", tenantID, "resourceType", resourceType, "resourceID", resourceID)
 		err = r.rbacManager.DeleteResource(tenantID, userID, resourceType, resourceID)
 	}
 
@@ -296,6 +300,7 @@ func (r *RBACService) DeleteResource(ctx context.Context, req *proto_auth.Delete
 	}, nil
 }
 
+// TODO: cycle calls -> verify needs user data to verify it
 func (r *RBACService) VerifyUserResource(ctx context.Context, req *proto_auth.VerifyUserResourceRequest) (*proto_auth.VerifyResourceResponse, error) {
 	var err error
 	var resourceType string
@@ -321,6 +326,7 @@ func (r *RBACService) VerifyUserResource(ctx context.Context, req *proto_auth.Ve
 	case proto_auth.ResourceType_RESOURCE_TYPE_PERMISSION:
 		resourceType = model_auth.ResourceTypePermission
 		// proccess request
+		// TODO: fix this
 		permissionsCheckResponse, opErr := r.rbacManager.CheckUserPermissions(tenantID, userID, resoucesAsStrings)
 		if opErr != nil {
 			err = opErr

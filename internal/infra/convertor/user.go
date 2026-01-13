@@ -7,8 +7,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	infra_error "erp.localhost/internal/infra/error"
-	model_core "erp.localhost/internal/infra/model/core"
-	proto_core "erp.localhost/internal/infra/proto/core/v1"
+	model_auth "erp.localhost/internal/infra/model/auth"
+	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
 )
 
 // =============================================================================
@@ -16,7 +16,7 @@ import (
 // =============================================================================
 
 // UserToProto converts a User model to UserData proto message
-func UserToProto(user *model_core.User) *proto_core.UserData {
+func UserToProto(user *model_auth.User) *proto_auth.UserData {
 	if user == nil || user.Validate(false) != nil {
 		return nil
 	}
@@ -27,7 +27,7 @@ func UserToProto(user *model_core.User) *proto_core.UserData {
 		lastLogin = timestamppb.New(*user.LastLogin)
 	}
 
-	return &proto_core.UserData{
+	return &proto_auth.UserData{
 		Id:                    user.ID.Hex(),
 		TenantId:              user.TenantID,
 		Email:                 user.Email,
@@ -51,12 +51,12 @@ func UserToProto(user *model_core.User) *proto_core.UserData {
 }
 
 // UsersToProto converts a slice of User models to UserData proto messages
-func UsersToProto(users []*model_core.User) []*proto_core.UserData {
+func UsersToProto(users []*model_auth.User) []*proto_auth.UserData {
 	if users == nil {
-		return []*proto_core.UserData{}
+		return []*proto_auth.UserData{}
 	}
 
-	protoUsers := make([]*proto_core.UserData, 0, len(users))
+	protoUsers := make([]*proto_auth.UserData, 0, len(users))
 	for _, user := range users {
 		if protoUser := UserToProto(user); protoUser != nil {
 			protoUsers = append(protoUsers, protoUser)
@@ -66,12 +66,12 @@ func UsersToProto(users []*model_core.User) []*proto_core.UserData {
 }
 
 // UserProfileToProto converts a UserProfile model to UserProfileData proto message
-func UserProfileToProto(profile *model_core.UserProfile) *proto_core.UserProfileData {
+func UserProfileToProto(profile *model_auth.UserProfile) *proto_auth.UserProfileData {
 	if profile == nil {
 		return nil
 	}
 
-	return &proto_core.UserProfileData{
+	return &proto_auth.UserProfileData{
 		FirstName:   profile.FirstName,
 		LastName:    profile.LastName,
 		DisplayName: profile.DisplayName,
@@ -83,7 +83,7 @@ func UserProfileToProto(profile *model_core.UserProfile) *proto_core.UserProfile
 }
 
 // UserRoleToProto converts a UserRole model to UserRoleData proto message
-func UserRoleToProto(role *model_core.UserRole) *proto_core.UserRoleData {
+func UserRoleToProto(role *model_auth.UserRole) *proto_auth.UserRoleData {
 	if role == nil {
 		return nil
 	}
@@ -94,7 +94,7 @@ func UserRoleToProto(role *model_core.UserRole) *proto_core.UserRoleData {
 		expiresAt = timestamppb.New(*role.ExpiresAt)
 	}
 
-	return &proto_core.UserRoleData{
+	return &proto_auth.UserRoleData{
 		RoleId:     role.RoleID,
 		TenantId:   role.TenantID,
 		AssignedAt: timestamppb.New(role.AssignedAt),
@@ -104,12 +104,12 @@ func UserRoleToProto(role *model_core.UserRole) *proto_core.UserRoleData {
 }
 
 // UserRolesToProto converts a slice of UserRole models to UserRoleData proto messages
-func UserRolesToProto(roles []model_core.UserRole) []*proto_core.UserRoleData {
+func UserRolesToProto(roles []model_auth.UserRole) []*proto_auth.UserRoleData {
 	if roles == nil {
-		return []*proto_core.UserRoleData{}
+		return []*proto_auth.UserRoleData{}
 	}
 
-	protoRoles := make([]*proto_core.UserRoleData, 0, len(roles))
+	protoRoles := make([]*proto_auth.UserRoleData, 0, len(roles))
 	for i := range roles {
 		if protoRole := UserRoleToProto(&roles[i]); protoRole != nil {
 			protoRoles = append(protoRoles, protoRole)
@@ -119,16 +119,16 @@ func UserRolesToProto(roles []model_core.UserRole) []*proto_core.UserRoleData {
 }
 
 // NotificationSettingsToProto converts a NotificationSettings model to NotificationSettingsData proto message
-func NotificationSettingsToProto(settings *model_core.NotificationSettings) *proto_core.NotificationSettingsData {
+func NotificationSettingsToProto(settings *model_auth.NotificationSettings) *proto_auth.NotificationSettingsData {
 	if settings == nil {
-		return &proto_core.NotificationSettingsData{
+		return &proto_auth.NotificationSettingsData{
 			Email: false,
 			Push:  false,
 			Sms:   false,
 		}
 	}
 
-	return &proto_core.NotificationSettingsData{
+	return &proto_auth.NotificationSettingsData{
 		Email: settings.Email,
 		Push:  settings.Push,
 		Sms:   settings.SMS,
@@ -136,9 +136,9 @@ func NotificationSettingsToProto(settings *model_core.NotificationSettings) *pro
 }
 
 // UserPreferencesToProto converts a UserPreferences model to UserPreferencesData proto message
-func UserPreferencesToProto(prefs *model_core.UserPreferences) *proto_core.UserPreferencesData {
+func UserPreferencesToProto(prefs *model_auth.UserPreferences) *proto_auth.UserPreferencesData {
 	if prefs == nil {
-		return &proto_core.UserPreferencesData{
+		return &proto_auth.UserPreferencesData{
 			Language:      "en",
 			Timezone:      "UTC",
 			Theme:         "light",
@@ -146,7 +146,7 @@ func UserPreferencesToProto(prefs *model_core.UserPreferences) *proto_core.UserP
 		}
 	}
 
-	return &proto_core.UserPreferencesData{
+	return &proto_auth.UserPreferencesData{
 		Language:      prefs.Language,
 		Timezone:      prefs.Timezone,
 		Theme:         prefs.Theme,
@@ -167,16 +167,16 @@ func UserObjectIDFromString(id string) (primitive.ObjectID, error) {
 // =============================================================================
 
 // CreateUserFromProto converts a CreateUserData proto message to a User model
-func CreateUserFromProto(proto *proto_core.CreateUserData) (*model_core.User, error) {
+func CreateUserFromProto(proto *proto_auth.CreateUserData) (*model_auth.User, error) {
 	if proto == nil {
 		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "proto")
 	}
 
 	// Convert role_ids to UserRole structs
-	roles := make([]model_core.UserRole, 0, len(proto.RoleIds))
+	roles := make([]model_auth.UserRole, 0, len(proto.RoleIds))
 	now := time.Now()
 	for _, roleID := range proto.RoleIds {
-		roles = append(roles, model_core.UserRole{
+		roles = append(roles, model_auth.UserRole{
 			RoleID:     roleID,
 			TenantID:   proto.TenantId,
 			AssignedAt: now,
@@ -188,10 +188,10 @@ func CreateUserFromProto(proto *proto_core.CreateUserData) (*model_core.User, er
 	// Set default status if not provided
 	status := proto.Status
 	if status == "" {
-		status = model_core.UserStatusInvited
+		status = model_auth.UserStatusInvited
 	}
 
-	user := &model_core.User{
+	user := &model_auth.User{
 		TenantID:              proto.TenantId,
 		Email:                 proto.Email,
 		Username:              proto.Username,
@@ -214,19 +214,19 @@ func CreateUserFromProto(proto *proto_core.CreateUserData) (*model_core.User, er
 		UpdatedAt:             now,
 		CreatedBy:             proto.CreatedBy,
 		LastActivity:          now,
-		LoginHistory:          []model_core.LoginRecord{},
+		LoginHistory:          []model_auth.LoginRecord{},
 	}
 
 	return user, nil
 }
 
 // CreateUserProfileFromProto converts a UserProfileData proto message to a UserProfile model
-func CreateUserProfileFromProto(proto *proto_core.UserProfileData) model_core.UserProfile {
+func CreateUserProfileFromProto(proto *proto_auth.UserProfileData) model_auth.UserProfile {
 	if proto == nil {
-		return model_core.UserProfile{}
+		return model_auth.UserProfile{}
 	}
 
-	return model_core.UserProfile{
+	return model_auth.UserProfile{
 		FirstName:   proto.FirstName,
 		LastName:    proto.LastName,
 		DisplayName: proto.DisplayName,
@@ -238,13 +238,13 @@ func CreateUserProfileFromProto(proto *proto_core.UserProfileData) model_core.Us
 }
 
 // CreateUserPreferencesFromProto converts a UserPreferencesData proto message to a UserPreferences model
-func CreateUserPreferencesFromProto(proto *proto_core.UserPreferencesData) model_core.UserPreferences {
+func CreateUserPreferencesFromProto(proto *proto_auth.UserPreferencesData) model_auth.UserPreferences {
 	if proto == nil {
-		return model_core.UserPreferences{
+		return model_auth.UserPreferences{
 			Language: "en",
 			Timezone: "UTC",
 			Theme:    "light",
-			Notifications: model_core.NotificationSettings{
+			Notifications: model_auth.NotificationSettings{
 				Email: true,
 				Push:  false,
 				SMS:   false,
@@ -253,7 +253,7 @@ func CreateUserPreferencesFromProto(proto *proto_core.UserPreferencesData) model
 		}
 	}
 
-	return model_core.UserPreferences{
+	return model_auth.UserPreferences{
 		Language:        proto.Language,
 		Timezone:        proto.Timezone,
 		Theme:           proto.Theme,
@@ -263,16 +263,16 @@ func CreateUserPreferencesFromProto(proto *proto_core.UserPreferencesData) model
 }
 
 // CreateNotificationSettingsFromProto converts a NotificationSettingsData proto message to a NotificationSettings model
-func CreateNotificationSettingsFromProto(proto *proto_core.NotificationSettingsData) model_core.NotificationSettings {
+func CreateNotificationSettingsFromProto(proto *proto_auth.NotificationSettingsData) model_auth.NotificationSettings {
 	if proto == nil {
-		return model_core.NotificationSettings{
+		return model_auth.NotificationSettings{
 			Email: true,
 			Push:  false,
 			SMS:   false,
 		}
 	}
 
-	return model_core.NotificationSettings{
+	return model_auth.NotificationSettings{
 		Email: proto.Email,
 		Push:  proto.Push,
 		SMS:   proto.Sms,
@@ -284,7 +284,7 @@ func CreateNotificationSettingsFromProto(proto *proto_core.NotificationSettingsD
 // =============================================================================
 
 // UpdateUserFromProto applies updates from UpdateUserData proto to an existing User model
-func UpdateUserFromProto(existing *model_core.User, proto *proto_core.UpdateUserData) error {
+func UpdateUserFromProto(existing *model_auth.User, proto *proto_auth.UpdateUserData) error {
 	if existing == nil {
 		return infra_error.Validation(infra_error.ValidationInvalidValue, "existing")
 	}
@@ -325,7 +325,7 @@ func UpdateUserFromProto(existing *model_core.User, proto *proto_core.UpdateUser
 
 		// Add new roles
 		for _, roleID := range proto.Roles.AddRoleIds {
-			existing.Roles = append(existing.Roles, model_core.UserRole{
+			existing.Roles = append(existing.Roles, model_auth.UserRole{
 				RoleID:     roleID,
 				TenantID:   existing.TenantID,
 				AssignedAt: now,
@@ -341,7 +341,7 @@ func UpdateUserFromProto(existing *model_core.User, proto *proto_core.UpdateUser
 				removeMap[roleID] = true
 			}
 
-			filteredRoles := make([]model_core.UserRole, 0, len(existing.Roles))
+			filteredRoles := make([]model_auth.UserRole, 0, len(existing.Roles))
 			for _, role := range existing.Roles {
 				if !removeMap[role.RoleID] {
 					filteredRoles = append(filteredRoles, role)
@@ -403,12 +403,12 @@ func UpdateUserFromProto(existing *model_core.User, proto *proto_core.UpdateUser
 }
 
 // UpdateUserProfileFromProto converts a UserProfileData proto message to a UserProfile model
-func UpdateUserProfileFromProto(proto *proto_core.UserProfileData) model_core.UserProfile {
+func UpdateUserProfileFromProto(proto *proto_auth.UserProfileData) model_auth.UserProfile {
 	if proto == nil {
-		return model_core.UserProfile{}
+		return model_auth.UserProfile{}
 	}
 
-	return model_core.UserProfile{
+	return model_auth.UserProfile{
 		FirstName:   proto.FirstName,
 		LastName:    proto.LastName,
 		DisplayName: proto.DisplayName,
@@ -420,13 +420,13 @@ func UpdateUserProfileFromProto(proto *proto_core.UserProfileData) model_core.Us
 }
 
 // UpdateUserPreferencesFromProto converts a UserPreferencesData proto message to a UserPreferences model
-func UpdateUserPreferencesFromProto(proto *proto_core.UserPreferencesData) model_core.UserPreferences {
+func UpdateUserPreferencesFromProto(proto *proto_auth.UserPreferencesData) model_auth.UserPreferences {
 	if proto == nil {
-		return model_core.UserPreferences{
+		return model_auth.UserPreferences{
 			Language: "en",
 			Timezone: "UTC",
 			Theme:    "light",
-			Notifications: model_core.NotificationSettings{
+			Notifications: model_auth.NotificationSettings{
 				Email: true,
 				Push:  false,
 				SMS:   false,
@@ -435,7 +435,7 @@ func UpdateUserPreferencesFromProto(proto *proto_core.UserPreferencesData) model
 		}
 	}
 
-	return model_core.UserPreferences{
+	return model_auth.UserPreferences{
 		Language:        proto.Language,
 		Timezone:        proto.Timezone,
 		Theme:           proto.Theme,

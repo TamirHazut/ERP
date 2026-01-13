@@ -11,7 +11,6 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
-	model_core "erp.localhost/internal/infra/model/core"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -20,8 +19,8 @@ type Seeder struct {
 	logger logger.Logger
 
 	// Handlers for database operations
-	tenantHandler     *collection.BaseCollectionHandler[model_core.Tenant]
-	userHandler       *collection.BaseCollectionHandler[model_core.User]
+	tenantHandler     *collection.BaseCollectionHandler[model_auth.Tenant]
+	userHandler       *collection.BaseCollectionHandler[model_auth.User]
 	permissionHandler *collection.BaseCollectionHandler[model_auth.Permission]
 	roleHandler       *collection.BaseCollectionHandler[model_auth.Role]
 }
@@ -29,12 +28,12 @@ type Seeder struct {
 func NewSeeder(logger logger.Logger) *Seeder {
 	return &Seeder{
 		logger: logger,
-		tenantHandler: collection.NewBaseCollectionHandler[model_core.Tenant](
+		tenantHandler: collection.NewBaseCollectionHandler[model_auth.Tenant](
 			model_mongo.CoreDB,
 			model_mongo.TenantsCollection,
 			logger,
 		),
-		userHandler: collection.NewBaseCollectionHandler[model_core.User](
+		userHandler: collection.NewBaseCollectionHandler[model_auth.User](
 			model_mongo.CoreDB,
 			model_mongo.UsersCollection,
 			logger,
@@ -156,9 +155,9 @@ func (s *Seeder) seedSystemTenant() error {
 	s.logger.Debug("Creating system tenant")
 
 	// Create new tenant
-	tenant := &model_core.Tenant{
+	tenant := &model_auth.Tenant{
 		Name:      "System",
-		Status:    model_core.TenantStatusActive,
+		Status:    model_auth.TenantStatusActive,
 		CreatedBy: "System",
 	}
 
@@ -272,14 +271,14 @@ func (s *Seeder) seedSystemAdminUser() error {
 	}
 
 	// Create user with system admin role
-	user := &model_core.User{
+	user := &model_auth.User{
 		TenantID:     db.SystemTenantID,
 		Username:     db.SystemAdminUser,
 		Email:        db.SystemAdminEmail,
 		PasswordHash: hash,
-		Status:       model_core.UserStatusActive,
+		Status:       model_auth.UserStatusActive,
 		CreatedBy:    "System",
-		Roles: []model_core.UserRole{
+		Roles: []model_auth.UserRole{
 			{
 				TenantID:   db.SystemTenantID,
 				RoleID:     db.SystemAdminRoleID,

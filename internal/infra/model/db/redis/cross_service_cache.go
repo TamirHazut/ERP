@@ -3,6 +3,7 @@ package redis
 import (
 	"time"
 
+	model_auth "erp.localhost/internal/infra/model/auth"
 	model_core "erp.localhost/internal/infra/model/core"
 )
 
@@ -20,7 +21,7 @@ type UserCache struct {
 	TenantID string                 `json:"tenant_id"`
 	Email    string                 `json:"email"`
 	Username string                 `json:"username"`
-	Profile  model_core.UserProfile `json:"profile"`
+	Profile  model_auth.UserProfile `json:"profile"`
 	Status   string                 `json:"status"`
 	Roles    []string               `json:"roles"`
 	CachedAt time.Time              `json:"cached_at"`
@@ -34,8 +35,8 @@ type TenantCache struct {
 	TenantID     string                    `json:"tenant_id"`
 	Name         string                    `json:"name"`
 	Status       string                    `json:"status"`
-	Subscription model_core.Subscription   `json:"subscription"`
-	Settings     model_core.TenantSettings `json:"settings"`
+	Subscription model_auth.Subscription   `json:"subscription"`
+	Settings     model_auth.TenantSettings `json:"settings"`
 	CachedAt     time.Time                 `json:"cached_at"`
 }
 

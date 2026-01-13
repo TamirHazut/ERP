@@ -2,13 +2,12 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: core/v1/user.proto
+// source: auth/v1/user.proto
 
-package corev1
+package authv1
 
 import (
 	context "context"
-	v1 "erp.localhost/internal/infra/proto/auth/v1"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -20,13 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_CreateUser_FullMethodName = "/core.v1.UserService/CreateUser"
-	UserService_GetUser_FullMethodName    = "/core.v1.UserService/GetUser"
-	UserService_GetUsers_FullMethodName   = "/core.v1.UserService/GetUsers"
-	UserService_UpdateUser_FullMethodName = "/core.v1.UserService/UpdateUser"
-	UserService_DeleteUser_FullMethodName = "/core.v1.UserService/DeleteUser"
-	UserService_Login_FullMethodName      = "/core.v1.UserService/Login"
-	UserService_Logout_FullMethodName     = "/core.v1.UserService/Logout"
+	UserService_CreateUser_FullMethodName = "/auth.v1.UserService/CreateUser"
+	UserService_GetUser_FullMethodName    = "/auth.v1.UserService/GetUser"
+	UserService_GetUsers_FullMethodName   = "/auth.v1.UserService/GetUsers"
+	UserService_UpdateUser_FullMethodName = "/auth.v1.UserService/UpdateUser"
+	UserService_DeleteUser_FullMethodName = "/auth.v1.UserService/DeleteUser"
+	UserService_Login_FullMethodName      = "/auth.v1.UserService/Login"
+	UserService_Logout_FullMethodName     = "/auth.v1.UserService/Logout"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -40,7 +39,7 @@ type UserServiceClient interface {
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
 	// Login + Logout
-	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*v1.TokensResponse, error)
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*TokensResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 }
 
@@ -102,9 +101,9 @@ func (c *userServiceClient) DeleteUser(ctx context.Context, in *DeleteUserReques
 	return out, nil
 }
 
-func (c *userServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*v1.TokensResponse, error) {
+func (c *userServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*TokensResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v1.TokensResponse)
+	out := new(TokensResponse)
 	err := c.cc.Invoke(ctx, UserService_Login_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -133,7 +132,7 @@ type UserServiceServer interface {
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
 	// Login + Logout
-	Login(context.Context, *LoginRequest) (*v1.TokensResponse, error)
+	Login(context.Context, *LoginRequest) (*TokensResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
@@ -160,7 +159,7 @@ func (UnimplementedUserServiceServer) UpdateUser(context.Context, *UpdateUserReq
 func (UnimplementedUserServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteUser not implemented")
 }
-func (UnimplementedUserServiceServer) Login(context.Context, *LoginRequest) (*v1.TokensResponse, error) {
+func (UnimplementedUserServiceServer) Login(context.Context, *LoginRequest) (*TokensResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
 }
 func (UnimplementedUserServiceServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
@@ -317,7 +316,7 @@ func _UserService_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var UserService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "core.v1.UserService",
+	ServiceName: "auth.v1.UserService",
 	HandlerType: (*UserServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -350,5 +349,5 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "core/v1/user.proto",
+	Metadata: "auth/v1/user.proto",
 }

@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	model_core "erp.localhost/internal/infra/model/core"
-	proto_core "erp.localhost/internal/infra/proto/core/v1"
+	model_auth "erp.localhost/internal/infra/model/auth"
+	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
 )
 
 // =============================================================================
@@ -18,7 +18,7 @@ import (
 
 func TestUserProfileToProto(t *testing.T) {
 	t.Run("valid profile with all fields", func(t *testing.T) {
-		profile := &model_core.UserProfile{
+		profile := &model_auth.UserProfile{
 			FirstName:   "John",
 			LastName:    "Doe",
 			DisplayName: "John Doe",
@@ -46,7 +46,7 @@ func TestUserProfileToProto(t *testing.T) {
 	})
 
 	t.Run("profile with optional fields empty", func(t *testing.T) {
-		profile := &model_core.UserProfile{
+		profile := &model_auth.UserProfile{
 			FirstName:   "John",
 			LastName:    "Doe",
 			DisplayName: "John Doe",
@@ -70,7 +70,7 @@ func TestUserRoleToProto(t *testing.T) {
 	expiresAt := now.Add(24 * time.Hour)
 
 	t.Run("valid role with ExpiresAt", func(t *testing.T) {
-		role := &model_core.UserRole{
+		role := &model_auth.UserRole{
 			RoleID:     "role-123",
 			TenantID:   "tenant-123",
 			AssignedAt: now,
@@ -89,7 +89,7 @@ func TestUserRoleToProto(t *testing.T) {
 	})
 
 	t.Run("valid role without ExpiresAt", func(t *testing.T) {
-		role := &model_core.UserRole{
+		role := &model_auth.UserRole{
 			RoleID:     "role-123",
 			TenantID:   "tenant-123",
 			AssignedAt: now,
@@ -117,7 +117,7 @@ func TestUserRolesToProto(t *testing.T) {
 	now := time.Now()
 
 	t.Run("valid slice with multiple roles", func(t *testing.T) {
-		roles := []model_core.UserRole{
+		roles := []model_auth.UserRole{
 			{
 				RoleID:     "role-1",
 				TenantID:   "tenant-123",
@@ -140,7 +140,7 @@ func TestUserRolesToProto(t *testing.T) {
 	})
 
 	t.Run("empty slice", func(t *testing.T) {
-		roles := []model_core.UserRole{}
+		roles := []model_auth.UserRole{}
 		protoRoles := UserRolesToProto(roles)
 		assert.Empty(t, protoRoles)
 	})
@@ -153,7 +153,7 @@ func TestUserRolesToProto(t *testing.T) {
 
 func TestNotificationSettingsToProto(t *testing.T) {
 	t.Run("valid settings", func(t *testing.T) {
-		settings := &model_core.NotificationSettings{
+		settings := &model_auth.NotificationSettings{
 			Email: true,
 			Push:  false,
 			SMS:   true,
@@ -179,11 +179,11 @@ func TestNotificationSettingsToProto(t *testing.T) {
 
 func TestUserPreferencesToProto(t *testing.T) {
 	t.Run("valid preferences with all fields", func(t *testing.T) {
-		prefs := &model_core.UserPreferences{
+		prefs := &model_auth.UserPreferences{
 			Language: "en",
 			Timezone: "UTC",
 			Theme:    "dark",
-			Notifications: model_core.NotificationSettings{
+			Notifications: model_auth.NotificationSettings{
 				Email: true,
 				Push:  true,
 				SMS:   false,
@@ -222,18 +222,18 @@ func TestUserToProto_ValidUser(t *testing.T) {
 	objectID := primitive.NewObjectID()
 	lastLogin := now.Add(-1 * time.Hour)
 
-	user := &model_core.User{
+	user := &model_auth.User{
 		ID:           objectID,
 		TenantID:     "tenant-123",
 		PasswordHash: "x",
 		Email:        "user@example.com",
 		Username:     "testuser",
-		Profile: model_core.UserProfile{
+		Profile: model_auth.UserProfile{
 			FirstName:   "John",
 			LastName:    "Doe",
 			DisplayName: "John Doe",
 		},
-		Roles: []model_core.UserRole{
+		Roles: []model_auth.UserRole{
 			{
 				RoleID:     "role-123",
 				TenantID:   "tenant-123",
@@ -243,17 +243,17 @@ func TestUserToProto_ValidUser(t *testing.T) {
 		},
 		AdditionalPermissions: []string{"perm1", "perm2"},
 		RevokedPermissions:    []string{"perm3"},
-		Status:                model_core.UserStatusActive,
+		Status:                model_auth.UserStatusActive,
 		EmailVerified:         true,
 		PhoneVerified:         false,
 		MFAEnabled:            true,
 		LastLogin:             &lastLogin,
 		LastPasswordChange:    now,
-		Preferences: model_core.UserPreferences{
+		Preferences: model_auth.UserPreferences{
 			Language: "en",
 			Timezone: "UTC",
 			Theme:    "dark",
-			Notifications: model_core.NotificationSettings{
+			Notifications: model_auth.NotificationSettings{
 				Email: true,
 				Push:  false,
 				SMS:   false,
@@ -263,7 +263,7 @@ func TestUserToProto_ValidUser(t *testing.T) {
 		UpdatedAt:    now,
 		CreatedBy:    "admin",
 		LastActivity: now,
-		LoginHistory: []model_core.LoginRecord{
+		LoginHistory: []model_auth.LoginRecord{
 			{
 				Timestamp: now,
 				IPAddress: "127.0.0.1",
@@ -284,7 +284,7 @@ func TestUserToProto_ValidUser(t *testing.T) {
 	assert.Len(t, proto.Roles, 1)
 	assert.Equal(t, []string{"perm1", "perm2"}, proto.AdditionalPermissions)
 	assert.Equal(t, []string{"perm3"}, proto.RevokedPermissions)
-	assert.Equal(t, model_core.UserStatusActive, proto.Status)
+	assert.Equal(t, model_auth.UserStatusActive, proto.Status)
 	assert.True(t, proto.EmailVerified)
 	assert.False(t, proto.PhoneVerified)
 	assert.True(t, proto.MfaEnabled)
@@ -304,7 +304,7 @@ func TestUserToProto_NilUser(t *testing.T) {
 
 func TestUserToProto_InvalidUser(t *testing.T) {
 	// User with missing required fields (will fail Validate())
-	user := &model_core.User{
+	user := &model_auth.User{
 		ID: primitive.NewObjectID(),
 		// Missing TenantID, Email/Username
 	}
@@ -317,12 +317,12 @@ func TestUserToProto_MinimalUser(t *testing.T) {
 	now := time.Now()
 	objectID := primitive.NewObjectID()
 
-	user := &model_core.User{
+	user := &model_auth.User{
 		ID:                 objectID,
 		TenantID:           "tenant-123",
 		Email:              "user@example.com",
 		PasswordHash:       "hash",
-		Status:             model_core.UserStatusInvited,
+		Status:             model_auth.UserStatusInvited,
 		LastPasswordChange: now,
 		CreatedAt:          now,
 		UpdatedAt:          now,
@@ -346,13 +346,13 @@ func TestUsersToProto(t *testing.T) {
 	objectID2 := primitive.NewObjectID()
 
 	t.Run("valid slice with multiple users", func(t *testing.T) {
-		users := []*model_core.User{
+		users := []*model_auth.User{
 			{
 				ID:                 objectID1,
 				TenantID:           "tenant-123",
 				Email:              "user1@example.com",
 				PasswordHash:       "hash",
-				Status:             model_core.UserStatusActive,
+				Status:             model_auth.UserStatusActive,
 				LastPasswordChange: now,
 				CreatedAt:          now,
 				UpdatedAt:          now,
@@ -364,7 +364,7 @@ func TestUsersToProto(t *testing.T) {
 				TenantID:           "tenant-123",
 				Email:              "user2@example.com",
 				PasswordHash:       "hash",
-				Status:             model_core.UserStatusActive,
+				Status:             model_auth.UserStatusActive,
 				LastPasswordChange: now,
 				CreatedAt:          now,
 				UpdatedAt:          now,
@@ -381,7 +381,7 @@ func TestUsersToProto(t *testing.T) {
 	})
 
 	t.Run("empty slice", func(t *testing.T) {
-		users := []*model_core.User{}
+		users := []*model_auth.User{}
 		protoUsers := UsersToProto(users)
 		assert.Empty(t, protoUsers)
 	})
@@ -392,13 +392,13 @@ func TestUsersToProto(t *testing.T) {
 	})
 
 	t.Run("slice with nil user skips nil", func(t *testing.T) {
-		users := []*model_core.User{
+		users := []*model_auth.User{
 			{
 				ID:                 objectID1,
 				TenantID:           "tenant-123",
 				Email:              "user1@example.com",
 				PasswordHash:       "hash",
-				Status:             model_core.UserStatusActive,
+				Status:             model_auth.UserStatusActive,
 				LastPasswordChange: now,
 				CreatedAt:          now,
 				UpdatedAt:          now,
@@ -420,13 +420,13 @@ func TestUsersToProto(t *testing.T) {
 // =============================================================================
 
 func TestCreateUserFromProto_ValidProto(t *testing.T) {
-	proto := &proto_core.CreateUserData{
+	proto := &proto_auth.CreateUserData{
 		TenantId:     "tenant-123",
 		Email:        "user@example.com",
 		Username:     "testuser",
 		PasswordHash: "hashed_password",
 		RoleIds:      []string{"role-1", "role-2"},
-		Status:       model_core.UserStatusActive,
+		Status:       model_auth.UserStatusActive,
 		CreatedBy:    "admin",
 	}
 
@@ -441,7 +441,7 @@ func TestCreateUserFromProto_ValidProto(t *testing.T) {
 	assert.Len(t, user.Roles, 2)
 	assert.Equal(t, "role-1", user.Roles[0].RoleID)
 	assert.Equal(t, "role-2", user.Roles[1].RoleID)
-	assert.Equal(t, model_core.UserStatusActive, user.Status)
+	assert.Equal(t, model_auth.UserStatusActive, user.Status)
 	assert.False(t, user.EmailVerified)
 	assert.False(t, user.PhoneVerified)
 	assert.False(t, user.MFAEnabled)
@@ -452,23 +452,23 @@ func TestCreateUserFromProto_ValidProto(t *testing.T) {
 }
 
 func TestCreateUserFromProto_WithOptionalFields(t *testing.T) {
-	proto := &proto_core.CreateUserData{
+	proto := &proto_auth.CreateUserData{
 		TenantId:     "tenant-123",
 		Email:        "user@example.com",
 		Username:     "testuser",
 		PasswordHash: "hashed_password",
-		Profile: &proto_core.UserProfileData{
+		Profile: &proto_auth.UserProfileData{
 			FirstName:   "John",
 			LastName:    "Doe",
 			DisplayName: "John Doe",
 		},
-		Preferences: &proto_core.UserPreferencesData{
+		Preferences: &proto_auth.UserPreferencesData{
 			Language: "es",
 			Timezone: "America/New_York",
 			Theme:    "dark",
 		},
 		AdditionalPermissions: []string{"perm1", "perm2"},
-		Status:                model_core.UserStatusActive,
+		Status:                model_auth.UserStatusActive,
 		CreatedBy:             "admin",
 	}
 
@@ -485,7 +485,7 @@ func TestCreateUserFromProto_WithOptionalFields(t *testing.T) {
 }
 
 func TestCreateUserFromProto_WithoutOptionalFields(t *testing.T) {
-	proto := &proto_core.CreateUserData{
+	proto := &proto_auth.CreateUserData{
 		TenantId:     "tenant-123",
 		Email:        "user@example.com",
 		Username:     "testuser",
@@ -501,7 +501,7 @@ func TestCreateUserFromProto_WithoutOptionalFields(t *testing.T) {
 	assert.Equal(t, "en", user.Preferences.Language)
 	assert.Equal(t, "UTC", user.Preferences.Timezone)
 	assert.Equal(t, "light", user.Preferences.Theme)
-	assert.Equal(t, model_core.UserStatusInvited, user.Status) // default
+	assert.Equal(t, model_auth.UserStatusInvited, user.Status) // default
 }
 
 func TestCreateUserFromProto_NilProto(t *testing.T) {
@@ -518,13 +518,13 @@ func TestCreateUserFromProto_NilProto(t *testing.T) {
 
 func TestUpdateUserFromProto_FullUpdate(t *testing.T) {
 	now := time.Now()
-	existing := &model_core.User{
+	existing := &model_auth.User{
 		ID:                 primitive.NewObjectID(),
 		TenantID:           "tenant-123",
 		PasswordHash:       "x",
 		Email:              "old@example.com",
 		Username:           "olduser",
-		Status:             model_core.UserStatusInvited,
+		Status:             model_auth.UserStatusInvited,
 		EmailVerified:      false,
 		PhoneVerified:      false,
 		LastPasswordChange: now,
@@ -536,11 +536,11 @@ func TestUpdateUserFromProto_FullUpdate(t *testing.T) {
 
 	newEmail := "new@example.com"
 	newUsername := "newuser"
-	newStatus := model_core.UserStatusActive
+	newStatus := model_auth.UserStatusActive
 	emailVerified := true
 	phoneVerified := true
 
-	proto := &proto_core.UpdateUserData{
+	proto := &proto_auth.UpdateUserData{
 		Id:            existing.ID.Hex(),
 		TenantId:      existing.TenantID,
 		Email:         &newEmail,
@@ -558,7 +558,7 @@ func TestUpdateUserFromProto_FullUpdate(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "new@example.com", existing.Email)
 	assert.Equal(t, "newuser", existing.Username)
-	assert.Equal(t, model_core.UserStatusActive, existing.Status)
+	assert.Equal(t, model_auth.UserStatusActive, existing.Status)
 	assert.True(t, existing.EmailVerified)
 	assert.True(t, existing.PhoneVerified)
 	assert.True(t, existing.UpdatedAt.After(now))
@@ -566,12 +566,12 @@ func TestUpdateUserFromProto_FullUpdate(t *testing.T) {
 
 func TestUpdateUserFromProto_PartialUpdate(t *testing.T) {
 	now := time.Now()
-	existing := &model_core.User{
+	existing := &model_auth.User{
 		ID:                 primitive.NewObjectID(),
 		TenantID:           "tenant-123",
 		Email:              "old@example.com",
 		Username:           "olduser",
-		Status:             model_core.UserStatusInvited,
+		Status:             model_auth.UserStatusInvited,
 		LastPasswordChange: now,
 		CreatedAt:          now,
 		UpdatedAt:          now,
@@ -580,7 +580,7 @@ func TestUpdateUserFromProto_PartialUpdate(t *testing.T) {
 	}
 
 	newEmail := "new@example.com"
-	proto := &proto_core.UpdateUserData{
+	proto := &proto_auth.UpdateUserData{
 		Id:       existing.ID.Hex(),
 		TenantId: existing.TenantID,
 		Email:    &newEmail,
@@ -592,16 +592,16 @@ func TestUpdateUserFromProto_PartialUpdate(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "new@example.com", existing.Email)
 	assert.Equal(t, "olduser", existing.Username)                  // Unchanged
-	assert.Equal(t, model_core.UserStatusInvited, existing.Status) // Unchanged
+	assert.Equal(t, model_auth.UserStatusInvited, existing.Status) // Unchanged
 }
 
 func TestUpdateUserFromProto_UpdateRoles(t *testing.T) {
 	now := time.Now()
-	existing := &model_core.User{
+	existing := &model_auth.User{
 		ID:       primitive.NewObjectID(),
 		TenantID: "tenant-123",
 		Email:    "user@example.com",
-		Roles: []model_core.UserRole{
+		Roles: []model_auth.UserRole{
 			{RoleID: "role-1", TenantID: "tenant-123", AssignedAt: now, AssignedBy: "admin"},
 			{RoleID: "role-2", TenantID: "tenant-123", AssignedAt: now, AssignedBy: "admin"},
 		},
@@ -612,10 +612,10 @@ func TestUpdateUserFromProto_UpdateRoles(t *testing.T) {
 		LastActivity:       now,
 	}
 
-	proto := &proto_core.UpdateUserData{
+	proto := &proto_auth.UpdateUserData{
 		Id:       existing.ID.Hex(),
 		TenantId: existing.TenantID,
-		Roles: &proto_core.UpdateRolesData{
+		Roles: &proto_auth.UpdateRolesData{
 			AddRoleIds:    []string{"role-3"},
 			RemoveRoleIds: []string{"role-1"},
 		},
@@ -636,7 +636,7 @@ func TestUpdateUserFromProto_UpdateRoles(t *testing.T) {
 
 func TestUpdateUserFromProto_UpdatePermissions(t *testing.T) {
 	now := time.Now()
-	existing := &model_core.User{
+	existing := &model_auth.User{
 		ID:                    primitive.NewObjectID(),
 		TenantID:              "tenant-123",
 		Email:                 "user@example.com",
@@ -649,10 +649,10 @@ func TestUpdateUserFromProto_UpdatePermissions(t *testing.T) {
 		LastActivity:          now,
 	}
 
-	proto := &proto_core.UpdateUserData{
+	proto := &proto_auth.UpdateUserData{
 		Id:       existing.ID.Hex(),
 		TenantId: existing.TenantID,
-		Permissions: &proto_core.UpdatePermissionsData{
+		Permissions: &proto_auth.UpdatePermissionsData{
 			AddPermissions:      []string{"perm4"},
 			RemovePermissions:   []string{"perm1"},
 			RevokePermissions:   []string{"perm5"},
@@ -671,7 +671,7 @@ func TestUpdateUserFromProto_UpdatePermissions(t *testing.T) {
 }
 
 func TestUpdateUserFromProto_NilExisting(t *testing.T) {
-	proto := &proto_core.UpdateUserData{
+	proto := &proto_auth.UpdateUserData{
 		Id:       primitive.NewObjectID().Hex(),
 		TenantId: "tenant-123",
 	}
@@ -684,7 +684,7 @@ func TestUpdateUserFromProto_NilExisting(t *testing.T) {
 
 func TestUpdateUserFromProto_NilProto(t *testing.T) {
 	now := time.Now()
-	existing := &model_core.User{
+	existing := &model_auth.User{
 		ID:                 primitive.NewObjectID(),
 		TenantID:           "tenant-123",
 		Email:              "user@example.com",

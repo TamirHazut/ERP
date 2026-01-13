@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
+	grpc "google.golang.org/grpc"
 )
 
 // MockRPCServer is a mock of RPCServer interface.
@@ -51,4 +52,30 @@ func (m *MockRPCServer) ListenAndServe(quit <-chan struct{}) error {
 func (mr *MockRPCServerMockRecorder) ListenAndServe(quit any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListenAndServe", reflect.TypeOf((*MockRPCServer)(nil).ListenAndServe), quit)
+}
+
+// RegisterService mocks base method.
+func (m *MockRPCServer) RegisterService(desc *grpc.ServiceDesc, impl any) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "RegisterService", desc, impl)
+}
+
+// RegisterService indicates an expected call of RegisterService.
+func (mr *MockRPCServerMockRecorder) RegisterService(desc, impl any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterService", reflect.TypeOf((*MockRPCServer)(nil).RegisterService), desc, impl)
+}
+
+// Server mocks base method.
+func (m *MockRPCServer) Server() *grpc.Server {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Server")
+	ret0, _ := ret[0].(*grpc.Server)
+	return ret0
+}
+
+// Server indicates an expected call of Server.
+func (mr *MockRPCServerMockRecorder) Server() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Server", reflect.TypeOf((*MockRPCServer)(nil).Server))
 }

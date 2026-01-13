@@ -57,7 +57,6 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 		name                 string
 		tenantID             string
 		userID               string
-		tokenID              string
 		refreshToken         model_auth.RefreshToken
 		expectedTenantID     string
 		expectedKey          string
@@ -69,7 +68,6 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			name:                 "successful store",
 			tenantID:             "tenant-123",
 			userID:               "user-123",
-			tokenID:              "token-123",
 			refreshToken:         validToken,
 			expectedTenantID:     "tenant-123",
 			expectedKey:          "user-123:token-123",
@@ -81,7 +79,6 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			name:     "store with validation error - missing token",
 			tenantID: "tenant-123",
 			userID:   "user-123",
-			tokenID:  "token-123",
 			refreshToken: model_auth.RefreshToken{
 				UserID:    "user-123",
 				TenantID:  "tenant-123",
@@ -98,7 +95,6 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			name:     "store with tenant_id mismatch",
 			tenantID: "tenant-123",
 			userID:   "user-123",
-			tokenID:  "token-123",
 			refreshToken: model_auth.RefreshToken{
 				Token:     "refresh-token-123",
 				UserID:    "user-123",
@@ -116,7 +112,6 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			name:                 "store with database error",
 			tenantID:             "tenant-123",
 			userID:               "user-123",
-			tokenID:              "token-123",
 			refreshToken:         validToken,
 			expectedTenantID:     "tenant-123",
 			expectedKey:          "user-123:token-123",
@@ -142,7 +137,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
-			err := handler.Store(tc.tenantID, tc.userID, tc.tokenID, tc.refreshToken)
+			err := handler.Store(tc.tenantID, tc.userID, tc.refreshToken)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -166,7 +161,6 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 		name                    string
 		tenantID                string
 		userID                  string
-		tokenID                 string
 		expectedTenantID        string
 		expectedKey             string
 		returnToken             *model_auth.RefreshToken
@@ -179,7 +173,6 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			name:                    "successful get",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedTenantID:        "tenant-123",
 			expectedKey:             "user-123:token-123",
 			returnToken:             &validToken,
@@ -192,7 +185,6 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			name:                    "token not found",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedTenantID:        "tenant-123",
 			expectedKey:             "user-123:token-123",
 			returnToken:             nil,
@@ -205,7 +197,6 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			name:                    "database error",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedTenantID:        "tenant-123",
 			expectedKey:             "user-123:token-123",
 			returnToken:             nil,
@@ -232,7 +223,7 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
-			result, err := handler.GetOne(tc.tenantID, tc.userID, tc.tokenID)
+			result, err := handler.GetOne(tc.tenantID, tc.userID)
 			if tc.wantErr {
 				require.Error(t, err)
 				assert.Nil(t, result)
@@ -241,98 +232,6 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 				require.NotNil(t, result)
 				assert.Equal(t, tc.wantToken.Token, result.Token)
 				assert.Equal(t, tc.wantToken.UserID, result.UserID)
-			}
-		})
-	}
-}
-
-func TestRefreshTokenKeyHandler_GetAll(t *testing.T) {
-	validToken := model_auth.RefreshToken{
-		Token:     "refresh-token-123",
-		UserID:    "user-123",
-		TenantID:  "tenant-123",
-		ExpiresAt: time.Now().Add(24 * time.Hour),
-		CreatedAt: time.Now(),
-		IsRevoked: false,
-	}
-
-	testCases := []struct {
-		name                    string
-		tenantID                string
-		userID                  string
-		expectedTenantID        string
-		expectedUserID          string
-		returnTokens            []model_auth.RefreshToken
-		returnError             error
-		wantCount               int
-		wantErr                 bool
-		expectedGetAllCallTimes int
-	}{
-		{
-			name:                    "successful get",
-			tenantID:                "tenant-123",
-			userID:                  "user-123",
-			expectedTenantID:        "tenant-123",
-			expectedUserID:          "user-123",
-			returnTokens:            []model_auth.RefreshToken{validToken},
-			returnError:             nil,
-			wantCount:               1,
-			wantErr:                 false,
-			expectedGetAllCallTimes: 1,
-		},
-		{
-			name:                    "token not found",
-			tenantID:                "tenant-123",
-			userID:                  "user-123",
-			expectedTenantID:        "tenant-123",
-			expectedUserID:          "user-123",
-			returnTokens:            []model_auth.RefreshToken{},
-			returnError:             nil,
-			wantCount:               0,
-			wantErr:                 false,
-			expectedGetAllCallTimes: 1,
-		},
-		{
-			name:                    "database error",
-			tenantID:                "tenant-123",
-			userID:                  "user-123",
-			expectedTenantID:        "tenant-123",
-			expectedUserID:          "user-123",
-			returnTokens:            nil,
-			returnError:             errors.New("database query failed"),
-			wantCount:               0,
-			wantErr:                 true,
-			expectedGetAllCallTimes: 1,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			mockHandler := mock_redis.NewMockKeyHandler[model_auth.RefreshToken](ctrl)
-			if tc.expectedGetAllCallTimes > 0 {
-				mockHandler.EXPECT().
-					GetAll(tc.expectedTenantID, tc.expectedUserID).
-					Return(tc.returnTokens, tc.returnError).
-					Times(tc.expectedGetAllCallTimes)
-			}
-
-			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
-			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
-
-			result, err := handler.GetAll(tc.tenantID, tc.userID)
-			if tc.wantErr {
-				require.Error(t, err)
-				assert.Nil(t, result)
-			} else {
-				require.NoError(t, err)
-				assert.Len(t, result, tc.wantCount)
-				if tc.wantCount > 0 {
-					assert.Equal(t, validToken.Token, result[0].Token)
-					assert.Equal(t, validToken.UserID, result[0].UserID)
-				}
 			}
 		})
 	}
@@ -368,7 +267,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 		name                    string
 		tenantID                string
 		userID                  string
-		tokenID                 string
 		expectedTenantID        string
 		expectedKey             string
 		returnToken             *model_auth.RefreshToken
@@ -380,7 +278,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			name:                    "valid token",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedTenantID:        "tenant-123",
 			expectedKey:             "user-123:token-123",
 			returnToken:             &validToken,
@@ -392,7 +289,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			name:                    "expired token",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedTenantID:        "tenant-123",
 			expectedKey:             "user-123:token-123",
 			returnToken:             &expiredToken,
@@ -404,7 +300,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			name:                    "revoked token",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedTenantID:        "tenant-123",
 			expectedKey:             "user-123:token-123",
 			returnToken:             &revokedToken,
@@ -416,7 +311,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			name:                    "token not found",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedTenantID:        "tenant-123",
 			expectedKey:             "user-123:token-123",
 			returnToken:             nil,
@@ -442,7 +336,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
-			result, err := handler.Validate(tc.tenantID, tc.userID, tc.tokenID)
+			result, err := handler.Validate(tc.tenantID, tc.userID)
 			if tc.wantErr {
 				require.Error(t, err)
 				assert.Nil(t, result)
@@ -468,7 +362,6 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 		name                    string
 		tenantID                string
 		userID                  string
-		tokenID                 string
 		expectedGetTenantID     string
 		expectedGetKey          string
 		expectedUpdateTenantID  string
@@ -484,7 +377,6 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			name:                    "successful revoke",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedGetTenantID:     "tenant-123",
 			expectedGetKey:          "user-123:token-123",
 			expectedUpdateTenantID:  "tenant-123",
@@ -500,7 +392,6 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			name:                    "token not found",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedGetTenantID:     "tenant-123",
 			expectedGetKey:          "user-123:token-123",
 			expectedUpdateTenantID:  "",
@@ -516,7 +407,6 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			name:                    "update fails",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedGetTenantID:     "tenant-123",
 			expectedGetKey:          "user-123:token-123",
 			expectedUpdateTenantID:  "tenant-123",
@@ -555,7 +445,7 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
-			err := handler.Revoke(tc.tenantID, tc.userID, tc.tokenID, "system")
+			err := handler.Revoke(tc.tenantID, tc.userID, "system")
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -570,7 +460,6 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 		name                    string
 		tenantID                string
 		userID                  string
-		tokenID                 string
 		expectedDeleteTenantID  string
 		expectedDeleteKey       string
 		returnDeleteError       error
@@ -581,7 +470,6 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 			name:                    "successful delete",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedDeleteTenantID:  "tenant-123",
 			expectedDeleteKey:       "user-123:token-123",
 			returnDeleteError:       nil,
@@ -592,7 +480,6 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 			name:                    "delete with database error",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			tokenID:                 "token-123",
 			expectedDeleteTenantID:  "tenant-123",
 			expectedDeleteKey:       "user-123:token-123",
 			returnDeleteError:       errors.New("delete failed"),
@@ -617,7 +504,7 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 			handler := NewRefreshTokenHandler(mockHandler, nil, logger)
 
-			err := handler.Delete(tc.tenantID, tc.userID, tc.tokenID)
+			err := handler.Delete(tc.tenantID, tc.userID)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {

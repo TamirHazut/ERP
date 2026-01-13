@@ -15,6 +15,10 @@ type KeyHandler[T any] interface {
 	GetAll(tenantID string, userID string) ([]T, error)
 	Update(tenantID string, key string, value T, opts ...map[string]any) error
 	Delete(tenantID string, key string) error
+	// ScanKeys scans for keys matching a pattern for a specific tenant
+	ScanKeys(tenantID string, pattern string) ([]string, error)
+	// DeleteByPattern deletes all keys matching a pattern for a specific tenant
+	DeleteByPattern(tenantID string, pattern string) (int, error)
 }
 
 type BaseKeyHandler[T any] struct {
@@ -84,4 +88,48 @@ func (k *BaseKeyHandler[T]) Delete(tenantID string, key string) error {
 		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	return nil
+}
+
+// ScanKeys scans for keys matching a pattern for a specific tenant
+// Pattern is relative to tenant (e.g., "*" for all keys in tenant, "user-123" for specific user)
+func (k *BaseKeyHandler[T]) ScanKeys(tenantID string, pattern string) ([]string, error) {
+	k.logger.Debug("Scanning keys", "tenantID", tenantID, "pattern", pattern)
+
+	// Type assert to get BaseRedisHandler
+	redisHandler, ok := k.dbHandler.(*BaseRedisHandler)
+	if !ok {
+		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, fmt.Errorf("dbHandler is not a BaseRedisHandler"))
+	}
+
+	// Build full pattern: tenant_id:pattern
+	fullPattern := fmt.Sprintf("%s:%s", tenantID, pattern)
+	keys, err := redisHandler.Scan(fullPattern, 100)
+	if err != nil {
+		return nil, err
+	}
+
+	k.logger.Debug("Keys scanned", "tenantID", tenantID, "pattern", pattern, "keys_found", len(keys))
+	return keys, nil
+}
+
+// DeleteByPattern deletes all keys matching a pattern for a specific tenant
+// Returns the number of keys deleted
+func (k *BaseKeyHandler[T]) DeleteByPattern(tenantID string, pattern string) (int, error) {
+	k.logger.Debug("Deleting keys by pattern", "tenantID", tenantID, "pattern", pattern)
+
+	// Type assert to get BaseRedisHandler
+	redisHandler, ok := k.dbHandler.(*BaseRedisHandler)
+	if !ok {
+		return 0, infra_error.Internal(infra_error.InternalUnexpectedError, fmt.Errorf("dbHandler is not a BaseRedisHandler"))
+	}
+
+	// Build full pattern: tenant_id:pattern
+	fullPattern := fmt.Sprintf("%s:%s", tenantID, pattern)
+	count, err := redisHandler.DeleteByPattern(fullPattern)
+	if err != nil {
+		return 0, err
+	}
+
+	k.logger.Info("Keys deleted by pattern", "tenantID", tenantID, "pattern", pattern, "keys_deleted", count)
+	return count, nil
 }

@@ -89,12 +89,14 @@ func (r *RolesCollection) UpdateRole(role *model_auth.Role) error {
 }
 
 func (r *RolesCollection) DeleteRole(tenantID, roleID string) error {
-	if tenantID == "" || roleID == "" {
+	if tenantID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID", "RoleID")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
-		"_id":       roleID,
+	}
+	if roleID == "" {
+		filter["_id"] = roleID
 	}
 	r.logger.Debug("Deleting role", "filter", filter)
 	return r.collection.Delete(filter)

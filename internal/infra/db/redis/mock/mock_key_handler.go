@@ -53,6 +53,21 @@ func (mr *MockKeyHandlerMockRecorder[T]) Delete(tenantID, key any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockKeyHandler[T])(nil).Delete), tenantID, key)
 }
 
+// DeleteByPattern mocks base method.
+func (m *MockKeyHandler[T]) DeleteByPattern(tenantID, pattern string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteByPattern", tenantID, pattern)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteByPattern indicates an expected call of DeleteByPattern.
+func (mr *MockKeyHandlerMockRecorder[T]) DeleteByPattern(tenantID, pattern any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByPattern", reflect.TypeOf((*MockKeyHandler[T])(nil).DeleteByPattern), tenantID, pattern)
+}
+
 // GetAll mocks base method.
 func (m *MockKeyHandler[T]) GetAll(tenantID, userID string) ([]T, error) {
 	m.ctrl.T.Helper()
@@ -81,6 +96,21 @@ func (m *MockKeyHandler[T]) GetOne(tenantID, key string) (*T, error) {
 func (mr *MockKeyHandlerMockRecorder[T]) GetOne(tenantID, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOne", reflect.TypeOf((*MockKeyHandler[T])(nil).GetOne), tenantID, key)
+}
+
+// ScanKeys mocks base method.
+func (m *MockKeyHandler[T]) ScanKeys(tenantID, pattern string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ScanKeys", tenantID, pattern)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ScanKeys indicates an expected call of ScanKeys.
+func (mr *MockKeyHandlerMockRecorder[T]) ScanKeys(tenantID, pattern any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanKeys", reflect.TypeOf((*MockKeyHandler[T])(nil).ScanKeys), tenantID, pattern)
 }
 
 // Set mocks base method.

@@ -106,12 +106,14 @@ func (r *PermissionsCollection) UpdatePermission(permission *model_auth.Permissi
 }
 
 func (r *PermissionsCollection) DeletePermission(tenantID, permissionID string) error {
-	if tenantID == "" || permissionID == "" {
-		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID", "PermissionID")
+	if tenantID == "" {
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
-		"_id":       permissionID,
+	}
+	if permissionID != "" {
+		filter["_id"] = permissionID
 	}
 	r.logger.Debug("Deleting permission", "filter", filter)
 	return r.collection.Delete(filter)

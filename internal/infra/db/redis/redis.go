@@ -168,3 +168,62 @@ func (r *BaseRedisHandler) SMembers(key string) ([]string, error) {
 func (r *BaseRedisHandler) Clear(key string) error {
 	return r.Delete(key, nil)
 }
+
+// Scan scans for keys matching a pattern
+// Returns keys in batches to avoid blocking Redis
+// Pattern should include the key prefix (e.g., "tokens:tenant-123:*")
+func (r *BaseRedisHandler) Scan(pattern string, batchSize int64) ([]string, error) {
+	var allKeys []string
+	var cursor uint64 = 0
+
+	// Format pattern with key prefix if not already included
+	fullPattern := fmt.Sprintf("%s:%s", r.keyPrefix, pattern)
+
+	for {
+		keys, nextCursor, err := r.client.Scan(redisContext, cursor, fullPattern, batchSize).Result()
+		if err != nil {
+			r.logger.Error("Failed to scan Redis keys", "error", err, "pattern", fullPattern)
+			return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
+		}
+
+		allKeys = append(allKeys, keys...)
+		cursor = nextCursor
+
+		// Cursor returns to 0 when iteration is complete
+		if cursor == 0 {
+			break
+		}
+	}
+
+	r.logger.Debug("Redis SCAN completed", "pattern", fullPattern, "keys_found", len(allKeys))
+	return allKeys, nil
+}
+
+// DeleteByPattern deletes all keys matching a pattern
+// Uses SCAN to find keys and pipeline for efficient deletion
+func (r *BaseRedisHandler) DeleteByPattern(pattern string) (int, error) {
+	keys, err := r.Scan(pattern, 100)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(keys) == 0 {
+		r.logger.Debug("No keys found to delete", "pattern", pattern)
+		return 0, nil
+	}
+
+	// Delete in pipeline for efficiency
+	pipe := r.client.Pipeline()
+	for _, key := range keys {
+		pipe.Del(redisContext, key)
+	}
+
+	_, err = pipe.Exec(redisContext)
+	if err != nil {
+		r.logger.Error("Failed to delete keys by pattern", "error", err, "pattern", pattern, "keys_count", len(keys))
+		return 0, infra_error.Internal(infra_error.InternalDatabaseError, err)
+	}
+
+	r.logger.Info("Keys deleted by pattern", "pattern", pattern, "keys_deleted", len(keys))
+	return len(keys), nil
+}
