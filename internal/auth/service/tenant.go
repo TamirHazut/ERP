@@ -25,10 +25,11 @@ type TenantService struct {
 	tenantSeeder     *TenantSeeder
 	authAPI          *api.AuthAPI
 	rbacAPI          *api.RBACAPI
+	userAPI          *api.UserAPI
 	proto_auth.UnimplementedTenantServiceServer
 }
 
-func NewTenantService(authAPI *api.AuthAPI, rbacAPI *api.RBACAPI) *TenantService {
+func NewTenantService(authAPI *api.AuthAPI, rbacAPI *api.RBACAPI, userAPI *api.UserAPI) *TenantService {
 	logger := logger.NewBaseLogger(model_shared.ModuleCore)
 
 	tenantHandler := mongo_collection.NewBaseCollectionHandler[model_auth.Tenant](model_mongo.AuthDB, model_mongo.TenantsCollection, logger)
@@ -50,6 +51,7 @@ func NewTenantService(authAPI *api.AuthAPI, rbacAPI *api.RBACAPI) *TenantService
 		tenantSeeder:     tenantSeeder,
 		authAPI:          authAPI,
 		rbacAPI:          rbacAPI,
+		userAPI:          userAPI,
 	}
 }
 
@@ -311,17 +313,17 @@ func (t *TenantService) DeleteTenant(ctx context.Context, req *proto_auth.Delete
 	// TODO: Uncomment once UserCollection supports bulk delete by tenant_id
 	// This deletes all user documents with matching tenant_id in one operation
 	t.logger.Info("deleting all users for tenant", "target_tenant_id", targetTenantID)
-	// if err := t.userCollection.DeleteAllUsersByTenantID(tenantID); err != nil {
-	//     t.logger.Error("failed to delete users for tenant", "tenant_id", tenantID, "error", err)
-	//     return nil, status.Error(codes.Internal, "failed to delete users")
-	// } else {
-	//     t.logger.Info("deleted all users for tenant", "tenant_id", tenantID)
-	// }
+	if err := t.userAPI.DeleteTenantUsers(tenantID, userID, targetTenantID); err != nil {
+		t.logger.Error("failed to delete roles for tenant", "target_tenant_id", targetTenantID, "error", err)
+		return nil, infra_error.ToGRPCError(err)
+	} else {
+		t.logger.Info("deleted all roles for tenant", "target_tenant_id", targetTenantID)
+	}
 
 	// STEP 6: Delete ALL roles for this tenant (bulk operation)
 	// This deletes all role documents with matching tenant_id in one operation
 	t.logger.Info("deleting all roles for tenant", "target_tenant_id", targetTenantID)
-	if err := t.rbacAPI.Roles.DeleteRole(tenantID, userID, "", targetTenantID); err != nil {
+	if err := t.rbacAPI.Roles.DeleteTenantRoles(tenantID, userID, targetTenantID); err != nil {
 		t.logger.Error("failed to delete roles for tenant", "target_tenant_id", targetTenantID, "error", err)
 		// Continue with deletion even if this fails
 	} else {
@@ -331,7 +333,7 @@ func (t *TenantService) DeleteTenant(ctx context.Context, req *proto_auth.Delete
 	// STEP 7: Delete ALL permissions for this tenant (bulk operation)
 	// This deletes all permission documents with matching tenant_id in one operation
 	t.logger.Info("deleting all permissions for tenant", "target_tenant_id", targetTenantID)
-	if err := t.rbacAPI.Permissions.DeletePermission(tenantID, userID, "", targetTenantID); err != nil {
+	if err := t.rbacAPI.Permissions.DeleteTenantPermissions(tenantID, userID, targetTenantID); err != nil {
 		t.logger.Error("failed to delete permissions for tenant", "target_tenant_id", targetTenantID, "error", err)
 		// Continue with deletion even if this fails
 	} else {

@@ -83,7 +83,7 @@ func Main() {
 	userService := service.NewUserService(userAPI)
 	srv.RegisterService(&proto_auth.UserService_ServiceDesc, userService)
 	// Tenant service
-	tenantService := service.NewTenantService(authAPI, rbacAPI)
+	tenantService := service.NewTenantService(authAPI, rbacAPI, userAPI)
 	srv.RegisterService(&proto_auth.TenantService_ServiceDesc, tenantService)
 
 	// WaitGroup to wait for the gRPC server goroutine to finish

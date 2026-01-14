@@ -142,43 +142,53 @@ func (u *UserAPI) UpdateUser(tenantID, userID string, newUserData *model_auth.Us
 	}
 
 	err = u.userCollection.UpdateUser(newUserData)
-	return err == nil, err
+	success := err == nil
+	if success {
+		u.logger.Debug("user updated successfuly", "tenant_id", tenantID, "user_id", userID, "target_tenant_id", targetTenantID, "target_user_id", newUserData.ID.Hex())
+	} else {
+		u.logger.Error("failed to update user", "tenant_id", tenantID, "user_id", userID, "error", err)
+	}
+	return success, err
 }
 
-func (u *UserAPI) DeleteUser(tenantID, userID, targetTenantID, accountID string) (bool, error) {
+func (u *UserAPI) DeleteUser(tenantID, userID, targetTenantID, accountID string) error {
 	if tenantID == "" || userID == "" || targetTenantID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, target_tenant_id"))
 		u.logger.Error("failed to delete user", "error", err)
-		return false, err
+		return err
 	}
 
 	if err := u.hasPermission(tenantID, userID, model_auth.PermissionActionDelete, targetTenantID); err != nil {
 		u.logger.Error("failed to delete user", "tenant_id", tenantID, "user_id", userID, "error", err)
-		return false, err
+		return err
 	}
 
 	if err := u.userCollection.DeleteUser(targetTenantID, accountID); err != nil {
-		return false, err
+		u.logger.Error("failed to delete user", "tenant_id", tenantID, "user_id", userID, "error", err)
+		return err
 	}
-	return true, nil
+	u.logger.Debug("user deleted successfuly", "tenant_id", tenantID, "user_id", userID, "target_tenant_id", targetTenantID)
+	return nil
 }
 
-func (u *UserAPI) DeleteTenantUsers(tenantID, userID, targetTenantID string) (bool, error) {
+func (u *UserAPI) DeleteTenantUsers(tenantID, userID, targetTenantID string) error {
 	if tenantID == "" || userID == "" || targetTenantID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, target_tenant_id"))
 		u.logger.Error("failed to delete tenant users", "error", err)
-		return false, err
+		return err
 	}
 
 	if err := u.hasPermission(tenantID, userID, model_auth.PermissionActionDelete, targetTenantID); err != nil {
 		u.logger.Error("failed to delete tenant users", "tenant_id", tenantID, "user_id", userID, "error", err)
-		return false, err
+		return err
 	}
 
 	if err := u.userCollection.DeleteTenantUsers(targetTenantID); err != nil {
-		return false, err
+		u.logger.Error("failed to delete tenant users", "tenant_id", tenantID, "user_id", userID, "error", err)
+		return err
 	}
-	return true, nil
+	u.logger.Debug("tenant users deleted successfuly", "tenant_id", tenantID, "user_id", userID, "target_tenant_id", targetTenantID)
+	return nil
 }
 
 func (u *UserAPI) Login(tenantID, email, username, password string) (*NewTokenResponse, error) {

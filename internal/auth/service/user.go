@@ -170,13 +170,13 @@ func (u *UserService) DeleteUser(ctx context.Context, req *proto_auth.DeleteUser
 	targetTenantID := req.GetTargetTenantId()
 	accountID := req.GetAccountId()
 
-	deleted, err := u.userAPI.DeleteUser(tenantID, userID, targetTenantID, accountID)
+	err := u.userAPI.DeleteUser(tenantID, userID, targetTenantID, accountID)
 	if err != nil {
 		u.logger.Error("failed to delete account", "tenantID", tenantID, "error", err)
 		err = infra_error.ToGRPCError(err)
 	}
 	return &proto_auth.DeleteUserResponse{
-		Deleted: deleted,
+		Deleted: err == nil,
 	}, err
 }
 
