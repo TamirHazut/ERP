@@ -70,14 +70,14 @@ type NewTokenResponse struct {
 	RefreshTokenExpiresAt int64  `json:"refresh_token_expires_at"`
 }
 
-// RBACAPI combines all RBAC APIs for easy initialization
 type AuthAPI struct {
 	logger       logger.Logger
+	rbacAPI      *RBACAPI
 	tokenManager *token.TokenManager
 	config       *TokenConfig
 }
 
-func NewAuthAPI(logger logger.Logger) *AuthAPI {
+func NewAuthAPI(rbacAPI *RBACAPI, logger logger.Logger) *AuthAPI {
 	// Load configuration from environment variables
 	config := LoadTokenConfig()
 	logger.Info("Token configuration loaded",
@@ -91,6 +91,7 @@ func NewAuthAPI(logger logger.Logger) *AuthAPI {
 	}
 	return &AuthAPI{
 		logger:       logger,
+		rbacAPI:      rbacAPI,
 		tokenManager: tokenManager,
 		config:       config,
 	}
@@ -177,18 +178,25 @@ func (a *AuthAPI) RevokeTokens(tenantID, userID, accessToken, refreshToken, revo
 	return nil
 }
 
-func (a *AuthAPI) RevokeAllTenantTokens(tenantID, revokedBy string) (int, int, error) {
-	if tenantID == "" || revokedBy == "" {
-		return 0, 0, infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, access_token, refresh_token, revoked_by"))
+func (a *AuthAPI) RevokeAllTenantTokens(tenantID, revokedBy, targetTenantID string) (int, int, error) {
+	if tenantID == "" || revokedBy == "" || targetTenantID == "" {
+		return 0, 0, infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, target_tenant_id"))
 	}
 
-	a.logger.Warn("Revoking all tenant tokens", "tenant_id", tenantID, "revoked_by", revokedBy)
+	a.logger.Warn("Revoking all tenant tokens", "tenant_id", targetTenantID, "revoked_by", revokedBy)
 
-	// TODO: Add RBAC check - only system admins should be able to revoke all tenant tokens
 	// This is a critical operation that should require elevated permissions
+	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeToken, model_auth.PermissionActionDelete)
+	if err != nil {
+		return 0, 0, err
+	}
+	err = a.rbacAPI.Verification.HasPermission(tenantID, revokedBy, permission, targetTenantID)
+	if err != nil {
+		return 0, 0, err
+	}
 
 	// Revoke all tokens for this tenant
-	return a.tokenManager.RevokeAllTenantTokens(tenantID, revokedBy)
+	return a.tokenManager.RevokeAllTenantTokens(targetTenantID, revokedBy)
 }
 
 func (a *AuthAPI) generateAccessToken(tenantID string, userID string) (model_auth_cache.TokenMetadata, error) {

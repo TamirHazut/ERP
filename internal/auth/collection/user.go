@@ -94,33 +94,33 @@ func (u *UserCollection) UpdateUser(user *model_auth.User) error {
 	if err := user.Validate(false); err != nil {
 		return err
 	}
-	userID := user.ID.Hex()
 	u.logger.Debug("Updating user", "user", user)
-	currentUser, err := u.GetUserByID(user.TenantID, userID)
-	if err != nil {
-		return err
-	}
-	if user.Username != currentUser.Username ||
-		user.CreatedAt != currentUser.CreatedAt {
-		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields, "Username", "CreatedAt")
-	}
 	filter := map[string]any{
 		"tenant_id": user.TenantID,
-		"_id":       user.ID,
+		"_id":       user.ID.Hex(),
 	}
 	user.UpdatedAt = time.Now()
 	return u.collection.Update(filter, user)
 }
 
 func (u *UserCollection) DeleteUser(tenantID, userID string) error {
+	if tenantID == "" || userID == "" {
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID", "UserID")
+	}
+	filter := map[string]any{
+		"tenant_id": tenantID,
+		"_id":       userID,
+	}
+	u.logger.Debug("Deleting user", "filter", filter)
+	return u.collection.Delete(filter)
+}
+
+func (u *UserCollection) DeleteTenantUsers(tenantID string) error {
 	if tenantID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID", "UserID")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
-	}
-	if userID != "" {
-		filter["_id"] = userID
 	}
 	u.logger.Debug("Deleting user", "filter", filter)
 	return u.collection.Delete(filter)

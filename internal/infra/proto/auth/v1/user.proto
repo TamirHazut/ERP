@@ -136,12 +136,14 @@ message CreateUserResponse {
 
 message GetUserRequest {
     infra.v1.UserIdentifier identifier = 1;
-    string account_id = 2;
+    string target_tenant_id = 2;
+    string account_id = 3;
 }
 
 message GetUsersRequest {
     infra.v1.UserIdentifier identifier = 1;
-    optional string role_id = 2;
+    string target_tenant_id = 2;
+    optional string role_id = 3;
 }
 
 message UpdateUserRequest {
@@ -155,10 +157,8 @@ message UpdateUserResponse {
 
 message DeleteUserRequest {
     infra.v1.UserIdentifier identifier = 1;
-    oneof resource {
-        string account_id = 2;
-        string tenant_id = 3;
-    }
+    string target_tenant_id = 3;
+    optional string account_id = 2;
 }
 
 message DeleteUserResponse {

@@ -80,17 +80,10 @@ func TestCreatePermissionString(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			name:           "valid refresh_token:read permission",
-			resource:       "refresh_token",
+			name:           "valid token:read permission",
+			resource:       "token",
 			action:         "read",
-			expectedResult: "refresh_token:read",
-			wantErr:        false,
-		},
-		{
-			name:           "valid access_token:update permission",
-			resource:       "access_token",
-			action:         "update",
-			expectedResult: "access_token:update",
+			expectedResult: "token:read",
 			wantErr:        false,
 		},
 		// Mixed case should be normalized to lowercase
@@ -254,13 +247,8 @@ func TestIsValidPermissionFormat(t *testing.T) {
 			expected:         true,
 		},
 		{
-			name:             "valid refresh_token:read",
-			permissionFormat: "refresh_token:read",
-			expected:         true,
-		},
-		{
-			name:             "valid access_token:update",
-			permissionFormat: "access_token:update",
+			name:             "valid token:update",
+			permissionFormat: "token:update",
 			expected:         true,
 		},
 		// Mixed case should be normalized to lowercase

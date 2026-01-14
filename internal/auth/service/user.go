@@ -5,54 +5,26 @@ import (
 	"errors"
 
 	"erp.localhost/internal/auth/api"
-	collection "erp.localhost/internal/auth/collection"
 	"erp.localhost/internal/infra/convertor"
-	mongo_collection "erp.localhost/internal/infra/db/mongo/collection"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
-	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 	model_shared "erp.localhost/internal/infra/model/shared"
 	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
-	proto_infra "erp.localhost/internal/infra/proto/generated/infra/v1"
 	"erp.localhost/internal/infra/proto/validator"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-)
-
-type filterType int
-
-const (
-	filterTypeUnsupported filterType = iota
-	filterTypeID
-	filterTypeEmail
-	filterTypeUsername
 )
 
 type UserService struct {
-	logger         logger.Logger
-	userCollection *collection.UserCollection
-	authAPI        *api.AuthAPI
-	rbacAPI        *api.RBACAPI
+	logger  logger.Logger
+	userAPI *api.UserAPI
 	proto_auth.UnimplementedUserServiceServer
 }
 
 // TODO: allow system users with proper permissions to query
-func NewUserService(authAPI *api.AuthAPI, rbacAPI *api.RBACAPI) *UserService {
+func NewUserService(userAPI *api.UserAPI) *UserService {
 	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
-
-	userHandler := mongo_collection.NewBaseCollectionHandler[model_auth.User](model_mongo.AuthDB, model_mongo.UsersCollection, logger)
-	userCollection := collection.NewUserCollection(userHandler, logger)
-	if userCollection == nil {
-		logger.Fatal("failed to create users collection")
-		return nil
-	}
-
 	return &UserService{
-		logger:         logger,
-		userCollection: userCollection,
-		authAPI:        authAPI,
-		rbacAPI:        rbacAPI,
+		logger:  logger,
+		userAPI: userAPI,
 	}
 }
 
@@ -68,48 +40,23 @@ func (u *UserService) CreateUser(ctx context.Context, req *proto_auth.CreateUser
 
 	newUserData := req.GetUser()
 	if err := validator.ValidateCreateUserData(newUserData); err != nil {
-		errMsg := infra_error.Validation(infra_error.ValidationRequiredFields, "user").Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		err := infra_error.Validation(infra_error.ValidationRequiredFields, "user")
+		u.logger.Error("failed to create user", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
-	if newUserData.GetTenantId() != tenantID {
-		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).Error()
-		u.logger.Error("user data tenant_id does not match identifier tenant_id", "error", errMsg)
-		return nil, status.Error(codes.PermissionDenied, errMsg)
-	}
-
-	if err := u.hasPermission(identifier, model_auth.PermissionActionRead, tenantID); err != nil {
-		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).WithError(err).Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.PermissionDenied, errMsg)
-	}
-
-	// verify the new user tenantID is the same as the one of the requesting user
-	if newUserData.GetTenantId() != tenantID {
-		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).Error()
-		u.logger.Error("user data tenant_id does not match identifier tenant_id", "error", errMsg)
-		return nil, status.Error(codes.PermissionDenied, errMsg)
-	}
-
-	user, _ := u.getUser(tenantID, newUserData.GetEmail(), filterTypeEmail)
-	if user != nil {
-		err := infra_error.Validation(infra_error.ConflictDuplicateEmail)
-		u.logger.Error("failed to create new account", "tenantID", tenantID, "error", err.Error())
-		return nil, status.Error(codes.AlreadyExists, err.Error())
-	}
-
-	// convert from proto user to model user
 	newUser, err := convertor.CreateUserFromProto(newUserData)
 	if err != nil {
 		err := infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to create user"))
-		u.logger.Error(err.WithError(errors.New("failed to convert user to proto user")).Error())
-		return nil, status.Error(codes.Aborted, err.Error())
+		u.logger.Error("failed to convert proto model to system model", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
-	id, err := u.userCollection.CreateUser(newUser)
+
+	// convert from proto user to model user
+	id, err := u.userAPI.CreateUser(tenantID, identifier.GetUserId(), newUser)
 	if err != nil {
-		u.logger.Error("failed to create user", "tenant_id", tenantID, "error", err.Error())
-		return nil, status.Error(codes.Aborted, err.Error())
+		u.logger.Error("failed to create user", "tenant_id", tenantID, "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	return &proto_auth.CreateUserResponse{
@@ -126,34 +73,23 @@ func (u *UserService) GetUser(ctx context.Context, req *proto_auth.GetUserReques
 	}
 
 	accountID := req.GetAccountId()
-	if accountID == "" {
-		errMsg := infra_error.Validation(infra_error.ValidationRequiredFields, "id").Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
-	}
-
 	tenantID := identifier.GetTenantId()
-
-	if err := u.hasPermission(identifier, model_auth.PermissionActionRead, tenantID); err != nil {
-		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).WithError(err).Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.PermissionDenied, errMsg)
-	}
+	userID := identifier.GetUserId()
+	targetTenantID := req.GetTargetTenantId()
 
 	// get user
-	user, err := u.getUser(tenantID, accountID, filterTypeID)
+	user, err := u.userAPI.GetUser(tenantID, userID, targetTenantID, accountID)
 	if err != nil {
-		errMsg := err.Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.Aborted, errMsg)
+		u.logger.Error("failed to get user", "tenant_id", tenantID, "user_id", userID, "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// convertor from model user to proto user
 	userProto := convertor.UserToProto(user)
 	if userProto == nil {
 		err := infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("Failed to get user"))
-		u.logger.Error(err.WithError(errors.New("failed to convert user to proto user")).Error())
-		return nil, status.Error(codes.Aborted, err.Error())
+		u.logger.Error("failed to convert proto model to system model", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	return &proto_auth.UserResponse{
@@ -170,26 +106,13 @@ func (u *UserService) GetUsers(ctx context.Context, req *proto_auth.GetUsersRequ
 	}
 
 	tenantID := identifier.GetTenantId()
+	userID := identifier.GetUserId()
+	targetTenantID := req.GetTargetTenantId()
 
-	if err := u.hasPermission(identifier, model_auth.PermissionActionRead, tenantID); err != nil {
-		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).WithError(err).Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.PermissionDenied, errMsg)
-	}
-
-	var users []*model_auth.User
-	var err error
-	roleID := req.GetRoleId()
-	if roleID != "" {
-		users, err = u.userCollection.GetUsersByRoleID(tenantID, roleID)
-	} else {
-		users, err = u.userCollection.GetUsersByTenantID(tenantID)
-	}
-
+	users, err := u.userAPI.GetUsers(tenantID, userID, targetTenantID, req.GetRoleId())
 	if err != nil {
-		errMsg := err.Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.Internal, errMsg)
+		u.logger.Error("failed to get users", "tenant_id", tenantID, "user_id", userID, "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// convertor from model user to proto user
@@ -209,49 +132,28 @@ func (u *UserService) UpdateUser(ctx context.Context, req *proto_auth.UpdateUser
 	}
 
 	tenantID := identifier.GetTenantId()
+	userID := identifier.GetUserId()
 
 	newUserData := req.GetUser()
 	if err := validator.ValidateUpdateUserData(newUserData); err != nil {
-		errMsg := infra_error.Validation(infra_error.ValidationRequiredFields, "user").Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		u.logger.Error("failed to update account", "tenantID", tenantID, "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
-	// verify the new user tenantID is the same as the one of the requesting user
-	if newUserData.GetTenantId() != tenantID {
-		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).Error()
-		u.logger.Error("user data tenant_id does not match identifier tenant_id", "error", errMsg)
-		return nil, status.Error(codes.PermissionDenied, errMsg)
-	}
-
-	if err := u.hasPermission(identifier, model_auth.PermissionActionUpdate, tenantID); err != nil {
-		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).WithError(err).Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.PermissionDenied, errMsg)
-	}
-
-	user, err := u.getUser(tenantID, newUserData.GetEmail(), filterTypeEmail)
+	newUser, err := convertor.UserFromUpdateProto(newUserData)
 	if err != nil {
-		errMsg := infra_error.Internal(infra_error.InternalDatabaseError, err).Error()
-		u.logger.Error("failed to update account", "tenantID", tenantID, "error", errMsg)
-		return nil, status.Error(codes.Aborted, errMsg)
+		u.logger.Error("failed to update account", "tenantID", tenantID, "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
-	err = convertor.UpdateUserFromProto(user, newUserData)
-	if err != nil {
-		errMsg := infra_error.Internal(infra_error.InternalUnexpectedError, err).Error()
-		u.logger.Error("failed to update account", "tenantID", tenantID, "error", errMsg)
-		return nil, status.Error(codes.Aborted, errMsg)
-	}
 	// Add logic to verify only non important fields are updated
-	err = u.userCollection.UpdateUser(user)
+	res, err := u.userAPI.UpdateUser(tenantID, userID, newUser)
 	if err != nil {
-		errMsg := err.Error()
-		u.logger.Error("failed to update account", "tenantID", tenantID, "error", errMsg)
-		err = status.Error(codes.Aborted, errMsg)
+		u.logger.Error("failed to update account", "tenantID", tenantID, "error", err)
+		err = infra_error.ToGRPCError(err)
 	}
 	return &proto_auth.UpdateUserResponse{
-		Updated: err != nil,
+		Updated: res,
 	}, err
 }
 
@@ -264,71 +166,25 @@ func (u *UserService) DeleteUser(ctx context.Context, req *proto_auth.DeleteUser
 	}
 
 	tenantID := identifier.GetTenantId()
+	userID := identifier.GetUserId()
+	targetTenantID := req.GetTargetTenantId()
 	accountID := req.GetAccountId()
-	if accountID == "" {
-		tenantID = req.GetTenantId()
-	}
 
-	if err := u.hasPermission(identifier, model_auth.PermissionActionDelete, tenantID); err != nil {
-		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).WithError(err).Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.PermissionDenied, errMsg)
-	}
-
-	err := u.userCollection.DeleteUser(tenantID, accountID)
+	deleted, err := u.userAPI.DeleteUser(tenantID, userID, targetTenantID, accountID)
 	if err != nil {
-		errMsg := err.Error()
-		u.logger.Error("failed to delete account", "tenantID", tenantID, "error", errMsg)
-		err = status.Error(codes.Aborted, errMsg)
+		u.logger.Error("failed to delete account", "tenantID", tenantID, "error", err)
+		err = infra_error.ToGRPCError(err)
 	}
 	return &proto_auth.DeleteUserResponse{
-		Deleted: err == nil,
+		Deleted: deleted,
 	}, err
 }
 
 func (u *UserService) Login(ctx context.Context, req *proto_auth.LoginRequest) (*proto_auth.TokensResponse, error) {
 	tenantID := req.GetTenantId()
-	if tenantID == "" {
-		errMsg := infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id").Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
-	}
 	userPassword := req.GetPassword()
-	if userPassword == "" {
-		errMsg := infra_error.Validation(infra_error.ValidationRequiredFields, "password").Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
-	}
-	accountID := req.GetAccountId()
-	if accountID == nil {
-		errMsg := infra_error.Validation(infra_error.ValidationRequiredFields, "account_id").Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
-	}
 
-	var userIdentifier string
-	var filterType filterType
-
-	switch v := accountID.(type) {
-	case *proto_auth.LoginRequest_Email:
-		userIdentifier = v.Email
-		filterType = filterTypeEmail
-	case *proto_auth.LoginRequest_Username:
-		userIdentifier = v.Username
-		filterType = filterTypeUsername
-	default:
-		errMsg := infra_error.Validation(infra_error.ValidationRequiredFields, "account_id").Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
-	}
-	user, err := u.getUser(tenantID, userIdentifier, filterType)
-	if err != nil {
-		errMsg := err.Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.Internal, errMsg)
-	}
-
-	newTokenResponse, err := u.authAPI.Authenticate(tenantID, user.ID.Hex(), userPassword, user.PasswordHash)
+	newTokenResponse, err := u.userAPI.Login(tenantID, req.GetEmail(), req.GetUsername(), userPassword)
 	if err != nil {
 		u.logger.Error("failed to authenticate", "error", err.Error())
 		return nil, infra_error.ToGRPCError(err)
@@ -358,47 +214,14 @@ func (u *UserService) Logout(ctx context.Context, req *proto_auth.LogoutRequest)
 	userID := identifier.GetUserId()
 	tokens := req.GetTokens()
 
-	err := u.authAPI.RevokeTokens(tenantID, userID, tokens.GetAccessToken(), tokens.GetRefreshToken(), userID)
-
-	var message string
+	message, err := u.userAPI.Logout(tenantID, userID, tokens.GetAccessToken(), tokens.GetRefreshToken(), userID)
 	if err != nil {
 		u.logger.Error("failed to logout", "tenantID", tenantID, "userID", userID, "error", err.Error())
-		message = "logout failed"
 	} else {
 		u.logger.Info("logout successful", "tenantID", tenantID, "userID", userID)
-		message = "logout successful"
 	}
+
 	return &proto_auth.LogoutResponse{
 		Message: message,
 	}, infra_error.ToGRPCError(err)
-}
-
-// func (u *UserService) authenticate(ctx context.Context, identifier *proto_infra.UserIdentifier, userPassword string, userHash string) (*proto_auth.TokensResponse, error) {
-// 	req := &proto_auth.AuthenticateRequest{
-// 		Identifier:   identifier,
-// 		UserPassword: userPassword,
-// 		UserHash:     userHash,
-// 	}
-// 	return u.authAPI.Authenticate(ctx, req)
-// }
-
-func (u *UserService) hasPermission(identifier *proto_infra.UserIdentifier, permissionAction string, targetTenant string) error {
-	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeUser, permissionAction)
-	if err != nil {
-		return err
-	}
-	return u.rbacAPI.Verification.HasPermission(identifier.GetTenantId(), identifier.GetUserId(), permission, targetTenant)
-}
-
-func (u *UserService) getUser(tenantID string, accountID string, filterType filterType) (*model_auth.User, error) {
-	switch filterType {
-	case filterTypeID:
-		return u.userCollection.GetUserByID(tenantID, accountID)
-	case filterTypeEmail:
-		return u.userCollection.GetUserByEmail(tenantID, accountID)
-	case filterTypeUsername:
-		return u.userCollection.GetUserByUsername(tenantID, accountID)
-	default:
-		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "account identifier")
-	}
 }

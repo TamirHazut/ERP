@@ -733,15 +733,13 @@ func TestPermissionCollection_DeletePermission(t *testing.T) {
 			expectedCallTimes: 0,
 		},
 		{
-			name:         "delete with empty permission ID",
-			tenantID:     "tenant1",
-			permissionID: "",
-			expectedFilter: map[string]any{
-				"tenant_id": "tenant1",
-			},
+			name:              "delete with empty permission ID",
+			tenantID:          "tenant1",
+			permissionID:      "",
+			expectedFilter:    nil,
 			returnError:       nil,
-			wantErr:           false,
-			expectedCallTimes: 1,
+			wantErr:           true,
+			expectedCallTimes: 0,
 		},
 		{
 			name:         "delete with database error",

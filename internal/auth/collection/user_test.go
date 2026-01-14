@@ -436,12 +436,9 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 		name                 string
 		user                 *model_auth.User
 		returnFindUser       *model_auth.User
-		returnFindError      error
 		returnUpdateError    error
 		wantErr              bool
-		expectedFindCalls    int
 		expectedUpdateCalls  int
-		expectedFindFilter   map[string]any
 		expectedUpdateFilter map[string]any
 	}{
 		{
@@ -455,26 +452,13 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 				Status:       model_auth.UserStatusActive,
 				CreatedBy:    "admin",
 				CreatedAt:    createdAt,
-				Roles:        []model_auth.UserRole{},
-			},
-			expectedFindFilter: map[string]any{
-				"tenant_id": "tenant1",
-				"_id":       userID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       userID,
+				"_id":       userID.Hex(),
 			},
-			returnFindUser: &model_auth.User{
-				ID:        userID,
-				TenantID:  "tenant1",
-				Username:  "testuser",
-				CreatedAt: createdAt,
-			},
-			returnFindError:     nil,
 			returnUpdateError:   nil,
 			wantErr:             false,
-			expectedFindCalls:   1,
 			expectedUpdateCalls: 1,
 		},
 		{
@@ -482,69 +466,11 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 			user: &model_auth.User{
 				TenantID: "tenant1",
 			},
-			expectedFindFilter:   map[string]any{},
 			expectedUpdateFilter: map[string]any{},
 			returnFindUser:       nil,
-			returnFindError:      nil,
 			returnUpdateError:    errors.New("validation error"),
 			wantErr:              true,
-			expectedFindCalls:    0,
 			expectedUpdateCalls:  0,
-		},
-		{
-			name: "update with user not found",
-			user: &model_auth.User{
-				ID:           userID,
-				TenantID:     "tenant1",
-				Email:        "test@example.com",
-				Username:     "testuser",
-				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
-				CreatedBy:    "admin",
-				CreatedAt:    createdAt,
-				Roles:        []model_auth.UserRole{},
-			},
-			expectedFindFilter: map[string]any{
-				"tenant_id": "tenant1",
-				"_id":       userID.Hex(),
-			},
-			expectedUpdateFilter: map[string]any{},
-			returnFindUser:       nil,
-			returnFindError:      errors.New("user not found"),
-			returnUpdateError:    errors.New("user not found"),
-			wantErr:              true,
-			expectedFindCalls:    1,
-			expectedUpdateCalls:  0,
-		},
-		{
-			name: "update with restricted field change - username",
-			user: &model_auth.User{
-				ID:           userID,
-				TenantID:     "tenant1",
-				Email:        "test@example.com",
-				Username:     "newusername",
-				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
-				CreatedBy:    "admin",
-				CreatedAt:    createdAt,
-				Roles:        []model_auth.UserRole{},
-			},
-			expectedFindFilter: map[string]any{
-				"tenant_id": "tenant1",
-				"_id":       userID.Hex(),
-			},
-			expectedUpdateFilter: map[string]any{},
-			returnFindUser: &model_auth.User{
-				ID:        userID,
-				TenantID:  "tenant1",
-				Username:  "testuser",
-				CreatedAt: createdAt,
-			},
-			returnFindError:     nil,
-			returnUpdateError:   nil,
-			wantErr:             true,
-			expectedFindCalls:   1,
-			expectedUpdateCalls: 0,
 		},
 		{
 			name: "update with database error",
@@ -559,13 +485,9 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 				CreatedAt:    createdAt,
 				Roles:        []model_auth.UserRole{},
 			},
-			expectedFindFilter: map[string]any{
-				"tenant_id": "tenant1",
-				"_id":       userID.Hex(),
-			},
 			expectedUpdateFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       userID,
+				"_id":       userID.Hex(),
 			},
 			returnFindUser: &model_auth.User{
 				ID:        userID,
@@ -573,10 +495,8 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 				Username:  "testuser",
 				CreatedAt: createdAt,
 			},
-			returnFindError:     nil,
 			returnUpdateError:   errors.New("update failed"),
 			wantErr:             true,
-			expectedFindCalls:   1,
 			expectedUpdateCalls: 1,
 		},
 	}
@@ -587,12 +507,6 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.User](ctrl)
-			if tc.expectedFindCalls > 0 {
-				mockHandler.EXPECT().
-					FindOne(tc.expectedFindFilter).
-					Return(tc.returnFindUser, tc.returnFindError).
-					Times(tc.expectedFindCalls)
-			}
 			if tc.expectedUpdateCalls > 0 {
 				mockHandler.EXPECT().
 					Update(tc.expectedUpdateFilter, userMatcher{expected: tc.user}).
@@ -643,15 +557,13 @@ func TestUserCollection_DeleteUser(t *testing.T) {
 			expectedCallTimes: 0,
 		},
 		{
-			name:     "delete with empty user ID",
-			tenantID: "tenant1",
-			userID:   "",
-			expectedFilter: map[string]any{
-				"tenant_id": "tenant1",
-			},
+			name:              "delete with empty user ID",
+			tenantID:          "tenant1",
+			userID:            "",
+			expectedFilter:    nil,
 			returnError:       nil,
-			wantErr:           false,
-			expectedCallTimes: 1,
+			wantErr:           true,
+			expectedCallTimes: 0,
 		},
 		{
 			name:     "delete with database error",

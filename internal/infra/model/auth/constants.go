@@ -189,8 +189,7 @@ const (
 	ResourceTypeCustomer   = "customer"
 	ResourceTypeConfig     = "config"
 	ResourceTypeTenant     = "tenant"
-	ResourceRefreshToken   = "refresh_token"
-	ResourceAccessToken    = "access_token"
+	ResourceTypeToken      = "token"
 )
 
 func IsValidResourceType(resourceType string) bool {
@@ -209,8 +208,7 @@ func IsValidResourceType(resourceType string) bool {
 		ResourceTypeCustomer:   true,
 		ResourceTypeConfig:     true,
 		ResourceTypeTenant:     true,
-		ResourceRefreshToken:   true,
-		ResourceAccessToken:    true,
+		ResourceTypeToken:      true,
 	}
 
 	return validResourceTypes[resourceType]

@@ -516,189 +516,57 @@ func TestCreateUserFromProto_NilProto(t *testing.T) {
 // Test Update Converter (Proto → Domain)
 // =============================================================================
 
-func TestUpdateUserFromProto_FullUpdate(t *testing.T) {
+func TestUserFromUpdateProto(t *testing.T) {
 	now := time.Now()
-	existing := &model_auth.User{
-		ID:                 primitive.NewObjectID(),
-		TenantID:           "tenant-123",
-		PasswordHash:       "x",
-		Email:              "old@example.com",
-		Username:           "olduser",
-		Status:             model_auth.UserStatusInvited,
-		EmailVerified:      false,
-		PhoneVerified:      false,
-		LastPasswordChange: now,
-		CreatedAt:          now,
-		UpdatedAt:          now,
-		CreatedBy:          "admin",
-		LastActivity:       now,
-	}
+	email := "test@test.com"
+	username := "test"
 
-	newStatus := model_auth.UserStatusActive
-	emailVerified := true
-	phoneVerified := true
-
-	proto := &proto_auth.UpdateUserData{
-		Id:            existing.ID.Hex(),
-		TenantId:      existing.TenantID,
-		Status:        &newStatus,
-		EmailVerified: &emailVerified,
-		PhoneVerified: &phoneVerified,
+	testCases := []struct {
+		name    string
+		proto   *proto_auth.UpdateUserData
+		wantErr bool
+	}{
+		{
+			name: "valid data",
+			proto: &proto_auth.UpdateUserData{
+				Id:       primitive.NewObjectID().Hex(),
+				TenantId: "tenant-123",
+				Email:    &email,
+				Username: &username,
+			},
+		},
+		{
+			name: "invalid data - missing tenant_id",
+			proto: &proto_auth.UpdateUserData{
+				Id:       primitive.NewObjectID().Hex(),
+				Email:    &email,
+				Username: &username,
+			},
+			wantErr: true,
+		},
 	}
 
 	// sleep before test to let time pass for UpdateAt check
 	time.Sleep(time.Second)
 
-	err := UpdateUserFromProto(existing, proto)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
 
-	require.NoError(t, err)
-	assert.Equal(t, model_auth.UserStatusActive, existing.Status)
-	assert.True(t, existing.EmailVerified)
-	assert.True(t, existing.PhoneVerified)
-	assert.True(t, existing.UpdatedAt.After(now))
-}
-
-func TestUpdateUserFromProto_PartialUpdate(t *testing.T) {
-	now := time.Now()
-	existing := &model_auth.User{
-		ID:                 primitive.NewObjectID(),
-		TenantID:           "tenant-123",
-		Email:              "old@example.com",
-		Username:           "olduser",
-		Status:             model_auth.UserStatusInvited,
-		LastPasswordChange: now,
-		CreatedAt:          now,
-		UpdatedAt:          now,
-		CreatedBy:          "admin",
-		LastActivity:       now,
+			user, err := UserFromUpdateProto(tc.proto)
+			if tc.wantErr {
+				require.NotNil(t, err)
+				require.Nil(t, user)
+			} else {
+				require.Nil(t, err)
+				require.NotNil(t, user)
+				assert.Equal(t, user.ID.Hex(), tc.proto.Id)
+				assert.Equal(t, user.TenantID, tc.proto.TenantId)
+				assert.Equal(t, user.Email, email)
+				assert.Equal(t, user.Username, username)
+				assert.True(t, user.UpdatedAt.After(now))
+			}
+		})
 	}
-
-	proto := &proto_auth.UpdateUserData{
-		Id:       existing.ID.Hex(),
-		TenantId: existing.TenantID,
-		Profile:  &proto_auth.UserProfileData{},
-	}
-
-	err := UpdateUserFromProto(existing, proto)
-
-	require.NoError(t, err)
-	assert.Equal(t, "old@example.com", existing.Email)
-	assert.Equal(t, "olduser", existing.Username)                  // Unchanged
-	assert.Equal(t, model_auth.UserStatusInvited, existing.Status) // Unchanged
-	assert.NotNil(t, existing.Profile)
-}
-
-func TestUpdateUserFromProto_UpdateRoles(t *testing.T) {
-	now := time.Now()
-	existing := &model_auth.User{
-		ID:       primitive.NewObjectID(),
-		TenantID: "tenant-123",
-		Email:    "user@example.com",
-		Roles: []model_auth.UserRole{
-			{RoleID: "role-1", TenantID: "tenant-123", AssignedAt: now, AssignedBy: "admin"},
-			{RoleID: "role-2", TenantID: "tenant-123", AssignedAt: now, AssignedBy: "admin"},
-		},
-		LastPasswordChange: now,
-		CreatedAt:          now,
-		UpdatedAt:          now,
-		CreatedBy:          "admin",
-		LastActivity:       now,
-	}
-
-	proto := &proto_auth.UpdateUserData{
-		Id:       existing.ID.Hex(),
-		TenantId: existing.TenantID,
-		Roles: &proto_auth.UpdateRolesData{
-			AddRoleIds:    []string{"role-3"},
-			RemoveRoleIds: []string{"role-1"},
-		},
-	}
-
-	err := UpdateUserFromProto(existing, proto)
-
-	require.NoError(t, err)
-	assert.Len(t, existing.Roles, 2) // 2 original - 1 removed + 1 added = 2
-	roleIDs := make([]string, len(existing.Roles))
-	for i, role := range existing.Roles {
-		roleIDs[i] = role.RoleID
-	}
-	assert.Contains(t, roleIDs, "role-2")
-	assert.Contains(t, roleIDs, "role-3")
-	assert.NotContains(t, roleIDs, "role-1")
-}
-
-func TestUpdateUserFromProto_UpdatePermissions(t *testing.T) {
-	now := time.Now()
-	existing := &model_auth.User{
-		ID:                    primitive.NewObjectID(),
-		TenantID:              "tenant-123",
-		Email:                 "user@example.com",
-		AdditionalPermissions: []string{"perm1", "perm2"},
-		RevokedPermissions:    []string{"perm3"},
-		LastPasswordChange:    now,
-		CreatedAt:             now,
-		UpdatedAt:             now,
-		CreatedBy:             "admin",
-		LastActivity:          now,
-	}
-
-	proto := &proto_auth.UpdateUserData{
-		Id:       existing.ID.Hex(),
-		TenantId: existing.TenantID,
-		Permissions: &proto_auth.UpdatePermissionsData{
-			AddPermissions:      []string{"perm4"},
-			RemovePermissions:   []string{"perm1"},
-			RevokePermissions:   []string{"perm5"},
-			UnrevokePermissions: []string{"perm3"},
-		},
-	}
-
-	err := UpdateUserFromProto(existing, proto)
-
-	require.NoError(t, err)
-	assert.Contains(t, existing.AdditionalPermissions, "perm2")
-	assert.Contains(t, existing.AdditionalPermissions, "perm4")
-	assert.NotContains(t, existing.AdditionalPermissions, "perm1")
-	assert.Contains(t, existing.RevokedPermissions, "perm5")
-	assert.NotContains(t, existing.RevokedPermissions, "perm3")
-}
-
-func TestUpdateUserFromProto_NilExisting(t *testing.T) {
-	proto := &proto_auth.UpdateUserData{
-		Id:       primitive.NewObjectID().Hex(),
-		TenantId: "tenant-123",
-	}
-
-	err := UpdateUserFromProto(nil, proto)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "existing")
-}
-
-func TestUpdateUserFromProto_NilProto(t *testing.T) {
-	now := time.Now()
-	existing := &model_auth.User{
-		ID:                 primitive.NewObjectID(),
-		TenantID:           "tenant-123",
-		Email:              "user@example.com",
-		LastPasswordChange: now,
-		CreatedAt:          now,
-		UpdatedAt:          now,
-		CreatedBy:          "admin",
-		LastActivity:       now,
-	}
-
-	err := UpdateUserFromProto(existing, nil)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "proto")
-}
-
-func TestUpdateUserFromProto_BothNil(t *testing.T) {
-	err := UpdateUserFromProto(nil, nil)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "existing")
 }
 
 // =============================================================================

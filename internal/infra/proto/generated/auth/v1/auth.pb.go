@@ -486,11 +486,11 @@ func (x *RevokeTokenResponse) GetRevoked() bool {
 
 // Tenant-level token management
 type RevokeAllTenantTokensRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	RevokedBy     string                 `protobuf:"bytes,2,opt,name=revoked_by,json=revokedBy,proto3" json:"revoked_by,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Identifier     *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	TargetTenantId string                 `protobuf:"bytes,2,opt,name=target_tenant_id,json=targetTenantId,proto3" json:"target_tenant_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *RevokeAllTenantTokensRequest) Reset() {
@@ -523,16 +523,16 @@ func (*RevokeAllTenantTokensRequest) Descriptor() ([]byte, []int) {
 	return file_auth_v1_auth_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *RevokeAllTenantTokensRequest) GetTenantId() string {
+func (x *RevokeAllTenantTokensRequest) GetIdentifier() *v1.UserIdentifier {
 	if x != nil {
-		return x.TenantId
+		return x.Identifier
 	}
-	return ""
+	return nil
 }
 
-func (x *RevokeAllTenantTokensRequest) GetRevokedBy() string {
+func (x *RevokeAllTenantTokensRequest) GetTargetTenantId() string {
 	if x != nil {
-		return x.RevokedBy
+		return x.TargetTenantId
 	}
 	return ""
 }
@@ -635,11 +635,12 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"revoked_by\x18\x02 \x01(\tR\trevokedBy\x12'\n" +
 	"\x06tokens\x18\x03 \x01(\v2\x0f.auth.v1.TokensR\x06tokens\"/\n" +
 	"\x13RevokeTokenResponse\x12\x18\n" +
-	"\arevoked\x18\x01 \x01(\bR\arevoked\"Z\n" +
-	"\x1cRevokeAllTenantTokensRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1d\n" +
+	"\arevoked\x18\x01 \x01(\bR\arevoked\"\x82\x01\n" +
+	"\x1cRevokeAllTenantTokensRequest\x128\n" +
 	"\n" +
-	"revoked_by\x18\x02 \x01(\tR\trevokedBy\"\xa3\x01\n" +
+	"identifier\x18\x01 \x01(\v2\x18.infra.v1.UserIdentifierR\n" +
+	"identifier\x12(\n" +
+	"\x10target_tenant_id\x18\x02 \x01(\tR\x0etargetTenantId\"\xa3\x01\n" +
 	"\x1dRevokeAllTenantTokensResponse\x12\x18\n" +
 	"\arevoked\x18\x01 \x01(\bR\arevoked\x122\n" +
 	"\x15access_tokens_revoked\x18\x02 \x01(\x05R\x13accessTokensRevoked\x124\n" +
@@ -685,21 +686,22 @@ var file_auth_v1_auth_proto_depIdxs = []int32{
 	11, // 3: auth.v1.RefreshTokenRequest.identifier:type_name -> infra.v1.UserIdentifier
 	11, // 4: auth.v1.RevokeTokenRequest.identifier:type_name -> infra.v1.UserIdentifier
 	1,  // 5: auth.v1.RevokeTokenRequest.tokens:type_name -> auth.v1.Tokens
-	0,  // 6: auth.v1.AuthService.Authenticate:input_type -> auth.v1.AuthenticateRequest
-	4,  // 7: auth.v1.AuthService.VerifyToken:input_type -> auth.v1.VerifyTokenRequest
-	6,  // 8: auth.v1.AuthService.RefreshToken:input_type -> auth.v1.RefreshTokenRequest
-	7,  // 9: auth.v1.AuthService.RevokeToken:input_type -> auth.v1.RevokeTokenRequest
-	9,  // 10: auth.v1.AuthService.RevokeAllTenantTokens:input_type -> auth.v1.RevokeAllTenantTokensRequest
-	3,  // 11: auth.v1.AuthService.Authenticate:output_type -> auth.v1.TokensResponse
-	5,  // 12: auth.v1.AuthService.VerifyToken:output_type -> auth.v1.VerifyTokenResponse
-	3,  // 13: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokensResponse
-	8,  // 14: auth.v1.AuthService.RevokeToken:output_type -> auth.v1.RevokeTokenResponse
-	10, // 15: auth.v1.AuthService.RevokeAllTenantTokens:output_type -> auth.v1.RevokeAllTenantTokensResponse
-	11, // [11:16] is the sub-list for method output_type
-	6,  // [6:11] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	11, // 6: auth.v1.RevokeAllTenantTokensRequest.identifier:type_name -> infra.v1.UserIdentifier
+	0,  // 7: auth.v1.AuthService.Authenticate:input_type -> auth.v1.AuthenticateRequest
+	4,  // 8: auth.v1.AuthService.VerifyToken:input_type -> auth.v1.VerifyTokenRequest
+	6,  // 9: auth.v1.AuthService.RefreshToken:input_type -> auth.v1.RefreshTokenRequest
+	7,  // 10: auth.v1.AuthService.RevokeToken:input_type -> auth.v1.RevokeTokenRequest
+	9,  // 11: auth.v1.AuthService.RevokeAllTenantTokens:input_type -> auth.v1.RevokeAllTenantTokensRequest
+	3,  // 12: auth.v1.AuthService.Authenticate:output_type -> auth.v1.TokensResponse
+	5,  // 13: auth.v1.AuthService.VerifyToken:output_type -> auth.v1.VerifyTokenResponse
+	3,  // 14: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokensResponse
+	8,  // 15: auth.v1.AuthService.RevokeToken:output_type -> auth.v1.RevokeTokenResponse
+	10, // 16: auth.v1.AuthService.RevokeAllTenantTokens:output_type -> auth.v1.RevokeAllTenantTokensResponse
+	12, // [12:17] is the sub-list for method output_type
+	7,  // [7:12] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_auth_v1_auth_proto_init() }

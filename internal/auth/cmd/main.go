@@ -63,7 +63,8 @@ func Main() {
 		return
 	}
 	rbacAPI := api.NewRBACAPI(roleManager, permManager, verificationManager, logger)
-	authAPI := api.NewAuthAPI(logger)
+	authAPI := api.NewAuthAPI(rbacAPI, logger)
+	userAPI := api.NewUserAPI(rbacAPI, authAPI, logger)
 
 	/* Register services */
 	// Role service
@@ -79,7 +80,7 @@ func Main() {
 	authService := service.NewAuthService(authAPI)
 	srv.RegisterService(&proto_auth.AuthService_ServiceDesc, authService)
 	// user service
-	userService := service.NewUserService(authAPI, rbacAPI)
+	userService := service.NewUserService(userAPI)
 	srv.RegisterService(&proto_auth.UserService_ServiceDesc, userService)
 	// Tenant service
 	tenantService := service.NewTenantService(authAPI, rbacAPI)

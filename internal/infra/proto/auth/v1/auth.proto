@@ -54,8 +54,8 @@ message RevokeTokenResponse {
 
 // Tenant-level token management
 message RevokeAllTenantTokensRequest {
-    string tenant_id = 1;
-    string revoked_by = 2;
+    infra.v1.UserIdentifier identifier = 1;
+    string target_tenant_id = 2;
 }
 
 message RevokeAllTenantTokensResponse {

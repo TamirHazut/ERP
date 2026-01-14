@@ -286,38 +286,31 @@ func (t *TenantService) DeleteTenant(ctx context.Context, req *proto_auth.Delete
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	// Step 2: Check RBAC permission
-	if err := t.checkPermission(ctx, identifier.TenantId, identifier.UserId, model_auth.ResourceTypeTenant, model_auth.PermissionActionDelete); err != nil {
-		return nil, infra_error.ToGRPCError(err)
-	}
+	// Step 2: Validate tenant_id
+	tenantID := req.GetIdentifier().GetTenantId()
+	userID := req.GetIdentifier().GetUserId()
+	targetTenantID := req.GetTenantId()
 
-	// Step 3: Validate tenant_id
-	tenantID := req.GetTenantId()
-
-	t.logger.Info("starting tenant deletion cascade", "tenant_id", tenantID, "requested_by", identifier.UserId)
-
-	// Step 4: Verify tenant exists
-	_, err := t.tenantCollection.GetTenantByID(tenantID)
+	// Step 3: Verify tenant exists
+	_, err := t.tenantCollection.GetTenantByID(targetTenantID)
 	if err != nil {
-		t.logger.Error("tenant not found", "tenant_id", tenantID, "error", err)
+		t.logger.Error("tenant not found", "target_tenant_id", targetTenantID, "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	// STEP 5: Revoke all tokens for ALL users in this tenant (bulk operation)
-	// This will revoke all access tokens and refresh tokens for every user in the tenant
-	t.logger.Info("revoking all tokens for tenant", "tenant_id", tenantID)
-
-	if _, _, err := t.authAPI.RevokeAllTenantTokens(tenantID, identifier.GetUserId()); err != nil {
+	// Step 4: Revoke all tenant users tokens
+	t.logger.Info("starting tenant deletion cascade", "tenant_id", tenantID, "requested_by", userID, "target_tenant_id", targetTenantID)
+	if _, _, err := t.authAPI.RevokeAllTenantTokens(tenantID, identifier.GetUserId(), targetTenantID); err != nil {
 		t.logger.Error("failed to revoke tokens for tenant", "tenant_id", tenantID, "error", err)
 		// Continue with deletion even if this fails
 	} else {
-		t.logger.Info("revoked all tokens for tenant", "tenant_id", tenantID)
+		t.logger.Info("revoked all tokens for tenant", "target_tenant_id", targetTenantID)
 	}
 
-	// STEP 6: Delete ALL users for this tenant (bulk operation)
+	// STEP 5: Delete ALL users for this tenant (bulk operation)
 	// TODO: Uncomment once UserCollection supports bulk delete by tenant_id
 	// This deletes all user documents with matching tenant_id in one operation
-	// t.logger.Info("deleting all users for tenant", "tenant_id", tenantID)
+	t.logger.Info("deleting all users for tenant", "target_tenant_id", targetTenantID)
 	// if err := t.userCollection.DeleteAllUsersByTenantID(tenantID); err != nil {
 	//     t.logger.Error("failed to delete users for tenant", "tenant_id", tenantID, "error", err)
 	//     return nil, status.Error(codes.Internal, "failed to delete users")
@@ -325,43 +318,33 @@ func (t *TenantService) DeleteTenant(ctx context.Context, req *proto_auth.Delete
 	//     t.logger.Info("deleted all users for tenant", "tenant_id", tenantID)
 	// }
 
-	// STEP 7: Delete ALL roles for this tenant (bulk operation)
-	// TODO: Uncomment once RBAC service supports bulk delete by tenant_id filter
+	// STEP 6: Delete ALL roles for this tenant (bulk operation)
 	// This deletes all role documents with matching tenant_id in one operation
-	// t.logger.Info("deleting all roles for tenant", "tenant_id", tenantID)
-	// deleteRolesReq := &proto_auth.DeleteResourcesByFilterRequest{
-	//     TenantId:     tenantID,
-	//     ResourceType: proto_auth.ResourceType_RESOURCE_TYPE_ROLE,
-	// }
-	// if _, err := t.rbacGRPCClient.DeleteResourcesByFilter(ctx, deleteRolesReq); err != nil {
-	//     t.logger.Error("failed to delete roles for tenant", "tenant_id", tenantID, "error", err)
-	//     // Continue with deletion even if this fails
-	// } else {
-	//     t.logger.Info("deleted all roles for tenant", "tenant_id", tenantID)
-	// }
+	t.logger.Info("deleting all roles for tenant", "target_tenant_id", targetTenantID)
+	if err := t.rbacAPI.Roles.DeleteRole(tenantID, userID, "", targetTenantID); err != nil {
+		t.logger.Error("failed to delete roles for tenant", "target_tenant_id", targetTenantID, "error", err)
+		// Continue with deletion even if this fails
+	} else {
+		t.logger.Info("deleted all roles for tenant", "target_tenant_id", targetTenantID)
+	}
 
-	// STEP 8: Delete ALL permissions for this tenant (bulk operation)
-	// TODO: Uncomment once RBAC service supports bulk delete by tenant_id filter
+	// STEP 7: Delete ALL permissions for this tenant (bulk operation)
 	// This deletes all permission documents with matching tenant_id in one operation
-	// t.logger.Info("deleting all permissions for tenant", "tenant_id", tenantID)
-	// deletePermsReq := &proto_auth.DeleteResourcesByFilterRequest{
-	//     TenantId:     tenantID,
-	//     ResourceType: proto_auth.ResourceType_RESOURCE_TYPE_PERMISSION,
-	// }
-	// if _, err := t.rbacGRPCClient.DeleteResourcesByFilter(ctx, deletePermsReq); err != nil {
-	//     t.logger.Error("failed to delete permissions for tenant", "tenant_id", tenantID, "error", err)
-	//     // Continue with deletion even if this fails
-	// } else {
-	//     t.logger.Info("deleted all permissions for tenant", "tenant_id", tenantID)
-	// }
+	t.logger.Info("deleting all permissions for tenant", "target_tenant_id", targetTenantID)
+	if err := t.rbacAPI.Permissions.DeletePermission(tenantID, userID, "", targetTenantID); err != nil {
+		t.logger.Error("failed to delete permissions for tenant", "target_tenant_id", targetTenantID, "error", err)
+		// Continue with deletion even if this fails
+	} else {
+		t.logger.Info("deleted all permissions for tenant", "target_tenant_id", targetTenantID)
+	}
 
-	// STEP 9: Delete the tenant itself
-	t.logger.Info("deleting tenant", "tenant_id", tenantID)
-	if err := t.tenantCollection.DeleteTenant(tenantID); err != nil {
-		t.logger.Error("failed to delete tenant", "tenant_id", tenantID, "error", err)
+	// STEP 8: Delete the tenant itself
+	t.logger.Info("deleting tenant", "target_tenant_id", targetTenantID)
+	if err := t.tenantCollection.DeleteTenant(targetTenantID); err != nil {
+		t.logger.Error("failed to delete tenant", "target_tenant_id", targetTenantID, "error", err)
 		return nil, status.Error(codes.Internal, "failed to delete tenant")
 	}
 
-	t.logger.Info("tenant deleted successfully", "tenant_id", tenantID)
+	t.logger.Info("tenant deleted successfully", "target_tenant_id", targetTenantID)
 	return &proto_auth.DeleteTenantResponse{Deleted: true}, nil
 }

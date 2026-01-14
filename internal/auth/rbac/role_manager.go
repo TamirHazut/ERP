@@ -57,3 +57,9 @@ func (rm *RoleManager) DeleteRole(tenantID, roleID string) error {
 	rm.logger.Debug("RoleManager: Deleting role", "role_id", roleID, "tenant_id", tenantID)
 	return rm.rolesCollection.DeleteRole(tenantID, roleID)
 }
+
+// DeleteTenantRoles deletes all the tenant roles
+func (rm *RoleManager) DeleteTenantRoles(tenantID string) error {
+	rm.logger.Debug("RoleManager: Deleting role", "tenant_id", tenantID)
+	return rm.rolesCollection.DeleteTenantRoles(tenantID)
+}

@@ -1060,11 +1060,12 @@ func (x *CreateUserResponse) GetUserId() string {
 }
 
 type GetUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Identifier    *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
-	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Identifier     *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	TargetTenantId string                 `protobuf:"bytes,2,opt,name=target_tenant_id,json=targetTenantId,proto3" json:"target_tenant_id,omitempty"`
+	AccountId      string                 `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetUserRequest) Reset() {
@@ -1104,6 +1105,13 @@ func (x *GetUserRequest) GetIdentifier() *v1.UserIdentifier {
 	return nil
 }
 
+func (x *GetUserRequest) GetTargetTenantId() string {
+	if x != nil {
+		return x.TargetTenantId
+	}
+	return ""
+}
+
 func (x *GetUserRequest) GetAccountId() string {
 	if x != nil {
 		return x.AccountId
@@ -1112,11 +1120,12 @@ func (x *GetUserRequest) GetAccountId() string {
 }
 
 type GetUsersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Identifier    *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
-	RoleId        *string                `protobuf:"bytes,2,opt,name=role_id,json=roleId,proto3,oneof" json:"role_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Identifier     *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	TargetTenantId string                 `protobuf:"bytes,2,opt,name=target_tenant_id,json=targetTenantId,proto3" json:"target_tenant_id,omitempty"`
+	RoleId         *string                `protobuf:"bytes,3,opt,name=role_id,json=roleId,proto3,oneof" json:"role_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetUsersRequest) Reset() {
@@ -1154,6 +1163,13 @@ func (x *GetUsersRequest) GetIdentifier() *v1.UserIdentifier {
 		return x.Identifier
 	}
 	return nil
+}
+
+func (x *GetUsersRequest) GetTargetTenantId() string {
+	if x != nil {
+		return x.TargetTenantId
+	}
+	return ""
 }
 
 func (x *GetUsersRequest) GetRoleId() string {
@@ -1260,15 +1276,12 @@ func (x *UpdateUserResponse) GetUpdated() bool {
 }
 
 type DeleteUserRequest struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	Identifier *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
-	// Types that are valid to be assigned to Resource:
-	//
-	//	*DeleteUserRequest_AccountId
-	//	*DeleteUserRequest_TenantId
-	Resource      isDeleteUserRequest_Resource `protobuf_oneof:"resource"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Identifier     *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	TargetTenantId string                 `protobuf:"bytes,3,opt,name=target_tenant_id,json=targetTenantId,proto3" json:"target_tenant_id,omitempty"`
+	AccountId      *string                `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3,oneof" json:"account_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *DeleteUserRequest) Reset() {
@@ -1308,46 +1321,19 @@ func (x *DeleteUserRequest) GetIdentifier() *v1.UserIdentifier {
 	return nil
 }
 
-func (x *DeleteUserRequest) GetResource() isDeleteUserRequest_Resource {
+func (x *DeleteUserRequest) GetTargetTenantId() string {
 	if x != nil {
-		return x.Resource
+		return x.TargetTenantId
 	}
-	return nil
+	return ""
 }
 
 func (x *DeleteUserRequest) GetAccountId() string {
-	if x != nil {
-		if x, ok := x.Resource.(*DeleteUserRequest_AccountId); ok {
-			return x.AccountId
-		}
+	if x != nil && x.AccountId != nil {
+		return *x.AccountId
 	}
 	return ""
 }
-
-func (x *DeleteUserRequest) GetTenantId() string {
-	if x != nil {
-		if x, ok := x.Resource.(*DeleteUserRequest_TenantId); ok {
-			return x.TenantId
-		}
-	}
-	return ""
-}
-
-type isDeleteUserRequest_Resource interface {
-	isDeleteUserRequest_Resource()
-}
-
-type DeleteUserRequest_AccountId struct {
-	AccountId string `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3,oneof"`
-}
-
-type DeleteUserRequest_TenantId struct {
-	TenantId string `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3,oneof"`
-}
-
-func (*DeleteUserRequest_AccountId) isDeleteUserRequest_Resource() {}
-
-func (*DeleteUserRequest_TenantId) isDeleteUserRequest_Resource() {}
 
 type DeleteUserResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1707,18 +1693,20 @@ const file_auth_v1_user_proto_rawDesc = "" +
 	"identifier\x12+\n" +
 	"\x04user\x18\x02 \x01(\v2\x17.auth.v1.CreateUserDataR\x04user\"-\n" +
 	"\x12CreateUserResponse\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"i\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"\x93\x01\n" +
 	"\x0eGetUserRequest\x128\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\v2\x18.infra.v1.UserIdentifierR\n" +
-	"identifier\x12\x1d\n" +
+	"identifier\x12(\n" +
+	"\x10target_tenant_id\x18\x02 \x01(\tR\x0etargetTenantId\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x02 \x01(\tR\taccountId\"u\n" +
+	"account_id\x18\x03 \x01(\tR\taccountId\"\x9f\x01\n" +
 	"\x0fGetUsersRequest\x128\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\v2\x18.infra.v1.UserIdentifierR\n" +
-	"identifier\x12\x1c\n" +
-	"\arole_id\x18\x02 \x01(\tH\x00R\x06roleId\x88\x01\x01B\n" +
+	"identifier\x12(\n" +
+	"\x10target_tenant_id\x18\x02 \x01(\tR\x0etargetTenantId\x12\x1c\n" +
+	"\arole_id\x18\x03 \x01(\tH\x00R\x06roleId\x88\x01\x01B\n" +
 	"\n" +
 	"\b_role_id\"z\n" +
 	"\x11UpdateUserRequest\x128\n" +
@@ -1727,16 +1715,15 @@ const file_auth_v1_user_proto_rawDesc = "" +
 	"identifier\x12+\n" +
 	"\x04user\x18\x02 \x01(\v2\x17.auth.v1.UpdateUserDataR\x04user\".\n" +
 	"\x12UpdateUserResponse\x12\x18\n" +
-	"\aupdated\x18\x02 \x01(\bR\aupdated\"\x99\x01\n" +
+	"\aupdated\x18\x02 \x01(\bR\aupdated\"\xaa\x01\n" +
 	"\x11DeleteUserRequest\x128\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\v2\x18.infra.v1.UserIdentifierR\n" +
-	"identifier\x12\x1f\n" +
+	"identifier\x12(\n" +
+	"\x10target_tenant_id\x18\x03 \x01(\tR\x0etargetTenantId\x12\"\n" +
 	"\n" +
-	"account_id\x18\x02 \x01(\tH\x00R\taccountId\x12\x1d\n" +
-	"\ttenant_id\x18\x03 \x01(\tH\x00R\btenantIdB\n" +
-	"\n" +
-	"\bresource\".\n" +
+	"account_id\x18\x02 \x01(\tH\x00R\taccountId\x88\x01\x01B\r\n" +
+	"\v_account_id\".\n" +
 	"\x12DeleteUserResponse\x12\x18\n" +
 	"\adeleted\x18\x01 \x01(\bR\adeleted\"\x8b\x01\n" +
 	"\fLoginRequest\x12\x1b\n" +
@@ -1866,10 +1853,7 @@ func file_auth_v1_user_proto_init() {
 	file_auth_v1_auth_proto_init()
 	file_auth_v1_user_proto_msgTypes[8].OneofWrappers = []any{}
 	file_auth_v1_user_proto_msgTypes[14].OneofWrappers = []any{}
-	file_auth_v1_user_proto_msgTypes[17].OneofWrappers = []any{
-		(*DeleteUserRequest_AccountId)(nil),
-		(*DeleteUserRequest_TenantId)(nil),
-	}
+	file_auth_v1_user_proto_msgTypes[17].OneofWrappers = []any{}
 	file_auth_v1_user_proto_msgTypes[19].OneofWrappers = []any{
 		(*LoginRequest_Email)(nil),
 		(*LoginRequest_Username)(nil),

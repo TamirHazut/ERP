@@ -57,3 +57,9 @@ func (pm *PermissionManager) DeletePermission(tenantID, permissionID string) err
 	pm.logger.Debug("PermissionManager: Deleting permission", "permission_id", permissionID, "tenant_id", tenantID)
 	return pm.permissionsCollection.DeletePermission(tenantID, permissionID)
 }
+
+// DeletePermission deletes all the tenant permissions
+func (pm *PermissionManager) DeleteTenantPermissions(tenantID string) error {
+	pm.logger.Debug("PermissionManager: Deleting permission", "tenant_id", tenantID)
+	return pm.permissionsCollection.DeleteTenantPermissions(tenantID)
+}

@@ -13,9 +13,6 @@ import (
 	"erp.localhost/internal/infra/proto/validator"
 )
 
-// TODO: Add logs to all functions
-// TODO: Remove Login + Logout from here - needs to be on UserService
-// TODO: Instead of Login get Authenticate that recieves password and passwordHash and if match create tokens - needs user: tenantID, userID, passwordHash
 type AuthService struct {
 	logger  logger.Logger
 	authAPI *api.AuthAPI
@@ -44,9 +41,10 @@ func (a *AuthService) Authenticate(ctx context.Context, req *proto_auth.Authenti
 
 	newTokenResponse, err := a.authAPI.Authenticate(tenantID, userID, req.GetUserPassword(), req.GetUserHash())
 	if err != nil {
+		a.logger.Warn("faild attemt to authenticate", "tenantID", tenantID, "userID", userID, "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
-
+	a.logger.Debug("user authenticated successfuly", "tenantID", tenantID, "userID", userID)
 	// Return response
 	return &proto_auth.TokensResponse{
 		Tokens: &proto_auth.Tokens{
@@ -63,8 +61,10 @@ func (a *AuthService) Authenticate(ctx context.Context, req *proto_auth.Authenti
 func (a *AuthService) VerifyToken(ctx context.Context, req *proto_auth.VerifyTokenRequest) (*proto_auth.VerifyTokenResponse, error) {
 	err := a.authAPI.VerifyToken(req.GetAccessToken())
 	if err != nil {
+		a.logger.Error("failed to verify token", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
+	a.logger.Debug("token verified")
 	return &proto_auth.VerifyTokenResponse{
 		Valid: true,
 	}, nil
@@ -84,9 +84,10 @@ func (a *AuthService) RefreshToken(ctx context.Context, req *proto_auth.RefreshT
 
 	newTokenResponse, err := a.authAPI.RefreshToken(tenantID, userID, token)
 	if err != nil {
+		a.logger.Error("failed to refresh token", "tenantID", tenantID, "userID", userID, "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
-
+	a.logger.Debug("tokens refreshed successfuly", "tenantID", tenantID, "userID", userID)
 	return &proto_auth.TokensResponse{
 		Tokens: &proto_auth.Tokens{
 			AccessToken:  newTokenResponse.AccessToken,
@@ -107,9 +108,15 @@ func (a *AuthService) RevokeToken(ctx context.Context, req *proto_auth.RevokeTok
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	if err := a.authAPI.RevokeTokens(req.GetIdentifier().GetTenantId(), req.GetIdentifier().GetUserId(), req.GetTokens().GetAccessToken(), req.GetTokens().GetRefreshToken(), req.GetRevokedBy()); err != nil {
+	tenantID := req.GetIdentifier().GetTenantId()
+	userID := req.GetIdentifier().GetUserId()
+	revokedBy := req.GetRevokedBy()
+
+	if err := a.authAPI.RevokeTokens(tenantID, userID, req.GetTokens().GetAccessToken(), req.GetTokens().GetRefreshToken(), revokedBy); err != nil {
+		a.logger.Error("failed to revoke token", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy, "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
+	a.logger.Debug("token revoked successfuly", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy)
 	return &proto_auth.RevokeTokenResponse{
 		Revoked: true,
 	}, nil
@@ -117,10 +124,17 @@ func (a *AuthService) RevokeToken(ctx context.Context, req *proto_auth.RevokeTok
 
 func (a *AuthService) RevokeAllTenantTokens(ctx context.Context, req *proto_auth.RevokeAllTenantTokensRequest) (*proto_auth.RevokeAllTenantTokensResponse, error) {
 	// Validate input
-	tenantID := req.GetTenantId()
-	revokedBy := req.GetRevokedBy()
+	identifier := req.GetIdentifier()
+	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+		a.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
+	}
+	// Validate input
+	tenantID := req.GetIdentifier().GetTenantId()
+	userID := req.GetIdentifier().GetUserId()
+	targetTenantID := req.GetTargetTenantId()
 
-	accessCount, refreshCount, err := a.authAPI.RevokeAllTenantTokens(tenantID, revokedBy)
+	accessCount, refreshCount, err := a.authAPI.RevokeAllTenantTokens(tenantID, userID, targetTenantID)
 	if err != nil {
 		a.logger.Error("Failed to revoke tenant tokens", "error", err, "tenant_id", tenantID)
 		return nil, infra_error.ToGRPCError(err)

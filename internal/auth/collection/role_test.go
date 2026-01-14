@@ -626,15 +626,13 @@ func TestRoleCollection_DeleteRole(t *testing.T) {
 			expectedCallTimes: 0,
 		},
 		{
-			name:     "delete with empty role ID",
-			tenantID: "tenant1",
-			roleID:   "",
-			expectedFilter: map[string]any{
-				"tenant_id": "tenant1",
-			},
+			name:              "delete with empty role ID",
+			tenantID:          "tenant1",
+			roleID:            "",
+			expectedFilter:    nil,
 			returnError:       nil,
-			wantErr:           false,
-			expectedCallTimes: 1,
+			wantErr:           true,
+			expectedCallTimes: 0,
 		},
 		{
 			name:     "delete with database error",

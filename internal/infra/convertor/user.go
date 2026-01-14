@@ -283,40 +283,47 @@ func CreateNotificationSettingsFromProto(proto *proto_auth.NotificationSettingsD
 // Proto → Domain Model (for update operations)
 // =============================================================================
 
-// UpdateUserFromProto applies updates from UpdateUserData proto to an existing User model
-func UpdateUserFromProto(existing *model_auth.User, proto *proto_auth.UpdateUserData) error {
-	if existing == nil {
-		return infra_error.Validation(infra_error.ValidationInvalidValue, "existing")
-	}
+// UserFromUpdateProto applies updates from UpdateUserData proto to an existing User model
+func UserFromUpdateProto(proto *proto_auth.UpdateUserData) (*model_auth.User, error) {
 	if proto == nil {
-		return infra_error.Validation(infra_error.ValidationInvalidValue, "proto")
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "proto")
 	}
-
+	id, err := primitive.ObjectIDFromHex(proto.Id)
+	if err != nil {
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "user_id")
+	}
+	if proto.TenantId == "" {
+		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "tenant_id")
+	}
+	user := &model_auth.User{
+		ID:       id,
+		TenantID: proto.TenantId,
+	}
 	// Update simple fields if provided
-	// if proto.Email != nil {
-	// 	existing.Email = *proto.Email
-	// }
-	// if proto.Username != nil {
-	// 	existing.Username = *proto.Username
-	// }
+	if proto.Email != nil {
+		user.Email = *proto.Email
+	}
+	if proto.Username != nil {
+		user.Username = *proto.Username
+	}
 	if proto.Status != nil {
-		existing.Status = *proto.Status
+		user.Status = *proto.Status
 	}
 	if proto.EmailVerified != nil {
-		existing.EmailVerified = *proto.EmailVerified
+		user.EmailVerified = *proto.EmailVerified
 	}
 	if proto.PhoneVerified != nil {
-		existing.PhoneVerified = *proto.PhoneVerified
+		user.PhoneVerified = *proto.PhoneVerified
 	}
 
 	// Update profile if provided
 	if proto.Profile != nil {
-		existing.Profile = UpdateUserProfileFromProto(proto.Profile)
+		user.Profile = UpdateUserProfileFromProto(proto.Profile)
 	}
 
 	// Update preferences if provided
 	if proto.Preferences != nil {
-		existing.Preferences = UpdateUserPreferencesFromProto(proto.Preferences)
+		user.Preferences = UpdateUserPreferencesFromProto(proto.Preferences)
 	}
 
 	// Handle role updates
@@ -325,11 +332,11 @@ func UpdateUserFromProto(existing *model_auth.User, proto *proto_auth.UpdateUser
 
 		// Add new roles
 		for _, roleID := range proto.Roles.AddRoleIds {
-			existing.Roles = append(existing.Roles, model_auth.UserRole{
+			user.Roles = append(user.Roles, model_auth.UserRole{
 				RoleID:     roleID,
-				TenantID:   existing.TenantID,
+				TenantID:   user.TenantID,
 				AssignedAt: now,
-				AssignedBy: existing.CreatedBy, // TODO: Should be current user, but we don't have that context
+				AssignedBy: user.CreatedBy, // TODO: Should be current user, but we don't have that context
 				ExpiresAt:  nil,
 			})
 		}
@@ -341,13 +348,13 @@ func UpdateUserFromProto(existing *model_auth.User, proto *proto_auth.UpdateUser
 				removeMap[roleID] = true
 			}
 
-			filteredRoles := make([]model_auth.UserRole, 0, len(existing.Roles))
-			for _, role := range existing.Roles {
+			filteredRoles := make([]model_auth.UserRole, 0, len(user.Roles))
+			for _, role := range user.Roles {
 				if !removeMap[role.RoleID] {
 					filteredRoles = append(filteredRoles, role)
 				}
 			}
-			existing.Roles = filteredRoles
+			user.Roles = filteredRoles
 		}
 	}
 
@@ -355,7 +362,7 @@ func UpdateUserFromProto(existing *model_auth.User, proto *proto_auth.UpdateUser
 	if proto.Permissions != nil {
 		// Add permissions to AdditionalPermissions
 		if len(proto.Permissions.AddPermissions) > 0 {
-			existing.AdditionalPermissions = append(existing.AdditionalPermissions, proto.Permissions.AddPermissions...)
+			user.AdditionalPermissions = append(user.AdditionalPermissions, proto.Permissions.AddPermissions...)
 		}
 
 		// Remove permissions from AdditionalPermissions
@@ -365,18 +372,18 @@ func UpdateUserFromProto(existing *model_auth.User, proto *proto_auth.UpdateUser
 				removeMap[perm] = true
 			}
 
-			filteredPerms := make([]string, 0, len(existing.AdditionalPermissions))
-			for _, perm := range existing.AdditionalPermissions {
+			filteredPerms := make([]string, 0, len(user.AdditionalPermissions))
+			for _, perm := range user.AdditionalPermissions {
 				if !removeMap[perm] {
 					filteredPerms = append(filteredPerms, perm)
 				}
 			}
-			existing.AdditionalPermissions = filteredPerms
+			user.AdditionalPermissions = filteredPerms
 		}
 
 		// Add permissions to RevokedPermissions
 		if len(proto.Permissions.RevokePermissions) > 0 {
-			existing.RevokedPermissions = append(existing.RevokedPermissions, proto.Permissions.RevokePermissions...)
+			user.RevokedPermissions = append(user.RevokedPermissions, proto.Permissions.RevokePermissions...)
 		}
 
 		// Remove permissions from RevokedPermissions (unrevoke)
@@ -386,20 +393,20 @@ func UpdateUserFromProto(existing *model_auth.User, proto *proto_auth.UpdateUser
 				unrevokeMap[perm] = true
 			}
 
-			filteredRevoked := make([]string, 0, len(existing.RevokedPermissions))
-			for _, perm := range existing.RevokedPermissions {
+			filteredRevoked := make([]string, 0, len(user.RevokedPermissions))
+			for _, perm := range user.RevokedPermissions {
 				if !unrevokeMap[perm] {
 					filteredRevoked = append(filteredRevoked, perm)
 				}
 			}
-			existing.RevokedPermissions = filteredRevoked
+			user.RevokedPermissions = filteredRevoked
 		}
 	}
 
 	// Always update timestamp
-	existing.UpdatedAt = time.Now()
+	user.UpdatedAt = time.Now()
 
-	return nil
+	return user, nil
 }
 
 // UpdateUserProfileFromProto converts a UserProfileData proto message to a UserProfile model

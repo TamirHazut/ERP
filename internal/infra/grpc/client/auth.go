@@ -7,6 +7,8 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 	// model_auth "erp.localhost/internal/infra/model/auth"
 	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
+	proto_infra "erp.localhost/internal/infra/proto/generated/infra/v1"
+
 	// proto_infra "erp.localhost/internal/infra/proto/generated/infra/v1"
 	"erp.localhost/internal/infra/logging/logger"
 )
@@ -20,8 +22,8 @@ type TokensResponse struct {
 
 type RevokeResponse struct {
 	Revoked              bool
-	AccessTokensRevoked  int
-	RefrehsTokensRevoked int
+	AccessTokensRevoked  int32
+	RefrehsTokensRevoked int32
 }
 
 type AuthClient interface {
@@ -32,7 +34,7 @@ type AuthClient interface {
 	RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, error)
 	RevokeToken(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (bool, error)
 	// Tenant-level token management
-	RevokeAllTenantTokens(ctx context.Context, tenantID, userID string) (*RevokeResponse, error)
+	RevokeAllTenantTokens(ctx context.Context, tenantID, userID, targetTenantID string) (*RevokeResponse, error)
 
 	Close() error
 }
@@ -71,20 +73,72 @@ func (a *authClient) Authenticate(ctx context.Context, tenantID, userID, userPas
 	}, nil
 }
 
-// Access + Refresh Tokens
 func (a *authClient) VerifyToken(ctx context.Context, accessToken string) (bool, error) {
-	return false, nil
-}
-func (a *authClient) RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, error) {
-	return nil, nil
-}
-func (a *authClient) RevokeToken(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (bool, error) {
-	return false, nil
+	req := &proto_auth.VerifyTokenRequest{
+		AccessToken: accessToken,
+	}
+	res, err := a.stub.VerifyToken(ctx, req)
+	if err != nil {
+		return false, mapGRPCError(err)
+	}
+	return res.GetValid(), nil
 }
 
-// Tenant-level token management
-func (a *authClient) RevokeAllTenantTokens(ctx context.Context, tenantID, userID string) (*RevokeResponse, error) {
-	return nil, nil
+func (a *authClient) RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, error) {
+	req := &proto_auth.RefreshTokenRequest{
+		Identifier: &proto_infra.UserIdentifier{
+			TenantId: tenantID,
+			UserId:   userID,
+		},
+		RefreshToken: refreshToken,
+	}
+	res, err := a.stub.RefreshToken(ctx, req)
+	if err != nil {
+		return nil, mapGRPCError(err)
+	}
+	return &TokensResponse{
+		AccessToken:        res.GetTokens().GetAccessToken(),
+		AccessTokenExpiry:  time.Unix(res.GetExpiresIn().GetAccessToken(), 0),
+		RefreshToken:       res.GetTokens().GetRefreshToken(),
+		RefreshTokenExpiry: time.Unix(res.GetExpiresIn().GetRefreshToken(), 0),
+	}, nil
+}
+
+func (a *authClient) RevokeToken(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (bool, error) {
+	req := &proto_auth.RevokeTokenRequest{
+		Identifier: &proto_infra.UserIdentifier{
+			TenantId: tenantID,
+			UserId:   userID,
+		},
+		Tokens: &proto_auth.Tokens{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		},
+	}
+	res, err := a.stub.RevokeToken(ctx, req)
+	if err != nil {
+		return false, mapGRPCError(err)
+	}
+	return res.GetRevoked(), nil
+}
+
+func (a *authClient) RevokeAllTenantTokens(ctx context.Context, tenantID, userID, targetTenantID string) (*RevokeResponse, error) {
+	req := &proto_auth.RevokeAllTenantTokensRequest{
+		Identifier: &proto_infra.UserIdentifier{
+			TenantId: tenantID,
+			UserId:   userID,
+		},
+		TargetTenantId: targetTenantID,
+	}
+	res, err := a.stub.RevokeAllTenantTokens(ctx, req)
+	if err != nil {
+		return nil, mapGRPCError(err)
+	}
+	return &RevokeResponse{
+		Revoked:              res.GetRevoked(),
+		AccessTokensRevoked:  res.GetAccessTokensRevoked(),
+		RefrehsTokensRevoked: res.GetRefreshTokensRevoked(),
+	}, nil
 }
 
 func (a *authClient) Close() error {

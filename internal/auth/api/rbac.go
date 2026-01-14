@@ -106,6 +106,20 @@ func (ra *RoleAPI) DeleteRole(tenantID, requestorUserID, roleID string, targetTe
 	return ra.roleManager.DeleteRole(targetTenantID, roleID)
 }
 
+func (ra *RoleAPI) DeleteTenantRoles(tenantID, requestorUserID, targetTenantID string) error {
+	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionDelete)
+	if err != nil {
+		return err
+	}
+
+	if err := ra.verificationManager.HasPermission(tenantID, requestorUserID, permission, targetTenantID); err != nil {
+		ra.logger.Warn("Permission denied for DeleteRole", "tenant_id", tenantID, "user_id", requestorUserID, "permission", permission)
+		return err
+	}
+
+	return ra.roleManager.DeleteTenantRoles(targetTenantID)
+}
+
 // PermissionAPI provides permission management with authorization enforcement
 type PermissionAPI struct {
 	permissionManager   *rbac.PermissionManager
@@ -199,6 +213,21 @@ func (pa *PermissionAPI) DeletePermission(tenantID, requestorUserID, permissionI
 	}
 
 	return pa.permissionManager.DeletePermission(targetTenantID, permissionID)
+}
+
+// DeletePermission deletes a permission with authorization check
+func (pa *PermissionAPI) DeleteTenantPermissions(tenantID, requestorUserID, targetTenantID string) error {
+	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionDelete)
+	if err != nil {
+		return err
+	}
+
+	if err := pa.verificationManager.HasPermission(tenantID, requestorUserID, permissionStr, targetTenantID); err != nil {
+		pa.logger.Warn("Permission denied for DeleteTenantPermissions", "tenant_id", tenantID, "user_id", requestorUserID, "permission", permissionStr)
+		return err
+	}
+
+	return pa.permissionManager.DeleteTenantPermissions(targetTenantID)
 }
 
 // VerificationAPI provides permission verification operations (no authorization needed)
