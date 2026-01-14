@@ -19,7 +19,6 @@ type UserService struct {
 	proto_auth.UnimplementedUserServiceServer
 }
 
-// TODO: allow system users with proper permissions to query
 func NewUserService(userAPI *api.UserAPI) *UserService {
 	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 	return &UserService{

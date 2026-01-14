@@ -310,7 +310,6 @@ func (t *TenantService) DeleteTenant(ctx context.Context, req *proto_auth.Delete
 	}
 
 	// STEP 5: Delete ALL users for this tenant (bulk operation)
-	// TODO: Uncomment once UserCollection supports bulk delete by tenant_id
 	// This deletes all user documents with matching tenant_id in one operation
 	t.logger.Info("deleting all users for tenant", "target_tenant_id", targetTenantID)
 	if err := t.userAPI.DeleteTenantUsers(tenantID, userID, targetTenantID); err != nil {

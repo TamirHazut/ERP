@@ -35,7 +35,6 @@ func NewVerificationManager(
 }
 
 // Core implementation - uncomment and adapt from rbac_manager.go:106-129
-// TODO: modify it to
 func (vm *VerificationManager) GetUserPermissions(tenantID, userID string) (map[string]bool, error) {
 	// 1. Get user from UserCollection
 	user, err := vm.userCollection.GetUserByID(tenantID, userID)
