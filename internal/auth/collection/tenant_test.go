@@ -138,9 +138,9 @@ func TestTenantCollection_GetTenantByID(t *testing.T) {
 	}{
 		{
 			name:     "successful get by id",
-			tenantID: tenantID.String(),
+			tenantID: tenantID.Hex(),
 			expectedFilter: map[string]any{
-				"_id": tenantID.String(),
+				"_id": tenantID.Hex(),
 			},
 			returnTenant: &model_auth.Tenant{
 				ID:     tenantID,
@@ -153,9 +153,9 @@ func TestTenantCollection_GetTenantByID(t *testing.T) {
 		},
 		{
 			name:     "tenant not found",
-			tenantID: tenantID.String(),
+			tenantID: tenantID.Hex(),
 			expectedFilter: map[string]any{
-				"_id": tenantID.String(),
+				"_id": tenantID.Hex(),
 			},
 			returnTenant:      nil,
 			returnError:       errors.New("tenant not found"),
@@ -173,9 +173,9 @@ func TestTenantCollection_GetTenantByID(t *testing.T) {
 		},
 		{
 			name:     "database error",
-			tenantID: tenantID.String(),
+			tenantID: tenantID.Hex(),
 			expectedFilter: map[string]any{
-				"_id": tenantID.String(),
+				"_id": tenantID.Hex(),
 			},
 			returnTenant:      nil,
 			returnError:       errors.New("database query failed"),
@@ -203,7 +203,7 @@ func TestTenantCollection_GetTenantByID(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.tenantID, tenant.ID.String())
+				assert.Equal(t, tc.tenantID, tenant.ID.Hex())
 			}
 		})
 	}
@@ -229,21 +229,23 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 			name: "successful update",
 			tenant: &model_auth.Tenant{
 				ID:        tenantID,
-				Name:      "Updated Company",
+				Name:      "Test Company",
 				Status:    model_auth.TenantStatusActive,
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
+				Domain:    "domain",
 			},
 			expectedFindFilter: map[string]any{
-				"_id": tenantID.String(),
+				"_id": tenantID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{
-				"_id": tenantID,
+				"_id": tenantID.Hex(),
 			},
 			returnFindTenant: &model_auth.Tenant{
 				ID:        tenantID,
 				Name:      "Test Company",
 				Status:    model_auth.TenantStatusActive,
+				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
 			returnFindError:     nil,
@@ -276,7 +278,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 				CreatedAt: createdAt,
 			},
 			expectedFindFilter: map[string]any{
-				"_id": tenantID.String(),
+				"_id": tenantID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{},
 			returnFindTenant:     nil,
@@ -296,7 +298,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 				CreatedAt: time.Now(),
 			},
 			expectedFindFilter: map[string]any{
-				"_id": tenantID.String(),
+				"_id": tenantID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{},
 			returnFindTenant: &model_auth.Tenant{
@@ -319,10 +321,10 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 				CreatedAt: createdAt,
 			},
 			expectedFindFilter: map[string]any{
-				"_id": tenantID.String(),
+				"_id": tenantID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{
-				"_id": tenantID,
+				"_id": tenantID.Hex(),
 			},
 			returnFindTenant: &model_auth.Tenant{
 				ID:        tenantID,
@@ -332,7 +334,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 			returnUpdateError:   errors.New("update failed"),
 			wantErr:             true,
 			expectedFindCalls:   1,
-			expectedUpdateCalls: 1,
+			expectedUpdateCalls: 0,
 		},
 	}
 

@@ -15,6 +15,9 @@ type TenantCollection struct {
 }
 
 func NewTenantCollection(collection collection.CollectionHandler[model_auth.Tenant], logger logger.Logger) *TenantCollection {
+	if collection == nil {
+		return nil
+	}
 	return &TenantCollection{
 		collection: collection,
 		logger:     logger,
@@ -74,7 +77,7 @@ func (t *TenantCollection) UpdateTenant(tenant *model_auth.Tenant) error {
 		return err
 	}
 	filter := map[string]any{
-		"_id": tenant.ID,
+		"_id": tenant.ID.Hex(),
 	}
 	t.logger.Debug("Updating tenant", "tenant", tenant)
 	currentTenant, err := t.GetTenantByID(tenant.ID.Hex())

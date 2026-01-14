@@ -7,7 +7,7 @@
 package authv1
 
 import (
-	v1 "erp.localhost/internal/infra/proto/infra/v1"
+	v1 "erp.localhost/internal/infra/proto/generated/infra/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -381,14 +381,10 @@ func (x *RefreshTokenRequest) GetRefreshToken() string {
 }
 
 type RevokeTokenRequest struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	Identifier *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
-	RevokedBy  string                 `protobuf:"bytes,2,opt,name=revoked_by,json=revokedBy,proto3" json:"revoked_by,omitempty"`
-	// Types that are valid to be assigned to Resource:
-	//
-	//	*RevokeTokenRequest_Tokens
-	//	*RevokeTokenRequest_TenantId
-	Resource      isRevokeTokenRequest_Resource `protobuf_oneof:"resource"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Identifier    *v1.UserIdentifier     `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	RevokedBy     string                 `protobuf:"bytes,2,opt,name=revoked_by,json=revokedBy,proto3" json:"revoked_by,omitempty"`
+	Tokens        *Tokens                `protobuf:"bytes,3,opt,name=tokens,proto3" json:"tokens,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -437,46 +433,12 @@ func (x *RevokeTokenRequest) GetRevokedBy() string {
 	return ""
 }
 
-func (x *RevokeTokenRequest) GetResource() isRevokeTokenRequest_Resource {
-	if x != nil {
-		return x.Resource
-	}
-	return nil
-}
-
 func (x *RevokeTokenRequest) GetTokens() *Tokens {
 	if x != nil {
-		if x, ok := x.Resource.(*RevokeTokenRequest_Tokens); ok {
-			return x.Tokens
-		}
+		return x.Tokens
 	}
 	return nil
 }
-
-func (x *RevokeTokenRequest) GetTenantId() string {
-	if x != nil {
-		if x, ok := x.Resource.(*RevokeTokenRequest_TenantId); ok {
-			return x.TenantId
-		}
-	}
-	return ""
-}
-
-type isRevokeTokenRequest_Resource interface {
-	isRevokeTokenRequest_Resource()
-}
-
-type RevokeTokenRequest_Tokens struct {
-	Tokens *Tokens `protobuf:"bytes,3,opt,name=tokens,proto3,oneof"`
-}
-
-type RevokeTokenRequest_TenantId struct {
-	TenantId string `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3,oneof"`
-}
-
-func (*RevokeTokenRequest_Tokens) isRevokeTokenRequest_Resource() {}
-
-func (*RevokeTokenRequest_TenantId) isRevokeTokenRequest_Resource() {}
 
 type RevokeTokenResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -664,17 +626,14 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"identifier\x18\x01 \x01(\v2\x18.infra.v1.UserIdentifierR\n" +
 	"identifier\x12#\n" +
-	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"\xc3\x01\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"\x96\x01\n" +
 	"\x12RevokeTokenRequest\x128\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\v2\x18.infra.v1.UserIdentifierR\n" +
 	"identifier\x12\x1d\n" +
 	"\n" +
-	"revoked_by\x18\x02 \x01(\tR\trevokedBy\x12)\n" +
-	"\x06tokens\x18\x03 \x01(\v2\x0f.auth.v1.TokensH\x00R\x06tokens\x12\x1d\n" +
-	"\ttenant_id\x18\x04 \x01(\tH\x00R\btenantIdB\n" +
-	"\n" +
-	"\bresource\"/\n" +
+	"revoked_by\x18\x02 \x01(\tR\trevokedBy\x12'\n" +
+	"\x06tokens\x18\x03 \x01(\v2\x0f.auth.v1.TokensR\x06tokens\"/\n" +
 	"\x13RevokeTokenResponse\x12\x18\n" +
 	"\arevoked\x18\x01 \x01(\bR\arevoked\"Z\n" +
 	"\x1cRevokeAllTenantTokensRequest\x12\x1b\n" +
@@ -690,7 +649,7 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\vVerifyToken\x12\x1b.auth.v1.VerifyTokenRequest\x1a\x1c.auth.v1.VerifyTokenResponse\x12E\n" +
 	"\fRefreshToken\x12\x1c.auth.v1.RefreshTokenRequest\x1a\x17.auth.v1.TokensResponse\x12H\n" +
 	"\vRevokeToken\x12\x1b.auth.v1.RevokeTokenRequest\x1a\x1c.auth.v1.RevokeTokenResponse\x12f\n" +
-	"\x15RevokeAllTenantTokens\x12%.auth.v1.RevokeAllTenantTokensRequest\x1a&.auth.v1.RevokeAllTenantTokensResponseB3Z1erp.localhost/internal/infra/proto/auth/v1;authv1b\x06proto3"
+	"\x15RevokeAllTenantTokens\x12%.auth.v1.RevokeAllTenantTokensRequest\x1a&.auth.v1.RevokeAllTenantTokensResponseB=Z;erp.localhost/internal/infra/proto/generated/auth/v1;authv1b\x06proto3"
 
 var (
 	file_auth_v1_auth_proto_rawDescOnce sync.Once
@@ -747,10 +706,6 @@ func init() { file_auth_v1_auth_proto_init() }
 func file_auth_v1_auth_proto_init() {
 	if File_auth_v1_auth_proto != nil {
 		return
-	}
-	file_auth_v1_auth_proto_msgTypes[7].OneofWrappers = []any{
-		(*RevokeTokenRequest_Tokens)(nil),
-		(*RevokeTokenRequest_TenantId)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -3,9 +3,9 @@
 
 .PHONY: proto $(addprefix proto-,$(MODULES)) proto-clean \
 		run $(addprefix run-,$(SERVICES)) \
-        build \
-        run-auth run-config run-core \
-        test test-coverage lint clean tidy help \
+        build $(addprefix build-,$(SERVICES)) \
+        test $(addprefix test-,$(MODULES)) test-coverage \
+		lint clean tidy help \
         docker-up docker-down docker-logs docker-ps \
         certs certs-clean
 
@@ -16,7 +16,7 @@ BIN_DIR := bin
 SERVICES := auth config #core gateway event
 
 # Define entire system modules including non services
-MODULES := infra $(SERVICES)
+MODULES := infra $(SERVICES) init
 
 help: ## Show this help message
 	@echo "ERP System - Available targets:"
@@ -24,18 +24,19 @@ help: ## Show this help message
 	@echo "Proto Generation:"
 	@echo "  make proto          	- Generate all proto files"
 	@echo "  make proto-infra     	- Generate infra service proto files"
-	@echo "  make proto-<service>	- Generate service proto files (services: auth, config, core, gateway, event)"
+	@echo "  make proto-<module>	- Generate module proto files (modules: infra, auth, config, core, gateway, event)"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build          	- Build all services"
+	@echo "  make build-<service>   - Build service (services: auth, config, core, gateway, event)"
 	@echo ""	
 	@echo "Run:"	
-	@echo "  make run-auth       	- Run auth service"
-	@echo "  make run-config     	- Run config service"
-	@echo "  make run-core       	- Run core service"
+	@echo "  make run           	- Run all services"
+	@echo "  make run-<service>     - Run service (services: auth, config, core, gateway, event)"
 	@echo ""	
 	@echo "Test & Quality:"	
 	@echo "  make test           	- Run all tests"
+	@echo "  make test-<module>		- Run module tests (modules: infra, auth, config, core, gateway, event)"
 	@echo "  make test-coverage  	- Run tests with coverage"
 	@echo "  make lint           	- Run linter on all services"
 	@echo ""	
@@ -64,17 +65,17 @@ INFRA_BASE_PROTO := internal/infra/proto
 # Function to generate proto for any service
 define generate_proto
 	@echo "Generating $(1) proto files..."
-	@if [ ! -d "$(INFRA_BASE_PROTO)/$(1)/v1" ]; then \
+	@if [ -d "$(INFRA_BASE_PROTO)/$(1)/v1" ]; then \
+		protoc --go_out=$(PROTO_OUT) \
+			--go_opt=module=$(MODULE) \
+			--go-grpc_out=$(PROTO_OUT) \
+			--go-grpc_opt=module=$(MODULE) \
+			-I=$(INFRA_BASE_PROTO) \
+			$(INFRA_BASE_PROTO)/$(1)/v1/*.proto; \
+		echo "✓ $(1) proto files generated"; \
+	else \
 		echo "Warning: Proto directory $(INFRA_BASE_PROTO)/$(1)/v1 not found"; \
-		exit 0; \
 	fi
-	@protoc --go_out=$(PROTO_OUT) \
-		--go_opt=module=$(MODULE) \
-		--go-grpc_out=$(PROTO_OUT) \
-		--go-grpc_opt=module=$(MODULE) \
-		-I=$(INFRA_BASE_PROTO) \
-		"$(INFRA_BASE_PROTO)/$(1)/v1/*.proto"
-	@echo "✓ $(1) proto files generated"
 endef
 
 proto: ## Generate all proto files
@@ -96,15 +97,21 @@ proto-clean: ## Remove all generated proto files
 # BUILD TARGETS
 # ============================================================================
 
+define build_service
+	@echo "Building $(1) ..."
+	@$(MAKE) -C internal/$$service build;
+	@echo "✓ $(1) build successfully"
+endef
+
 build: ## Build all services
 	@echo "Building all services..."
 	@for service in $(SERVICES); do \
-		$(MAKE) -C internal/$$service build; \
+		$(MAKE) build-$$service; \
 	done
 	@echo "✓ All services built"
 
-build-init:
-	$(MAKE) -C internal/init build
+build-%:
+	$(call run build_service,$*)
 
 # ============================================================================
 # RUN TARGETS
@@ -115,38 +122,33 @@ define run_service
 	@$(MAKE) -C internal/$(1) run
 endef
 
-run: ## Generate all proto files
+run: 
 	@go run ./cmd/
-# @for module in $(MODULES); do \
-# 	$(MAKE) run-$$module; \
-# done
-# @echo "✓ All services started"
 
 run-%:
 	$(call run_service,$*)
-
-# run-auth: ## Run auth service
-# 	@$(MAKE) -C internal/auth run
-
-# run-config: ## Run config service
-# 	@$(MAKE) -C internal/config run
-
-# run-core: ## Run core service
-# 	@$(MAKE) -C internal/core run
-
-# run-init:
-# 	$(MAKE) -C internal/init run
 
 # ============================================================================
 # TEST TARGETS
 # ============================================================================
 
-test: mocks ## Run all tests from all services
+define test_module
+	@echo "Running $(1) tests..."
+	@$(MAKE) -C internal/$(1) test;
+	@echo "✓ $(1) tests passed"
+endef
+
+
+test: ## mocks ## Run all tests from all services
 	@echo "Running all tests..."
 	@for module in $(MODULES); do \
-		$(MAKE) -C internal/$$module test; \
+		$(MAKE) test-$$module; \
 	done
 	@echo "✓ All tests complete"
+
+test-%:
+	$(call test_module,$*)
+
 
 test-coverage: ## Run tests with coverage for all services
 	@echo "Running tests with coverage for all modules..."

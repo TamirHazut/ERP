@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"erp.localhost/internal/auth/api"
 	collection "erp.localhost/internal/auth/collection"
 	"erp.localhost/internal/infra/convertor"
 	mongo_collection "erp.localhost/internal/infra/db/mongo/collection"
@@ -12,8 +13,8 @@ import (
 	model_auth "erp.localhost/internal/infra/model/auth"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 	model_shared "erp.localhost/internal/infra/model/shared"
-	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
-	proto_infra "erp.localhost/internal/infra/proto/infra/v1"
+	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
+	proto_infra "erp.localhost/internal/infra/proto/generated/infra/v1"
 	"erp.localhost/internal/infra/proto/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -31,22 +32,17 @@ const (
 type UserService struct {
 	logger         logger.Logger
 	userCollection *collection.UserCollection
-	rbacGRPCClient proto_auth.RBACServiceClient
-	authGRPCClient proto_auth.AuthServiceClient
+	authAPI        *api.AuthAPI
+	rbacAPI        *api.RBACAPI
 	proto_auth.UnimplementedUserServiceServer
 }
 
-// TODO: allow system admin create user in other tenants
-func NewUserService() *UserService {
+// TODO: allow system users with proper permissions to query
+func NewUserService(authAPI *api.AuthAPI, rbacAPI *api.RBACAPI) *UserService {
 	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
 
-	uc := mongo_collection.NewBaseCollectionHandler[model_auth.User](model_mongo.CoreDB, model_mongo.UsersCollection, logger)
-	if uc == nil {
-		logger.Fatal("failed to create users collection handler")
-		return nil
-	}
-
-	userCollection := collection.NewUserCollection(uc, logger)
+	userHandler := mongo_collection.NewBaseCollectionHandler[model_auth.User](model_mongo.AuthDB, model_mongo.UsersCollection, logger)
+	userCollection := collection.NewUserCollection(userHandler, logger)
 	if userCollection == nil {
 		logger.Fatal("failed to create users collection")
 		return nil
@@ -55,6 +51,8 @@ func NewUserService() *UserService {
 	return &UserService{
 		logger:         logger,
 		userCollection: userCollection,
+		authAPI:        authAPI,
+		rbacAPI:        rbacAPI,
 	}
 }
 
@@ -62,9 +60,8 @@ func (u *UserService) CreateUser(ctx context.Context, req *proto_auth.CreateUser
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		u.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	tenantID := identifier.GetTenantId()
@@ -76,7 +73,13 @@ func (u *UserService) CreateUser(ctx context.Context, req *proto_auth.CreateUser
 		return nil, status.Error(codes.InvalidArgument, errMsg)
 	}
 
-	if hasPermission, err := u.verifyPermission(ctx, identifier, model_auth.PermissionActionCreate); err != nil || !hasPermission {
+	if newUserData.GetTenantId() != tenantID {
+		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).Error()
+		u.logger.Error("user data tenant_id does not match identifier tenant_id", "error", errMsg)
+		return nil, status.Error(codes.PermissionDenied, errMsg)
+	}
+
+	if err := u.hasPermission(identifier, model_auth.PermissionActionRead, tenantID); err != nil {
 		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).WithError(err).Error()
 		u.logger.Error(errMsg)
 		return nil, status.Error(codes.PermissionDenied, errMsg)
@@ -118,10 +121,10 @@ func (u *UserService) GetUser(ctx context.Context, req *proto_auth.GetUserReques
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		u.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
+
 	accountID := req.GetAccountId()
 	if accountID == "" {
 		errMsg := infra_error.Validation(infra_error.ValidationRequiredFields, "id").Error()
@@ -131,7 +134,7 @@ func (u *UserService) GetUser(ctx context.Context, req *proto_auth.GetUserReques
 
 	tenantID := identifier.GetTenantId()
 
-	if hasPermission, err := u.verifyPermission(ctx, identifier, model_auth.PermissionActionRead); err != nil || !hasPermission {
+	if err := u.hasPermission(identifier, model_auth.PermissionActionRead, tenantID); err != nil {
 		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).WithError(err).Error()
 		u.logger.Error(errMsg)
 		return nil, status.Error(codes.PermissionDenied, errMsg)
@@ -162,14 +165,13 @@ func (u *UserService) GetUsers(ctx context.Context, req *proto_auth.GetUsersRequ
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		u.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	tenantID := identifier.GetTenantId()
 
-	if hasPermission, err := u.verifyPermission(ctx, identifier, model_auth.PermissionActionRead); err != nil || !hasPermission {
+	if err := u.hasPermission(identifier, model_auth.PermissionActionRead, tenantID); err != nil {
 		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).WithError(err).Error()
 		u.logger.Error(errMsg)
 		return nil, status.Error(codes.PermissionDenied, errMsg)
@@ -202,9 +204,8 @@ func (u *UserService) UpdateUser(ctx context.Context, req *proto_auth.UpdateUser
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		u.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	tenantID := identifier.GetTenantId()
@@ -223,7 +224,7 @@ func (u *UserService) UpdateUser(ctx context.Context, req *proto_auth.UpdateUser
 		return nil, status.Error(codes.PermissionDenied, errMsg)
 	}
 
-	if hasPermission, err := u.verifyPermission(ctx, identifier, model_auth.PermissionActionUpdate); err != nil || !hasPermission {
+	if err := u.hasPermission(identifier, model_auth.PermissionActionUpdate, tenantID); err != nil {
 		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).WithError(err).Error()
 		u.logger.Error(errMsg)
 		return nil, status.Error(codes.PermissionDenied, errMsg)
@@ -258,9 +259,8 @@ func (u *UserService) DeleteUser(ctx context.Context, req *proto_auth.DeleteUser
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		u.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	tenantID := identifier.GetTenantId()
@@ -269,7 +269,7 @@ func (u *UserService) DeleteUser(ctx context.Context, req *proto_auth.DeleteUser
 		tenantID = req.GetTenantId()
 	}
 
-	if hasPermission, err := u.verifyPermission(ctx, identifier, model_auth.PermissionActionDelete); err != nil || !hasPermission {
+	if err := u.hasPermission(identifier, model_auth.PermissionActionDelete, tenantID); err != nil {
 		errMsg := infra_error.Auth(infra_error.AuthPermissionDenied).WithError(err).Error()
 		u.logger.Error(errMsg)
 		return nil, status.Error(codes.PermissionDenied, errMsg)
@@ -328,95 +328,66 @@ func (u *UserService) Login(ctx context.Context, req *proto_auth.LoginRequest) (
 		return nil, status.Error(codes.Internal, errMsg)
 	}
 
-	identifier := &proto_infra.UserIdentifier{
-		TenantId: tenantID,
-		UserId:   user.ID.Hex(),
-	}
-	res, err := u.authenticate(ctx, identifier, userPassword, user.PasswordHash)
+	newTokenResponse, err := u.authAPI.Authenticate(tenantID, user.ID.Hex(), userPassword, user.PasswordHash)
 	if err != nil {
 		u.logger.Error("failed to authenticate", "error", err.Error())
+		return nil, infra_error.ToGRPCError(err)
 	}
-	return res, err
+
+	return &proto_auth.TokensResponse{
+		Tokens: &proto_auth.Tokens{
+			AccessToken:  newTokenResponse.AccessToken,
+			RefreshToken: newTokenResponse.RefreshToken,
+		},
+		ExpiresIn: &proto_auth.ExpiresIn{
+			AccessToken:  newTokenResponse.AccessTokenExpiresAt,
+			RefreshToken: newTokenResponse.RefreshTokenExpiresAt,
+		},
+	}, nil
 }
 
 func (u *UserService) Logout(ctx context.Context, req *proto_auth.LogoutRequest) (*proto_auth.LogoutResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		u.logger.Error(errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		u.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	tenantID := identifier.GetTenantId()
 	userID := identifier.GetUserId()
 	tokens := req.GetTokens()
 
-	revoked, err := u.revokeTokens(ctx, identifier, tokens, userID)
-	if err != nil {
-		u.logger.Error("failed to logout", "tenantID", tenantID, "userID", userID, "error", err.Error())
-	}
+	err := u.authAPI.RevokeTokens(tenantID, userID, tokens.GetAccessToken(), tokens.GetRefreshToken(), userID)
 
 	var message string
-	if !revoked {
+	if err != nil {
+		u.logger.Error("failed to logout", "tenantID", tenantID, "userID", userID, "error", err.Error())
 		message = "logout failed"
 	} else {
+		u.logger.Info("logout successful", "tenantID", tenantID, "userID", userID)
 		message = "logout successful"
 	}
 	return &proto_auth.LogoutResponse{
 		Message: message,
-	}, err
+	}, infra_error.ToGRPCError(err)
 }
 
-func (u *UserService) authenticate(ctx context.Context, identifier *proto_infra.UserIdentifier, userPassword string, userHash string) (*proto_auth.TokensResponse, error) {
-	req := &proto_auth.AuthenticateRequest{
-		Identifier:   identifier,
-		UserPassword: userPassword,
-		UserHash:     userHash,
-	}
-	return u.authGRPCClient.Authenticate(ctx, req)
-}
+// func (u *UserService) authenticate(ctx context.Context, identifier *proto_infra.UserIdentifier, userPassword string, userHash string) (*proto_auth.TokensResponse, error) {
+// 	req := &proto_auth.AuthenticateRequest{
+// 		Identifier:   identifier,
+// 		UserPassword: userPassword,
+// 		UserHash:     userHash,
+// 	}
+// 	return u.authAPI.Authenticate(ctx, req)
+// }
 
-func (u *UserService) revokeTokens(ctx context.Context, identifier *proto_infra.UserIdentifier, tokens *proto_auth.Tokens, revokedBy string) (bool, error) {
-	req := &proto_auth.RevokeTokenRequest{
-		Identifier: identifier,
-		Resource: &proto_auth.RevokeTokenRequest_Tokens{
-			Tokens: tokens,
-		},
-		RevokedBy: revokedBy,
-	}
-	res, err := u.authGRPCClient.RevokeToken(ctx, req)
-	return res.GetRevoked(), err
-}
-
-func (u *UserService) verifyPermission(ctx context.Context, identifier *proto_infra.UserIdentifier, permissionAction string) (bool, error) {
-	req := &proto_auth.VerifyUserResourceRequest{
-		Identifier:   identifier,
-		ResourceType: proto_auth.ResourceType_RESOURCE_TYPE_PERMISSION,
-		Resources: []*proto_auth.VerifyResource{
-			{
-				Resource: &proto_auth.VerifyResource_Permission{
-					Permission: &proto_auth.Permission{
-						Identifier: &proto_auth.Permission_Permission{
-							Permission: &proto_auth.PermissionIdentifier{
-								Resource: model_auth.ResourceTypeUser,
-								Action:   permissionAction,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	res, err := u.rbacGRPCClient.VerifyUserResource(ctx, req)
+func (u *UserService) hasPermission(identifier *proto_infra.UserIdentifier, permissionAction string, targetTenant string) error {
+	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeUser, permissionAction)
 	if err != nil {
-		return false, err
+		return err
 	}
-	resources := res.GetResources()
-	if len(resources) == 0 {
-		return false, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("unexpeted response error"))
-	}
-	return resources[0].GetPermission().GetHasPermission().GetValue(), nil
+	return u.rbacAPI.Verification.HasPermission(identifier.GetTenantId(), identifier.GetUserId(), permission, targetTenant)
 }
 
 func (u *UserService) getUser(tenantID string, accountID string, filterType filterType) (*model_auth.User, error) {

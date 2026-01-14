@@ -15,6 +15,9 @@ type UserCollection struct {
 }
 
 func NewUserCollection(collection collection.CollectionHandler[model_auth.User], logger logger.Logger) *UserCollection {
+	if collection == nil {
+		return nil
+	}
 	return &UserCollection{
 		collection: collection,
 		logger:     logger,
@@ -116,7 +119,7 @@ func (u *UserCollection) DeleteUser(tenantID, userID string) error {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
-	if userID == "" {
+	if userID != "" {
 		filter["_id"] = userID
 	}
 	u.logger.Debug("Deleting user", "filter", filter)

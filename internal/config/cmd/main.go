@@ -11,7 +11,7 @@ import (
 	"erp.localhost/internal/infra/grpc/server"
 	grpc_server "erp.localhost/internal/infra/grpc/server"
 	model_shared "erp.localhost/internal/infra/model/shared"
-	proto_config "erp.localhost/internal/infra/proto/config/v1"
+	proto_config "erp.localhost/internal/infra/proto/generated/config/v1"
 )
 
 const (

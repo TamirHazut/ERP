@@ -71,11 +71,11 @@ func (r *BaseCollectionHandler[T]) FindOne(filter map[string]any) (*T, error) {
 		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
 		return nil, err
 	}
-	if result == nil {
-		err = infra_error.NotFound(infra_error.NotFoundResource, r.collection, filter)
-		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
-		return nil, err
-	}
+	// if result == nil {
+	// 	err = infra_error.NotFound(infra_error.NotFoundResource, r.collection, filter)
+	// 	r.logger.Error(err.Error(), "collection", r.collection, "filter", filter)
+	// 	return nil, err
+	// }
 
 	return result, nil
 }

@@ -459,7 +459,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       userID.String(),
+				"_id":       userID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{
 				"tenant_id": "tenant1",
@@ -506,7 +506,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       userID.String(),
+				"_id":       userID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{},
 			returnFindUser:       nil,
@@ -531,7 +531,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       userID.String(),
+				"_id":       userID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{},
 			returnFindUser: &model_auth.User{
@@ -561,7 +561,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       userID.String(),
+				"_id":       userID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{
 				"tenant_id": "tenant1",
@@ -643,13 +643,15 @@ func TestUserCollection_DeleteUser(t *testing.T) {
 			expectedCallTimes: 0,
 		},
 		{
-			name:              "delete with empty user ID",
-			tenantID:          "tenant1",
-			userID:            "",
-			expectedFilter:    map[string]any{},
+			name:     "delete with empty user ID",
+			tenantID: "tenant1",
+			userID:   "",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+			},
 			returnError:       nil,
-			wantErr:           true,
-			expectedCallTimes: 0,
+			wantErr:           false,
+			expectedCallTimes: 1,
 		},
 		{
 			name:     "delete with database error",

@@ -8,7 +8,7 @@ import (
 
 	infra_error "erp.localhost/internal/infra/error"
 	model_auth "erp.localhost/internal/infra/model/auth"
-	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
+	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
 )
 
 // =============================================================================

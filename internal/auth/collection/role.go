@@ -15,6 +15,9 @@ type RolesCollection struct {
 }
 
 func NewRoleCollection(collection collection.CollectionHandler[model_auth.Role], logger logger.Logger) *RolesCollection {
+	if collection == nil {
+		return nil
+	}
 	return &RolesCollection{
 		collection: collection,
 		logger:     logger,
@@ -95,7 +98,7 @@ func (r *RolesCollection) DeleteRole(tenantID, roleID string) error {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
-	if roleID == "" {
+	if roleID != "" {
 		filter["_id"] = roleID
 	}
 	r.logger.Debug("Deleting role", "filter", filter)

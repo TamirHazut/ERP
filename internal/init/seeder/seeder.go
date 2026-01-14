@@ -29,12 +29,12 @@ func NewSeeder(logger logger.Logger) *Seeder {
 	return &Seeder{
 		logger: logger,
 		tenantHandler: collection.NewBaseCollectionHandler[model_auth.Tenant](
-			model_mongo.CoreDB,
+			model_mongo.AuthDB,
 			model_mongo.TenantsCollection,
 			logger,
 		),
 		userHandler: collection.NewBaseCollectionHandler[model_auth.User](
-			model_mongo.CoreDB,
+			model_mongo.AuthDB,
 			model_mongo.UsersCollection,
 			logger,
 		),
@@ -97,12 +97,12 @@ func (s *Seeder) SeedIndexes() error {
 		indexes    []mongo.IndexModel
 	}{
 		{
-			dbName:     model_mongo.CoreDB,
+			dbName:     model_mongo.AuthDB,
 			collection: model_mongo.TenantsCollection,
 			indexes:    model_mongo.GetTenantsIndexes(),
 		},
 		{
-			dbName:     model_mongo.CoreDB,
+			dbName:     model_mongo.AuthDB,
 			collection: model_mongo.UsersCollection,
 			indexes:    model_mongo.GetUsersIndexes(),
 		},
@@ -144,7 +144,7 @@ func (s *Seeder) SeedIndexes() error {
 func (s *Seeder) seedSystemTenant() error {
 	s.logger.Debug("Checking for existing system tenant")
 	// Check if system tenant already exists
-	filter := map[string]any{"name": "System"}
+	filter := map[string]any{"name": db.SystemTenant}
 	existing, err := s.tenantHandler.FindOne(filter)
 	if err == nil && existing != nil {
 		s.logger.Info("System tenant already exists, skipping creation")
@@ -156,7 +156,7 @@ func (s *Seeder) seedSystemTenant() error {
 
 	// Create new tenant
 	tenant := &model_auth.Tenant{
-		Name:      "System",
+		Name:      db.SystemTenant,
 		Status:    model_auth.TenantStatusActive,
 		CreatedBy: "System",
 	}
@@ -216,7 +216,7 @@ func (s *Seeder) seedSystemRole() error {
 	// Check if role already exists
 	filter := map[string]any{
 		"tenant_id": db.SystemTenantID,
-		"name":      "SystemAdmin",
+		"name":      db.SystemAdminUser,
 	}
 	existing, err := s.roleHandler.FindOne(filter)
 	if err == nil && existing != nil {
@@ -229,13 +229,13 @@ func (s *Seeder) seedSystemRole() error {
 
 	// Create role
 	role := &model_auth.Role{
-		TenantID:     db.SystemTenantID,
-		Name:         "SystemAdmin",
-		Description:  "System administrator role with full access to all resources",
-		IsSystemRole: true,
-		Permissions:  []string{db.SystemAdminPermissionID},
-		Status:       model_auth.RoleStatusActive,
-		CreatedBy:    "System",
+		TenantID:      db.SystemTenantID,
+		Name:          db.SystemAdminUser,
+		Description:   "System administrator role with full access to all resources",
+		IsTenantAdmin: true,
+		Permissions:   []string{db.SystemAdminPermissionID},
+		Status:        model_auth.RoleStatusActive,
+		CreatedBy:     "System",
 	}
 
 	roleID, err := s.roleHandler.Create(role)

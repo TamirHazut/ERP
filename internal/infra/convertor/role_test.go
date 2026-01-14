@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	model_auth "erp.localhost/internal/infra/model/auth"
-	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
+	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
 )
 
 // =============================================================================
@@ -21,19 +21,18 @@ func TestRoleToProto_ValidRole(t *testing.T) {
 	objectID := primitive.NewObjectID()
 
 	role := &model_auth.Role{
-		ID:           objectID,
-		TenantID:     "tenant-123",
-		Name:         "Admin",
-		Slug:         "admin",
-		Description:  "Administrator role",
-		Type:         "system",
-		IsSystemRole: true,
-		Permissions:  []string{"user:create", "user:read"},
-		Priority:     10,
-		Status:       "active",
-		CreatedBy:    "system",
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		ID:          objectID,
+		TenantID:    "tenant-123",
+		Name:        "Admin",
+		Slug:        "admin",
+		Description: "Administrator role",
+		Type:        "system",
+		Permissions: []string{"user:create", "user:read"},
+		Priority:    10,
+		Status:      "active",
+		CreatedBy:   "system",
+		CreatedAt:   now,
+		UpdatedAt:   now,
 		Metadata: model_auth.RoleMetadata{
 			Color:         "#FF0000",
 			Icon:          "admin-icon",
@@ -50,7 +49,6 @@ func TestRoleToProto_ValidRole(t *testing.T) {
 	assert.Equal(t, "admin", result.Slug)
 	assert.Equal(t, "Administrator role", result.Description)
 	assert.Equal(t, "system", result.Type)
-	assert.Equal(t, true, result.IsSystemRole)
 	assert.Equal(t, []string{"user:create", "user:read"}, result.Permissions)
 	assert.Equal(t, int32(10), result.Priority)
 	assert.Equal(t, "active", result.Status)
@@ -156,16 +154,15 @@ func TestRolesToProto_EmptySlice(t *testing.T) {
 
 func TestCreateRoleFromProto_ValidProto(t *testing.T) {
 	proto := &proto_auth.CreateRoleData{
-		TenantId:     "tenant-123",
-		Name:         "Editor",
-		Slug:         "editor",
-		Description:  "Editor role",
-		Type:         "custom",
-		IsSystemRole: false,
-		Permissions:  []string{"user:read", "user:update"},
-		Priority:     5,
-		Status:       "active",
-		CreatedBy:    "admin",
+		TenantId:    "tenant-123",
+		Name:        "Editor",
+		Slug:        "editor",
+		Description: "Editor role",
+		Type:        "custom",
+		Permissions: []string{"user:read", "user:update"},
+		Priority:    5,
+		Status:      "active",
+		CreatedBy:   "admin",
 	}
 
 	result, err := CreateRoleFromProto(proto)
@@ -177,7 +174,6 @@ func TestCreateRoleFromProto_ValidProto(t *testing.T) {
 	assert.Equal(t, "editor", result.Slug)
 	assert.Equal(t, "Editor role", result.Description)
 	assert.Equal(t, "custom", result.Type)
-	assert.Equal(t, false, result.IsSystemRole)
 	assert.Equal(t, []string{"user:read", "user:update"}, result.Permissions)
 	assert.Equal(t, 5, result.Priority)
 	assert.Equal(t, "active", result.Status)
@@ -239,39 +235,36 @@ func TestCreateRoleFromProto_NilProto(t *testing.T) {
 
 func TestUpdateRoleFromProto_FullUpdate(t *testing.T) {
 	existing := &model_auth.Role{
-		ID:           primitive.NewObjectID(),
-		TenantID:     "tenant-123",
-		Name:         "Old Name",
-		Slug:         "old-slug",
-		Description:  "Old Description",
-		Type:         "old-type",
-		IsSystemRole: false,
-		Permissions:  []string{"old:perm"},
-		Priority:     1,
-		Status:       "inactive",
-		CreatedBy:    "admin",
-		CreatedAt:    time.Now().Add(-1 * time.Hour),
-		UpdatedAt:    time.Now().Add(-1 * time.Hour),
+		ID:          primitive.NewObjectID(),
+		TenantID:    "tenant-123",
+		Name:        "Old Name",
+		Slug:        "old-slug",
+		Description: "Old Description",
+		Type:        "old-type",
+		Permissions: []string{"old:perm"},
+		Priority:    1,
+		Status:      "inactive",
+		CreatedBy:   "admin",
+		CreatedAt:   time.Now().Add(-1 * time.Hour),
+		UpdatedAt:   time.Now().Add(-1 * time.Hour),
 	}
 
 	newName := "New Name"
 	newSlug := "new-slug"
 	newDesc := "New Description"
 	newType := "new-type"
-	newSystemRole := true
 	newPriority := int32(10)
 	newStatus := "active"
 
 	proto := &proto_auth.UpdateRoleData{
-		Id:           existing.ID.Hex(),
-		Name:         &newName,
-		Slug:         &newSlug,
-		Description:  &newDesc,
-		Type:         &newType,
-		IsSystemRole: &newSystemRole,
-		Permissions:  []string{"new:perm1", "new:perm2"},
-		Priority:     &newPriority,
-		Status:       &newStatus,
+		Id:          existing.ID.Hex(),
+		Name:        &newName,
+		Slug:        &newSlug,
+		Description: &newDesc,
+		Type:        &newType,
+		Permissions: []string{"new:perm1", "new:perm2"},
+		Priority:    &newPriority,
+		Status:      &newStatus,
 	}
 
 	err := UpdateRoleFromProto(existing, proto)
@@ -281,7 +274,6 @@ func TestUpdateRoleFromProto_FullUpdate(t *testing.T) {
 	assert.Equal(t, "new-slug", existing.Slug)
 	assert.Equal(t, "New Description", existing.Description)
 	assert.Equal(t, "new-type", existing.Type)
-	assert.Equal(t, true, existing.IsSystemRole)
 	assert.Equal(t, []string{"new:perm1", "new:perm2"}, existing.Permissions)
 	assert.Equal(t, 10, existing.Priority)
 	assert.Equal(t, "active", existing.Status)

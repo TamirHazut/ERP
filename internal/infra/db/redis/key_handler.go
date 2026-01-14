@@ -46,16 +46,16 @@ func (k *BaseKeyHandler[T]) Set(tenantID string, key string, value T, opts ...ma
 func (k *BaseKeyHandler[T]) GetOne(tenantID string, key string) (*T, error) {
 	k.logger.Debug("Getting key", "tenantID", tenantID, "key", key)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
-	result := new(T)
+	result := new(T) // create a non-nil pointer for type T
 	err := k.dbHandler.FindOne(formattedKey, nil, result)
 	if err != nil {
 		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
-	// Handle case where value is nil (not found)
-	if result == nil {
-		return nil, infra_error.NotFound(infra_error.NotFoundResource, "key", formattedKey)
-	}
+	// // Handle case where value is nil (not found)
+	// if result == nil {
+	// 	return nil, infra_error.NotFound(infra_error.NotFoundResource, "key", formattedKey)
+	// }
 	return result, nil
 }
 

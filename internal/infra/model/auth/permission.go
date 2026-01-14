@@ -17,6 +17,7 @@ type Permission struct {
 	DisplayName      string             `bson:"display_name" json:"display_name"`
 	Description      string             `bson:"description" json:"description"`
 	Category         string             `bson:"category" json:"category"`
+	Status           string             `bson:"status" json:"status"`
 	IsDangerous      bool               `bson:"is_dangerous" json:"is_dangerous"`
 	RequiresApproval bool               `bson:"requires_approval" json:"requires_approval"`
 	Dependencies     []string           `bson:"dependencies,omitempty" json:"dependencies,omitempty"`

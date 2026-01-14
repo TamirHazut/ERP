@@ -3,9 +3,13 @@ package db
 import "time"
 
 const (
-	SystemAdminUser     = "SystemAdmin"
-	SystemAdminEmail    = "system@system.com"
-	SystemAdminPassword = "ERP@SystemAdmin.Secret5"
+	SystemTenant          = "system"
+	SystemAdminUser       = "SystemAdmin"
+	SystemAdminEmail      = "system@system.com"
+	SystemAdminPassword   = "ERP@SystemAdmin.Secret5"
+	TenantAdminUser       = "admin"
+	TenantAdminRole       = "admin"
+	TenantAdminPermission = "*:*"
 )
 
 var (

@@ -45,13 +45,11 @@ clean: ## Clean build artifacts
 	@rm -f $(INTERNAL_DIR)/coverage.out $(INTERNAL_DIR)/coverage.html
 	@echo "✓ Clean complete"
 
-.PHONY: mocks
 mocks: mocks-clean
 	@echo "Generating infra mocks..."
 	@go generate ./...
 	@echo "✅ Infra mocks generated successfully"
 
-.PHONY: mocks-clean
 mocks-clean:
 	@echo "Cleaning generated infra mocks..."
 	@find . -path "*/mocks/mock_*.go" -type f -delete

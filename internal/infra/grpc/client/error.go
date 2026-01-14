@@ -31,7 +31,7 @@ func mapGRPCError(err error) error {
 	case codes.Unauthenticated:
 		return infra_error.Auth(infra_error.AuthPermissionDenied).WithError(st.Err())
 	case codes.Internal:
-		return infra_error.Internal(infra_error.InternalGRPCError, fmt.Errorf(st.Message()))
+		return infra_error.Internal(infra_error.InternalGRPCError, st.Err())
 	case codes.Unavailable:
 		return infra_error.Internal(infra_error.InternalGRPCError, fmt.Errorf("service unavailable: %s", st.Message()))
 	default:

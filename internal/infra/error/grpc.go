@@ -25,31 +25,35 @@ var permissionDeniedCodes = map[string]bool{
 }
 
 // ToGRPCError converts an AppError to a gRPC status error
-func ToGRPCError(err *AppError) error {
+func ToGRPCError(err error) error {
 	if err == nil {
 		return nil
 	}
 
+	appErr, ok := err.(*AppError)
+	if !ok {
+		return Internal(InternalUnexpectedError, err)
+	}
 	// Determine the gRPC status code
 	grpcCode := codes.Internal
-	if code, ok := categoryToGRPCCode[err.Category]; ok {
+	if code, ok := categoryToGRPCCode[appErr.Category]; ok {
 		grpcCode = code
 	}
 
 	// Special handling for permission-related auth errors
-	if err.Category == CategoryAuth && permissionDeniedCodes[err.Code] {
+	if appErr.Category == CategoryAuth && permissionDeniedCodes[appErr.Code] {
 		grpcCode = codes.PermissionDenied
 	}
 
 	// Create gRPC status with error details
-	st := status.New(grpcCode, err.Message)
+	st := status.New(grpcCode, appErr.Message)
 
 	// Add error details as JSON in the status details
 	details := &errorDetails{
-		Code:     err.Code,
-		Category: string(err.Category),
-		Message:  err.Message,
-		Details:  err.Details,
+		Code:     appErr.Code,
+		Category: string(appErr.Category),
+		Message:  appErr.Message,
+		Details:  appErr.Details,
 	}
 
 	// Serialize details to JSON and add to status

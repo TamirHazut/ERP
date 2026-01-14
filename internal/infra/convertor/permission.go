@@ -1,7 +1,6 @@
 package convertor
 
 import (
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -9,7 +8,7 @@ import (
 
 	infra_error "erp.localhost/internal/infra/error"
 	model_auth "erp.localhost/internal/infra/model/auth"
-	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
+	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
 )
 
 // =============================================================================
@@ -167,48 +166,4 @@ func PermissionToUpdateProto(perm *model_auth.Permission) (*proto_auth.UpdatePer
 		Resource:    &perm.Resource,
 		Action:      &perm.Action,
 	}, nil
-}
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-// PermissionObjectIDFromString converts hex string to primitive.ObjectID
-func PermissionObjectIDFromString(id string) (primitive.ObjectID, error) {
-	if id == "" {
-		return primitive.NilObjectID, infra_error.Validation(infra_error.ValidationInvalidValue, "id")
-	}
-	return primitive.ObjectIDFromHex(id)
-}
-
-// =============================================================================
-// Permission Identifier Converters (for verification)
-// =============================================================================
-
-// PermissionIdentifierToString converts permission identifier to a string format
-// Format: "resource:action" (e.g., "users:create")
-func PermissionIdentifierToString(identifier *proto_auth.PermissionIdentifier) string {
-	if identifier == nil {
-		return ""
-	}
-	return identifier.Resource + ":" + identifier.Action
-}
-
-// PermissionIdentifierFromString parses a permission string into components
-// Input format: "resource:action" (e.g., "users:create")
-func PermissionIdentifierFromString(permString string) *proto_auth.PermissionIdentifier {
-	// This is a simple implementation - you may want to add validation
-	// Parse the permission string (format: "resource:action")
-	// For a more robust implementation, add proper parsing logic
-	permSplt := strings.Split(permString, ":")
-	if len(permSplt) != 2 {
-		return nil
-	}
-	if !model_auth.IsValidResourceType(permSplt[0]) || !model_auth.IsValidPermissionAction(permSplt[1]) {
-		return nil
-	}
-	return &proto_auth.PermissionIdentifier{
-		Resource: strings.ToLower(permSplt[0]), // Parse from permString
-		Action:   strings.ToLower(permSplt[1]), // Parse from permString
-	}
 }

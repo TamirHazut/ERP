@@ -7,7 +7,7 @@
 package authv1
 
 import (
-	v1 "erp.localhost/internal/infra/proto/infra/v1"
+	v1 "erp.localhost/internal/infra/proto/generated/infra/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -1763,7 +1763,7 @@ const file_auth_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"DeleteUser\x12\x1a.auth.v1.DeleteUserRequest\x1a\x1b.auth.v1.DeleteUserResponse\x127\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x17.auth.v1.TokensResponse\x129\n" +
-	"\x06Logout\x12\x16.auth.v1.LogoutRequest\x1a\x17.auth.v1.LogoutResponseB3Z1erp.localhost/internal/infra/proto/auth/v1;authv1b\x06proto3"
+	"\x06Logout\x12\x16.auth.v1.LogoutRequest\x1a\x17.auth.v1.LogoutResponseB=Z;erp.localhost/internal/infra/proto/generated/auth/v1;authv1b\x06proto3"
 
 var (
 	file_auth_v1_user_proto_rawDescOnce sync.Once

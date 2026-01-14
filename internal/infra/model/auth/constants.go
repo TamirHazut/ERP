@@ -32,6 +32,11 @@ func IsValidUserStatus(userStatus string) bool {
 }
 
 /* Tenant */
+// System tenant ID for cross-tenant operations
+const (
+	SystemTenantID = "system"
+)
+
 // Tenant statuses
 const (
 	TenantStatusActive    = "active"

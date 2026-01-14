@@ -2,17 +2,18 @@ package service
 
 import (
 	"context"
-	"fmt"
 
+	"erp.localhost/internal/auth/api"
 	collection "erp.localhost/internal/auth/collection"
 	"erp.localhost/internal/infra/convertor"
 	mongo_collection "erp.localhost/internal/infra/db/mongo/collection"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 	model_shared "erp.localhost/internal/infra/model/shared"
-	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
-	proto_infra "erp.localhost/internal/infra/proto/infra/v1"
+	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
+	proto_infra "erp.localhost/internal/infra/proto/generated/infra/v1"
 	"erp.localhost/internal/infra/proto/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,27 +23,22 @@ type TenantService struct {
 	logger           logger.Logger
 	tenantCollection *collection.TenantCollection
 	tenantSeeder     *TenantSeeder
-	authGRPCClient   proto_auth.AuthServiceClient
-	rbacGRPCClient   proto_auth.RBACServiceClient
+	authAPI          *api.AuthAPI
+	rbacAPI          *api.RBACAPI
 	proto_auth.UnimplementedTenantServiceServer
 }
 
-func NewTenantService(authGRPCClient proto_auth.AuthServiceClient, rbacGRPCClient proto_auth.RBACServiceClient) *TenantService {
+func NewTenantService(authAPI *api.AuthAPI, rbacAPI *api.RBACAPI) *TenantService {
 	logger := logger.NewBaseLogger(model_shared.ModuleCore)
 
-	tc := mongo_collection.NewBaseCollectionHandler[model_auth.Tenant](model_mongo.CoreDB, model_mongo.TenantsCollection, logger)
-	if tc == nil {
-		logger.Fatal("failed to create tenants collection handler")
-		return nil
-	}
-
-	tenantCollection := collection.NewTenantCollection(tc, logger)
+	tenantHandler := mongo_collection.NewBaseCollectionHandler[model_auth.Tenant](model_mongo.AuthDB, model_mongo.TenantsCollection, logger)
+	tenantCollection := collection.NewTenantCollection(tenantHandler, logger)
 	if tenantCollection == nil {
 		logger.Fatal("failed to create tenants collection")
 		return nil
 	}
 
-	tenantSeeder := NewTenantSeeder(rbacGRPCClient, logger)
+	tenantSeeder := NewTenantSeeder(rbacAPI, logger)
 	if tenantSeeder == nil {
 		logger.Fatal("failed to create tenant seeder")
 		return nil
@@ -52,8 +48,8 @@ func NewTenantService(authGRPCClient proto_auth.AuthServiceClient, rbacGRPCClien
 		logger:           logger,
 		tenantCollection: tenantCollection,
 		tenantSeeder:     tenantSeeder,
-		authGRPCClient:   authGRPCClient,
-		rbacGRPCClient:   rbacGRPCClient,
+		authAPI:          authAPI,
+		rbacAPI:          rbacAPI,
 	}
 }
 
@@ -63,43 +59,18 @@ func (t *TenantService) checkPermission(ctx context.Context, tenantID, userID, r
 	permString, err := model_auth.CreatePermissionString(resource, action)
 	if err != nil {
 		t.logger.Error("invalid permission format", "resource", resource, "action", action, "error", err)
-		return status.Error(codes.InvalidArgument, "invalid permission format")
+		return err
 	}
 
-	// Build RBAC verification request
-	req := &proto_auth.VerifyUserResourceRequest{
-		Identifier: &proto_infra.UserIdentifier{
-			TenantId: tenantID,
-			UserId:   userID,
-		},
-		ResourceType: proto_auth.ResourceType_RESOURCE_TYPE_PERMISSION,
-		Resources: []*proto_auth.VerifyResource{
-			{
-				Resource: &proto_auth.VerifyResource_Permission{
-					Permission: &proto_auth.Permission{
-						Identifier: &proto_auth.Permission_Permission{
-							Permission: &proto_auth.PermissionIdentifier{
-								Resource: resource,
-								Action:   action,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// Call RBAC service
-	resp, err := t.rbacGRPCClient.VerifyUserResource(ctx, req)
+	permissions := []string{permString}
+	res, err := t.rbacAPI.Verification.CheckPermissions(tenantID, userID, permissions)
 	if err != nil {
-		t.logger.Error("RBAC verification failed", "error", err, "user_id", userID, "permission", permString)
-		return status.Error(codes.Internal, "failed to verify permissions")
+		return err
 	}
-
 	// Check result
-	if len(resp.Resources) == 0 || !resp.Resources[0].GetPermission().GetHasPermission().GetValue() {
+	if !res[permString] {
 		t.logger.Warn("permission denied", "user_id", userID, "tenant_id", tenantID, "permission", permString)
-		return status.Error(codes.PermissionDenied, fmt.Sprintf("missing required permission: %s", permString))
+		return infra_error.Auth(infra_error.AuthPermissionDenied)
 	}
 
 	t.logger.Debug("permission check passed", "user_id", userID, "permission", permString)
@@ -110,14 +81,13 @@ func (t *TenantService) CreateTenant(ctx context.Context, req *proto_auth.Create
 	// Step 1: Validate identifier
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		t.logger.Error("invalid identifier", "error", errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		t.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 2: Check RBAC permission
 	if err := t.checkPermission(ctx, identifier.TenantId, identifier.UserId, model_auth.ResourceTypeTenant, model_auth.PermissionActionCreate); err != nil {
-		return nil, err
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 3: Validate tenant data
@@ -133,14 +103,14 @@ func (t *TenantService) CreateTenant(ctx context.Context, req *proto_auth.Create
 	tenant, err := convertor.CreateTenantFromProto(tenantData)
 	if err != nil {
 		t.logger.Error("failed to convert proto to tenant model", "error", err)
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 5: Create tenant in MongoDB
 	tenantID, err := t.tenantCollection.CreateTenant(tenant)
 	if err != nil {
 		t.logger.Error("failed to create tenant", "error", err)
-		return nil, status.Error(codes.Internal, "failed to create tenant")
+		return nil, infra_error.ToGRPCError(err)
 	}
 	t.logger.Info("tenant created in database", "tenant_id", tenantID)
 
@@ -165,14 +135,13 @@ func (t *TenantService) GetTenant(ctx context.Context, req *proto_auth.GetTenant
 	// Step 1: Validate identifier
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		t.logger.Error("invalid identifier", "error", errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		t.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 2: Check RBAC permission
 	if err := t.checkPermission(ctx, identifier.TenantId, identifier.UserId, model_auth.ResourceTypeTenant, model_auth.PermissionActionRead); err != nil {
-		return nil, err
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 3: Extract tenant identifier from oneof
@@ -188,13 +157,13 @@ func (t *TenantService) GetTenant(ctx context.Context, req *proto_auth.GetTenant
 		tenant, err = t.tenantCollection.GetTenantByName(v.Name)
 	default:
 		t.logger.Error("tenant identifier not provided")
-		return nil, status.Error(codes.InvalidArgument, "tenant_id or name is required")
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id or name is required")
 	}
 
 	// Step 4: Handle errors
 	if err != nil {
 		t.logger.Error("failed to get tenant", "error", err)
-		return nil, status.Error(codes.NotFound, "tenant not found")
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 5: Convert model → proto
@@ -212,14 +181,13 @@ func (t *TenantService) GetTenants(ctx context.Context, req *proto_auth.GetTenan
 	// Step 1: Validate identifier
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		t.logger.Error("invalid identifier", "error", errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		t.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 2: Check RBAC permission
 	if err := t.checkPermission(ctx, identifier.TenantId, identifier.UserId, model_auth.ResourceTypeTenant, model_auth.PermissionActionRead); err != nil {
-		return nil, err
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 3: Get tenants with optional status filter
@@ -236,7 +204,7 @@ func (t *TenantService) GetTenants(ctx context.Context, req *proto_auth.GetTenan
 
 	if err != nil {
 		t.logger.Error("failed to get tenants", "error", err)
-		return nil, status.Error(codes.Internal, "failed to get tenants")
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 4: Convert models → proto
@@ -264,14 +232,13 @@ func (t *TenantService) UpdateTenant(ctx context.Context, req *proto_auth.Update
 	// Step 1: Validate identifier
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		t.logger.Error("invalid identifier", "error", errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		t.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 2: Check RBAC permission
 	if err := t.checkPermission(ctx, identifier.TenantId, identifier.UserId, model_auth.ResourceTypeTenant, model_auth.PermissionActionUpdate); err != nil {
-		return nil, err
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 3: Validate tenant data
@@ -292,19 +259,19 @@ func (t *TenantService) UpdateTenant(ctx context.Context, req *proto_auth.Update
 	existingTenant, err := t.tenantCollection.GetTenantByID(tenantData.Id)
 	if err != nil {
 		t.logger.Error("failed to get existing tenant", "tenant_id", tenantData.Id, "error", err)
-		return nil, status.Error(codes.NotFound, "tenant not found")
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 5: Apply updates from proto
 	if err := convertor.UpdateTenantFromProto(existingTenant, tenantData); err != nil {
 		t.logger.Error("failed to apply updates", "tenant_id", tenantData.Id, "error", err)
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 6: Update in MongoDB
 	if err := t.tenantCollection.UpdateTenant(existingTenant); err != nil {
 		t.logger.Error("failed to update tenant", "tenant_id", tenantData.Id, "error", err)
-		return nil, status.Error(codes.Internal, "failed to update tenant")
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	t.logger.Info("tenant updated successfully", "tenant_id", tenantData.Id)
@@ -315,22 +282,17 @@ func (t *TenantService) DeleteTenant(ctx context.Context, req *proto_auth.Delete
 	// Step 1: Validate identifier
 	identifier := req.GetIdentifier()
 	if err := validator.ValidateUserIdentifier(identifier); err != nil {
-		errMsg := err.Error()
-		t.logger.Error("invalid identifier", "error", errMsg)
-		return nil, status.Error(codes.InvalidArgument, errMsg)
+		t.logger.Error("invalid identifier", "error", err)
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 2: Check RBAC permission
 	if err := t.checkPermission(ctx, identifier.TenantId, identifier.UserId, model_auth.ResourceTypeTenant, model_auth.PermissionActionDelete); err != nil {
-		return nil, err
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 3: Validate tenant_id
-	tenantID := req.TenantId
-	if tenantID == "" {
-		t.logger.Error("tenant_id is required")
-		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
-	}
+	tenantID := req.GetTenantId()
 
 	t.logger.Info("starting tenant deletion cascade", "tenant_id", tenantID, "requested_by", identifier.UserId)
 
@@ -338,17 +300,14 @@ func (t *TenantService) DeleteTenant(ctx context.Context, req *proto_auth.Delete
 	_, err := t.tenantCollection.GetTenantByID(tenantID)
 	if err != nil {
 		t.logger.Error("tenant not found", "tenant_id", tenantID, "error", err)
-		return nil, status.Error(codes.NotFound, "tenant not found")
+		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// STEP 5: Revoke all tokens for ALL users in this tenant (bulk operation)
 	// This will revoke all access tokens and refresh tokens for every user in the tenant
 	t.logger.Info("revoking all tokens for tenant", "tenant_id", tenantID)
-	revokeReq := &proto_auth.RevokeAllTenantTokensRequest{
-		TenantId:  tenantID,
-		RevokedBy: identifier.UserId,
-	}
-	if _, err := t.authGRPCClient.RevokeAllTenantTokens(ctx, revokeReq); err != nil {
+
+	if _, _, err := t.authAPI.RevokeAllTenantTokens(tenantID, identifier.GetUserId()); err != nil {
 		t.logger.Error("failed to revoke tokens for tenant", "tenant_id", tenantID, "error", err)
 		// Continue with deletion even if this fails
 	} else {

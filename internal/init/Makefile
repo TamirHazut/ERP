@@ -1,6 +1,6 @@
 # init Service Makefile
 
-.PHONY: build run lint clean help
+.PHONY: build test test-coverage run lint clean help mocks mocks-clean
 
 # Service configuration
 SERVICE_NAME := init
@@ -23,6 +23,17 @@ build: ## Build init service
 	@go build -o $(BIN_DIR)/$(SERVICE_NAME) $(CMD_DIR)
 	@echo "✓ Init service built: $(BIN_DIR)/$(SERVICE_NAME)"
 
+test: mocks ## Run init service tests
+	@echo "Running init service tests..."
+	@go test -v -count=1 ./...
+	@echo "✓ Init tests complete"
+
+test-coverage: mocks ## Run tests with coverage
+	@echo "Running init service tests with coverage..."
+	@go test -v -coverprofile=$(INTERNAL_DIR)/coverage.out ./...
+	@go tool cover -html=$(INTERNAL_DIR)/coverage.out -o $(INTERNAL_DIR)/coverage.html
+	@echo "✓ Coverage report generated: $(INTERNAL_DIR)/coverage.html"
+
 run: ## Run init service
 	@echo "Starting init service..."
 	@go run $(CMD_DIR)
@@ -36,3 +47,13 @@ clean: ## Clean build artifacts
 	@echo "Cleaning init service artifacts..."
 	@rm -f $(INTERNAL_DIR)/coverage.out $(INTERNAL_DIR)/coverage.html
 	@echo "✓ Clean complete"
+
+mocks: mocks-clean
+	@echo "Generating infra mocks..."
+	@go generate ./...
+	@echo "✅ Init mocks generated successfully"
+
+mocks-clean:
+	@echo "Cleaning generated infra mocks..."
+	@find . -path "*/mocks/mock_*.go" -type f -delete
+	@echo "✅ Init mocks cleaned"

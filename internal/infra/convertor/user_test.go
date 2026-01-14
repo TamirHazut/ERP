@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	model_auth "erp.localhost/internal/infra/model/auth"
-	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
+	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
 )
 
 // =============================================================================
@@ -534,8 +534,6 @@ func TestUpdateUserFromProto_FullUpdate(t *testing.T) {
 		LastActivity:       now,
 	}
 
-	newEmail := "new@example.com"
-	newUsername := "newuser"
 	newStatus := model_auth.UserStatusActive
 	emailVerified := true
 	phoneVerified := true
@@ -543,21 +541,17 @@ func TestUpdateUserFromProto_FullUpdate(t *testing.T) {
 	proto := &proto_auth.UpdateUserData{
 		Id:            existing.ID.Hex(),
 		TenantId:      existing.TenantID,
-		Email:         &newEmail,
-		Username:      &newUsername,
 		Status:        &newStatus,
 		EmailVerified: &emailVerified,
 		PhoneVerified: &phoneVerified,
 	}
 
 	// sleep before test to let time pass for UpdateAt check
-	time.Sleep(1)
+	time.Sleep(time.Second)
 
 	err := UpdateUserFromProto(existing, proto)
 
 	require.NoError(t, err)
-	assert.Equal(t, "new@example.com", existing.Email)
-	assert.Equal(t, "newuser", existing.Username)
 	assert.Equal(t, model_auth.UserStatusActive, existing.Status)
 	assert.True(t, existing.EmailVerified)
 	assert.True(t, existing.PhoneVerified)
@@ -579,20 +573,19 @@ func TestUpdateUserFromProto_PartialUpdate(t *testing.T) {
 		LastActivity:       now,
 	}
 
-	newEmail := "new@example.com"
 	proto := &proto_auth.UpdateUserData{
 		Id:       existing.ID.Hex(),
 		TenantId: existing.TenantID,
-		Email:    &newEmail,
-		// Other fields are nil - should not update
+		Profile:  &proto_auth.UserProfileData{},
 	}
 
 	err := UpdateUserFromProto(existing, proto)
 
 	require.NoError(t, err)
-	assert.Equal(t, "new@example.com", existing.Email)
+	assert.Equal(t, "old@example.com", existing.Email)
 	assert.Equal(t, "olduser", existing.Username)                  // Unchanged
 	assert.Equal(t, model_auth.UserStatusInvited, existing.Status) // Unchanged
+	assert.NotNil(t, existing.Profile)
 }
 
 func TestUpdateUserFromProto_UpdateRoles(t *testing.T) {

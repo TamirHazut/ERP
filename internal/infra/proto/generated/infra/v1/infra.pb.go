@@ -433,7 +433,7 @@ const file_infra_v1_infra_proto_rawDesc = "" +
 	"\x18ERROR_CATEGORY_NOT_FOUND\x10\x03\x12\x1b\n" +
 	"\x17ERROR_CATEGORY_CONFLICT\x10\x04\x12\x1b\n" +
 	"\x17ERROR_CATEGORY_BUSINESS\x10\x05\x12\x1b\n" +
-	"\x17ERROR_CATEGORY_INTERNAL\x10\x06B5Z3erp.localhost/internal/infra/proto/infra/v1;infrav1b\x06proto3"
+	"\x17ERROR_CATEGORY_INTERNAL\x10\x06B?Z=erp.localhost/internal/infra/proto/generated/infra/v1;infrav1b\x06proto3"
 
 var (
 	file_infra_v1_infra_proto_rawDescOnce sync.Once

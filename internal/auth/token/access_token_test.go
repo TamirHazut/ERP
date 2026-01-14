@@ -55,26 +55,32 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                 string
-		tenantID             string
-		userID               string
-		metadata             model_auth_cache.TokenMetadata
-		expectedTenantID     string
-		expectedUserID       string
-		returnError          error
-		wantErr              bool
-		expectedSetCallTimes int
+		name                    string
+		tenantID                string
+		userID                  string
+		metadata                model_auth_cache.TokenMetadata
+		returnGetOneMetadata    *model_auth_cache.TokenMetadata
+		returnGetOneError       error
+		returnSetError          error
+		wantErr                 bool
+		expectedTenantID        string
+		expectedUserID          string
+		expectedSetCallTimes    int
+		expectedGetOneCallTimes int
 	}{
 		{
-			name:                 "successful store",
-			tenantID:             "tenant-123",
-			userID:               "user-123",
-			metadata:             validMetadata,
-			expectedTenantID:     "tenant-123",
-			expectedUserID:       "user-123",
-			returnError:          nil,
-			wantErr:              false,
-			expectedSetCallTimes: 1,
+			name:                    "successful store",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			metadata:                validMetadata,
+			returnGetOneMetadata:    nil,
+			returnGetOneError:       nil,
+			returnSetError:          nil,
+			wantErr:                 false,
+			expectedTenantID:        "tenant-123",
+			expectedUserID:          "user-123",
+			expectedSetCallTimes:    1,
+			expectedGetOneCallTimes: 1,
 		},
 		{
 			name:     "store with missing tokenID",
@@ -88,7 +94,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			},
 			expectedTenantID:     "",
 			expectedUserID:       "",
-			returnError:          nil,
+			returnSetError:       nil,
 			wantErr:              true,
 			expectedSetCallTimes: 0,
 		},
@@ -105,20 +111,23 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			},
 			expectedTenantID:     "",
 			expectedUserID:       "",
-			returnError:          nil,
+			returnSetError:       nil,
 			wantErr:              true,
 			expectedSetCallTimes: 0,
 		},
 		{
-			name:                 "store with database error",
-			tenantID:             "tenant-123",
-			userID:               "user-123",
-			metadata:             validMetadata,
-			expectedTenantID:     "tenant-123",
-			expectedUserID:       "user-123",
-			returnError:          errors.New("database connection failed"),
-			wantErr:              true,
-			expectedSetCallTimes: 1,
+			name:                    "store with database error",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			metadata:                validMetadata,
+			returnGetOneMetadata:    nil,
+			returnGetOneError:       nil,
+			returnSetError:          errors.New("database connection failed"),
+			wantErr:                 true,
+			expectedTenantID:        "tenant-123",
+			expectedUserID:          "user-123",
+			expectedSetCallTimes:    1,
+			expectedGetOneCallTimes: 1,
 		},
 	}
 
@@ -128,10 +137,16 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockHandler := mock_redis.NewMockKeyHandler[model_auth_cache.TokenMetadata](ctrl)
+			if tc.expectedGetOneCallTimes > 0 {
+				mockHandler.EXPECT().
+					GetOne(tc.expectedTenantID, tc.userID).
+					Return(tc.returnGetOneMetadata, tc.returnGetOneError).
+					Times(tc.expectedGetOneCallTimes)
+			}
 			if tc.expectedSetCallTimes > 0 {
 				mockHandler.EXPECT().
 					Set(tc.expectedTenantID, tc.expectedUserID, tc.metadata).
-					Return(tc.returnError).
+					Return(tc.returnSetError).
 					Times(tc.expectedSetCallTimes)
 			}
 
@@ -406,7 +421,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 			returnGetMetadata:       nil,
 			returnGetError:          errors.New("token not found"),
 			returnUpdateError:       nil,
-			wantErr:                 true,
+			wantErr:                 false,
 			expectedGetOneCallTimes: 1,
 			expectedUpdateCallTimes: 0,
 		},

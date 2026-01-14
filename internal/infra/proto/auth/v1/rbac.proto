@@ -2,10 +2,9 @@ syntax = "proto3";
 
 package auth.v1;
 
-option go_package = "erp.localhost/internal/infra/proto/auth/v1;authv1";
+option go_package = "erp.localhost/internal/infra/proto/generated/auth/v1;authv1";
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/wrappers.proto";
 import "infra/v1/infra.proto";
 
 // ============================================================================
@@ -25,7 +24,7 @@ message RoleData {
     string slug = 4;
     string description = 5;
     string type = 6;                                // "system" or "custom"
-    bool is_system_role = 7;
+    bool is_tenant_admin = 7;                       // Tenant admin role flag
     repeated string permissions = 8;
     int32 priority = 9;
     string status = 10;                             // "active" or "inactive"
@@ -50,20 +49,6 @@ message PermissionData {
 }
 
 // ============================================================================
-// Generic Resource Message (for responses)
-// ============================================================================
-
-message Resource {
-    oneof resource {
-        RoleData role = 1;
-        PermissionData permission = 2;
-        // Future: add more resource types here
-        // Team team = 3;
-        // Policy policy = 4;
-    }
-}
-
-// ============================================================================
 // Create Resource Request
 // ============================================================================
 
@@ -73,7 +58,7 @@ message CreateRoleData {
     string slug = 3;
     string description = 4;
     string type = 5;
-    bool is_system_role = 6;
+    bool is_tenant_admin = 6;                       // Tenant admin role flag
     repeated string permissions = 7;
     int32 priority = 8;
     string status = 9;
@@ -92,15 +77,6 @@ message CreatePermissionData {
     string created_by = 8;
 }
 
-message CreateResourceRequest {
-    infra.v1.UserIdentifier identifier = 1;
-    ResourceType resourceType = 2;
-    oneof resource {
-        CreateRoleData role = 3;
-        CreatePermissionData permission = 4;
-    }
-}
-
 // ============================================================================
 // Update Resource Request
 // ============================================================================
@@ -112,7 +88,7 @@ message UpdateRoleData {
     optional string slug = 4;
     optional string description = 5;
     optional string type = 6;
-    optional bool is_system_role = 7;
+    optional bool is_tenant_admin = 7;              // Tenant admin role flag
     repeated string permissions = 8;
     optional int32 priority = 9;
     optional string status = 10;
@@ -130,67 +106,6 @@ message UpdatePermissionData {
     optional string status = 8;
 }
 
-message UpdateResourceRequest {
-    infra.v1.UserIdentifier identifier = 1;
-    ResourceType resourceType = 2;
-    oneof resource {
-        UpdateRoleData role = 3;
-        UpdatePermissionData permission = 4;
-    }
-}
-
-// ============================================================================
-// Get/Delete Resource Requests
-// ============================================================================
-
-enum ResourceType {
-    RESOURCE_TYPE_UNSPECIFIED = 0;
-    RESOURCE_TYPE_ROLE = 1;
-    RESOURCE_TYPE_PERMISSION = 2;
-}
-
-message GetResourceRequest {
-    infra.v1.UserIdentifier identifier = 1;
-    ResourceType resource_type = 2;
-    string id = 3;
-}
-
-message DeleteResourceRequest {
-    infra.v1.UserIdentifier identifier = 1;
-    ResourceType resource_type = 2;
-    oneof resource {
-        string resource_id = 3;
-        string tenant_id = 4;
-    }
-}
-
-// ============================================================================
-// List Resources Request
-// ============================================================================
-
-message ListResourcesRequest {
-    infra.v1.UserIdentifier identifier = 1;
-    ResourceType resource_type = 2;
-    optional string status = 3;                     // Filter
-    optional infra.v1.PaginationRequest pagination = 4;
-}
-
-message ListResourcesResponse {
-    repeated Resource resources = 1;
-    infra.v1.PaginationResponse pagination = 2;
-}
-
-// ============================================================================
-// Response Messages
-// ============================================================================
-
-message ResourceResponse {
-    Resource resource = 1;
-}
-
-message CreateResourceResponse {
-    string resource_id = 1;
-}
 
 // ============================================================================
 // User Role Assignment
@@ -208,65 +123,170 @@ message RemoveRolesRequest {
     string removed_by = 3;                         // Who is removing the roles
 }
 
-// ============================================================================
-// Verify User Permissions/Roles
-// ============================================================================
-
-message VerifyUserResourceRequest {
-    infra.v1.UserIdentifier identifier = 1;        // User to verify
-    ResourceType resource_type = 2;                // resource type enum
-    repeated VerifyResource resources = 3;         // Permissions or role to check
-}
-
-message VerifyResource {
-    oneof resource {
-        Permission permission = 1;
-        Role role = 2;
-    }
-}
-
-message VerifyResourceResponse {
-    repeated VerifyResource resources = 1;
-}
-
-message Permission {
-    oneof identifier {
-        string permission_id = 1;
-        PermissionIdentifier permission = 2;
-    }                         
-    google.protobuf.BoolValue has_permission = 3;                       // Does user have this permission?
-}
-
-message PermissionIdentifier {
-    string resource = 1;
-    string action = 2;
-}
-
-message Role {
-    oneof identifier {
-        string role_id = 1;
-        string role_name = 2;
-    }
-    google.protobuf.BoolValue has_role = 3;                             // Does user have this role?
-}
-
-
 
 // ============================================================================
-// Service Definition
+// Dedicated Service Request/Response Messages
 // ============================================================================
 
-service RBACService {
-    // Generic CRUD operations
-    rpc CreateResource(CreateResourceRequest) returns (CreateResourceResponse);
-    rpc UpdateResource(UpdateResourceRequest) returns (infra.v1.Response);
-    rpc GetResource(GetResourceRequest) returns (ResourceResponse);
-    rpc ListResources(ListResourcesRequest) returns (ListResourcesResponse);
-    rpc DeleteResource(DeleteResourceRequest) returns (infra.v1.Response);
-    rpc VerifyUserResource(VerifyUserResourceRequest) returns (VerifyResourceResponse);
+// Role Service Messages
+message CreateRoleRequest {
+    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
+    CreateRoleData role = 2;                       // Role data to create
+    string target_tenant_id = 3;                   // Target tenant (for cross-tenant operations)
+}
 
-    // User-specific operations
-    //rpc AssignRolesToUser(AssignRolesRequest) returns (infra.v1.Response);
-    //rpc RemoveRolesFromUser(RemoveRolesRequest) returns (infra.v1.Response);
+message CreateRoleResponse {
+    string role_id = 1;
+}
 
+message UpdateRoleRequest {
+    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
+    UpdateRoleData role = 2;                       // Role data to update
+    string target_tenant_id = 3;                   // Target tenant (for cross-tenant operations)
+}
+
+message GetRoleRequest {
+    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
+    string role_id = 2;                            // Role ID to retrieve
+    string target_tenant_id = 3;                   // Target tenant (for cross-tenant operations)
+}
+
+message GetRoleResponse {
+    RoleData role = 1;
+}
+
+message ListRolesRequest {
+    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
+    string target_tenant_id = 2;                   // Target tenant (for cross-tenant operations)
+    optional infra.v1.PaginationRequest pagination = 3;
+}
+
+message ListRolesResponse {
+    repeated RoleData roles = 1;
+    infra.v1.PaginationResponse pagination = 2;
+}
+
+message DeleteRoleRequest {
+    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
+    string role_id = 2;                            // Role ID to delete
+    string target_tenant_id = 3;                   // Target tenant (for cross-tenant operations)
+}
+
+// Permission Service Messages
+message CreatePermissionRequest {
+    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
+    CreatePermissionData permission = 2;           // Permission data to create
+    string target_tenant_id = 3;                   // Target tenant (for cross-tenant operations)
+}
+
+message CreatePermissionResponse {
+    string permission_id = 1;
+}
+
+message UpdatePermissionRequest {
+    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
+    UpdatePermissionData permission = 2;           // Permission data to update
+    string target_tenant_id = 3;                   // Target tenant (for cross-tenant operations)
+}
+
+message GetPermissionRequest {
+    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
+    string permission_id = 2;                      // Permission ID to retrieve
+    string target_tenant_id = 3;                   // Target tenant (for cross-tenant operations)
+}
+
+message GetPermissionResponse {
+    PermissionData permission = 1;
+}
+
+message ListPermissionsRequest {
+    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
+    string target_tenant_id = 2;                   // Target tenant (for cross-tenant operations)
+    optional infra.v1.PaginationRequest pagination = 3;
+}
+
+message ListPermissionsResponse {
+    repeated PermissionData permissions = 1;
+    infra.v1.PaginationResponse pagination = 2;
+}
+
+message DeletePermissionRequest {
+    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
+    string permission_id = 2;                      // Permission ID to delete
+    string target_tenant_id = 3;                   // Target tenant (for cross-tenant operations)
+}
+
+// Verification Service Messages
+message CheckPermissionsRequest {
+    infra.v1.UserIdentifier identifier = 1;        // User to check
+    repeated string permissions = 2;               // Permissions to check
+}
+
+message CheckPermissionsResponse {
+    map<string, bool> permissions = 1;             // Map of permission -> has_permission
+}
+
+message HasPermissionRequest {
+    infra.v1.UserIdentifier identifier = 1;        // User to check
+    string permission = 2;                         // Permission to check
+    string target_tenant_id = 3;                   // Target tenant (for cross-tenant operations)
+}
+
+message HasPermissionResponse {
+    bool has_permission = 1;
+}
+
+message GetUserPermissionsRequest {
+    infra.v1.UserIdentifier identifier = 1;        // User to check
+}
+
+message GetUserPermissionsResponse {
+    map<string, bool> permissions = 1;             // Map of all user permissions
+}
+
+message GetUserRolesRequest {
+    infra.v1.UserIdentifier identifier = 1;        // User to check
+}
+
+message GetUserRolesResponse {
+    repeated string role_ids = 1;                  // List of role IDs
+}
+
+message IsSystemTenantUserRequest {
+    string tenant_id = 1;                          // Tenant ID to check
+}
+
+message IsSystemTenantUserResponse {
+    bool is_system_tenant = 1;
+}
+
+// ============================================================================
+// Dedicated Service Definitions
+// ============================================================================
+
+// RoleService provides role management operations
+service RoleService {
+    rpc CreateRole(CreateRoleRequest) returns (CreateRoleResponse);
+    rpc UpdateRole(UpdateRoleRequest) returns (infra.v1.Response);
+    rpc GetRole(GetRoleRequest) returns (GetRoleResponse);
+    rpc ListRoles(ListRolesRequest) returns (ListRolesResponse);
+    rpc DeleteRole(DeleteRoleRequest) returns (infra.v1.Response);
+}
+
+// PermissionService provides permission management operations
+service PermissionService {
+    rpc CreatePermission(CreatePermissionRequest) returns (CreatePermissionResponse);
+    rpc UpdatePermission(UpdatePermissionRequest) returns (infra.v1.Response);
+    rpc GetPermission(GetPermissionRequest) returns (GetPermissionResponse);
+    rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse);
+    rpc DeletePermission(DeletePermissionRequest) returns (infra.v1.Response);
+}
+
+// VerificationService provides permission and role verification operations
+service VerificationService {
+    rpc CheckPermissions(CheckPermissionsRequest) returns (CheckPermissionsResponse);
+    rpc HasPermission(HasPermissionRequest) returns (HasPermissionResponse);
+    rpc GetUserPermissions(GetUserPermissionsRequest) returns (GetUserPermissionsResponse);
+    rpc GetUserRoles(GetUserRolesRequest) returns (GetUserRolesResponse);
+    rpc IsSystemTenantUser(IsSystemTenantUserRequest) returns (IsSystemTenantUserResponse);
 }

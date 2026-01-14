@@ -15,6 +15,9 @@ type PermissionsCollection struct {
 }
 
 func NewPermissionCollection(collection collection.CollectionHandler[model_auth.Permission], logger logger.Logger) *PermissionsCollection {
+	if collection == nil {
+		return nil
+	}
 	return &PermissionsCollection{
 		collection: collection,
 		logger:     logger,

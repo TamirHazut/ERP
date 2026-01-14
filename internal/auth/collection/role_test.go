@@ -450,7 +450,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       roleID.String(),
+				"_id":       roleID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{
 				"tenant_id": "tenant1",
@@ -495,7 +495,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       roleID.String(),
+				"_id":       roleID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{},
 			returnFindRole:       nil,
@@ -518,7 +518,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       roleID.String(),
+				"_id":       roleID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{},
 			returnFindRole: &model_auth.Role{
@@ -545,7 +545,7 @@ func TestRoleCollection_UpdateRole(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       roleID.String(),
+				"_id":       roleID.Hex(),
 			},
 			expectedUpdateFilter: map[string]any{
 				"tenant_id": "tenant1",
@@ -626,13 +626,15 @@ func TestRoleCollection_DeleteRole(t *testing.T) {
 			expectedCallTimes: 0,
 		},
 		{
-			name:              "delete with empty role ID",
-			tenantID:          "tenant1",
-			roleID:            "",
-			expectedFilter:    map[string]any{},
+			name:     "delete with empty role ID",
+			tenantID: "tenant1",
+			roleID:   "",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+			},
 			returnError:       nil,
-			wantErr:           true,
-			expectedCallTimes: 0,
+			wantErr:           false,
+			expectedCallTimes: 1,
 		},
 		{
 			name:     "delete with database error",

@@ -8,7 +8,7 @@ import (
 
 	infra_error "erp.localhost/internal/infra/error"
 	model_auth "erp.localhost/internal/infra/model/auth"
-	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
+	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
 )
 
 // =============================================================================
@@ -22,20 +22,20 @@ func RoleToProto(role *model_auth.Role) *proto_auth.RoleData {
 	}
 
 	return &proto_auth.RoleData{
-		Id:           role.ID.Hex(),
-		TenantId:     role.TenantID,
-		Name:         role.Name,
-		Slug:         role.Slug,
-		Description:  role.Description,
-		Type:         role.Type,
-		IsSystemRole: role.IsSystemRole,
-		Permissions:  role.Permissions,
-		Priority:     int32(role.Priority),
-		Status:       role.Status,
-		Metadata:     RoleMetadataToProto(&role.Metadata),
-		CreatedAt:    timestamppb.New(role.CreatedAt),
-		UpdatedAt:    timestamppb.New(role.UpdatedAt),
-		CreatedBy:    role.CreatedBy,
+		Id:            role.ID.Hex(),
+		TenantId:      role.TenantID,
+		Name:          role.Name,
+		Slug:          role.Slug,
+		Description:   role.Description,
+		Type:          role.Type,
+		IsTenantAdmin: role.IsTenantAdmin,
+		Permissions:   role.Permissions,
+		Priority:      int32(role.Priority),
+		Status:        role.Status,
+		Metadata:      RoleMetadataToProto(&role.Metadata),
+		CreatedAt:     timestamppb.New(role.CreatedAt),
+		UpdatedAt:     timestamppb.New(role.UpdatedAt),
+		CreatedBy:     role.CreatedBy,
 	}
 }
 
@@ -68,16 +68,16 @@ func ProtoToRole(pb *proto_auth.RoleData) (*model_auth.Role, error) {
 	id, _ := primitive.ObjectIDFromHex(pb.Id)
 
 	return &model_auth.Role{
-		ID:           id,
-		TenantID:     pb.TenantId,
-		Name:         pb.Name,
-		Slug:         pb.Slug,
-		Description:  pb.Description,
-		Type:         pb.Type,
-		IsSystemRole: pb.IsSystemRole,
-		Permissions:  pb.Permissions,
-		Priority:     int(pb.Priority),
-		Status:       pb.Status,
+		ID:            id,
+		TenantID:      pb.TenantId,
+		Name:          pb.Name,
+		Slug:          pb.Slug,
+		Description:   pb.Description,
+		Type:          pb.Type,
+		IsTenantAdmin: pb.IsTenantAdmin,
+		Permissions:   pb.Permissions,
+		Priority:      int(pb.Priority),
+		Status:        pb.Status,
 		Metadata: model_auth.RoleMetadata{
 			Color:         pb.Metadata.GetColor(),
 			Icon:          pb.Metadata.GetIcon(),
@@ -100,18 +100,18 @@ func CreateRoleFromProto(proto *proto_auth.CreateRoleData) (*model_auth.Role, er
 	}
 
 	role := &model_auth.Role{
-		TenantID:     proto.TenantId,
-		Name:         proto.Name,
-		Slug:         proto.Slug,
-		Description:  proto.Description,
-		Type:         proto.Type,
-		IsSystemRole: proto.IsSystemRole,
-		Permissions:  proto.Permissions,
-		Priority:     int(proto.Priority),
-		Status:       proto.Status,
-		CreatedBy:    proto.CreatedBy,
-		CreatedAt:    time.Now(), // Set by service layer
-		UpdatedAt:    time.Now(),
+		TenantID:      proto.TenantId,
+		Name:          proto.Name,
+		Slug:          proto.Slug,
+		Description:   proto.Description,
+		Type:          proto.Type,
+		IsTenantAdmin: proto.IsTenantAdmin,
+		Permissions:   proto.Permissions,
+		Priority:      int(proto.Priority),
+		Status:        proto.Status,
+		CreatedBy:     proto.CreatedBy,
+		CreatedAt:     time.Now(), // Set by service layer
+		UpdatedAt:     time.Now(),
 	}
 
 	// Handle optional metadata
@@ -131,15 +131,15 @@ func RoleToCreateProto(role *model_auth.Role) (*proto_auth.CreateRoleData, error
 		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "role")
 	}
 	return &proto_auth.CreateRoleData{
-		TenantId:     role.TenantID,
-		Name:         role.Name,
-		Slug:         role.Slug,
-		Description:  role.Description,
-		Type:         role.Type,
-		IsSystemRole: role.IsSystemRole,
-		Permissions:  role.Permissions,
-		Priority:     int32(role.Priority),
-		Status:       role.Status,
+		TenantId:      role.TenantID,
+		Name:          role.Name,
+		Slug:          role.Slug,
+		Description:   role.Description,
+		Type:          role.Type,
+		IsTenantAdmin: role.IsTenantAdmin,
+		Permissions:   role.Permissions,
+		Priority:      int32(role.Priority),
+		Status:        role.Status,
 		Metadata: &proto_auth.RoleMetadata{
 			Color:         role.Metadata.Color,
 			Icon:          role.Metadata.Icon,
@@ -176,8 +176,8 @@ func UpdateRoleFromProto(existing *model_auth.Role, proto *proto_auth.UpdateRole
 	if proto.Type != nil {
 		existing.Type = *proto.Type
 	}
-	if proto.IsSystemRole != nil {
-		existing.IsSystemRole = *proto.IsSystemRole
+	if proto.IsTenantAdmin != nil {
+		existing.IsTenantAdmin = *proto.IsTenantAdmin
 	}
 
 	// Permissions is a repeated field, if present replace the whole list
@@ -210,16 +210,16 @@ func RoleToUpdateProto(role *model_auth.Role) (*proto_auth.UpdateRoleData, error
 		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "role")
 	}
 	return &proto_auth.UpdateRoleData{
-		Id:           role.ID.Hex(),
-		TenantId:     role.TenantID,
-		Name:         &role.Name,
-		Slug:         &role.Slug,
-		Description:  &role.Description,
-		Type:         &role.Type,
-		IsSystemRole: &role.IsSystemRole,
-		Permissions:  role.Permissions,
-		Priority:     ptrInt32(int32(role.Priority)),
-		Status:       &role.Status,
+		Id:            role.ID.Hex(),
+		TenantId:      role.TenantID,
+		Name:          &role.Name,
+		Slug:          &role.Slug,
+		Description:   &role.Description,
+		Type:          &role.Type,
+		IsTenantAdmin: &role.IsTenantAdmin,
+		Permissions:   role.Permissions,
+		Priority:      ptrInt32(int32(role.Priority)),
+		Status:        &role.Status,
 		Metadata: &proto_auth.RoleMetadata{
 			Color:         role.Metadata.Color,
 			Icon:          role.Metadata.Icon,

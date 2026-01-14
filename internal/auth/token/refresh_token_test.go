@@ -54,26 +54,28 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                 string
-		tenantID             string
-		userID               string
-		refreshToken         model_auth.RefreshToken
-		expectedTenantID     string
-		expectedKey          string
-		returnError          error
-		wantErr              bool
-		expectedSetCallTimes int
+		name                    string
+		tenantID                string
+		userID                  string
+		refreshToken            model_auth.RefreshToken
+		returnGetOneToken       *model_auth.RefreshToken
+		returnGetOneError       error
+		returnSetError          error
+		wantErr                 bool
+		expectedSetCallTimes    int
+		expectedGetOneCallTimes int
 	}{
 		{
-			name:                 "successful store",
-			tenantID:             "tenant-123",
-			userID:               "user-123",
-			refreshToken:         validToken,
-			expectedTenantID:     "tenant-123",
-			expectedKey:          "user-123:token-123",
-			returnError:          nil,
-			wantErr:              false,
-			expectedSetCallTimes: 1,
+			name:                    "successful store",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			refreshToken:            validToken,
+			returnGetOneToken:       nil,
+			returnGetOneError:       nil,
+			returnSetError:          nil,
+			wantErr:                 false,
+			expectedSetCallTimes:    1,
+			expectedGetOneCallTimes: 1,
 		},
 		{
 			name:     "store with validation error - missing token",
@@ -85,9 +87,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 				ExpiresAt: time.Now().Add(24 * time.Hour),
 				CreatedAt: time.Now(),
 			},
-			expectedTenantID:     "",
-			expectedKey:          "",
-			returnError:          nil,
+			returnSetError:       nil,
 			wantErr:              true,
 			expectedSetCallTimes: 0,
 		},
@@ -102,22 +102,21 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 				ExpiresAt: time.Now().Add(24 * time.Hour),
 				CreatedAt: time.Now(),
 			},
-			expectedTenantID:     "",
-			expectedKey:          "",
-			returnError:          nil,
+			returnSetError:       nil,
 			wantErr:              true,
 			expectedSetCallTimes: 0,
 		},
 		{
-			name:                 "store with database error",
-			tenantID:             "tenant-123",
-			userID:               "user-123",
-			refreshToken:         validToken,
-			expectedTenantID:     "tenant-123",
-			expectedKey:          "user-123:token-123",
-			returnError:          errors.New("database connection failed"),
-			wantErr:              true,
-			expectedSetCallTimes: 1,
+			name:                    "store with database error",
+			tenantID:                "tenant-123",
+			userID:                  "user-123",
+			refreshToken:            validToken,
+			returnGetOneToken:       nil,
+			returnGetOneError:       nil,
+			returnSetError:          errors.New("database connection failed"),
+			wantErr:                 true,
+			expectedSetCallTimes:    1,
+			expectedGetOneCallTimes: 1,
 		},
 	}
 
@@ -127,10 +126,16 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockHandler := mock_redis.NewMockKeyHandler[model_auth.RefreshToken](ctrl)
+			if tc.expectedGetOneCallTimes > 0 {
+				mockHandler.EXPECT().
+					GetOne(tc.tenantID, tc.userID).
+					Return(tc.returnGetOneToken, tc.returnGetOneError).
+					Times(tc.expectedGetOneCallTimes)
+			}
 			if tc.expectedSetCallTimes > 0 {
 				mockHandler.EXPECT().
-					Set(tc.expectedTenantID, tc.expectedKey, tc.refreshToken).
-					Return(tc.returnError).
+					Set(tc.tenantID, tc.userID, tc.refreshToken).
+					Return(tc.returnSetError).
 					Times(tc.expectedSetCallTimes)
 			}
 
@@ -161,8 +166,6 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 		name                    string
 		tenantID                string
 		userID                  string
-		expectedTenantID        string
-		expectedKey             string
 		returnToken             *model_auth.RefreshToken
 		returnError             error
 		wantToken               *model_auth.RefreshToken
@@ -173,8 +176,6 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			name:                    "successful get",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedTenantID:        "tenant-123",
-			expectedKey:             "user-123:token-123",
 			returnToken:             &validToken,
 			returnError:             nil,
 			wantToken:               &validToken,
@@ -185,8 +186,6 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			name:                    "token not found",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedTenantID:        "tenant-123",
-			expectedKey:             "user-123:token-123",
 			returnToken:             nil,
 			returnError:             errors.New("token not found"),
 			wantToken:               nil,
@@ -197,8 +196,6 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			name:                    "database error",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedTenantID:        "tenant-123",
-			expectedKey:             "user-123:token-123",
 			returnToken:             nil,
 			returnError:             errors.New("database query failed"),
 			wantToken:               nil,
@@ -215,7 +212,7 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			mockHandler := mock_redis.NewMockKeyHandler[model_auth.RefreshToken](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
 				mockHandler.EXPECT().
-					GetOne(tc.expectedTenantID, tc.expectedKey).
+					GetOne(tc.tenantID, tc.userID).
 					Return(tc.returnToken, tc.returnError).
 					Times(tc.expectedGetOneCallTimes)
 			}
@@ -267,8 +264,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 		name                    string
 		tenantID                string
 		userID                  string
-		expectedTenantID        string
-		expectedKey             string
 		returnToken             *model_auth.RefreshToken
 		returnError             error
 		wantErr                 bool
@@ -278,8 +273,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			name:                    "valid token",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedTenantID:        "tenant-123",
-			expectedKey:             "user-123:token-123",
 			returnToken:             &validToken,
 			returnError:             nil,
 			wantErr:                 false,
@@ -289,8 +282,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			name:                    "expired token",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedTenantID:        "tenant-123",
-			expectedKey:             "user-123:token-123",
 			returnToken:             &expiredToken,
 			returnError:             nil,
 			wantErr:                 true,
@@ -300,8 +291,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			name:                    "revoked token",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedTenantID:        "tenant-123",
-			expectedKey:             "user-123:token-123",
 			returnToken:             &revokedToken,
 			returnError:             nil,
 			wantErr:                 true,
@@ -311,8 +300,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			name:                    "token not found",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedTenantID:        "tenant-123",
-			expectedKey:             "user-123:token-123",
 			returnToken:             nil,
 			returnError:             errors.New("token not found"),
 			wantErr:                 true,
@@ -328,7 +315,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			mockHandler := mock_redis.NewMockKeyHandler[model_auth.RefreshToken](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
 				mockHandler.EXPECT().
-					GetOne(tc.expectedTenantID, tc.expectedKey).
+					GetOne(tc.tenantID, tc.userID).
 					Return(tc.returnToken, tc.returnError).
 					Times(tc.expectedGetOneCallTimes)
 			}
@@ -362,10 +349,6 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 		name                    string
 		tenantID                string
 		userID                  string
-		expectedGetTenantID     string
-		expectedGetKey          string
-		expectedUpdateTenantID  string
-		expectedUpdateKey       string
 		returnGetToken          *model_auth.RefreshToken
 		returnGetError          error
 		returnUpdateError       error
@@ -377,10 +360,6 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			name:                    "successful revoke",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedGetTenantID:     "tenant-123",
-			expectedGetKey:          "user-123:token-123",
-			expectedUpdateTenantID:  "tenant-123",
-			expectedUpdateKey:       "user-123:token-123",
 			returnGetToken:          &validToken,
 			returnGetError:          nil,
 			returnUpdateError:       nil,
@@ -392,14 +371,10 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			name:                    "token not found",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedGetTenantID:     "tenant-123",
-			expectedGetKey:          "user-123:token-123",
-			expectedUpdateTenantID:  "",
-			expectedUpdateKey:       "",
 			returnGetToken:          nil,
 			returnGetError:          errors.New("token not found"),
 			returnUpdateError:       nil,
-			wantErr:                 true,
+			wantErr:                 false,
 			expectedGetOneCallTimes: 1,
 			expectedUpdateCallTimes: 0,
 		},
@@ -407,10 +382,6 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			name:                    "update fails",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedGetTenantID:     "tenant-123",
-			expectedGetKey:          "user-123:token-123",
-			expectedUpdateTenantID:  "tenant-123",
-			expectedUpdateKey:       "user-123:token-123",
 			returnGetToken:          &validToken,
 			returnGetError:          nil,
 			returnUpdateError:       errors.New("update failed"),
@@ -428,7 +399,7 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			mockHandler := mock_redis.NewMockKeyHandler[model_auth.RefreshToken](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
 				mockHandler.EXPECT().
-					GetOne(tc.expectedGetTenantID, tc.expectedGetKey).
+					GetOne(tc.tenantID, tc.userID).
 					Return(tc.returnGetToken, tc.returnGetError).
 					Times(tc.expectedGetOneCallTimes)
 			}
@@ -437,7 +408,7 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 				expectedToken := *tc.returnGetToken
 				expectedToken.IsRevoked = true
 				mockHandler.EXPECT().
-					Update(tc.expectedUpdateTenantID, tc.expectedUpdateKey, refreshTokenMatcher{expected: expectedToken}).
+					Update(tc.tenantID, tc.userID, refreshTokenMatcher{expected: expectedToken}).
 					Return(tc.returnUpdateError).
 					Times(tc.expectedUpdateCallTimes)
 			}
@@ -460,8 +431,6 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 		name                    string
 		tenantID                string
 		userID                  string
-		expectedDeleteTenantID  string
-		expectedDeleteKey       string
 		returnDeleteError       error
 		wantErr                 bool
 		expectedDeleteCallTimes int
@@ -470,8 +439,6 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 			name:                    "successful delete",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedDeleteTenantID:  "tenant-123",
-			expectedDeleteKey:       "user-123:token-123",
 			returnDeleteError:       nil,
 			wantErr:                 false,
 			expectedDeleteCallTimes: 1,
@@ -480,8 +447,6 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 			name:                    "delete with database error",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			expectedDeleteTenantID:  "tenant-123",
-			expectedDeleteKey:       "user-123:token-123",
 			returnDeleteError:       errors.New("delete failed"),
 			wantErr:                 true,
 			expectedDeleteCallTimes: 1,
@@ -496,7 +461,7 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 			mockHandler := mock_redis.NewMockKeyHandler[model_auth.RefreshToken](ctrl)
 			if tc.expectedDeleteCallTimes > 0 {
 				mockHandler.EXPECT().
-					Delete(tc.expectedDeleteTenantID, tc.expectedDeleteKey).
+					Delete(tc.tenantID, tc.userID).
 					Return(tc.returnDeleteError).
 					Times(tc.expectedDeleteCallTimes)
 			}

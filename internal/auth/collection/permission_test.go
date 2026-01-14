@@ -583,7 +583,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       permissionID.String(),
+				"_id":       permissionID.Hex(),
 			},
 			returnFindPermission: &model_auth.Permission{
 				ID:        permissionID,
@@ -628,7 +628,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       permissionID.String(),
+				"_id":       permissionID.Hex(),
 			},
 			returnFindPermission: nil,
 			returnFindError:      errors.New("permission not found"),
@@ -652,7 +652,7 @@ func TestPermissionCollection_UpdatePermission(t *testing.T) {
 			},
 			expectedFindFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       permissionID.String(),
+				"_id":       permissionID.Hex(),
 			},
 			returnFindPermission: &model_auth.Permission{
 				ID:        permissionID,
@@ -733,13 +733,15 @@ func TestPermissionCollection_DeletePermission(t *testing.T) {
 			expectedCallTimes: 0,
 		},
 		{
-			name:              "delete with empty permission ID",
-			tenantID:          "tenant1",
-			permissionID:      "",
-			expectedFilter:    nil,
+			name:         "delete with empty permission ID",
+			tenantID:     "tenant1",
+			permissionID: "",
+			expectedFilter: map[string]any{
+				"tenant_id": "tenant1",
+			},
 			returnError:       nil,
-			wantErr:           true,
-			expectedCallTimes: 0,
+			wantErr:           false,
+			expectedCallTimes: 1,
 		},
 		{
 			name:         "delete with database error",

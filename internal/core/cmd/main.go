@@ -1,18 +1,14 @@
 package cmd
 
 import (
-	"context"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
-	"erp.localhost/internal/infra/grpc/client"
 	"erp.localhost/internal/infra/grpc/server"
 	grpc_server "erp.localhost/internal/infra/grpc/server"
-	"erp.localhost/internal/infra/logging/logger"
 	model_shared "erp.localhost/internal/infra/model/shared"
 )
 
@@ -33,21 +29,6 @@ func Main() {
 	if certs == nil {
 		insecure = true
 	}
-
-	ctx := context.Background()
-	logger := logger.NewBaseLogger(model_shared.ModuleCore)
-	// Create RBAC client
-	rbacClient, err := client.NewRBACClient(ctx, &client.Config{
-		Address:  "localhost:5000",
-		Module:   model_shared.ModuleCore,
-		Insecure: insecure,
-		Certs:    certs,
-	}, logger)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rbacClient.Close()
-
 	// Create server
 	srv, err := grpc_server.NewGRPCServer(&server.Config{
 		Port:             ServerPort,

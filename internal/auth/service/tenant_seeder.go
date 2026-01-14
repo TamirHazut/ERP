@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"erp.localhost/internal/auth/api"
 	core_collection "erp.localhost/internal/auth/collection"
 	"erp.localhost/internal/auth/password"
 	mongo_collection "erp.localhost/internal/infra/db/mongo/collection"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
-	proto_auth "erp.localhost/internal/infra/proto/auth/v1"
-	proto_infra "erp.localhost/internal/infra/proto/infra/v1"
 )
 
 type TenantDefaults struct {
@@ -22,20 +21,20 @@ type TenantDefaults struct {
 }
 
 type TenantSeeder struct {
-	rbacGRPCClient proto_auth.RBACServiceClient
 	userCollection *core_collection.UserCollection
+	rbacAPI        *api.RBACAPI
 	logger         logger.Logger
 }
 
-func NewTenantSeeder(rbacGRPCClient proto_auth.RBACServiceClient, logger logger.Logger) *TenantSeeder {
-	uc := mongo_collection.NewBaseCollectionHandler[model_auth.User](model_mongo.CoreDB, model_mongo.UsersCollection, logger)
+func NewTenantSeeder(rbacAPI *api.RBACAPI, logger logger.Logger) *TenantSeeder {
+	uc := mongo_collection.NewBaseCollectionHandler[model_auth.User](model_mongo.AuthDB, model_mongo.UsersCollection, logger)
 	if uc == nil {
 		logger.Fatal("failed to create users collection handler")
 		return nil
 	}
 	return &TenantSeeder{
-		rbacGRPCClient: rbacGRPCClient,
 		userCollection: core_collection.NewUserCollection(uc, logger),
+		rbacAPI:        rbacAPI,
 		logger:         logger,
 	}
 }
@@ -75,69 +74,41 @@ func (ts *TenantSeeder) SeedDefaults(ctx context.Context, tenantID, adminEmail, 
 }
 
 func (ts *TenantSeeder) createWildcardPermission(ctx context.Context, tenantID, createdBy string) (string, error) {
-	req := &proto_auth.CreateResourceRequest{
-		Identifier: &proto_infra.UserIdentifier{
-			TenantId: tenantID,
-			UserId:   createdBy,
-		},
-		ResourceType: proto_auth.ResourceType_RESOURCE_TYPE_PERMISSION,
-		Resource: &proto_auth.CreateResourceRequest_Permission{
-			Permission: &proto_auth.CreatePermissionData{
-				TenantId:    tenantID,
-				Name:        "Full Access",
-				Slug:        "full_access",
-				Description: "Grants full access to all resources and actions",
-				Resource:    model_auth.ResourceTypeAll,     // "*"
-				Action:      model_auth.PermissionActionAll, // "*"
-				Status:      model_auth.PermissionStatusActive,
-				CreatedBy:   createdBy,
-			},
-		},
+	permission := &model_auth.Permission{
+		TenantID:         tenantID,
+		DisplayName:      "Full Access",
+		PermissionString: "full_access",
+		Description:      "Grants full access to all resources and actions",
+		Resource:         model_auth.ResourceTypeAll,     // "*"
+		Action:           model_auth.PermissionActionAll, // "*"
+		Status:           model_auth.PermissionStatusActive,
+		CreatedBy:        createdBy,
 	}
 
-	resp, err := ts.rbacGRPCClient.CreateResource(ctx, req)
-	if err != nil {
-		return "", fmt.Errorf("gRPC call to create permission failed: %w", err)
-	}
-
-	return resp.ResourceId, nil
+	return ts.rbacAPI.Permissions.CreatePermission(tenantID, createdBy, permission, tenantID)
 }
 
 func (ts *TenantSeeder) createTenantAdminRole(ctx context.Context, tenantID, permissionID, createdBy string) (string, error) {
-	req := &proto_auth.CreateResourceRequest{
-		Identifier: &proto_infra.UserIdentifier{
-			TenantId: tenantID,
-			UserId:   createdBy,
-		},
-		ResourceType: proto_auth.ResourceType_RESOURCE_TYPE_ROLE,
-		Resource: &proto_auth.CreateResourceRequest_Role{
-			Role: &proto_auth.CreateRoleData{
-				TenantId:     tenantID,
-				Name:         "Tenant Administrator",
-				Slug:         model_auth.RoleTenantAdmin, // "tenant_admin"
-				Description:  "Tenant administrator with full access to all tenant resources",
-				Type:         model_auth.RoleTenantAdmin,
-				IsSystemRole: false,
-				Permissions:  []string{permissionID}, // Assign "*:*" permission
-				Status:       model_auth.RoleStatusActive,
-				CreatedBy:    createdBy,
-			},
-		},
+	role := &model_auth.Role{
+		TenantID:      tenantID,
+		Name:          "Tenant Administrator",
+		Slug:          model_auth.RoleTenantAdmin, // "tenant_admin"
+		Description:   "Tenant administrator with full access to all tenant resources",
+		Type:          model_auth.RoleTenantAdmin,
+		IsTenantAdmin: true,
+		Permissions:   []string{permissionID}, // Assign "*:*" permission
+		Status:        model_auth.RoleStatusActive,
+		CreatedBy:     createdBy,
 	}
 
-	resp, err := ts.rbacGRPCClient.CreateResource(ctx, req)
-	if err != nil {
-		return "", fmt.Errorf("gRPC call to create role failed: %w", err)
-	}
-
-	return resp.ResourceId, nil
+	return ts.rbacAPI.Roles.CreateRole(tenantID, createdBy, role, tenantID)
 }
 
 func (ts *TenantSeeder) createAdminUser(tenantID, email, plainPassword, roleID, createdBy string) (string, error) {
 	// Hash password
 	hashedPassword, err := password.HashPassword(plainPassword)
 	if err != nil {
-		return "", fmt.Errorf("failed to hash admin password: %w", err)
+		return "", err
 	}
 
 	user := &model_auth.User{
@@ -159,16 +130,11 @@ func (ts *TenantSeeder) createAdminUser(tenantID, email, plainPassword, roleID, 
 
 	// Validate user
 	if err := user.Validate(true); err != nil {
-		return "", fmt.Errorf("user validation failed: %w", err)
+		return "", err
 	}
 
 	// Create user via collection
-	userID, err := ts.userCollection.CreateUser(user)
-	if err != nil {
-		return "", fmt.Errorf("failed to create admin user: %w", err)
-	}
-
-	return userID, nil
+	return ts.userCollection.CreateUser(user)
 }
 
 // RollbackDefaults deletes all seeded defaults (used when tenant creation fails)
@@ -186,32 +152,14 @@ func (ts *TenantSeeder) RollbackDefaults(ctx context.Context, tenantID string, d
 
 	// Delete role (via Auth gRPC)
 	if defaults.RoleID != "" {
-		req := &proto_auth.DeleteResourceRequest{
-			Identifier: &proto_infra.UserIdentifier{
-				TenantId: tenantID,
-			},
-			ResourceType: proto_auth.ResourceType_RESOURCE_TYPE_ROLE,
-			Resource: &proto_auth.DeleteResourceRequest_ResourceId{
-				ResourceId: defaults.RoleID,
-			},
-		}
-		if _, err := ts.rbacGRPCClient.DeleteResource(ctx, req); err != nil {
+		if err := ts.rbacAPI.Roles.DeleteRole(tenantID, defaults.UserID, defaults.RoleID, tenantID); err != nil {
 			rollbackErrors = append(rollbackErrors, fmt.Errorf("failed to delete role via gRPC: %w", err))
 		}
 	}
 
 	// Delete permission (via Auth gRPC)
 	if defaults.PermissionID != "" {
-		req := &proto_auth.DeleteResourceRequest{
-			Identifier: &proto_infra.UserIdentifier{
-				TenantId: tenantID,
-			},
-			ResourceType: proto_auth.ResourceType_RESOURCE_TYPE_PERMISSION,
-			Resource: &proto_auth.DeleteResourceRequest_ResourceId{
-				ResourceId: defaults.PermissionID,
-			},
-		}
-		if _, err := ts.rbacGRPCClient.DeleteResource(ctx, req); err != nil {
+		if err := ts.rbacAPI.Permissions.DeletePermission(tenantID, defaults.UserID, defaults.PermissionID, tenantID); err != nil {
 			rollbackErrors = append(rollbackErrors, fmt.Errorf("failed to delete permission via gRPC: %w", err))
 		}
 	}

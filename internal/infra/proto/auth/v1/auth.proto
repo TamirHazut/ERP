@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package auth.v1;
 
-option go_package = "erp.localhost/internal/infra/proto/auth/v1;authv1";
+option go_package = "erp.localhost/internal/infra/proto/generated/auth/v1;authv1";
 
 import "infra/v1/infra.proto";
 
@@ -45,10 +45,7 @@ message RefreshTokenRequest {
 message RevokeTokenRequest {
     infra.v1.UserIdentifier identifier = 1;
     string revoked_by = 2;
-    oneof resource {
-        Tokens tokens = 3;
-        string tenant_id = 4;
-    }
+    Tokens tokens = 3;
 }
 
 message RevokeTokenResponse {
