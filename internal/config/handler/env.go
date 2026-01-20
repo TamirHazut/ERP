@@ -5,9 +5,10 @@ import (
 
 	"erp.localhost/internal/config/env"
 	"erp.localhost/internal/infra/logging/logger"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/model/shared"
 )
 
+// TODO: maybe change this from singleton
 var (
 	envHandler *EnvHandler = initEnvHandler()
 )
@@ -18,7 +19,7 @@ type EnvHandler struct {
 }
 
 func initEnvHandler() *EnvHandler {
-	logger := logger.NewBaseLogger(model_shared.ModuleConfig)
+	logger := logger.NewBaseLogger(shared.ModuleConfig)
 	envFiles, err := os.ReadDir("configs/env")
 	if err != nil {
 		logger.Error("Failed to read env files", "error", err)

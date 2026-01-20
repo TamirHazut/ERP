@@ -3,7 +3,7 @@ package rbac
 import (
 	collection "erp.localhost/internal/auth/collection"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
 )
 
 type RoleManager struct {
@@ -23,31 +23,31 @@ func NewRoleManager(
 }
 
 // CreateRole creates a new role
-func (rm *RoleManager) CreateRole(role *model_auth.Role) (string, error) {
-	rm.logger.Debug("RoleManager: Creating role", "role_name", role.Name, "tenant_id", role.TenantID)
+func (rm *RoleManager) CreateRole(role *authv1.Role) (string, error) {
+	rm.logger.Debug("RoleManager: Creating role", "role_name", role.Name, "tenant_id", role.TenantId)
 	return rm.rolesCollection.CreateRole(role)
 }
 
 // UpdateRole updates an existing role
-func (rm *RoleManager) UpdateRole(role *model_auth.Role) error {
-	rm.logger.Debug("RoleManager: Updating role", "role_id", role.ID.Hex(), "tenant_id", role.TenantID)
+func (rm *RoleManager) UpdateRole(role *authv1.Role) error {
+	rm.logger.Debug("RoleManager: Updating role", "role_id", role.Id, "tenant_id", role.TenantId)
 	return rm.rolesCollection.UpdateRole(role)
 }
 
 // GetRoleByID retrieves a role by its ID
-func (rm *RoleManager) GetRoleByID(tenantID, roleID string) (*model_auth.Role, error) {
+func (rm *RoleManager) GetRoleByID(tenantID, roleID string) (*authv1.Role, error) {
 	rm.logger.Debug("RoleManager: Getting role by ID", "role_id", roleID, "tenant_id", tenantID)
 	return rm.rolesCollection.GetRoleByID(tenantID, roleID)
 }
 
 // GetRoleByName retrieves a role by its name
-func (rm *RoleManager) GetRoleByName(tenantID, name string) (*model_auth.Role, error) {
+func (rm *RoleManager) GetRoleByName(tenantID, name string) (*authv1.Role, error) {
 	rm.logger.Debug("RoleManager: Getting role by name", "role_name", name, "tenant_id", tenantID)
 	return rm.rolesCollection.GetRoleByName(tenantID, name)
 }
 
 // ListRoles retrieves all roles for a tenant
-func (rm *RoleManager) ListRoles(tenantID string) ([]*model_auth.Role, error) {
+func (rm *RoleManager) ListRoles(tenantID string) ([]*authv1.Role, error) {
 	rm.logger.Debug("RoleManager: Listing roles", "tenant_id", tenantID)
 	return rm.rolesCollection.GetRolesByTenantID(tenantID)
 }

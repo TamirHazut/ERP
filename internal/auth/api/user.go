@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"slices"
-	"time"
 
 	"erp.localhost/internal/auth/collection"
 	collection_auth "erp.localhost/internal/auth/collection"
@@ -11,6 +10,8 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	validator_auth "erp.localhost/internal/infra/model/auth/validator"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 )
 
@@ -27,11 +28,10 @@ type UserAPI struct {
 	logger         logger.Logger
 	userCollection *collection_auth.UserCollection
 	rbacAPI        *RBACAPI
-	authAPI        *AuthAPI
 }
 
-func NewUserAPI(rbacAPI *RBACAPI, authAPI *AuthAPI, logger logger.Logger) *UserAPI {
-	userHandler := mongo_collection.NewBaseCollectionHandler[model_auth.User](model_mongo.AuthDB, model_mongo.UsersCollection, logger)
+func NewUserAPI(rbacAPI *RBACAPI, logger logger.Logger) *UserAPI {
+	userHandler := mongo_collection.NewBaseCollectionHandler[authv1.User](model_mongo.AuthDB, model_mongo.UsersCollection, logger)
 	userCollection := collection.NewUserCollection(userHandler, logger)
 	if userCollection == nil {
 		logger.Fatal("failed to create users collection")
@@ -39,19 +39,18 @@ func NewUserAPI(rbacAPI *RBACAPI, authAPI *AuthAPI, logger logger.Logger) *UserA
 	}
 	return &UserAPI{
 		rbacAPI:        rbacAPI,
-		authAPI:        authAPI,
 		userCollection: userCollection,
 		logger:         logger,
 	}
 }
 
-func (u *UserAPI) CreateUser(tenantID, userID string, newUser *model_auth.User) (string, error) {
+func (u *UserAPI) CreateUser(tenantID, userID string, newUser *authv1.User) (string, error) {
 	if tenantID == "" || userID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id"))
 		u.logger.Error("failed to create user", "error", err)
 		return "", err
 	}
-	if err := newUser.Validate(true); err != nil {
+	if err := validator_auth.ValidateUser(newUser, true); err != nil {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id"))
 		u.logger.Error("failed to create user", "error", err)
 		return "", err
@@ -77,7 +76,7 @@ func (u *UserAPI) CreateUser(tenantID, userID string, newUser *model_auth.User) 
 	return u.userCollection.CreateUser(newUser)
 }
 
-func (u *UserAPI) GetUser(tenantID, userID, targetTenantID, accountID string) (*model_auth.User, error) {
+func (u *UserAPI) GetUser(tenantID, userID, targetTenantID, accountID string) (*authv1.User, error) {
 	if tenantID == "" || userID == "" || targetTenantID == "" || accountID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, target_tenant_id, account_id"))
 		u.logger.Error("failed to get user", "error", err)
@@ -91,7 +90,7 @@ func (u *UserAPI) GetUser(tenantID, userID, targetTenantID, accountID string) (*
 	return u.getUser(tenantID, accountID, filterTypeID)
 }
 
-func (u *UserAPI) GetUsers(tenantID, userID, targetTenantID, roleID string) ([]*model_auth.User, error) {
+func (u *UserAPI) GetUsers(tenantID, userID, targetTenantID, roleID string) ([]*authv1.User, error) {
 	if tenantID == "" || userID == "" || targetTenantID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, target_tenant_id"))
 		u.logger.Error("failed to get users", "error", err)
@@ -109,26 +108,26 @@ func (u *UserAPI) GetUsers(tenantID, userID, targetTenantID, roleID string) ([]*
 }
 
 // TODO: finish logic
-func (u *UserAPI) UpdateUser(tenantID, userID string, newUserData *model_auth.User) (bool, error) {
+func (u *UserAPI) UpdateUser(tenantID, userID string, newUserData *authv1.User) (bool, error) {
 	if tenantID == "" || userID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id"))
 		u.logger.Error("failed to update user", "error", err)
 		return false, err
 	}
-	if err := newUserData.Validate(true); err != nil {
+	if err := validator_auth.ValidateUser(newUserData, true); err != nil {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id"))
 		u.logger.Error("Failed to update user", "error", err)
 		return false, err
 	}
 
-	targetTenantID := newUserData.TenantID
+	targetTenantID := newUserData.TenantId
 
 	if err := u.hasPermission(tenantID, userID, model_auth.PermissionActionUpdate, targetTenantID); err != nil {
 		u.logger.Error("failed to update user", "tenant_id", tenantID, "user_id", userID, "error", err)
 		return false, err
 	}
 
-	oldUserData, err := u.getUser(tenantID, newUserData.ID.Hex(), filterTypeID)
+	oldUserData, err := u.getUser(tenantID, newUserData.Id, filterTypeID)
 	if err != nil {
 		u.logger.Error("failed to update user", "tenant_id", tenantID, "user_id", userID, "error", err)
 		return false, err
@@ -140,15 +139,7 @@ func (u *UserAPI) UpdateUser(tenantID, userID string, newUserData *model_auth.Us
 		u.logger.Error("failed to update user", "tenant_id", tenantID, "user_id", userID, "error", err)
 		return false, err
 	}
-
-	err = u.userCollection.UpdateUser(newUserData)
-	success := err == nil
-	if success {
-		u.logger.Debug("user updated successfuly", "tenant_id", tenantID, "user_id", userID, "target_tenant_id", targetTenantID, "target_user_id", newUserData.ID.Hex())
-	} else {
-		u.logger.Error("failed to update user", "tenant_id", tenantID, "user_id", userID, "error", err)
-	}
-	return success, err
+	return u.updateUser(newUserData)
 }
 
 func (u *UserAPI) DeleteUser(tenantID, userID, targetTenantID, accountID string) error {
@@ -191,48 +182,6 @@ func (u *UserAPI) DeleteTenantUsers(tenantID, userID, targetTenantID string) err
 	return nil
 }
 
-func (u *UserAPI) Login(tenantID, email, username, password string) (*NewTokenResponse, error) {
-	if tenantID == "" || password == "" || (email == "" && username == "") {
-		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, email/username, password"))
-		u.logger.Error("failed to delete tenant users", "error", err)
-		return nil, err
-	}
-
-	var filterType FilterType
-	if email != "" {
-		filterType = filterTypeEmail
-	} else if username != "" {
-		filterType = filterTypeUsername
-	} else {
-		filterType = filterTypeUnsupported
-	}
-	user, err := u.getUser(tenantID, email, filterType)
-	if err != nil {
-		return nil, err
-	}
-
-	tokens, err := u.authAPI.Authenticate(tenantID, user.ID.Hex(), password, user.PasswordHash)
-	if user.LoginHistory == nil {
-		user.LoginHistory = make([]model_auth.LoginRecord, 0)
-	}
-	user.LoginHistory = append(user.LoginHistory, model_auth.LoginRecord{
-		Timestamp: time.Now(),
-		Success:   tokens != nil,
-	})
-	if updateErr := u.userCollection.UpdateUser(user); updateErr != nil {
-		u.logger.Error("failed to update user login history", "error", err)
-	}
-	return tokens, err
-}
-
-func (u *UserAPI) Logout(tenantID, userID, accessToken, refreshToken, revokedBy string) (string, error) {
-	err := u.authAPI.RevokeTokens(tenantID, userID, accessToken, refreshToken, revokedBy)
-	if err != nil {
-		return "logout failed", err
-	}
-	return "logout successful", err
-}
-
 /* Helper functions */
 func (u *UserAPI) hasPermission(tenantID, userID, action, targetTenantID string) error {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeUser, action)
@@ -242,7 +191,7 @@ func (u *UserAPI) hasPermission(tenantID, userID, action, targetTenantID string)
 	return u.rbacAPI.Verification.HasPermission(tenantID, userID, permission, targetTenantID)
 }
 
-func (u *UserAPI) getUser(tenantID string, accountID string, filterType FilterType) (*model_auth.User, error) {
+func (u *UserAPI) getUser(tenantID string, accountID string, filterType FilterType) (*authv1.User, error) {
 	switch filterType {
 	case filterTypeID:
 		return u.userCollection.GetUserByID(tenantID, accountID)
@@ -255,8 +204,21 @@ func (u *UserAPI) getUser(tenantID string, accountID string, filterType FilterTy
 	}
 }
 
-func (u *UserAPI) validateUserUpdateData(tenantID, userID string, old *model_auth.User, new *model_auth.User) error {
-	if old.TenantID != new.TenantID ||
+func (u *UserAPI) updateUser(user *authv1.User) (bool, error) {
+	tenantID := user.GetTenantId()
+	userID := user.GetId()
+	err := u.userCollection.UpdateUser(user)
+	success := err == nil
+	if success {
+		u.logger.Debug("user updated successfuly", "tenant_id", tenantID, "user_id", userID, "target_tenant_id")
+	} else {
+		u.logger.Error("failed to update user", "tenant_id", tenantID, "user_id", userID, "error", err)
+	}
+	return success, err
+}
+
+func (u *UserAPI) validateUserUpdateData(tenantID, userID string, old *authv1.User, new *authv1.User) error {
+	if old.TenantId != new.TenantId ||
 		old.Username != new.Username ||
 		old.Email != new.Email ||
 		old.CreatedBy != new.CreatedBy ||
@@ -264,16 +226,16 @@ func (u *UserAPI) validateUserUpdateData(tenantID, userID string, old *model_aut
 		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields)
 	}
 
-	equal := slices.EqualFunc(old.Roles, new.Roles, func(a, b model_auth.UserRole) bool {
-		return a.TenantID == b.TenantID &&
-			a.RoleID == b.RoleID
+	equal := slices.EqualFunc(old.Roles, new.Roles, func(a, b *authv1.UserRole) bool {
+		return a.TenantId == b.TenantId &&
+			a.RoleId == b.RoleId
 	})
 	if !equal {
 		permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeUser, model_auth.PermissionActionModifyRole)
 		if err != nil {
 			return err
 		}
-		if err := u.rbacAPI.Verification.HasPermission(tenantID, userID, permission, new.TenantID); err != nil {
+		if err := u.rbacAPI.Verification.HasPermission(tenantID, userID, permission, new.TenantId); err != nil {
 			return err
 		}
 	}
@@ -283,7 +245,7 @@ func (u *UserAPI) validateUserUpdateData(tenantID, userID string, old *model_aut
 		if err != nil {
 			return err
 		}
-		if err := u.rbacAPI.Verification.HasPermission(tenantID, userID, permission, new.TenantID); err != nil {
+		if err := u.rbacAPI.Verification.HasPermission(tenantID, userID, permission, new.TenantId); err != nil {
 			return err
 		}
 	}

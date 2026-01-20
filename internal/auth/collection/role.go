@@ -1,20 +1,20 @@
 package collection
 
 import (
-	"time"
-
 	"erp.localhost/internal/infra/db/mongo/collection"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	validator_auth "erp.localhost/internal/infra/model/auth/validator"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type RolesCollection struct {
-	collection collection.CollectionHandler[model_auth.Role]
+	collection collection.CollectionHandler[authv1.Role]
 	logger     logger.Logger
 }
 
-func NewRoleCollection(collection collection.CollectionHandler[model_auth.Role], logger logger.Logger) *RolesCollection {
+func NewRoleCollection(collection collection.CollectionHandler[authv1.Role], logger logger.Logger) *RolesCollection {
 	if collection == nil {
 		return nil
 	}
@@ -24,17 +24,17 @@ func NewRoleCollection(collection collection.CollectionHandler[model_auth.Role],
 	}
 }
 
-func (r *RolesCollection) CreateRole(role *model_auth.Role) (string, error) {
-	if err := role.Validate(true); err != nil {
+func (r *RolesCollection) CreateRole(role *authv1.Role) (string, error) {
+	if err := validator_auth.ValidateRole(role, true); err != nil {
 		return "", err
 	}
-	role.CreatedAt = time.Now()
-	role.UpdatedAt = time.Now()
+	role.CreatedAt = timestamppb.Now()
+	role.UpdatedAt = timestamppb.Now()
 	r.logger.Debug("Creating role", "role", role)
 	return r.collection.Create(role)
 }
 
-func (r *RolesCollection) GetRoleByID(tenantID, roleID string) (*model_auth.Role, error) {
+func (r *RolesCollection) GetRoleByID(tenantID, roleID string) (*authv1.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       roleID,
@@ -43,7 +43,7 @@ func (r *RolesCollection) GetRoleByID(tenantID, roleID string) (*model_auth.Role
 	return r.findRoleByFilter(filter)
 }
 
-func (r *RolesCollection) GetRoleByName(tenantID, name string) (*model_auth.Role, error) {
+func (r *RolesCollection) GetRoleByName(tenantID, name string) (*authv1.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"name":      name,
@@ -52,7 +52,7 @@ func (r *RolesCollection) GetRoleByName(tenantID, name string) (*model_auth.Role
 	return r.findRoleByFilter(filter)
 }
 
-func (r *RolesCollection) GetRolesByTenantID(tenantID string) ([]*model_auth.Role, error) {
+func (r *RolesCollection) GetRolesByTenantID(tenantID string) ([]*authv1.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
@@ -60,7 +60,7 @@ func (r *RolesCollection) GetRolesByTenantID(tenantID string) ([]*model_auth.Rol
 	return r.findRolesByFilter(filter)
 }
 
-func (r *RolesCollection) GetRolesByPermissionsIDs(tenantID string, permissionsIDs []string) ([]*model_auth.Role, error) {
+func (r *RolesCollection) GetRolesByPermissionsIDs(tenantID string, permissionsIDs []string) ([]*authv1.Role, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"permissions": map[string]any{
@@ -71,29 +71,29 @@ func (r *RolesCollection) GetRolesByPermissionsIDs(tenantID string, permissionsI
 	return r.findRolesByFilter(filter)
 }
 
-func (r *RolesCollection) UpdateRole(role *model_auth.Role) error {
-	if err := role.Validate(false); err != nil {
+func (r *RolesCollection) UpdateRole(role *authv1.Role) error {
+	if err := validator_auth.ValidateRole(role, false); err != nil {
 		return err
 	}
 	filter := map[string]any{
-		"tenant_id": role.TenantID,
-		"_id":       role.ID,
+		"tenant_id": role.TenantId,
+		"_id":       role.Id,
 	}
 	r.logger.Debug("Updating role", "role", role)
-	currentRole, err := r.GetRoleByID(role.TenantID, role.ID.Hex())
+	currentRole, err := r.GetRoleByID(role.TenantId, role.Id)
 	if err != nil {
 		return err
 	}
 	if role.CreatedAt != currentRole.CreatedAt {
 		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields, "CreatedAt")
 	}
-	role.UpdatedAt = time.Now()
+	role.UpdatedAt = timestamppb.Now()
 	return r.collection.Update(filter, role)
 }
 
 func (r *RolesCollection) DeleteRole(tenantID, roleID string) error {
 	if tenantID == "" || roleID == "" {
-		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID", "RoleID")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId", "RoleId")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
@@ -105,7 +105,7 @@ func (r *RolesCollection) DeleteRole(tenantID, roleID string) error {
 
 func (r *RolesCollection) DeleteTenantRoles(tenantID string) error {
 	if tenantID == "" {
-		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID", "RoleID")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId", "RoleId")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
@@ -114,7 +114,7 @@ func (r *RolesCollection) DeleteTenantRoles(tenantID string) error {
 	return r.collection.Delete(filter)
 }
 
-func (r *RolesCollection) findRoleByFilter(filter map[string]any) (*model_auth.Role, error) {
+func (r *RolesCollection) findRoleByFilter(filter map[string]any) (*authv1.Role, error) {
 	if tenant_id, ok := filter["tenant_id"]; !ok || tenant_id == nil {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}
@@ -125,7 +125,7 @@ func (r *RolesCollection) findRoleByFilter(filter map[string]any) (*model_auth.R
 	return role, nil
 }
 
-func (r *RolesCollection) findRolesByFilter(filter map[string]any) ([]*model_auth.Role, error) {
+func (r *RolesCollection) findRolesByFilter(filter map[string]any) ([]*authv1.Role, error) {
 	if tenant_id, ok := filter["tenant_id"]; !ok || tenant_id == nil {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}

@@ -5,17 +5,17 @@ import (
 	"time"
 
 	infra_error "erp.localhost/internal/infra/error"
-	// model_auth "erp.localhost/internal/infra/model/auth"
-	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
-	proto_infra "erp.localhost/internal/infra/proto/generated/infra/v1"
+	// authv1 "erp.localhost/internal/infra/model/auth/v1"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	infrav1 "erp.localhost/internal/infra/model/infra/v1"
 
 	// proto_infra "erp.localhost/internal/infra/proto/generated/infra/v1"
 	"erp.localhost/internal/infra/logging/logger"
 )
 
 type TokensResponse struct {
-	AccessToken        string
-	AccessTokenExpiry  time.Time
+	Token              string
+	TokenExpiry        time.Time
 	RefreshToken       string
 	RefreshTokenExpiry time.Time
 }
@@ -27,8 +27,9 @@ type RevokeResponse struct {
 }
 
 type AuthClient interface {
-	// Authentication
-	Authenticate(ctx context.Context, tenantID, userID, userPassword, userHash string) (*TokensResponse, error)
+	// Authentication - Login + Logout
+	Login(ctx context.Context, tenantID, email, username, password string) (*TokensResponse, error)
+	Logout(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (string, error)
 	// Access + Refresh Tokens
 	VerifyToken(ctx context.Context, accessToken string) (bool, error)
 	RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, error)
@@ -43,7 +44,7 @@ type AuthClient interface {
 type authClient struct {
 	grpcClient *GRPCClient
 	logger     logger.Logger
-	stub       proto_auth.AuthServiceClient
+	stub       authv1.AuthServiceClient
 }
 
 func NewAuthGRPCClient(ctx context.Context, config *Config, logger logger.Logger) (AuthClient, error) {
@@ -51,7 +52,7 @@ func NewAuthGRPCClient(ctx context.Context, config *Config, logger logger.Logger
 	if err != nil {
 		return nil, infra_error.Internal(infra_error.InternalGRPCError, err)
 	}
-	stub := proto_auth.NewAuthServiceClient(grpcClient.Conn())
+	stub := authv1.NewAuthServiceClient(grpcClient.Conn())
 	return &authClient{
 		grpcClient: grpcClient,
 		logger:     logger,
@@ -59,23 +60,55 @@ func NewAuthGRPCClient(ctx context.Context, config *Config, logger logger.Logger
 	}, nil
 }
 
-func (a *authClient) Authenticate(ctx context.Context, tenantID, userID, userPassword, userHash string) (*TokensResponse, error) {
-	req := &proto_auth.AuthenticateRequest{}
-	res, err := a.stub.Authenticate(ctx, req)
+func (a *authClient) Login(ctx context.Context, tenantID, email, username, password string) (*TokensResponse, error) {
+	req := &authv1.LoginRequest{
+		TenantId: tenantID,
+		Password: password,
+	}
+	if email != "" {
+		req.AccountId = &authv1.LoginRequest_Email{
+			Email: email,
+		}
+	} else if username != "" {
+		req.AccountId = &authv1.LoginRequest_Username{
+			Username: username,
+		}
+	} else {
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "Email", "Username")
+	}
+	res, err := a.stub.Login(ctx, req)
 	if err != nil {
 		return nil, mapGRPCError(err)
 	}
 	return &TokensResponse{
-		AccessToken:        res.GetTokens().GetAccessToken(),
-		AccessTokenExpiry:  time.Unix(res.GetExpiresIn().GetAccessToken(), 0),
+		Token:              res.GetTokens().GetToken(),
+		TokenExpiry:        time.Unix(res.GetExpiresIn().GetToken(), 0),
 		RefreshToken:       res.GetTokens().GetRefreshToken(),
 		RefreshTokenExpiry: time.Unix(res.GetExpiresIn().GetRefreshToken(), 0),
 	}, nil
 }
 
+func (a *authClient) Logout(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (string, error) {
+	req := &authv1.LogoutRequest{
+		Identifier: &infrav1.UserIdentifier{
+			TenantId: tenantID,
+			UserId:   userID,
+		},
+		Tokens: &authv1.Tokens{
+			Token:        accessToken,
+			RefreshToken: refreshToken,
+		},
+	}
+	res, err := a.stub.Logout(ctx, req)
+	if err != nil {
+		return "", mapGRPCError(err)
+	}
+	return res.GetMessage(), nil
+}
+
 func (a *authClient) VerifyToken(ctx context.Context, accessToken string) (bool, error) {
-	req := &proto_auth.VerifyTokenRequest{
-		AccessToken: accessToken,
+	req := &authv1.VerifyTokenRequest{
+		Token: accessToken,
 	}
 	res, err := a.stub.VerifyToken(ctx, req)
 	if err != nil {
@@ -85,8 +118,8 @@ func (a *authClient) VerifyToken(ctx context.Context, accessToken string) (bool,
 }
 
 func (a *authClient) RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, error) {
-	req := &proto_auth.RefreshTokenRequest{
-		Identifier: &proto_infra.UserIdentifier{
+	req := &authv1.RefreshTokenRequest{
+		Identifier: &infrav1.UserIdentifier{
 			TenantId: tenantID,
 			UserId:   userID,
 		},
@@ -97,21 +130,21 @@ func (a *authClient) RefreshToken(ctx context.Context, tenantID, userID, refresh
 		return nil, mapGRPCError(err)
 	}
 	return &TokensResponse{
-		AccessToken:        res.GetTokens().GetAccessToken(),
-		AccessTokenExpiry:  time.Unix(res.GetExpiresIn().GetAccessToken(), 0),
+		Token:              res.GetTokens().GetToken(),
+		TokenExpiry:        time.Unix(res.GetExpiresIn().GetToken(), 0),
 		RefreshToken:       res.GetTokens().GetRefreshToken(),
 		RefreshTokenExpiry: time.Unix(res.GetExpiresIn().GetRefreshToken(), 0),
 	}, nil
 }
 
 func (a *authClient) RevokeToken(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (bool, error) {
-	req := &proto_auth.RevokeTokenRequest{
-		Identifier: &proto_infra.UserIdentifier{
+	req := &authv1.RevokeTokenRequest{
+		Identifier: &infrav1.UserIdentifier{
 			TenantId: tenantID,
 			UserId:   userID,
 		},
-		Tokens: &proto_auth.Tokens{
-			AccessToken:  accessToken,
+		Tokens: &authv1.Tokens{
+			Token:        accessToken,
 			RefreshToken: refreshToken,
 		},
 	}
@@ -123,8 +156,8 @@ func (a *authClient) RevokeToken(ctx context.Context, tenantID, userID, accessTo
 }
 
 func (a *authClient) RevokeAllTenantTokens(ctx context.Context, tenantID, userID, targetTenantID string) (*RevokeResponse, error) {
-	req := &proto_auth.RevokeAllTenantTokensRequest{
-		Identifier: &proto_infra.UserIdentifier{
+	req := &authv1.RevokeAllTenantTokensRequest{
+		Identifier: &infrav1.UserIdentifier{
 			TenantId: tenantID,
 			UserId:   userID,
 		},

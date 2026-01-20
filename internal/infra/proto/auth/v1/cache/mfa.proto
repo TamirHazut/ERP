@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package auth.v1.cache;
+
+option go_package = "erp.localhost/internal/infra/model/auth/v1/cache;authcache";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Redis Cache Models (for MFA caching)
+// =============================================================================
+
+// MFACode represents a temporary MFA code
+message MFACode {
+  string user_id = 1 [(tagger.tags) = "json:\"user_id\""];
+  string code = 2 [(tagger.tags) = "json:\"code\""];
+  string method = 3 [(tagger.tags) = "json:\"method\""];
+  google.protobuf.Timestamp created_at = 4 [(tagger.tags) = "json:\"created_at\""];
+  google.protobuf.Timestamp expires_at = 5 [(tagger.tags) = "json:\"expires_at\""];
+  int32 attempts = 6 [(tagger.tags) = "json:\"attempts\""];
+  bool verified = 7 [(tagger.tags) = "json:\"verified\""];
+}

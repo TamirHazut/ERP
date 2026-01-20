@@ -54,18 +54,18 @@ func (mr *MockTokenHandlerMockRecorder[T]) Delete(tenantID, userID any) *gomock.
 }
 
 // DeleteByPattern mocks base method.
-func (m *MockTokenHandler[T]) DeleteByPattern(tenantID string) (int, error) {
+func (m *MockTokenHandler[T]) DeleteByPattern(tenantID, pattern string) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteByPattern", tenantID)
+	ret := m.ctrl.Call(m, "DeleteByPattern", tenantID, pattern)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteByPattern indicates an expected call of DeleteByPattern.
-func (mr *MockTokenHandlerMockRecorder[T]) DeleteByPattern(tenantID any) *gomock.Call {
+func (mr *MockTokenHandlerMockRecorder[T]) DeleteByPattern(tenantID, pattern any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByPattern", reflect.TypeOf((*MockTokenHandler[T])(nil).DeleteByPattern), tenantID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByPattern", reflect.TypeOf((*MockTokenHandler[T])(nil).DeleteByPattern), tenantID, pattern)
 }
 
 // GetOne mocks base method.
@@ -113,7 +113,7 @@ func (mr *MockTokenHandlerMockRecorder[T]) ScanKeys(tenantID any) *gomock.Call {
 }
 
 // Store mocks base method.
-func (m *MockTokenHandler[T]) Store(tenantID, userID string, value T) error {
+func (m *MockTokenHandler[T]) Store(tenantID, userID string, value *T) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Store", tenantID, userID, value)
 	ret0, _ := ret[0].(error)

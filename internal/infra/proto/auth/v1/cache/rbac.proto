@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package auth.v1.cache;
+
+option go_package = "erp.localhost/internal/infra/model/auth/v1/cache;authcache";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Redis Cache Models (for RBAC caching)
+// =============================================================================
+
+// UserPermissionsCache represents cached permissions in Redis
+message UserPermissionsCache {
+  string user_id = 1 [(tagger.tags) = "json:\"user_id\""];
+  string tenant_id = 2 [(tagger.tags) = "json:\"tenant_id\""];
+  repeated string permissions = 3 [(tagger.tags) = "json:\"permissions\""];
+  google.protobuf.Timestamp cached_at = 4 [(tagger.tags) = "json:\"cached_at\""];
+  int32 version = 5 [(tagger.tags) = "json:\"version\""];
+}
+
+// UserRolesCache represents cached user roles
+message UserRolesCache {
+  string user_id = 1 [(tagger.tags) = "json:\"user_id\""];
+  string tenant_id = 2 [(tagger.tags) = "json:\"tenant_id\""];
+  repeated RoleSummary roles = 3 [(tagger.tags) = "json:\"roles\""];
+  google.protobuf.Timestamp cached_at = 4 [(tagger.tags) = "json:\"cached_at\""];
+  int32 version = 5 [(tagger.tags) = "json:\"version\""];
+}
+
+message RoleSummary {
+  string role_id = 1 [(tagger.tags) = "json:\"role_id\""];
+  string name = 2 [(tagger.tags) = "json:\"name\""];
+  int32 priority = 3 [(tagger.tags) = "json:\"priority\""];
+}
+
+// RolePermissionsCache represents cached role permissions
+message RolePermissionsCache {
+  string role_id = 1 [(tagger.tags) = "json:\"role_id\""];
+  string tenant_id = 2 [(tagger.tags) = "json:\"tenant_id\""];
+  repeated string permissions = 3 [(tagger.tags) = "json:\"permissions\""];
+  google.protobuf.Timestamp cached_at = 4 [(tagger.tags) = "json:\"cached_at\""];
+  int32 version = 5 [(tagger.tags) = "json:\"version\""];
+}

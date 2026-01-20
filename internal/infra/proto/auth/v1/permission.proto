@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "erp.localhost/internal/infra/model/auth/v1;authv1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// MongoDB Models (for database persistence)
+// =============================================================================
+
+// Permission status enum
+enum PermissionStatus {
+  PERMISSION_STATUS_UNSPECIFIED = 0;
+  PERMISSION_STATUS_ACTIVE = 1;
+  PERMISSION_STATUS_INACTIVE = 2;
+  PERMISSION_STATUS_SUSPENDED = 3;
+}
+
+// Permission model for MongoDB auth_db.permissions collection
+message Permission {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string tenant_id = 2 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string resource = 3 [(tagger.tags) = "bson:\"resource\" json:\"resource\""];
+  string action = 4 [(tagger.tags) = "bson:\"action\" json:\"action\""];
+  string permission_string = 5 [(tagger.tags) = "bson:\"permission_string\" json:\"permission_string\""];
+  string display_name = 6 [(tagger.tags) = "bson:\"display_name\" json:\"display_name\""];
+  string description = 7 [(tagger.tags) = "bson:\"description\" json:\"description\""];
+  string category = 8 [(tagger.tags) = "bson:\"category\" json:\"category\""];
+  PermissionStatus status = 9 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  bool is_dangerous = 10 [(tagger.tags) = "bson:\"is_dangerous\" json:\"is_dangerous\""];
+  bool requires_approval = 11 [(tagger.tags) = "bson:\"requires_approval\" json:\"requires_approval\""];
+  repeated string dependencies = 12 [(tagger.tags) = "bson:\"dependencies,omitempty\" json:\"dependencies,omitempty\""];
+  google.protobuf.Timestamp created_at = 13 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 14 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+  string created_by = 15 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
+  PermissionMetadata metadata = 16 [(tagger.tags) = "bson:\"metadata,omitempty\" json:\"metadata,omitempty\""];
+}
+
+message PermissionMetadata {
+  string module = 1 [(tagger.tags) = "bson:\"module\" json:\"module\""];
+  string ui_group = 2 [(tagger.tags) = "bson:\"ui_group\" json:\"ui_group\""];
+}

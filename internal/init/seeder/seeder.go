@@ -2,48 +2,49 @@ package seeder
 
 import (
 	"fmt"
-	"time"
 
-	"erp.localhost/internal/auth/password"
+	"erp.localhost/internal/auth/hash"
 	"erp.localhost/internal/infra/db"
 	mongo_db "erp.localhost/internal/infra/db/mongo"
 	"erp.localhost/internal/infra/db/mongo/collection"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
+	"erp.localhost/internal/infra/model/auth"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Seeder struct {
 	logger logger.Logger
 
 	// Handlers for database operations
-	tenantHandler     *collection.BaseCollectionHandler[model_auth.Tenant]
-	userHandler       *collection.BaseCollectionHandler[model_auth.User]
-	permissionHandler *collection.BaseCollectionHandler[model_auth.Permission]
-	roleHandler       *collection.BaseCollectionHandler[model_auth.Role]
+	tenantHandler     *collection.BaseCollectionHandler[authv1.Tenant]
+	userHandler       *collection.BaseCollectionHandler[authv1.User]
+	permissionHandler *collection.BaseCollectionHandler[authv1.Permission]
+	roleHandler       *collection.BaseCollectionHandler[authv1.Role]
 }
 
 func NewSeeder(logger logger.Logger) *Seeder {
 	return &Seeder{
 		logger: logger,
-		tenantHandler: collection.NewBaseCollectionHandler[model_auth.Tenant](
+		tenantHandler: collection.NewBaseCollectionHandler[authv1.Tenant](
 			model_mongo.AuthDB,
 			model_mongo.TenantsCollection,
 			logger,
 		),
-		userHandler: collection.NewBaseCollectionHandler[model_auth.User](
+		userHandler: collection.NewBaseCollectionHandler[authv1.User](
 			model_mongo.AuthDB,
 			model_mongo.UsersCollection,
 			logger,
 		),
-		permissionHandler: collection.NewBaseCollectionHandler[model_auth.Permission](
+		permissionHandler: collection.NewBaseCollectionHandler[authv1.Permission](
 			model_mongo.AuthDB,
 			model_mongo.PermissionsCollection,
 			logger,
 		),
-		roleHandler: collection.NewBaseCollectionHandler[model_auth.Role](
+		roleHandler: collection.NewBaseCollectionHandler[authv1.Role](
 			model_mongo.AuthDB,
 			model_mongo.RolesCollection,
 			logger,
@@ -117,7 +118,7 @@ func (s *Seeder) SeedIndexes() error {
 			indexes:    model_mongo.GetPermissionsIndexes(),
 		},
 		{
-			dbName:     model_mongo.AuthDB,
+			dbName:     model_mongo.EventDB,
 			collection: model_mongo.AuditLogsCollection,
 			indexes:    model_mongo.GetAuditLogsIndexes(),
 		},
@@ -148,16 +149,16 @@ func (s *Seeder) seedSystemTenant() error {
 	existing, err := s.tenantHandler.FindOne(filter)
 	if err == nil && existing != nil {
 		s.logger.Info("System tenant already exists, skipping creation")
-		db.SystemTenantID = existing.ID.Hex()
+		db.SystemTenantID = existing.Id
 		return nil
 	}
 
 	s.logger.Debug("Creating system tenant")
 
 	// Create new tenant
-	tenant := &model_auth.Tenant{
+	tenant := &authv1.Tenant{
 		Name:      db.SystemTenant,
-		Status:    model_auth.TenantStatusActive,
+		Status:    authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 		CreatedBy: "System",
 	}
 
@@ -173,7 +174,7 @@ func (s *Seeder) seedSystemTenant() error {
 func (s *Seeder) seedSystemPermission() error {
 	s.logger.Debug("Checking for existing system permission")
 
-	permissionString := fmt.Sprintf("%s:%s", model_auth.ResourceTypeAll, model_auth.PermissionActionAll)
+	permissionString := fmt.Sprintf("%s:%s", auth.ResourceTypeAll, auth.PermissionActionAll)
 
 	// Check if permission already exists
 	filter := map[string]any{
@@ -183,17 +184,17 @@ func (s *Seeder) seedSystemPermission() error {
 	existing, err := s.permissionHandler.FindOne(filter)
 	if err == nil && existing != nil {
 		s.logger.Info("System permission already exists, skipping creation")
-		db.SystemAdminPermissionID = existing.ID.Hex()
+		db.SystemAdminPermissionID = existing.Id
 		return nil
 	}
 
 	s.logger.Debug("Creating system permission")
 
 	// Create permission
-	permission := &model_auth.Permission{
-		TenantID:         db.SystemTenantID,
-		Resource:         model_auth.ResourceTypeAll,
-		Action:           model_auth.PermissionActionAll,
+	permission := &authv1.Permission{
+		TenantId:         db.SystemTenantID,
+		Resource:         auth.ResourceTypeAll,
+		Action:           auth.PermissionActionAll,
 		CreatedBy:        "System",
 		DisplayName:      "System Controller",
 		Description:      "Full system access - all resources and actions",
@@ -221,21 +222,20 @@ func (s *Seeder) seedSystemRole() error {
 	existing, err := s.roleHandler.FindOne(filter)
 	if err == nil && existing != nil {
 		s.logger.Info("System role already exists, skipping creation")
-		db.SystemAdminRoleID = existing.ID.Hex()
+		db.SystemAdminRoleID = existing.Id
 		return nil
 	}
 
 	s.logger.Debug("Creating system role")
 
 	// Create role
-	role := &model_auth.Role{
-		TenantID:      db.SystemTenantID,
-		Name:          db.SystemAdminUser,
-		Description:   "System administrator role with full access to all resources",
-		IsTenantAdmin: true,
-		Permissions:   []string{db.SystemAdminPermissionID},
-		Status:        model_auth.RoleStatusActive,
-		CreatedBy:     "System",
+	role := &authv1.Role{
+		TenantId:    db.SystemTenantID,
+		Name:        db.SystemAdminUser,
+		Description: "System administrator role with full access to all resources",
+		Permissions: []string{db.SystemAdminPermissionID},
+		Status:      authv1.RoleStatus_ROLE_STATUS_ACTIVE,
+		CreatedBy:   "System",
 	}
 
 	roleID, err := s.roleHandler.Create(role)
@@ -258,31 +258,31 @@ func (s *Seeder) seedSystemAdminUser() error {
 	existing, err := s.userHandler.FindOne(filter)
 	if err == nil && existing != nil {
 		s.logger.Info("System admin user already exists, skipping creation")
-		db.SystemAdminUserID = existing.ID.Hex()
+		db.SystemAdminUserID = existing.Id
 		return nil
 	}
 
 	s.logger.Debug("Creating system admin user")
 
 	// Hash password
-	hash, err := password.HashPassword(db.SystemAdminPassword)
+	hash, err := hash.HashPassword(db.SystemAdminPassword)
 	if err != nil {
 		return infra_error.Internal(infra_error.InternalUnexpectedError, err)
 	}
 
 	// Create user with system admin role
-	user := &model_auth.User{
-		TenantID:     db.SystemTenantID,
+	user := &authv1.User{
+		TenantId:     db.SystemTenantID,
 		Username:     db.SystemAdminUser,
 		Email:        db.SystemAdminEmail,
 		PasswordHash: hash,
-		Status:       model_auth.UserStatusActive,
+		Status:       authv1.UserStatus_USER_STATUS_ACTIVE,
 		CreatedBy:    "System",
-		Roles: []model_auth.UserRole{
+		Roles: []*authv1.UserRole{
 			{
-				TenantID:   db.SystemTenantID,
-				RoleID:     db.SystemAdminRoleID,
-				AssignedAt: time.Now(),
+				TenantId:   db.SystemTenantID,
+				RoleId:     db.SystemAdminRoleID,
+				AssignedAt: timestamppb.Now(),
 				AssignedBy: "System",
 			},
 		},

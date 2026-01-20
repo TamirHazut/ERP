@@ -3,44 +3,45 @@ package collection
 import (
 	"errors"
 	"testing"
-	"time"
 
 	mock_collection "erp.localhost/internal/infra/db/mongo/collection/mock"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_event "erp.localhost/internal/infra/model/event"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	eventv1 "erp.localhost/internal/infra/model/event/v1"
+	"erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
-	baseAuditLogLogger = logger.NewBaseLogger(model_shared.ModuleEvent)
+	baseAuditLogLogger = logger.NewBaseLogger(shared.ModuleEvent)
 )
 
 // auditLogMatcher is a custom gomock matcher for AuditLog objects
 // It skips the Timestamp field which is set dynamically
 type auditLogMatcher struct {
-	expected *model_event.AuditLog
+	expected *eventv1.AuditLog
 }
 
 func (m auditLogMatcher) Matches(x interface{}) bool {
-	log, ok := x.(*model_event.AuditLog)
+	log, ok := x.(*eventv1.AuditLog)
 	if !ok {
 		return false
 	}
 	// Match all fields except Timestamp which is set by the function
-	return log.TenantID == m.expected.TenantID &&
+	return log.TenantId == m.expected.TenantId &&
 		log.Action == m.expected.Action &&
 		log.Category == m.expected.Category &&
 		log.Severity == m.expected.Severity &&
 		log.Result == m.expected.Result &&
 		log.ActorType == m.expected.ActorType &&
-		log.ActorID == m.expected.ActorID &&
+		log.ActorId == m.expected.ActorId &&
 		log.ActorName == m.expected.ActorName &&
 		log.TargetType == m.expected.TargetType &&
-		log.TargetID == m.expected.TargetID &&
+		log.TargetId == m.expected.TargetId &&
 		log.TargetName == m.expected.TargetName
 }
 
@@ -52,7 +53,7 @@ func TestAuditLogsCollection_CreateAuditLog(t *testing.T) {
 	testCases := []struct {
 		name              string
 		tenantID          string
-		auditLog          *model_event.AuditLog
+		auditLog          *eventv1.AuditLog
 		returnID          string
 		returnError       error
 		expectedError     error
@@ -61,17 +62,17 @@ func TestAuditLogsCollection_CreateAuditLog(t *testing.T) {
 		{
 			name:     "successful create",
 			tenantID: "tenant-1",
-			auditLog: &model_event.AuditLog{
-				TenantID:   "tenant-1",
+			auditLog: &eventv1.AuditLog{
+				TenantId:   "tenant-1",
 				Action:     model_event.ActionLogin,
 				Category:   model_event.CategoryAuth,
 				Severity:   model_event.SeverityInfo,
 				Result:     model_event.ResultSuccess,
 				ActorType:  model_event.ActorTypeUser,
-				ActorID:    "user-1",
+				ActorId:    "user-1",
 				ActorName:  "John Doe",
 				TargetType: model_event.TargetTypeUser,
-				TargetID:   "user-1",
+				TargetId:   "user-1",
 				TargetName: "John Doe",
 			},
 			returnID:          "audit-log-1",
@@ -82,7 +83,7 @@ func TestAuditLogsCollection_CreateAuditLog(t *testing.T) {
 		{
 			name:              "missing tenantID",
 			tenantID:          "",
-			auditLog:          &model_event.AuditLog{},
+			auditLog:          &eventv1.AuditLog{},
 			returnID:          "",
 			returnError:       nil,
 			expectedError:     infra_error.Validation(infra_error.ValidationRequiredFields, "tenantID"),
@@ -91,7 +92,7 @@ func TestAuditLogsCollection_CreateAuditLog(t *testing.T) {
 		{
 			name:     "invalid audit log - missing action",
 			tenantID: "tenant-1",
-			auditLog: &model_event.AuditLog{
+			auditLog: &eventv1.AuditLog{
 				Category: "authentication",
 				Severity: "info",
 			},
@@ -103,17 +104,17 @@ func TestAuditLogsCollection_CreateAuditLog(t *testing.T) {
 		{
 			name:     "database error during create",
 			tenantID: "tenant-1",
-			auditLog: &model_event.AuditLog{
-				TenantID:   "tenant-1",
+			auditLog: &eventv1.AuditLog{
+				TenantId:   "tenant-1",
 				Action:     model_event.ActionLogin,
 				Category:   model_event.CategoryAuth,
 				Severity:   model_event.SeverityInfo,
 				Result:     model_event.ResultSuccess,
 				ActorType:  model_event.ActorTypeUser,
-				ActorID:    "user-1",
+				ActorId:    "user-1",
 				ActorName:  "John Doe",
 				TargetType: model_event.TargetTypeUser,
-				TargetID:   "user-1",
+				TargetId:   "user-1",
 				TargetName: "John Doe",
 			},
 			returnID:          "",
@@ -128,7 +129,7 @@ func TestAuditLogsCollection_CreateAuditLog(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_event.AuditLog](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[eventv1.AuditLog](ctrl)
 
 			// Only expect Create call if we expect it to be called
 			if tc.expectedCallTimes > 0 {
@@ -151,27 +152,27 @@ func TestAuditLogsCollection_CreateAuditLog(t *testing.T) {
 }
 
 func TestAuditLogsCollection_GetAuditLogsByFilter(t *testing.T) {
-	testAuditLog1 := &model_event.AuditLog{
-		TenantID:  "tenant-1",
+	testAuditLog1 := &eventv1.AuditLog{
+		TenantId:  "tenant-1",
 		Action:    "user.login",
 		Category:  "authentication",
 		Severity:  "info",
 		Result:    "success",
-		Timestamp: time.Now(),
+		Timestamp: timestamppb.Now(),
 		ActorType: model_event.ActorTypeUser,
-		ActorID:   "user-1",
+		ActorId:   "user-1",
 		ActorName: "John Doe",
 	}
 
-	testAuditLog2 := &model_event.AuditLog{
-		TenantID:  "tenant-1",
+	testAuditLog2 := &eventv1.AuditLog{
+		TenantId:  "tenant-1",
 		Action:    "user.logout",
 		Category:  "authentication",
 		Severity:  "info",
 		Result:    "success",
-		Timestamp: time.Now(),
+		Timestamp: timestamppb.Now(),
 		ActorType: model_event.ActorTypeUser,
-		ActorID:   "user-1",
+		ActorId:   "user-1",
 		ActorName: "John Doe",
 	}
 
@@ -180,9 +181,9 @@ func TestAuditLogsCollection_GetAuditLogsByFilter(t *testing.T) {
 		tenantID          string
 		filter            map[string]any
 		expectedFilter    map[string]any
-		returnLogs        []*model_event.AuditLog
+		returnLogs        []*eventv1.AuditLog
 		returnError       error
-		expectedLogs      []*model_event.AuditLog
+		expectedLogs      []*eventv1.AuditLog
 		expectedError     error
 		expectedCallTimes int
 	}{
@@ -194,11 +195,11 @@ func TestAuditLogsCollection_GetAuditLogsByFilter(t *testing.T) {
 				"action":    "user.login",
 				"tenant_id": "tenant-1",
 			},
-			returnLogs: []*model_event.AuditLog{
+			returnLogs: []*eventv1.AuditLog{
 				testAuditLog1,
 			},
 			returnError:       nil,
-			expectedLogs:      []*model_event.AuditLog{testAuditLog1},
+			expectedLogs:      []*eventv1.AuditLog{testAuditLog1},
 			expectedError:     nil,
 			expectedCallTimes: 1,
 		},
@@ -210,12 +211,12 @@ func TestAuditLogsCollection_GetAuditLogsByFilter(t *testing.T) {
 				"category":  "authentication",
 				"tenant_id": "tenant-1",
 			},
-			returnLogs: []*model_event.AuditLog{
+			returnLogs: []*eventv1.AuditLog{
 				testAuditLog1,
 				testAuditLog2,
 			},
 			returnError: nil,
-			expectedLogs: []*model_event.AuditLog{
+			expectedLogs: []*eventv1.AuditLog{
 				testAuditLog1,
 				testAuditLog2,
 			},
@@ -229,12 +230,12 @@ func TestAuditLogsCollection_GetAuditLogsByFilter(t *testing.T) {
 			expectedFilter: map[string]any{
 				"tenant_id": "tenant-1",
 			},
-			returnLogs: []*model_event.AuditLog{
+			returnLogs: []*eventv1.AuditLog{
 				testAuditLog1,
 				testAuditLog2,
 			},
 			returnError: nil,
-			expectedLogs: []*model_event.AuditLog{
+			expectedLogs: []*eventv1.AuditLog{
 				testAuditLog1,
 				testAuditLog2,
 			},
@@ -249,9 +250,9 @@ func TestAuditLogsCollection_GetAuditLogsByFilter(t *testing.T) {
 				"action":    "nonexistent.action",
 				"tenant_id": "tenant-1",
 			},
-			returnLogs:        []*model_event.AuditLog{},
+			returnLogs:        []*eventv1.AuditLog{},
 			returnError:       nil,
-			expectedLogs:      []*model_event.AuditLog{},
+			expectedLogs:      []*eventv1.AuditLog{},
 			expectedError:     nil,
 			expectedCallTimes: 1,
 		},
@@ -287,7 +288,7 @@ func TestAuditLogsCollection_GetAuditLogsByFilter(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_event.AuditLog](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[eventv1.AuditLog](ctrl)
 			// Only expect FindAll call if we expect it to be called
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().

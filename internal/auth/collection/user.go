@@ -1,20 +1,20 @@
 package collection
 
 import (
-	"time"
-
 	"erp.localhost/internal/infra/db/mongo/collection"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	validator_auth "erp.localhost/internal/infra/model/auth/validator"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type UserCollection struct {
-	collection collection.CollectionHandler[model_auth.User]
+	collection collection.CollectionHandler[authv1.User]
 	logger     logger.Logger
 }
 
-func NewUserCollection(collection collection.CollectionHandler[model_auth.User], logger logger.Logger) *UserCollection {
+func NewUserCollection(collection collection.CollectionHandler[authv1.User], logger logger.Logger) *UserCollection {
 	if collection == nil {
 		return nil
 	}
@@ -24,17 +24,17 @@ func NewUserCollection(collection collection.CollectionHandler[model_auth.User],
 	}
 }
 
-func (u *UserCollection) CreateUser(user *model_auth.User) (string, error) {
-	if err := user.Validate(true); err != nil {
+func (u *UserCollection) CreateUser(user *authv1.User) (string, error) {
+	if err := validator_auth.ValidateUser(user, true); err != nil {
 		return "", err
 	}
-	user.CreatedAt = time.Now()
-	user.UpdatedAt = time.Now()
+	user.CreatedAt = timestamppb.Now()
+	user.UpdatedAt = timestamppb.Now()
 	u.logger.Debug("Creating user", "user", user)
 	return u.collection.Create(user)
 }
 
-func (u *UserCollection) GetUserByID(tenantID, userID string) (*model_auth.User, error) {
+func (u *UserCollection) GetUserByID(tenantID, userID string) (*authv1.User, error) {
 	if userID == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "userID")
 	}
@@ -46,7 +46,7 @@ func (u *UserCollection) GetUserByID(tenantID, userID string) (*model_auth.User,
 	return u.findUserByFilter(filter)
 }
 
-func (u *UserCollection) GetUserByEmail(tenantID, email string) (*model_auth.User, error) {
+func (u *UserCollection) GetUserByEmail(tenantID, email string) (*authv1.User, error) {
 	if email == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "email")
 	}
@@ -58,7 +58,7 @@ func (u *UserCollection) GetUserByEmail(tenantID, email string) (*model_auth.Use
 	return u.findUserByFilter(filter)
 }
 
-func (u *UserCollection) GetUserByUsername(tenantID, username string) (*model_auth.User, error) {
+func (u *UserCollection) GetUserByUsername(tenantID, username string) (*authv1.User, error) {
 	if username == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "username")
 	}
@@ -70,7 +70,7 @@ func (u *UserCollection) GetUserByUsername(tenantID, username string) (*model_au
 	return u.findUserByFilter(filter)
 }
 
-func (u *UserCollection) GetUsersByTenantID(tenantID string) ([]*model_auth.User, error) {
+func (u *UserCollection) GetUsersByTenantID(tenantID string) ([]*authv1.User, error) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
@@ -78,7 +78,7 @@ func (u *UserCollection) GetUsersByTenantID(tenantID string) ([]*model_auth.User
 	return u.findUsersByFilter(filter)
 }
 
-func (u *UserCollection) GetUsersByRoleID(tenantID, roleID string) ([]*model_auth.User, error) {
+func (u *UserCollection) GetUsersByRoleID(tenantID, roleID string) ([]*authv1.User, error) {
 	if roleID == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "roleID")
 	}
@@ -90,22 +90,22 @@ func (u *UserCollection) GetUsersByRoleID(tenantID, roleID string) ([]*model_aut
 	return u.findUsersByFilter(filter)
 }
 
-func (u *UserCollection) UpdateUser(user *model_auth.User) error {
-	if err := user.Validate(false); err != nil {
+func (u *UserCollection) UpdateUser(user *authv1.User) error {
+	if err := validator_auth.ValidateUser(user, false); err != nil {
 		return err
 	}
 	u.logger.Debug("Updating user", "user", user)
 	filter := map[string]any{
-		"tenant_id": user.TenantID,
-		"_id":       user.ID.Hex(),
+		"tenant_id": user.TenantId,
+		"_id":       user.Id,
 	}
-	user.UpdatedAt = time.Now()
+	user.UpdatedAt = timestamppb.Now()
 	return u.collection.Update(filter, user)
 }
 
 func (u *UserCollection) DeleteUser(tenantID, userID string) error {
 	if tenantID == "" || userID == "" {
-		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID", "UserID")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId", "UserId")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
@@ -117,7 +117,7 @@ func (u *UserCollection) DeleteUser(tenantID, userID string) error {
 
 func (u *UserCollection) DeleteTenantUsers(tenantID string) error {
 	if tenantID == "" {
-		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID", "UserID")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId", "UserId")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
@@ -126,7 +126,7 @@ func (u *UserCollection) DeleteTenantUsers(tenantID string) error {
 	return u.collection.Delete(filter)
 }
 
-func (u *UserCollection) findUserByFilter(filter map[string]any) (*model_auth.User, error) {
+func (u *UserCollection) findUserByFilter(filter map[string]any) (*authv1.User, error) {
 	if _, ok := filter["tenant_id"]; !ok {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}
@@ -137,7 +137,7 @@ func (u *UserCollection) findUserByFilter(filter map[string]any) (*model_auth.Us
 	return user, nil
 }
 
-func (u *UserCollection) findUsersByFilter(filter map[string]any) ([]*model_auth.User, error) {
+func (u *UserCollection) findUsersByFilter(filter map[string]any) ([]*authv1.User, error) {
 	if _, ok := filter["tenant_id"]; !ok {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}

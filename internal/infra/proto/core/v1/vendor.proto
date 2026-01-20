@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "erp.localhost/internal/infra/model/core/v1;corev1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+import "core/v1/address.proto";
+
+// Vendor status enum
+enum VendorStatus {
+  VENDOR_STATUS_UNSPECIFIED = 0;
+  VENDOR_STATUS_ACTIVE = 1;
+  VENDOR_STATUS_INACTIVE = 2;
+  VENDOR_STATUS_PENDING_APPROVAL = 3;
+}
+
+// Vendor model for MongoDB core_db.vendors collection
+message Vendor {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string vendor_id = 2 [(tagger.tags) = "bson:\"vendor_id\" json:\"vendor_id\""];
+  string tenant_id = 3 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string name = 4 [(tagger.tags) = "bson:\"name\" json:\"name\""];
+  string code = 5 [(tagger.tags) = "bson:\"code\" json:\"code\""];
+  VendorContact contact = 6 [(tagger.tags) = "bson:\"contact\" json:\"contact\""];
+  Address address = 7 [(tagger.tags) = "bson:\"address\" json:\"address\""];
+  PaymentTerms payment_terms = 8 [(tagger.tags) = "bson:\"payment_terms\" json:\"payment_terms\""];
+  double rating = 9 [(tagger.tags) = "bson:\"rating\" json:\"rating\""];
+  VendorStatus status = 10 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  repeated string products_supplied = 11 [(tagger.tags) = "bson:\"products_supplied,omitempty\" json:\"products_supplied,omitempty\""];
+  VendorMetadata metadata = 12 [(tagger.tags) = "bson:\"metadata,omitempty\" json:\"metadata,omitempty\""];
+  google.protobuf.Timestamp created_at = 13 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 14 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+  string created_by = 15 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
+}
+
+message VendorContact {
+  string email = 1 [(tagger.tags) = "bson:\"email\" json:\"email\""];
+  string phone = 2 [(tagger.tags) = "bson:\"phone\" json:\"phone\""];
+  string website = 3 [(tagger.tags) = "bson:\"website,omitempty\" json:\"website,omitempty\""];
+  string contact_person = 4 [(tagger.tags) = "bson:\"contact_person,omitempty\" json:\"contact_person,omitempty\""];
+}
+
+message PaymentTerms {
+  string terms = 1 [(tagger.tags) = "bson:\"terms\" json:\"terms\""];
+  double credit_limit = 2 [(tagger.tags) = "bson:\"credit_limit\" json:\"credit_limit\""];
+  string currency = 3 [(tagger.tags) = "bson:\"currency\" json:\"currency\""];
+}
+
+message VendorMetadata {
+  string tax_id = 1 [(tagger.tags) = "bson:\"tax_id,omitempty\" json:\"tax_id,omitempty\""];
+  string business_type = 2 [(tagger.tags) = "bson:\"business_type,omitempty\" json:\"business_type,omitempty\""];
+  string notes = 3 [(tagger.tags) = "bson:\"notes,omitempty\" json:\"notes,omitempty\""];
+}

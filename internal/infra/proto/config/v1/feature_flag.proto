@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package config.v1;
+
+option go_package = "erp.localhost/internal/infra/model/config/v1;configv1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// MongoDB Models (for database persistence)
+// =============================================================================
+
+// FeatureFlag represents a feature flag
+// Stored in MongoDB config_db.feature_flags collection
+message FeatureFlag {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string flag_id = 2 [(tagger.tags) = "bson:\"flag_id\" json:\"flag_id\""];
+  string name = 3 [(tagger.tags) = "bson:\"name\" json:\"name\""];
+  string key = 4 [(tagger.tags) = "bson:\"key\" json:\"key\""];
+  string description = 5 [(tagger.tags) = "bson:\"description\" json:\"description\""];
+  bool enabled = 6 [(tagger.tags) = "bson:\"enabled\" json:\"enabled\""];
+  FeatureRollout rollout = 7 [(tagger.tags) = "bson:\"rollout\" json:\"rollout\""];
+  FeatureFlagMetadata metadata = 8 [(tagger.tags) = "bson:\"metadata,omitempty\" json:\"metadata,omitempty\""];
+  google.protobuf.Timestamp created_at = 9 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 10 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+}
+
+message FeatureRollout {
+  int32 percentage = 1 [(tagger.tags) = "bson:\"percentage\" json:\"percentage\""];
+  repeated string tenant_ids = 2 [(tagger.tags) = "bson:\"tenant_ids,omitempty\" json:\"tenant_ids,omitempty\""];
+  repeated string user_ids = 3 [(tagger.tags) = "bson:\"user_ids,omitempty\" json:\"user_ids,omitempty\""];
+}
+
+message FeatureFlagMetadata {
+  string category = 1 [(tagger.tags) = "bson:\"category,omitempty\" json:\"category,omitempty\""];
+  string owner_team = 2 [(tagger.tags) = "bson:\"owner_team,omitempty\" json:\"owner_team,omitempty\""];
+  string documentation_url = 3 [(tagger.tags) = "bson:\"documentation_url,omitempty\" json:\"documentation_url,omitempty\""];
+}

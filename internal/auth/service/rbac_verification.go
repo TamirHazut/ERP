@@ -6,9 +6,8 @@ import (
 	"erp.localhost/internal/auth/api"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
-	model_shared "erp.localhost/internal/infra/model/shared"
-	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
-	"erp.localhost/internal/infra/proto/validator"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	validator_infra "erp.localhost/internal/infra/model/infra/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -17,14 +16,11 @@ import (
 type VerificationService struct {
 	verificationAPI *api.VerificationAPI
 	logger          logger.Logger
-	proto_auth.UnimplementedVerificationServiceServer
+	authv1.UnimplementedVerificationServiceServer
 }
 
 // NewVerificationService creates a new VerificationService instance
-func NewVerificationService(
-	verificationAPI *api.VerificationAPI,
-) *VerificationService {
-	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
+func NewVerificationService(verificationAPI *api.VerificationAPI, logger logger.Logger) *VerificationService {
 	return &VerificationService{
 		verificationAPI: verificationAPI,
 		logger:          logger,
@@ -32,12 +28,12 @@ func NewVerificationService(
 }
 
 // CheckPermissions checks if a user has specific permissions
-func (vs *VerificationService) CheckPermissions(ctx context.Context, req *proto_auth.CheckPermissionsRequest) (*proto_auth.CheckPermissionsResponse, error) {
+func (vs *VerificationService) CheckPermissions(ctx context.Context, req *authv1.CheckPermissionsRequest) (*authv1.CheckPermissionsResponse, error) {
 	vs.logger.Debug("gRPC CheckPermissions called")
 
 	// 1. Validate request
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		vs.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -56,16 +52,16 @@ func (vs *VerificationService) CheckPermissions(ctx context.Context, req *proto_
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	return &proto_auth.CheckPermissionsResponse{Permissions: permissions}, nil
+	return &authv1.CheckPermissionsResponse{Permissions: permissions}, nil
 }
 
 // HasPermission checks if a user has a specific permission
-func (vs *VerificationService) HasPermission(ctx context.Context, req *proto_auth.HasPermissionRequest) (*proto_auth.HasPermissionResponse, error) {
+func (vs *VerificationService) HasPermission(ctx context.Context, req *authv1.HasPermissionRequest) (*authv1.HasPermissionResponse, error) {
 	vs.logger.Debug("gRPC HasPermission called")
 
 	// 1. Validate request
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		vs.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -87,16 +83,16 @@ func (vs *VerificationService) HasPermission(ctx context.Context, req *proto_aut
 	// 3. Convert error to boolean response
 	hasPermission := err == nil
 
-	return &proto_auth.HasPermissionResponse{HasPermission: hasPermission}, nil
+	return &authv1.HasPermissionResponse{HasPermission: hasPermission}, nil
 }
 
 // GetUserPermissions retrieves all permissions for a user
-func (vs *VerificationService) GetUserPermissions(ctx context.Context, req *proto_auth.GetUserPermissionsRequest) (*proto_auth.GetUserPermissionsResponse, error) {
+func (vs *VerificationService) GetUserPermissions(ctx context.Context, req *authv1.GetUserPermissionsRequest) (*authv1.GetUserPermissionsResponse, error) {
 	vs.logger.Debug("gRPC GetUserPermissions called")
 
 	// 1. Validate request
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		vs.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -111,16 +107,16 @@ func (vs *VerificationService) GetUserPermissions(ctx context.Context, req *prot
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	return &proto_auth.GetUserPermissionsResponse{Permissions: permissions}, nil
+	return &authv1.GetUserPermissionsResponse{Permissions: permissions}, nil
 }
 
 // GetUserRoles retrieves all role IDs for a user
-func (vs *VerificationService) GetUserRoles(ctx context.Context, req *proto_auth.GetUserRolesRequest) (*proto_auth.GetUserRolesResponse, error) {
+func (vs *VerificationService) GetUserRoles(ctx context.Context, req *authv1.GetUserRolesRequest) (*authv1.GetUserRolesResponse, error) {
 	vs.logger.Debug("gRPC GetUserRoles called")
 
 	// 1. Validate request
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		vs.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -135,11 +131,11 @@ func (vs *VerificationService) GetUserRoles(ctx context.Context, req *proto_auth
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	return &proto_auth.GetUserRolesResponse{RoleIds: roleIDs}, nil
+	return &authv1.GetUserRolesResponse{RoleIds: roleIDs}, nil
 }
 
 // IsSystemTenantUser checks if a tenant is the system tenant
-func (vs *VerificationService) IsSystemTenantUser(ctx context.Context, req *proto_auth.IsSystemTenantUserRequest) (*proto_auth.IsSystemTenantUserResponse, error) {
+func (vs *VerificationService) IsSystemTenantUser(ctx context.Context, req *authv1.IsSystemTenantUserRequest) (*authv1.IsSystemTenantUserResponse, error) {
 	vs.logger.Debug("gRPC IsSystemTenantUser called")
 
 	// 1. Validate request
@@ -150,5 +146,5 @@ func (vs *VerificationService) IsSystemTenantUser(ctx context.Context, req *prot
 	// 2. Call API layer (no authorization needed - verification service)
 	isSystemTenant := vs.verificationAPI.IsSystemTenantUser(req.GetTenantId())
 
-	return &proto_auth.IsSystemTenantUserResponse{IsSystemTenant: isSystemTenant}, nil
+	return &authv1.IsSystemTenantUserResponse{IsSystemTenant: isSystemTenant}, nil
 }

@@ -1,21 +1,21 @@
 package api
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"os"
 	"strconv"
 	"time"
 
-	"erp.localhost/internal/auth/password"
+	"erp.localhost/internal/auth/hash"
 	token "erp.localhost/internal/auth/token"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
-	model_auth_cache "erp.localhost/internal/infra/model/auth/cache"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // TokenConfig holds configuration for token management
@@ -62,10 +62,10 @@ func parseDuration(value string, defaultDuration time.Duration) time.Duration {
 }
 
 type NewTokenResponse struct {
-	UserID                string `json:"user_id"`
-	TenantID              string `json:"tenant_id"`
-	AccessToken           string `json:"access_token"`
-	AccessTokenExpiresAt  int64  `json:"access_token_expires_at"`
+	UserId                string `json:"user_id"`
+	TenantId              string `json:"tenant_id"`
+	Token                 string `json:"token"`
+	TokenExpiresAt        int64  `json:"token_expires_at"`
 	RefreshToken          string `json:"refresh_token"`
 	RefreshTokenExpiresAt int64  `json:"refresh_token_expires_at"`
 }
@@ -73,18 +73,19 @@ type NewTokenResponse struct {
 type AuthAPI struct {
 	logger       logger.Logger
 	rbacAPI      *RBACAPI
+	userAPI      *UserAPI
 	tokenManager *token.TokenManager
 	config       *TokenConfig
 }
 
-func NewAuthAPI(rbacAPI *RBACAPI, logger logger.Logger) *AuthAPI {
+func NewAuthAPI(rbacAPI *RBACAPI, userAPI *UserAPI, logger logger.Logger) *AuthAPI {
 	// Load configuration from environment variables
 	config := LoadTokenConfig()
 	logger.Info("Token configuration loaded",
 		"access_token_duration", config.TokenDuration.String(),
 		"refresh_token_duration", config.RefreshTokenDuration.String())
 
-	tokenManager := token.NewTokenManager(config.SecretKey, config.TokenDuration, config.RefreshTokenDuration)
+	tokenManager := token.NewTokenManager(config.SecretKey, config.TokenDuration, config.RefreshTokenDuration, logger)
 	if tokenManager == nil {
 		logger.Fatal("failed to create token manager")
 		return nil
@@ -92,29 +93,68 @@ func NewAuthAPI(rbacAPI *RBACAPI, logger logger.Logger) *AuthAPI {
 	return &AuthAPI{
 		logger:       logger,
 		rbacAPI:      rbacAPI,
+		userAPI:      userAPI,
 		tokenManager: tokenManager,
 		config:       config,
 	}
 }
 
-func (a *AuthAPI) Authenticate(tenantID, userID, userPassword, userHash string) (*NewTokenResponse, error) {
-	if tenantID == "" || userID == "" || userPassword == "" || userHash == "" {
+func (a *AuthAPI) Login(tenantID, email, username, password string) (*NewTokenResponse, error) {
+	if tenantID == "" || password == "" || (email == "" && username == "") {
+		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, email/username, password"))
+		a.logger.Error("failed to login", "error", err)
+		return nil, err
+	}
+
+	var filterType FilterType
+	if email != "" {
+		filterType = filterTypeEmail
+	} else if username != "" {
+		filterType = filterTypeUsername
+	} else {
+		filterType = filterTypeUnsupported
+	}
+	user, err := a.userAPI.getUser(tenantID, email, filterType)
+	if err != nil {
+		a.logger.Error("failed to find user", "error", err)
+		return nil, err
+	}
+
+	tokens, err := a.Authenticate(user, password)
+	if user.LoginHistory == nil {
+		user.LoginHistory = make([]*authv1.LoginRecord, 0)
+	}
+	user.LoginHistory = append(user.LoginHistory, &authv1.LoginRecord{
+		Timestamp: timestamppb.Now(),
+		Success:   tokens != nil,
+	})
+	if updateErr := a.userAPI.userCollection.UpdateUser(user); updateErr != nil {
+		a.logger.Error("failed to update user login history", "error", err)
+	}
+	return tokens, err
+}
+
+func (a *AuthAPI) Logout(tenantID, userID, accessToken, refreshToken, revokedBy string) (string, error) {
+	err := a.RevokeTokens(tenantID, userID, accessToken, refreshToken, revokedBy)
+	if err != nil {
+		return "logout failed", err
+	}
+	return "logout successful", err
+}
+
+func (a *AuthAPI) Authenticate(user *authv1.User, password string) (*NewTokenResponse, error) {
+	if password == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, user_password, user_hash"))
 		a.logger.Error("Failed to authenticate user", "error", err)
 		return nil, err
 	}
-	// Verify password
-	hashedPassword, err := password.HashPassword(userPassword)
-	if err != nil {
-		return nil, err
-	}
 
-	if !password.VerifyPassword(hashedPassword, userHash) {
+	if !hash.VerifyHash(password, user.GetPasswordHash()) {
 		return nil, infra_error.Auth(infra_error.AuthInvalidCredentials)
 	}
 
 	// Generate tokens
-	return a.generateAndStoreTokens(tenantID, userID)
+	return a.generateAndStoreTokens(user)
 }
 
 func (a *AuthAPI) VerifyToken(token string) error {
@@ -130,7 +170,8 @@ func (a *AuthAPI) RefreshToken(tenantID, userID, token string) (*NewTokenRespons
 		return nil, infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, refresh_token"))
 	}
 
-	refreshToken, err := a.tokenManager.VerifyRefreshToken(tenantID, userID, token)
+	// Verify the refresh token is valid
+	_, err := a.tokenManager.VerifyRefreshToken(tenantID, userID, token)
 	if err != nil {
 		a.logger.Error("Failed to verify refresh token", "error", err, "tenant_id", tenantID, "user_id", userID, "refresh_token", token)
 		return nil, err
@@ -143,16 +184,22 @@ func (a *AuthAPI) RefreshToken(tenantID, userID, token string) (*NewTokenRespons
 		a.logger.Warn("Failed to revoke old access tokens before refresh", "error", err, "tenant_id", tenantID, "user_id", userID)
 		// Continue anyway - non-critical failure
 	}
+	user, err := a.userAPI.getUser(tenantID, userID, filterTypeID)
+	if err != nil {
+		a.logger.Error("failed to find user", "error", err)
+		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, err)
+	}
 
-	newTokenResponse, err := a.generateAndStoreTokens(tenantID, userID)
+	newTokenResponse, err := a.generateAndStoreTokens(user)
 	if err != nil {
 		a.logger.Error("Failed to generate and store tokens", "error", err, "tenant_id", tenantID, "user_id", userID)
 		return nil, err
 	}
 
-	err = a.tokenManager.RevokeRefreshToken(tenantID, userID, refreshToken.Token, "system", true)
+	// Revoke the old refresh token after successfully creating new tokens
+	err = a.tokenManager.RevokeRefreshToken(tenantID, userID, token, "system", true)
 	if err != nil {
-		a.logger.Error("Failed to revoke refresh token", "error", err, "tenant_id", tenantID, "user_id", userID)
+		a.logger.Error("Failed to revoke old refresh token", "error", err, "tenant_id", tenantID, "user_id", userID)
 		return nil, err
 	}
 	return newTokenResponse, nil
@@ -199,77 +246,76 @@ func (a *AuthAPI) RevokeAllTenantTokens(tenantID, revokedBy, targetTenantID stri
 	return a.tokenManager.RevokeAllTenantTokens(targetTenantID, revokedBy)
 }
 
-func (a *AuthAPI) generateAccessToken(tenantID string, userID string) (model_auth_cache.TokenMetadata, error) {
+func (a *AuthAPI) generateAccessToken(user *authv1.User) (string, *authv1_cache.TokenMetadata, error) {
 	// Generate access token
-	accessToken, err := a.tokenManager.GenerateAccessToken(&token.GenerateAccessTokenInput{
-		UserID:   userID,
-		TenantID: tenantID,
+	userRoles := make([]string, len(user.GetRoles()))
+	for i, role := range user.GetRoles() {
+		userRoles[i] = role.RoleId
+	}
+	accessToken, claims, err := a.tokenManager.GenerateAccessToken(&token.GenerateAccessTokenInput{
+		UserId:   user.GetId(),
+		TenantId: user.GetTenantId(),
+		Username: user.GetUsername(),
+		Email:    user.GetEmail(),
+		Roles:    userRoles,
 	})
 	if err != nil {
-		return model_auth_cache.TokenMetadata{}, status.Error(codes.Internal, err.Error())
+		return "", nil, status.Error(codes.Internal, err.Error())
 	}
 
-	hashedAccessToken := sha256.Sum256([]byte(accessToken))
-	accessTokenID := hex.EncodeToString(hashedAccessToken[:])
-
-	issuedAt := time.Now()
-	accessTokenExpiresAt := issuedAt.Add(a.config.TokenDuration)
-
-	accessTokenMetadata := model_auth_cache.TokenMetadata{
-		TokenID:   accessTokenID,
-		JTI:       accessToken,
-		UserID:    userID,
-		TenantID:  tenantID,
-		TokenType: "access",
-		IssuedAt:  issuedAt,
-		ExpiresAt: accessTokenExpiresAt,
+	accessTokenMetadata := &authv1_cache.TokenMetadata{
+		Jti:       accessToken,
+		UserId:    claims.GetUserId(),
+		TenantId:  claims.GetTenantId(),
+		IssuedAt:  claims.GetIssuedAt(),
+		ExpiresAt: claims.GetExpiresAt(),
 		Revoked:   false,
 		RevokedAt: nil,
 		RevokedBy: "",
-		IPAddress: "",
+		IpAddress: "",
 		UserAgent: "",
 		Scopes:    []string{},
 	}
 
-	return accessTokenMetadata, nil
+	return accessToken, accessTokenMetadata, nil
 }
 
-func (a *AuthAPI) generateRefreshToken(tenantID string, userID string) (model_auth.RefreshToken, error) {
+func (a *AuthAPI) generateRefreshToken(tenantID string, userID string) (string, *authv1_cache.RefreshToken, error) {
 	issuedAt := time.Now()
 	// Generate refresh token
-	refreshToken, err := a.tokenManager.GenerateRefreshToken(token.GenerateRefreshTokenInput{
-		UserID:    userID,
-		TenantID:  tenantID,
+	tokenString, refreshToken, err := a.tokenManager.GenerateRefreshToken(token.GenerateRefreshTokenInput{
+		UserId:    userID,
+		TenantId:  tenantID,
 		CreatedAt: issuedAt,
 	})
 	if err != nil {
-		return model_auth.RefreshToken{}, status.Error(codes.Internal, err.Error())
+		return "", nil, status.Error(codes.Internal, err.Error())
 	}
-	return refreshToken, nil
+	return tokenString, refreshToken, nil
 }
 
-func (a *AuthAPI) generateAndStoreTokens(tenantID string, userID string) (*NewTokenResponse, error) {
-	accessTokenMetadata, err := a.generateAccessToken(tenantID, userID)
+func (a *AuthAPI) generateAndStoreTokens(user *authv1.User) (*NewTokenResponse, error) {
+	accessToken, accessTokenMetadata, err := a.generateAccessToken(user)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
-	refreshToken, err := a.generateRefreshToken(tenantID, userID)
+	refreshTokenString, refreshTokenModel, err := a.generateRefreshToken(user.GetTenantId(), user.GetId())
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
 
 	// Store tokens (single token per user - automatically replaces existing)
-	err = a.tokenManager.StoreTokens(tenantID, userID, accessTokenMetadata, refreshToken)
+	err = a.tokenManager.StoreTokens(user.GetTenantId(), user.GetId(), accessTokenMetadata, refreshTokenModel)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
 
 	return &NewTokenResponse{
-		UserID:                userID,
-		TenantID:              tenantID,
-		AccessToken:           accessTokenMetadata.JTI,
-		AccessTokenExpiresAt:  accessTokenMetadata.ExpiresAt.Unix(),
-		RefreshToken:          refreshToken.Token,
-		RefreshTokenExpiresAt: refreshToken.ExpiresAt.Unix(),
+		UserId:                user.GetId(),
+		TenantId:              user.GetTenantId(),
+		Token:                 accessToken,
+		TokenExpiresAt:        accessTokenMetadata.ExpiresAt.AsTime().Unix(),
+		RefreshToken:          refreshTokenString,
+		RefreshTokenExpiresAt: refreshTokenModel.ExpiresAt.AsTime().Unix(),
 	}, nil
 }

@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package gateway.v1.cache;
+
+option go_package = "erp.localhost/internal/infra/model/gateway/v1/cache;gatewaycache";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Redis Cache Models (for rate limiting)
+// =============================================================================
+
+// RateLimitBucket represents a rate limit bucket for tracking API usage
+// Stored in: rate_limit:{tenant_id}:{user_id}:{endpoint} (Redis String with counter)
+// Also can use: rate_limit_bucket:{bucket_id} (Redis Hash) for more complex scenarios
+message RateLimitBucket {
+  string bucket_id = 1 [(tagger.tags) = "json:\"bucket_id\""];
+  string tenant_id = 2 [(tagger.tags) = "json:\"tenant_id\""];
+  string user_id = 3 [(tagger.tags) = "json:\"user_id,omitempty\""];
+  string ip_address = 4 [(tagger.tags) = "json:\"ip_address,omitempty\""];
+  string endpoint = 5 [(tagger.tags) = "json:\"endpoint\""];
+  string method = 6 [(tagger.tags) = "json:\"method\""];
+  int32 tokens_used = 7 [(tagger.tags) = "json:\"tokens_used\""];
+  int32 tokens_limit = 8 [(tagger.tags) = "json:\"tokens_limit\""];
+  google.protobuf.Timestamp window_start = 9 [(tagger.tags) = "json:\"window_start\""];
+  google.protobuf.Timestamp window_end = 10 [(tagger.tags) = "json:\"window_end\""];
+  google.protobuf.Timestamp reset_at = 11 [(tagger.tags) = "json:\"reset_at\""];
+  bool blocked = 12 [(tagger.tags) = "json:\"blocked\""];
+  google.protobuf.Timestamp blocked_at = 13 [(tagger.tags) = "json:\"blocked_at,omitempty\""];
+}
+
+// RateLimitRule represents a rate limiting rule configuration
+// Stored in: rate_limit_rules:{tenant_id}:{rule_id} (Redis Hash)
+// Or cached from database: rate_limit_rule_cache:{rule_id}
+message RateLimitRule {
+  string rule_id = 1 [(tagger.tags) = "json:\"rule_id\""];
+  string tenant_id = 2 [(tagger.tags) = "json:\"tenant_id\""];
+  string name = 3 [(tagger.tags) = "json:\"name\""];
+  string endpoint = 4 [(tagger.tags) = "json:\"endpoint\""];
+  string method = 5 [(tagger.tags) = "json:\"method\""];
+  int32 limit = 6 [(tagger.tags) = "json:\"limit\""];
+  google.protobuf.Duration window = 7 [(tagger.tags) = "json:\"window\""];
+  string scope = 8 [(tagger.tags) = "json:\"scope\""];
+  int32 priority = 9 [(tagger.tags) = "json:\"priority\""];
+  bool enabled = 10 [(tagger.tags) = "json:\"enabled\""];
+  google.protobuf.Timestamp cached_at = 11 [(tagger.tags) = "json:\"cached_at\""];
+}
+
+// RateLimitViolation represents a rate limit violation event
+// Stored in: rate_limit_violations:{tenant_id}:{user_id} (Redis Sorted Set, score = timestamp)
+message RateLimitViolation {
+  string violation_id = 1 [(tagger.tags) = "json:\"violation_id\""];
+  string tenant_id = 2 [(tagger.tags) = "json:\"tenant_id\""];
+  string user_id = 3 [(tagger.tags) = "json:\"user_id,omitempty\""];
+  string ip_address = 4 [(tagger.tags) = "json:\"ip_address\""];
+  string endpoint = 5 [(tagger.tags) = "json:\"endpoint\""];
+  string method = 6 [(tagger.tags) = "json:\"method\""];
+  string rule_id = 7 [(tagger.tags) = "json:\"rule_id\""];
+  google.protobuf.Timestamp timestamp = 8 [(tagger.tags) = "json:\"timestamp\""];
+  string request_id = 9 [(tagger.tags) = "json:\"request_id,omitempty\""];
+}

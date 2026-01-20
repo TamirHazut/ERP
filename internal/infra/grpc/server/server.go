@@ -12,7 +12,7 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/grpc/interceptor"
 	"erp.localhost/internal/infra/logging/logger"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/model/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
@@ -28,8 +28,8 @@ type RPCServer interface {
 
 type Config struct {
 	Port              int
-	Certs             *model_shared.Certs
-	Module            model_shared.Module
+	Certs             *shared.Certs
+	Module            shared.Module
 	Insecure          bool
 	EnableReflection  bool
 	MaxConnectionIdle time.Duration
@@ -44,9 +44,7 @@ type GRPCServer struct {
 	logger logger.Logger
 }
 
-func NewGRPCServer(config *Config) (*GRPCServer, error) {
-	logger := logger.NewBaseLogger(config.Module)
-
+func NewGRPCServer(config *Config, logger logger.Logger) (*GRPCServer, error) {
 	// Build server options
 	opts, err := buildServerOptions(config, logger)
 	if err != nil {
@@ -154,7 +152,7 @@ func buildServerOptions(config *Config, logger logger.Logger) ([]grpc.ServerOpti
 	return opts, nil
 }
 
-func buildTLSOptions(certs *model_shared.Certs) ([]grpc.ServerOption, error) {
+func buildTLSOptions(certs *shared.Certs) ([]grpc.ServerOption, error) {
 	if certs == nil || !certs.IsValidCerts() {
 		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("invalid or missing certificates"))
 	}

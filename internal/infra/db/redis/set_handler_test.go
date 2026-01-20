@@ -7,7 +7,7 @@ import (
 
 	mock_redis "erp.localhost/internal/infra/db/redis/mock"
 	"erp.localhost/internal/infra/logging/logger"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -18,7 +18,7 @@ func TestNewBaseSetHandler(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockHandler := mock_redis.NewMockRedisHandler(ctrl)
-	logger := logger.NewBaseLogger(model_shared.ModuleDB)
+	logger := logger.NewBaseLogger(shared.ModuleDB)
 
 	handler := NewBaseSetHandler(mockHandler, logger)
 
@@ -76,7 +76,7 @@ func TestBaseSetHandler_Add(t *testing.T) {
 					Times(tc.expectedSAddCalls)
 			}
 
-			logger := logger.NewBaseLogger(model_shared.ModuleDB)
+			logger := logger.NewBaseLogger(shared.ModuleDB)
 			handler := NewBaseSetHandler(mockHandler, logger)
 
 			err := handler.Add(tc.tenantID, tc.key, tc.member, tc.opts...)
@@ -118,7 +118,7 @@ func TestBaseSetHandler_Add_WithTTL(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	logger := logger.NewBaseLogger(model_shared.ModuleDB)
+	logger := logger.NewBaseLogger(shared.ModuleDB)
 	handler := NewBaseSetHandler(mockHandler, logger)
 
 	err := handler.Add(tenantID, key, member, opts...)
@@ -154,7 +154,7 @@ func TestBaseSetHandler_Add_WithTTL_ExpireFails(t *testing.T) {
 		Return(errors.New("expire failed")).
 		Times(1)
 
-	logger := logger.NewBaseLogger(model_shared.ModuleDB)
+	logger := logger.NewBaseLogger(shared.ModuleDB)
 	handler := NewBaseSetHandler(mockHandler, logger)
 
 	err := handler.Add(tenantID, key, member, opts...)
@@ -207,7 +207,7 @@ func TestBaseSetHandler_Remove(t *testing.T) {
 					Times(tc.expectedSRemCalls)
 			}
 
-			logger := logger.NewBaseLogger(model_shared.ModuleDB)
+			logger := logger.NewBaseLogger(shared.ModuleDB)
 			handler := NewBaseSetHandler(mockHandler, logger)
 
 			err := handler.Remove(tc.tenantID, tc.key, tc.member)
@@ -276,7 +276,7 @@ func TestBaseSetHandler_Members(t *testing.T) {
 					Times(tc.expectedSMembersCalls)
 			}
 
-			logger := logger.NewBaseLogger(model_shared.ModuleDB)
+			logger := logger.NewBaseLogger(shared.ModuleDB)
 			handler := NewBaseSetHandler(mockHandler, logger)
 
 			members, err := handler.Members(tc.tenantID, tc.key)
@@ -334,7 +334,7 @@ func TestBaseSetHandler_Clear(t *testing.T) {
 					Times(tc.expectedClearCalls)
 			}
 
-			logger := logger.NewBaseLogger(model_shared.ModuleDB)
+			logger := logger.NewBaseLogger(shared.ModuleDB)
 			handler := NewBaseSetHandler(mockHandler, logger)
 
 			err := handler.Clear(tc.tenantID, tc.key)

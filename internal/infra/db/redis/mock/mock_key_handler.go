@@ -69,10 +69,10 @@ func (mr *MockKeyHandlerMockRecorder[T]) DeleteByPattern(tenantID, pattern any) 
 }
 
 // GetAll mocks base method.
-func (m *MockKeyHandler[T]) GetAll(tenantID, userID string) ([]T, error) {
+func (m *MockKeyHandler[T]) GetAll(tenantID, userID string) ([]*T, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAll", tenantID, userID)
-	ret0, _ := ret[0].([]T)
+	ret0, _ := ret[0].([]*T)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -114,7 +114,7 @@ func (mr *MockKeyHandlerMockRecorder[T]) ScanKeys(tenantID, pattern any) *gomock
 }
 
 // Set mocks base method.
-func (m *MockKeyHandler[T]) Set(tenantID, key string, value T, opts ...map[string]any) error {
+func (m *MockKeyHandler[T]) Set(tenantID, key string, value *T, opts ...map[string]any) error {
 	m.ctrl.T.Helper()
 	varargs := []any{tenantID, key, value}
 	for _, a := range opts {
@@ -133,7 +133,7 @@ func (mr *MockKeyHandlerMockRecorder[T]) Set(tenantID, key, value any, opts ...a
 }
 
 // Update mocks base method.
-func (m *MockKeyHandler[T]) Update(tenantID, key string, value T, opts ...map[string]any) error {
+func (m *MockKeyHandler[T]) Update(tenantID, key string, value *T, opts ...map[string]any) error {
 	m.ctrl.T.Helper()
 	varargs := []any{tenantID, key, value}
 	for _, a := range opts {

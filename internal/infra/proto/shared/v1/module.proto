@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package shared.v1;
+
+option go_package = "erp.localhost/internal/infra/model/shared/v1;sharedv1";
+
+// =============================================================================
+// Shared Models (cross-module types)
+// =============================================================================
+
+// Module enum represents different modules in the system
+enum Module {
+  MODULE_UNSPECIFIED = 0;
+  MODULE_AUTH = 1;
+  MODULE_CONFIG = 2;
+  MODULE_CORE = 3;
+  MODULE_DB = 4;
+  MODULE_EVENT = 5;
+  MODULE_GATEWAY = 6;
+  MODULE_INIT = 7;
+  MODULE_SIDECAR = 8;
+  MODULE_WEBUI = 9;
+}

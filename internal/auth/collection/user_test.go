@@ -7,31 +7,31 @@ import (
 
 	mock_collection "erp.localhost/internal/infra/db/mongo/collection/mock"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	"erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
-	baseUserLogger = logger.NewBaseLogger(model_shared.ModuleCore)
+	baseUserLogger = logger.NewBaseLogger(shared.ModuleCore)
 )
 
 // userMatcher is a custom gomock matcher for User objects
 // It skips the CreatedAt and UpdatedAt fields which are set dynamically
 type userMatcher struct {
-	expected *model_auth.User
+	expected *authv1.User
 }
 
 func (m userMatcher) Matches(x interface{}) bool {
-	user, ok := x.(*model_auth.User)
+	user, ok := x.(*authv1.User)
 	if !ok {
 		return false
 	}
 	// Match all fields except CreatedAt and UpdatedAt which are set by the function
-	return user.TenantID == m.expected.TenantID &&
+	return user.TenantId == m.expected.TenantId &&
 		user.Email == m.expected.Email &&
 		user.Username == m.expected.Username &&
 		user.PasswordHash == m.expected.PasswordHash &&
@@ -48,7 +48,7 @@ func TestNewUserCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockHandler := mock_collection.NewMockCollectionHandler[model_auth.User](ctrl)
+	mockHandler := mock_collection.NewMockCollectionHandler[authv1.User](ctrl)
 	collection := NewUserCollection(mockHandler, baseUserLogger)
 
 	require.NotNil(t, collection)
@@ -59,7 +59,7 @@ func TestNewUserCollection(t *testing.T) {
 func TestUserCollection_CreateUser(t *testing.T) {
 	testCases := []struct {
 		name              string
-		user              *model_auth.User
+		user              *authv1.User
 		returnID          string
 		returnError       error
 		wantErr           bool
@@ -67,14 +67,14 @@ func TestUserCollection_CreateUser(t *testing.T) {
 	}{
 		{
 			name: "successful create",
-			user: &model_auth.User{
-				TenantID:     "tenant1",
+			user: &authv1.User{
+				TenantId:     "tenant1",
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       authv1.UserStatus_USER_STATUS_ACTIVE,
 				CreatedBy:    "admin",
-				Roles:        []model_auth.UserRole{},
+				Roles:        []*authv1.UserRole{},
 			},
 			returnID:          "user-id-123",
 			returnError:       nil,
@@ -83,13 +83,13 @@ func TestUserCollection_CreateUser(t *testing.T) {
 		},
 		{
 			name: "create with validation error - missing tenant ID",
-			user: &model_auth.User{
+			user: &authv1.User{
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       authv1.UserStatus_USER_STATUS_ACTIVE,
 				CreatedBy:    "admin",
-				Roles:        []model_auth.UserRole{},
+				Roles:        []*authv1.UserRole{},
 			},
 			returnID:          "",
 			returnError:       nil,
@@ -98,14 +98,14 @@ func TestUserCollection_CreateUser(t *testing.T) {
 		},
 		{
 			name: "create with database error",
-			user: &model_auth.User{
-				TenantID:     "tenant1",
+			user: &authv1.User{
+				TenantId:     "tenant1",
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       authv1.UserStatus_USER_STATUS_ACTIVE,
 				CreatedBy:    "admin",
-				Roles:        []model_auth.UserRole{},
+				Roles:        []*authv1.UserRole{},
 			},
 			returnID:          "",
 			returnError:       errors.New("database connection failed"),
@@ -119,7 +119,7 @@ func TestUserCollection_CreateUser(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.User](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.User](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					Create(userMatcher{expected: tc.user}).
@@ -141,14 +141,14 @@ func TestUserCollection_CreateUser(t *testing.T) {
 }
 
 func TestUserCollection_GetUserByID(t *testing.T) {
-	userID, _ := primitive.ObjectIDFromHex("507f1f77bcf86cd799439011")
+	userID := "507f1f77bcf86cd799439011"
 
 	testCases := []struct {
 		name           string
 		tenantID       string
 		userID         string
 		expectedFilter map[string]any
-		returnUser     *model_auth.User
+		returnUser     *authv1.User
 		returnError    error
 		wantErr        bool
 	}{
@@ -160,9 +160,9 @@ func TestUserCollection_GetUserByID(t *testing.T) {
 				"tenant_id": "tenant1",
 				"_id":       "507f1f77bcf86cd799439011",
 			},
-			returnUser: &model_auth.User{
-				ID:       userID,
-				TenantID: "tenant1",
+			returnUser: &authv1.User{
+				Id:       userID,
+				TenantId: "tenant1",
 				Email:    "test@example.com",
 				Username: "testuser",
 			},
@@ -200,7 +200,7 @@ func TestUserCollection_GetUserByID(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.User](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.User](ctrl)
 			mockHandler.EXPECT().
 				FindOne(tc.expectedFilter).
 				Return(tc.returnUser, tc.returnError)
@@ -211,7 +211,7 @@ func TestUserCollection_GetUserByID(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.tenantID, user.TenantID)
+				assert.Equal(t, tc.tenantID, user.TenantId)
 			}
 		})
 	}
@@ -222,7 +222,7 @@ func TestUserCollection_GetUserByUsername(t *testing.T) {
 		name           string
 		tenantID       string
 		username       string
-		returnUser     *model_auth.User
+		returnUser     *authv1.User
 		returnError    error
 		expectedFilter map[string]any
 		wantErr        bool
@@ -235,8 +235,8 @@ func TestUserCollection_GetUserByUsername(t *testing.T) {
 				"tenant_id": "tenant1",
 				"username":  "testuser",
 			},
-			returnUser: &model_auth.User{
-				TenantID: "tenant1",
+			returnUser: &authv1.User{
+				TenantId: "tenant1",
 				Username: "testuser",
 				Email:    "test@example.com",
 			},
@@ -274,7 +274,7 @@ func TestUserCollection_GetUserByUsername(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.User](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.User](ctrl)
 			mockHandler.EXPECT().
 				FindOne(tc.expectedFilter).
 				Return(tc.returnUser, tc.returnError)
@@ -295,7 +295,7 @@ func TestUserCollection_GetUsersByTenantID(t *testing.T) {
 	testCases := []struct {
 		name           string
 		tenantID       string
-		returnUsers    []*model_auth.User
+		returnUsers    []*authv1.User
 		returnError    error
 		expectedFilter map[string]any
 		wantCount      int
@@ -304,9 +304,9 @@ func TestUserCollection_GetUsersByTenantID(t *testing.T) {
 		{
 			name:     "successful get users by tenant",
 			tenantID: "tenant1",
-			returnUsers: []*model_auth.User{
-				&model_auth.User{TenantID: "tenant1", Username: "user1"},
-				&model_auth.User{TenantID: "tenant1", Username: "user2"},
+			returnUsers: []*authv1.User{
+				&authv1.User{TenantId: "tenant1", Username: "user1"},
+				&authv1.User{TenantId: "tenant1", Username: "user2"},
 			},
 			expectedFilter: map[string]any{
 				"tenant_id": "tenant1",
@@ -318,7 +318,7 @@ func TestUserCollection_GetUsersByTenantID(t *testing.T) {
 		{
 			name:        "no users found",
 			tenantID:    "tenant1",
-			returnUsers: []*model_auth.User{},
+			returnUsers: []*authv1.User{},
 			expectedFilter: map[string]any{
 				"tenant_id": "tenant1",
 			},
@@ -329,7 +329,7 @@ func TestUserCollection_GetUsersByTenantID(t *testing.T) {
 		{
 			name:        "database error",
 			tenantID:    "tenant1",
-			returnUsers: []*model_auth.User{},
+			returnUsers: []*authv1.User{},
 			returnError: errors.New("database query failed"),
 			wantCount:   0,
 			wantErr:     true,
@@ -344,7 +344,7 @@ func TestUserCollection_GetUsersByTenantID(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.User](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.User](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnUsers, tc.returnError)
@@ -370,7 +370,7 @@ func TestUserCollection_GetUsersByRoleID(t *testing.T) {
 		name           string
 		tenantID       string
 		roleID         string
-		returnUsers    []*model_auth.User
+		returnUsers    []*authv1.User
 		returnError    error
 		expectedFilter map[string]any
 		wantCount      int
@@ -380,8 +380,8 @@ func TestUserCollection_GetUsersByRoleID(t *testing.T) {
 			name:     "successful get users by role",
 			tenantID: "tenant1",
 			roleID:   "role1",
-			returnUsers: []*model_auth.User{
-				&model_auth.User{TenantID: "tenant1", Username: "user1"},
+			returnUsers: []*authv1.User{
+				&authv1.User{TenantId: "tenant1", Username: "user1"},
 			},
 			expectedFilter: map[string]any{
 				"tenant_id": "tenant1",
@@ -395,7 +395,7 @@ func TestUserCollection_GetUsersByRoleID(t *testing.T) {
 			name:        "database error",
 			tenantID:    "tenant1",
 			roleID:      "role1",
-			returnUsers: []*model_auth.User{},
+			returnUsers: []*authv1.User{},
 			expectedFilter: map[string]any{
 				"tenant_id": "tenant1",
 				"role_id":   "role1",
@@ -411,7 +411,7 @@ func TestUserCollection_GetUsersByRoleID(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.User](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.User](ctrl)
 			mockHandler.EXPECT().
 				FindAll(tc.expectedFilter).
 				Return(tc.returnUsers, tc.returnError)
@@ -429,13 +429,13 @@ func TestUserCollection_GetUsersByRoleID(t *testing.T) {
 }
 
 func TestUserCollection_UpdateUser(t *testing.T) {
-	userID := primitive.NewObjectID()
-	createdAt := time.Now().Add(-24 * time.Hour)
+	userID := "507f1f77bcf86cd799439011"
+	createdAt := timestamppb.New(time.Now().Add(-24 * time.Hour))
 
 	testCases := []struct {
 		name                 string
-		user                 *model_auth.User
-		returnFindUser       *model_auth.User
+		user                 *authv1.User
+		returnFindUser       *authv1.User
 		returnUpdateError    error
 		wantErr              bool
 		expectedUpdateCalls  int
@@ -443,19 +443,19 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 	}{
 		{
 			name: "successful update",
-			user: &model_auth.User{
-				ID:           userID,
-				TenantID:     "tenant1",
+			user: &authv1.User{
+				Id:           userID,
+				TenantId:     "tenant1",
 				Email:        "updated@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       authv1.UserStatus_USER_STATUS_ACTIVE,
 				CreatedBy:    "admin",
 				CreatedAt:    createdAt,
 			},
 			expectedUpdateFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       userID.Hex(),
+				"_id":       userID,
 			},
 			returnUpdateError:   nil,
 			wantErr:             false,
@@ -463,8 +463,8 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "update with validation error",
-			user: &model_auth.User{
-				TenantID: "tenant1",
+			user: &authv1.User{
+				TenantId: "tenant1",
 			},
 			expectedUpdateFilter: map[string]any{},
 			returnFindUser:       nil,
@@ -474,24 +474,24 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "update with database error",
-			user: &model_auth.User{
-				ID:           userID,
-				TenantID:     "tenant1",
+			user: &authv1.User{
+				Id:           userID,
+				TenantId:     "tenant1",
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Status:       model_auth.UserStatusActive,
+				Status:       authv1.UserStatus_USER_STATUS_ACTIVE,
 				CreatedBy:    "admin",
 				CreatedAt:    createdAt,
-				Roles:        []model_auth.UserRole{},
+				Roles:        []*authv1.UserRole{},
 			},
 			expectedUpdateFilter: map[string]any{
 				"tenant_id": "tenant1",
-				"_id":       userID.Hex(),
+				"_id":       userID,
 			},
-			returnFindUser: &model_auth.User{
-				ID:        userID,
-				TenantID:  "tenant1",
+			returnFindUser: &authv1.User{
+				Id:        userID,
+				TenantId:  "tenant1",
 				Username:  "testuser",
 				CreatedAt: createdAt,
 			},
@@ -506,7 +506,7 @@ func TestUserCollection_UpdateUser(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.User](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.User](ctrl)
 			if tc.expectedUpdateCalls > 0 {
 				mockHandler.EXPECT().
 					Update(tc.expectedUpdateFilter, userMatcher{expected: tc.user}).
@@ -584,7 +584,7 @@ func TestUserCollection_DeleteUser(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.User](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.User](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					Delete(tc.expectedFilter).

@@ -5,6 +5,7 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
 )
 
 type VerificationManager struct {
@@ -51,7 +52,7 @@ func (vm *VerificationManager) GetUserPermissions(tenantID, userID string) (map[
 	// 3. Resolve permissions from user.Roles
 	userPermissions := make(map[string]bool)
 	for _, userRole := range user.Roles {
-		role, err := vm.rolesCollection.GetRoleByID(tenantID, userRole.RoleID)
+		role, err := vm.rolesCollection.GetRoleByID(tenantID, userRole.RoleId)
 		if err != nil {
 			vm.logger.Error(err.Error())
 			return nil, err
@@ -80,13 +81,13 @@ func (vm *VerificationManager) IsSystemTenantUser(tenantID string) bool {
 }
 
 // Check if user has tenant admin role
-func (vm *VerificationManager) isTenantAdmin(user *model_auth.User) bool {
+func (vm *VerificationManager) isTenantAdmin(user *authv1.User) bool {
 	for _, userRole := range user.Roles {
-		role, err := vm.rolesCollection.GetRoleByID(user.TenantID, userRole.RoleID)
+		role, err := vm.rolesCollection.GetRoleByID(user.TenantId, userRole.RoleId)
 		if err != nil {
 			continue
 		}
-		if role.Name == model_auth.RoleTenantAdmin || role.IsTenantAdmin {
+		if role.Name == model_auth.RoleTenantAdmin {
 			return true
 		}
 	}
@@ -115,7 +116,7 @@ func (vm *VerificationManager) GetUserRoles(tenantID, userID string) ([]string, 
 	// Extract role IDs
 	roleIDs := make([]string, 0, len(user.Roles))
 	for _, userRole := range user.Roles {
-		roleIDs = append(roleIDs, userRole.RoleID)
+		roleIDs = append(roleIDs, userRole.RoleId)
 	}
 
 	return roleIDs, nil

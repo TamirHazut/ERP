@@ -10,6 +10,7 @@ const (
 	TenantAdminUser       = "admin"
 	TenantAdminRole       = "admin"
 	TenantAdminPermission = "*:*"
+	TenantAdminPassword   = "admin"
 )
 
 var (
@@ -43,7 +44,7 @@ type PaginatedResponse struct {
 
 // FilterParams represents infra filter parameters
 type FilterParams struct {
-	TenantID  string                 `json:"tenant_id"`
+	TenantId  string                 `json:"tenant_id"`
 	Status    string                 `json:"status,omitempty"`
 	StartDate *time.Time             `json:"start_date,omitempty"`
 	EndDate   *time.Time             `json:"end_date,omitempty"`

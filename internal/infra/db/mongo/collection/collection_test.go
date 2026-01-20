@@ -6,7 +6,7 @@ import (
 
 	mock_db "erp.localhost/internal/infra/db/mock"
 	"erp.localhost/internal/infra/logging/logger"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -52,7 +52,7 @@ func TestCollection_Create(t *testing.T) {
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
 				collection: tc.collection,
-				logger:     logger.NewBaseLogger(model_shared.ModuleDB),
+				logger:     logger.NewBaseLogger(shared.ModuleDB),
 			}
 
 			id, err := collectionHanlder.Create(tc.data)
@@ -116,7 +116,7 @@ func TestCollection_FindOne(t *testing.T) {
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
 				collection: tc.collection,
-				logger:     logger.NewBaseLogger(model_shared.ModuleDB),
+				logger:     logger.NewBaseLogger(shared.ModuleDB),
 			}
 			result, err := collectionHanlder.FindOne(tc.filter)
 			if tc.returnError != nil {
@@ -191,7 +191,7 @@ func TestCollection_FindAll(t *testing.T) {
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
 				collection: tc.collection,
-				logger:     logger.NewBaseLogger(model_shared.ModuleDB),
+				logger:     logger.NewBaseLogger(shared.ModuleDB),
 			}
 			results, err := collectionHanlder.FindAll(tc.filter)
 			if tc.returnError != nil {
@@ -249,7 +249,7 @@ func TestCollection_Update(t *testing.T) {
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
 				collection: tc.collection,
-				logger:     logger.NewBaseLogger(model_shared.ModuleDB),
+				logger:     logger.NewBaseLogger(shared.ModuleDB),
 			}
 			err := collectionHanlder.Update(tc.filter, tc.item)
 			if tc.returnError != nil {
@@ -302,7 +302,7 @@ func TestCollection_Delete(t *testing.T) {
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,
 				collection: tc.collection,
-				logger:     logger.NewBaseLogger(model_shared.ModuleDB),
+				logger:     logger.NewBaseLogger(shared.ModuleDB),
 			}
 			err := collectionHanlder.Delete(tc.filter)
 			if tc.returnError != nil {

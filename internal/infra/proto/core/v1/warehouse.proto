@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "erp.localhost/internal/infra/model/core/v1;corev1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+import "core/v1/address.proto";
+
+// Warehouse status enum
+enum WarehouseStatus {
+  WAREHOUSE_STATUS_UNSPECIFIED = 0;
+  WAREHOUSE_STATUS_ACTIVE = 1;
+  WAREHOUSE_STATUS_INACTIVE = 2;
+  WAREHOUSE_STATUS_MAINTENANCE = 3;
+}
+
+// Warehouse model for MongoDB core_db.warehouses collection
+message Warehouse {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string warehouse_id = 2 [(tagger.tags) = "bson:\"warehouse_id\" json:\"warehouse_id\""];
+  string tenant_id = 3 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string name = 4 [(tagger.tags) = "bson:\"name\" json:\"name\""];
+  string code = 5 [(tagger.tags) = "bson:\"code\" json:\"code\""];
+  Address address = 6 [(tagger.tags) = "bson:\"address\" json:\"address\""];
+  WarehouseContact contact = 7 [(tagger.tags) = "bson:\"contact\" json:\"contact\""];
+  WarehouseCapacity capacity = 8 [(tagger.tags) = "bson:\"capacity\" json:\"capacity\""];
+  WarehouseStatus status = 9 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  google.protobuf.Timestamp created_at = 10 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 11 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+}
+
+message WarehouseContact {
+  string manager = 1 [(tagger.tags) = "bson:\"manager\" json:\"manager\""];
+  string email = 2 [(tagger.tags) = "bson:\"email\" json:\"email\""];
+  string phone = 3 [(tagger.tags) = "bson:\"phone\" json:\"phone\""];
+}
+
+message WarehouseCapacity {
+  int32 total_space = 1 [(tagger.tags) = "bson:\"total_space\" json:\"total_space\""];
+  int32 used_space = 2 [(tagger.tags) = "bson:\"used_space\" json:\"used_space\""];
+  string unit = 3 [(tagger.tags) = "bson:\"unit\" json:\"unit\""];
+}

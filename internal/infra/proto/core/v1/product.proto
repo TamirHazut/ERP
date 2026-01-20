@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "erp.localhost/internal/infra/model/core/v1;corev1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// Product status enum
+enum ProductStatus {
+  PRODUCT_STATUS_UNSPECIFIED = 0;
+  PRODUCT_STATUS_ACTIVE = 1;
+  PRODUCT_STATUS_INACTIVE = 2;
+  PRODUCT_STATUS_DISCONTINUED = 3;
+}
+
+// Product model for MongoDB core_db.products collection
+message Product {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string product_id = 2 [(tagger.tags) = "bson:\"product_id\" json:\"product_id\""];
+  string tenant_id = 3 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string sku = 4 [(tagger.tags) = "bson:\"sku\" json:\"sku\""];
+  string name = 5 [(tagger.tags) = "bson:\"name\" json:\"name\""];
+  string description = 6 [(tagger.tags) = "bson:\"description\" json:\"description\""];
+  string category_id = 7 [(tagger.tags) = "bson:\"category_id\" json:\"category_id\""];
+  ProductPricing pricing = 8 [(tagger.tags) = "bson:\"pricing\" json:\"pricing\""];
+  ProductInventory inventory = 9 [(tagger.tags) = "bson:\"inventory\" json:\"inventory\""];
+  ProductDimensions dimensions = 10 [(tagger.tags) = "bson:\"dimensions,omitempty\" json:\"dimensions,omitempty\""];
+  repeated string images = 11 [(tagger.tags) = "bson:\"images,omitempty\" json:\"images,omitempty\""];
+  ProductStatus status = 12 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  ProductMetadata metadata = 13 [(tagger.tags) = "bson:\"metadata,omitempty\" json:\"metadata,omitempty\""];
+  google.protobuf.Timestamp created_at = 14 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 15 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+  string created_by = 16 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
+}
+
+message ProductPricing {
+  double cost = 1 [(tagger.tags) = "bson:\"cost\" json:\"cost\""];
+  double price = 2 [(tagger.tags) = "bson:\"price\" json:\"price\""];
+  string currency = 3 [(tagger.tags) = "bson:\"currency\" json:\"currency\""];
+  double tax_rate = 4 [(tagger.tags) = "bson:\"tax_rate\" json:\"tax_rate\""];
+}
+
+message ProductInventory {
+  bool track_inventory = 1 [(tagger.tags) = "bson:\"track_inventory\" json:\"track_inventory\""];
+  int32 quantity = 2 [(tagger.tags) = "bson:\"quantity\" json:\"quantity\""];
+  int32 reserved = 3 [(tagger.tags) = "bson:\"reserved\" json:\"reserved\""];
+  int32 available = 4 [(tagger.tags) = "bson:\"available\" json:\"available\""];
+  int32 reorder_point = 5 [(tagger.tags) = "bson:\"reorder_point\" json:\"reorder_point\""];
+  int32 reorder_quantity = 6 [(tagger.tags) = "bson:\"reorder_quantity\" json:\"reorder_quantity\""];
+}
+
+message ProductDimensions {
+  double weight = 1 [(tagger.tags) = "bson:\"weight\" json:\"weight\""];
+  string weight_unit = 2 [(tagger.tags) = "bson:\"weight_unit\" json:\"weight_unit\""];
+  double length = 3 [(tagger.tags) = "bson:\"length\" json:\"length\""];
+  double width = 4 [(tagger.tags) = "bson:\"width\" json:\"width\""];
+  double height = 5 [(tagger.tags) = "bson:\"height\" json:\"height\""];
+  string dimension_unit = 6 [(tagger.tags) = "bson:\"dimension_unit\" json:\"dimension_unit\""];
+}
+
+message ProductMetadata {
+  string barcode = 1 [(tagger.tags) = "bson:\"barcode,omitempty\" json:\"barcode,omitempty\""];
+  string manufacturer = 2 [(tagger.tags) = "bson:\"manufacturer,omitempty\" json:\"manufacturer,omitempty\""];
+  string brand = 3 [(tagger.tags) = "bson:\"brand,omitempty\" json:\"brand,omitempty\""];
+  repeated string tags = 4 [(tagger.tags) = "bson:\"tags,omitempty\" json:\"tags,omitempty\""];
+}

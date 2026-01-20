@@ -10,10 +10,10 @@ import (
 
 //go:generate mockgen -destination=mock/mock_key_handler.go -package=mock erp.localhost/internal/infra/db/redis KeyHandler
 type KeyHandler[T any] interface {
-	Set(tenantID string, key string, value T, opts ...map[string]any) error
+	Set(tenantID string, key string, value *T, opts ...map[string]any) error
 	GetOne(tenantID string, key string) (*T, error)
-	GetAll(tenantID string, userID string) ([]T, error)
-	Update(tenantID string, key string, value T, opts ...map[string]any) error
+	GetAll(tenantID string, userID string) ([]*T, error)
+	Update(tenantID string, key string, value *T, opts ...map[string]any) error
 	Delete(tenantID string, key string) error
 	// ScanKeys scans for keys matching a pattern for a specific tenant
 	ScanKeys(tenantID string, pattern string) ([]string, error)
@@ -33,7 +33,7 @@ func NewBaseKeyHandler[T any](dbHandler db.DBHandler, logger logger.Logger) *Bas
 	}
 }
 
-func (k *BaseKeyHandler[T]) Set(tenantID string, key string, value T, opts ...map[string]any) error {
+func (k *BaseKeyHandler[T]) Set(tenantID string, key string, value *T, opts ...map[string]any) error {
 	k.logger.Debug("Setting key", "tenantID", tenantID, "key", key, "value", value)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
 	_, err := k.dbHandler.Create(formattedKey, value, opts...)
@@ -70,7 +70,7 @@ func (k *BaseKeyHandler[T]) GetAll(tenantID string, userID string) ([]*T, error)
 	return result, nil
 }
 
-func (k *BaseKeyHandler[T]) Update(tenantID string, key string, value T, opts ...map[string]any) error {
+func (k *BaseKeyHandler[T]) Update(tenantID string, key string, value *T, opts ...map[string]any) error {
 	k.logger.Debug("Updating key", "tenantID", tenantID, "key", key, "value", value)
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
 	err := k.dbHandler.Update(formattedKey, nil, value, opts...)
@@ -124,12 +124,12 @@ func (k *BaseKeyHandler[T]) DeleteByPattern(tenantID string, pattern string) (in
 	}
 
 	// Build full pattern: tenant_id:pattern
-	fullPattern := fmt.Sprintf("%s:%s", tenantID, pattern)
+	fullPattern := fmt.Sprintf("%s:%s*", tenantID, pattern)
 	count, err := redisHandler.DeleteByPattern(fullPattern)
 	if err != nil {
 		return 0, err
 	}
 
-	k.logger.Info("Keys deleted by pattern", "tenantID", tenantID, "pattern", pattern, "keys_deleted", count)
+	k.logger.Info("Keys deleted by pattern", "fullPattern", fullPattern, "keys_deleted", count)
 	return count, nil
 }

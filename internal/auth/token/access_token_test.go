@@ -7,29 +7,28 @@ import (
 
 	mock_redis "erp.localhost/internal/infra/db/redis/mock"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth_cache "erp.localhost/internal/infra/model/auth/cache"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
+	"erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // tokenMetadataMatcher is a custom gomock matcher for TokenMetadata objects
 // It skips the RevokedAt field which is set dynamically in Revoke operations
 type tokenMetadataMatcher struct {
-	expected model_auth_cache.TokenMetadata
+	expected *authv1_cache.TokenMetadata
 }
 
 func (m tokenMetadataMatcher) Matches(x interface{}) bool {
-	metadata, ok := x.(model_auth_cache.TokenMetadata)
+	metadata, ok := x.(*authv1_cache.TokenMetadata)
 	if !ok {
 		return false
 	}
 	// Match all fields except RevokedAt which is set dynamically
-	return metadata.TokenID == m.expected.TokenID &&
-		metadata.UserID == m.expected.UserID &&
-		metadata.TenantID == m.expected.TenantID &&
-		metadata.TokenType == m.expected.TokenType &&
+	return metadata.UserId == m.expected.UserId &&
+		metadata.TenantId == m.expected.TenantId &&
 		metadata.Revoked == m.expected.Revoked &&
 		metadata.RevokedBy == m.expected.RevokedBy
 }
@@ -44,13 +43,11 @@ func TestNewAccessTokenKeyHandler(t *testing.T) {
 }
 
 func TestAccessTokenKeyHandler_Store(t *testing.T) {
-	validMetadata := model_auth_cache.TokenMetadata{
-		TokenID:   "token-123",
-		UserID:    "user-123",
-		TenantID:  "tenant-123",
-		TokenType: "access",
-		IssuedAt:  time.Now(),
-		ExpiresAt: time.Now().Add(time.Hour),
+	validMetadata := &authv1_cache.TokenMetadata{
+		UserId:    "user-123",
+		TenantId:  "tenant-123",
+		IssuedAt:  timestamppb.Now(),
+		ExpiresAt: timestamppb.New(time.Now().Add(time.Hour)),
 		Revoked:   false,
 	}
 
@@ -58,8 +55,8 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 		name                    string
 		tenantID                string
 		userID                  string
-		metadata                model_auth_cache.TokenMetadata
-		returnGetOneMetadata    *model_auth_cache.TokenMetadata
+		metadata                *authv1_cache.TokenMetadata
+		returnGetOneMetadata    *authv1_cache.TokenMetadata
 		returnGetOneError       error
 		returnSetError          error
 		wantErr                 bool
@@ -83,14 +80,12 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			expectedGetOneCallTimes: 1,
 		},
 		{
-			name:     "store with missing tokenID",
+			name:     "store with missing userID",
 			tenantID: "tenant-123",
 			userID:   "user-123",
-			metadata: model_auth_cache.TokenMetadata{
-				UserID:    "user-123",
-				TenantID:  "tenant-123",
-				TokenType: "access",
-				ExpiresAt: time.Now().Add(time.Hour),
+			metadata: &authv1_cache.TokenMetadata{
+				TenantId:  "tenant-123",
+				ExpiresAt: timestamppb.New(time.Now().Add(time.Hour)),
 			},
 			expectedTenantID:     "",
 			expectedUserID:       "",
@@ -102,12 +97,10 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			name:     "store with tenant_id mismatch",
 			tenantID: "tenant-123",
 			userID:   "user-123",
-			metadata: model_auth_cache.TokenMetadata{
-				TokenID:   "token-123",
-				UserID:    "user-123",
-				TenantID:  "wrong-tenant",
-				TokenType: "access",
-				ExpiresAt: time.Now().Add(time.Hour),
+			metadata: &authv1_cache.TokenMetadata{
+				UserId:    "user-123",
+				TenantId:  "wrong-tenant",
+				ExpiresAt: timestamppb.New(time.Now().Add(time.Hour)),
 			},
 			expectedTenantID:     "",
 			expectedUserID:       "",
@@ -136,7 +129,7 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_redis.NewMockKeyHandler[model_auth_cache.TokenMetadata](ctrl)
+			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.TokenMetadata](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
 				mockHandler.EXPECT().
 					GetOne(tc.expectedTenantID, tc.userID).
@@ -150,8 +143,9 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 					Times(tc.expectedSetCallTimes)
 			}
 
-			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
-			handler := NewAccessTokenHandler(mockHandler, nil, logger)
+			logger := logger.NewBaseLogger(shared.ModuleAuth)
+			handler := NewAccessTokenHandler(logger)
+			handler.keyHandler = mockHandler
 
 			err := handler.Store(tc.tenantID, tc.userID, tc.metadata)
 			if tc.wantErr {
@@ -164,13 +158,11 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 }
 
 func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
-	validMetadata := model_auth_cache.TokenMetadata{
-		TokenID:   "token-123",
-		UserID:    "user-123",
-		TenantID:  "tenant-123",
-		TokenType: "access",
-		IssuedAt:  time.Now(),
-		ExpiresAt: time.Now().Add(time.Hour),
+	validMetadata := authv1_cache.TokenMetadata{
+		UserId:    "user-123",
+		TenantId:  "tenant-123",
+		IssuedAt:  timestamppb.Now(),
+		ExpiresAt: timestamppb.New(time.Now().Add(time.Hour)),
 		Revoked:   false,
 	}
 
@@ -180,9 +172,9 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 		userID                  string
 		expectedTenantID        string
 		expectedUserID          string
-		returnMetadata          *model_auth_cache.TokenMetadata
+		returnMetadata          *authv1_cache.TokenMetadata
 		returnError             error
-		wantToken               *model_auth_cache.TokenMetadata
+		wantToken               *authv1_cache.TokenMetadata
 		wantErr                 bool
 		expectedGetOneCallTimes int
 	}{
@@ -229,7 +221,7 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_redis.NewMockKeyHandler[model_auth_cache.TokenMetadata](ctrl)
+			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.TokenMetadata](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
 				mockHandler.EXPECT().
 					GetOne(tc.expectedTenantID, tc.expectedUserID).
@@ -237,8 +229,9 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 					Times(tc.expectedGetOneCallTimes)
 			}
 
-			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
-			handler := NewAccessTokenHandler(mockHandler, nil, logger)
+			logger := logger.NewBaseLogger(shared.ModuleAuth)
+			handler := NewAccessTokenHandler(logger)
+			handler.keyHandler = mockHandler
 
 			result, err := handler.GetOne(tc.tenantID, tc.userID)
 			if tc.wantErr {
@@ -246,38 +239,33 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.wantToken.TokenID, result.TokenID)
+				assert.Equal(t, tc.wantToken.UserId, result.UserId)
+				assert.Equal(t, tc.wantToken.TenantId, result.TenantId)
 			}
 		})
 	}
 }
 
 func TestAccessTokenKeyHandler_Validate(t *testing.T) {
-	validMetadata := model_auth_cache.TokenMetadata{
-		TokenID:   "token-123",
-		UserID:    "user-123",
-		TenantID:  "tenant-123",
-		TokenType: "access",
-		IssuedAt:  time.Now(),
-		ExpiresAt: time.Now().Add(time.Hour),
+	validMetadata := authv1_cache.TokenMetadata{
+		UserId:    "user-123",
+		TenantId:  "tenant-123",
+		IssuedAt:  timestamppb.Now(),
+		ExpiresAt: timestamppb.New(time.Now().Add(time.Hour)),
 		Revoked:   false,
 	}
-	expiredMetadata := model_auth_cache.TokenMetadata{
-		TokenID:   "token-123",
-		UserID:    "user-123",
-		TenantID:  "tenant-123",
-		TokenType: "access",
-		IssuedAt:  time.Now().Add(-2 * time.Hour),
-		ExpiresAt: time.Now().Add(-time.Hour), // Expired
+	expiredMetadata := authv1_cache.TokenMetadata{
+		UserId:    "user-123",
+		TenantId:  "tenant-123",
+		IssuedAt:  timestamppb.New(time.Now().Add(-2 * time.Hour)),
+		ExpiresAt: timestamppb.New(time.Now().Add(-time.Hour)), // Expired
 		Revoked:   false,
 	}
-	revokedMetadata := model_auth_cache.TokenMetadata{
-		TokenID:   "token-123",
-		UserID:    "user-123",
-		TenantID:  "tenant-123",
-		TokenType: "access",
-		IssuedAt:  time.Now(),
-		ExpiresAt: time.Now().Add(time.Hour),
+	revokedMetadata := authv1_cache.TokenMetadata{
+		UserId:    "user-123",
+		TenantId:  "tenant-123",
+		IssuedAt:  timestamppb.Now(),
+		ExpiresAt: timestamppb.New(time.Now().Add(time.Hour)),
 		Revoked:   true,
 	}
 
@@ -287,7 +275,7 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 		userID                  string
 		expectedTenantID        string
 		expectedUserID          string
-		returnMetadata          *model_auth_cache.TokenMetadata
+		returnMetadata          *authv1_cache.TokenMetadata
 		returnError             error
 		wantErr                 bool
 		expectedGetOneCallTimes int
@@ -343,7 +331,7 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_redis.NewMockKeyHandler[model_auth_cache.TokenMetadata](ctrl)
+			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.TokenMetadata](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
 				mockHandler.EXPECT().
 					GetOne(tc.expectedTenantID, tc.expectedUserID).
@@ -351,8 +339,9 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 					Times(tc.expectedGetOneCallTimes)
 			}
 
-			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
-			handler := NewAccessTokenHandler(mockHandler, nil, logger)
+			logger := logger.NewBaseLogger(shared.ModuleAuth)
+			handler := NewAccessTokenHandler(logger)
+			handler.keyHandler = mockHandler
 
 			result, err := handler.Validate(tc.tenantID, tc.userID)
 			if tc.wantErr {
@@ -367,13 +356,11 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 }
 
 func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
-	validMetadata := model_auth_cache.TokenMetadata{
-		TokenID:   "token-123",
-		UserID:    "user-123",
-		TenantID:  "tenant-123",
-		TokenType: "access",
-		IssuedAt:  time.Now(),
-		ExpiresAt: time.Now().Add(time.Hour),
+	validMetadata := &authv1_cache.TokenMetadata{
+		UserId:    "user-123",
+		TenantId:  "tenant-123",
+		IssuedAt:  timestamppb.Now(),
+		ExpiresAt: timestamppb.New(time.Now().Add(time.Hour)),
 		Revoked:   false,
 	}
 
@@ -386,7 +373,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 		expectedGetUserID       string
 		expectedUpdateTenantID  string
 		expectedUpdateUserID    string
-		returnGetMetadata       *model_auth_cache.TokenMetadata
+		returnGetMetadata       *authv1_cache.TokenMetadata
 		returnGetError          error
 		returnUpdateError       error
 		wantErr                 bool
@@ -402,7 +389,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 			expectedGetUserID:       "user-123",
 			expectedUpdateTenantID:  "tenant-123",
 			expectedUpdateUserID:    "user-123",
-			returnGetMetadata:       &validMetadata,
+			returnGetMetadata:       validMetadata,
 			returnGetError:          nil,
 			returnUpdateError:       nil,
 			wantErr:                 false,
@@ -434,7 +421,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 			expectedGetUserID:       "user-123",
 			expectedUpdateTenantID:  "tenant-123",
 			expectedUpdateUserID:    "user-123",
-			returnGetMetadata:       &validMetadata,
+			returnGetMetadata:       validMetadata,
 			returnGetError:          nil,
 			returnUpdateError:       errors.New("update failed"),
 			wantErr:                 true,
@@ -448,7 +435,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_redis.NewMockKeyHandler[model_auth_cache.TokenMetadata](ctrl)
+			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.TokenMetadata](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
 				mockHandler.EXPECT().
 					GetOne(tc.expectedGetTenantID, tc.expectedGetUserID).
@@ -457,7 +444,7 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 			}
 			if tc.expectedUpdateCallTimes > 0 {
 				// Create expected metadata with Revoked=true and RevokedBy set
-				expectedMetadata := *tc.returnGetMetadata
+				expectedMetadata := tc.returnGetMetadata
 				expectedMetadata.Revoked = true
 				expectedMetadata.RevokedBy = tc.revokedBy
 				mockHandler.EXPECT().
@@ -466,8 +453,9 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 					Times(tc.expectedUpdateCallTimes)
 			}
 
-			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
-			handler := NewAccessTokenHandler(mockHandler, nil, logger)
+			logger := logger.NewBaseLogger(shared.ModuleAuth)
+			handler := NewAccessTokenHandler(logger)
+			handler.keyHandler = mockHandler
 
 			err := handler.Revoke(tc.tenantID, tc.userID, tc.revokedBy)
 			if tc.wantErr {
@@ -517,7 +505,7 @@ func TestAccessTokenKeyHandler_Delete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_redis.NewMockKeyHandler[model_auth_cache.TokenMetadata](ctrl)
+			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.TokenMetadata](ctrl)
 			if tc.expectedDeleteCallTimes > 0 {
 				mockHandler.EXPECT().
 					Delete(tc.expectedDeleteTenantID, tc.expectedDeleteUserID).
@@ -525,8 +513,9 @@ func TestAccessTokenKeyHandler_Delete(t *testing.T) {
 					Times(tc.expectedDeleteCallTimes)
 			}
 
-			logger := logger.NewBaseLogger(model_shared.ModuleAuth)
-			handler := NewAccessTokenHandler(mockHandler, nil, logger)
+			logger := logger.NewBaseLogger(shared.ModuleAuth)
+			handler := NewAccessTokenHandler(logger)
+			handler.keyHandler = mockHandler
 
 			err := handler.Delete(tc.tenantID, tc.userID)
 			if tc.wantErr {

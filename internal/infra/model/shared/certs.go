@@ -20,6 +20,7 @@ type Certs struct {
 }
 
 func NewCerts() *Certs {
+	return nil
 	// 1. Get absolute path of the current file's directory
 	_, filename, _, ok := runtime.Caller(1) // get the file of the function who called this function ("NewCerts")
 	if !ok {

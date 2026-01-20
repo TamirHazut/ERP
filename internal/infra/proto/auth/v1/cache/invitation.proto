@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package auth.v1.cache;
+
+option go_package = "erp.localhost/internal/infra/model/auth/v1/cache;authcache";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Redis Cache Models (for invitation caching)
+// =============================================================================
+
+// InviteToken represents a user invitation token
+message InviteToken {
+  string token = 1 [(tagger.tags) = "json:\"token\""];
+  string email = 2 [(tagger.tags) = "json:\"email\""];
+  string tenant_id = 3 [(tagger.tags) = "json:\"tenant_id\""];
+  repeated string role_ids = 4 [(tagger.tags) = "json:\"role_ids\""];
+  string invited_by = 5 [(tagger.tags) = "json:\"invited_by\""];
+  google.protobuf.Timestamp created_at = 6 [(tagger.tags) = "json:\"created_at\""];
+  google.protobuf.Timestamp expires_at = 7 [(tagger.tags) = "json:\"expires_at\""];
+  bool accepted = 8 [(tagger.tags) = "json:\"accepted\""];
+  google.protobuf.Timestamp accepted_at = 9 [(tagger.tags) = "json:\"accepted_at,omitempty\""];
+}

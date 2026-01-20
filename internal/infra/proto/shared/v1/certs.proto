@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package shared.v1;
+
+option go_package = "erp.localhost/internal/infra/model/shared/v1;sharedv1";
+
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Shared Models (cross-module types)
+// =============================================================================
+
+// Certs represents certificate paths for mTLS
+message Certs {
+  string ca_cert = 1 [(tagger.tags) = "bson:\"ca_cert\" json:\"ca_cert\""];
+  string cert = 2 [(tagger.tags) = "bson:\"cert\" json:\"cert\""];
+  string key = 3 [(tagger.tags) = "bson:\"key\" json:\"key\""];
+}

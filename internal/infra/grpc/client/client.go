@@ -11,7 +11,7 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/grpc/interceptor"
 	"erp.localhost/internal/infra/logging/logger"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/model/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -25,8 +25,8 @@ type RPCClient interface {
 
 type Config struct {
 	Address        string
-	Certs          *model_shared.Certs
-	Module         model_shared.Module
+	Certs          *shared.Certs
+	Module         shared.Module
 	Insecure       bool
 	ConnectTimeout time.Duration
 	RequestTimeout time.Duration
@@ -99,7 +99,7 @@ func buildDialOptions(config *Config, logger logger.Logger) ([]grpc.DialOption, 
 	return opts, nil
 }
 
-func buildTLSOptions(certs *model_shared.Certs) ([]grpc.DialOption, error) {
+func buildTLSOptions(certs *shared.Certs) ([]grpc.DialOption, error) {
 	if certs == nil || !certs.IsValidCerts() {
 		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("invalid or missing certificates"))
 	}

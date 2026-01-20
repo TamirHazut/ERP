@@ -4,6 +4,7 @@ import (
 	"erp.localhost/internal/auth/rbac"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
 )
 
 // RoleAPI provides role management with authorization enforcement
@@ -27,7 +28,7 @@ func NewRoleAPI(
 }
 
 // CreateRole creates a new role with authorization check
-func (ra *RoleAPI) CreateRole(tenantID, requestorUserID string, role *model_auth.Role, targetTenantID string) (string, error) {
+func (ra *RoleAPI) CreateRole(tenantID, requestorUserID string, role *authv1.Role, targetTenantID string) (string, error) {
 	// 1. Check permission (with cross-tenant support)
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionCreate)
 	if err != nil {
@@ -47,7 +48,7 @@ func (ra *RoleAPI) CreateRole(tenantID, requestorUserID string, role *model_auth
 }
 
 // UpdateRole updates an existing role with authorization check
-func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, role *model_auth.Role, targetTenantID string) error {
+func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, role *authv1.Role, targetTenantID string) error {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionUpdate)
 	if err != nil {
 		return err
@@ -62,7 +63,7 @@ func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, role *model_auth
 }
 
 // GetRoleByID retrieves a role by ID with authorization check
-func (ra *RoleAPI) GetRoleByID(tenantID, requestorUserID, roleID string, targetTenantID string) (*model_auth.Role, error) {
+func (ra *RoleAPI) GetRoleByID(tenantID, requestorUserID, roleID string, targetTenantID string) (*authv1.Role, error) {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionRead)
 	if err != nil {
 		return nil, err
@@ -77,7 +78,7 @@ func (ra *RoleAPI) GetRoleByID(tenantID, requestorUserID, roleID string, targetT
 }
 
 // ListRoles retrieves all roles for a tenant with authorization check
-func (ra *RoleAPI) ListRoles(tenantID, requestorUserID string, targetTenantID string) ([]*model_auth.Role, error) {
+func (ra *RoleAPI) ListRoles(tenantID, requestorUserID string, targetTenantID string) ([]*authv1.Role, error) {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionRead)
 	if err != nil {
 		return nil, err
@@ -141,7 +142,7 @@ func NewPermissionAPI(
 }
 
 // CreatePermission creates a new permission with authorization check
-func (pa *PermissionAPI) CreatePermission(tenantID, requestorUserID string, permission *model_auth.Permission, targetTenantID string) (string, error) {
+func (pa *PermissionAPI) CreatePermission(tenantID, requestorUserID string, permission *authv1.Permission, targetTenantID string) (string, error) {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionCreate)
 	if err != nil {
 		return "", err
@@ -156,7 +157,7 @@ func (pa *PermissionAPI) CreatePermission(tenantID, requestorUserID string, perm
 }
 
 // UpdatePermission updates an existing permission with authorization check
-func (pa *PermissionAPI) UpdatePermission(tenantID, requestorUserID string, permission *model_auth.Permission, targetTenantID string) error {
+func (pa *PermissionAPI) UpdatePermission(tenantID, requestorUserID string, permission *authv1.Permission, targetTenantID string) error {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionUpdate)
 	if err != nil {
 		return err
@@ -171,7 +172,7 @@ func (pa *PermissionAPI) UpdatePermission(tenantID, requestorUserID string, perm
 }
 
 // GetPermissionByID retrieves a permission by ID with authorization check
-func (pa *PermissionAPI) GetPermissionByID(tenantID, requestorUserID, permissionID string, targetTenantID string) (*model_auth.Permission, error) {
+func (pa *PermissionAPI) GetPermissionByID(tenantID, requestorUserID, permissionID string, targetTenantID string) (*authv1.Permission, error) {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionRead)
 	if err != nil {
 		return nil, err
@@ -186,7 +187,7 @@ func (pa *PermissionAPI) GetPermissionByID(tenantID, requestorUserID, permission
 }
 
 // ListPermissions retrieves all permissions for a tenant with authorization check
-func (pa *PermissionAPI) ListPermissions(tenantID, requestorUserID string, targetTenantID string) ([]*model_auth.Permission, error) {
+func (pa *PermissionAPI) ListPermissions(tenantID, requestorUserID string, targetTenantID string) ([]*authv1.Permission, error) {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionRead)
 	if err != nil {
 		return nil, err

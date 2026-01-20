@@ -7,26 +7,26 @@ import (
 
 	mock_collection "erp.localhost/internal/infra/db/mongo/collection/mock"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	"erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
-	baseTenantLogger = logger.NewBaseLogger(model_shared.ModuleCore)
+	baseTenantLogger = logger.NewBaseLogger(shared.ModuleCore)
 )
 
 // tenantMatcher is a custom gomock matcher for Tenant objects
 // It skips the CreatedAt and UpdatedAt fields which are set dynamically
 type tenantMatcher struct {
-	expected *model_auth.Tenant
+	expected *authv1.Tenant
 }
 
 func (m tenantMatcher) Matches(x interface{}) bool {
-	tenant, ok := x.(*model_auth.Tenant)
+	tenant, ok := x.(*authv1.Tenant)
 	if !ok {
 		return false
 	}
@@ -44,7 +44,7 @@ func TestNewTenantCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockHandler := mock_collection.NewMockCollectionHandler[model_auth.Tenant](ctrl)
+	mockHandler := mock_collection.NewMockCollectionHandler[authv1.Tenant](ctrl)
 	collection := NewTenantCollection(mockHandler, baseTenantLogger)
 
 	require.NotNil(t, collection)
@@ -55,7 +55,7 @@ func TestNewTenantCollection(t *testing.T) {
 func TestTenantCollection_CreateTenant(t *testing.T) {
 	testCases := []struct {
 		name              string
-		tenant            *model_auth.Tenant
+		tenant            *authv1.Tenant
 		returnID          string
 		returnError       error
 		wantErr           bool
@@ -63,9 +63,9 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 	}{
 		{
 			name: "successful create",
-			tenant: &model_auth.Tenant{
+			tenant: &authv1.Tenant{
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 				CreatedBy: "admin",
 			},
 			returnID:          "tenant-id-123",
@@ -75,8 +75,8 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 		},
 		{
 			name: "create with validation error - missing name",
-			tenant: &model_auth.Tenant{
-				Status:    model_auth.TenantStatusActive,
+			tenant: &authv1.Tenant{
+				Status:    authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 				CreatedBy: "admin",
 			},
 			returnID:          "",
@@ -86,9 +86,9 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 		},
 		{
 			name: "create with database error",
-			tenant: &model_auth.Tenant{
+			tenant: &authv1.Tenant{
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 				CreatedBy: "admin",
 			},
 			returnID:          "",
@@ -103,7 +103,7 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.Tenant](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.Tenant](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					Create(tenantMatcher{expected: tc.tenant}).
@@ -125,27 +125,27 @@ func TestTenantCollection_CreateTenant(t *testing.T) {
 }
 
 func TestTenantCollection_GetTenantByID(t *testing.T) {
-	tenantID, _ := primitive.ObjectIDFromHex("507f1f77bcf86cd799439011")
+	tenantID := "507f1f77bcf86cd799439011"
 
 	testCases := []struct {
 		name              string
 		tenantID          string
 		expectedFilter    map[string]any
-		returnTenant      *model_auth.Tenant
+		returnTenant      *authv1.Tenant
 		returnError       error
 		wantErr           bool
 		expectedCallTimes int
 	}{
 		{
 			name:     "successful get by id",
-			tenantID: tenantID.Hex(),
+			tenantID: tenantID,
 			expectedFilter: map[string]any{
-				"_id": tenantID.Hex(),
+				"_id": tenantID,
 			},
-			returnTenant: &model_auth.Tenant{
-				ID:     tenantID,
+			returnTenant: &authv1.Tenant{
+				Id:     tenantID,
 				Name:   "Test Company",
-				Status: model_auth.TenantStatusActive,
+				Status: authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 			},
 			returnError:       nil,
 			wantErr:           false,
@@ -153,9 +153,9 @@ func TestTenantCollection_GetTenantByID(t *testing.T) {
 		},
 		{
 			name:     "tenant not found",
-			tenantID: tenantID.Hex(),
+			tenantID: tenantID,
 			expectedFilter: map[string]any{
-				"_id": tenantID.Hex(),
+				"_id": tenantID,
 			},
 			returnTenant:      nil,
 			returnError:       errors.New("tenant not found"),
@@ -173,9 +173,9 @@ func TestTenantCollection_GetTenantByID(t *testing.T) {
 		},
 		{
 			name:     "database error",
-			tenantID: tenantID.Hex(),
+			tenantID: tenantID,
 			expectedFilter: map[string]any{
-				"_id": tenantID.Hex(),
+				"_id": tenantID,
 			},
 			returnTenant:      nil,
 			returnError:       errors.New("database query failed"),
@@ -189,7 +189,7 @@ func TestTenantCollection_GetTenantByID(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.Tenant](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.Tenant](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					FindOne(tc.expectedFilter).
@@ -203,22 +203,22 @@ func TestTenantCollection_GetTenantByID(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.tenantID, tenant.ID.Hex())
+				assert.Equal(t, tc.tenantID, tenant.Id)
 			}
 		})
 	}
 }
 
 func TestTenantCollection_UpdateTenant(t *testing.T) {
-	tenantID := primitive.NewObjectID()
-	createdAt := time.Now().Add(-24 * time.Hour)
+	tenantID := "507f1f77bcf86cd799439011"
+	createdAt := timestamppb.New(time.Now().Add(-24 * time.Hour))
 
 	testCases := []struct {
 		name                 string
-		tenant               *model_auth.Tenant
+		tenant               *authv1.Tenant
 		expectedFindFilter   map[string]any
 		expectedUpdateFilter map[string]any
-		returnFindTenant     *model_auth.Tenant
+		returnFindTenant     *authv1.Tenant
 		returnFindError      error
 		returnUpdateError    error
 		wantErr              bool
@@ -227,24 +227,24 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 	}{
 		{
 			name: "successful update",
-			tenant: &model_auth.Tenant{
-				ID:        tenantID,
+			tenant: &authv1.Tenant{
+				Id:        tenantID,
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 				Domain:    "domain",
 			},
 			expectedFindFilter: map[string]any{
-				"_id": tenantID.Hex(),
+				"_id": tenantID,
 			},
 			expectedUpdateFilter: map[string]any{
-				"_id": tenantID.Hex(),
+				"_id": tenantID,
 			},
-			returnFindTenant: &model_auth.Tenant{
-				ID:        tenantID,
+			returnFindTenant: &authv1.Tenant{
+				Id:        tenantID,
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
@@ -256,8 +256,8 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 		},
 		{
 			name: "update with validation error",
-			tenant: &model_auth.Tenant{
-				ID: tenantID,
+			tenant: &authv1.Tenant{
+				Id: tenantID,
 			},
 			expectedFindFilter:   map[string]any{},
 			expectedUpdateFilter: map[string]any{},
@@ -270,15 +270,15 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 		},
 		{
 			name: "update with tenant not found",
-			tenant: &model_auth.Tenant{
-				ID:        tenantID,
+			tenant: &authv1.Tenant{
+				Id:        tenantID,
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
 			expectedFindFilter: map[string]any{
-				"_id": tenantID.Hex(),
+				"_id": tenantID,
 			},
 			expectedUpdateFilter: map[string]any{},
 			returnFindTenant:     nil,
@@ -290,19 +290,19 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 		},
 		{
 			name: "update with restricted field change - CreatedAt",
-			tenant: &model_auth.Tenant{
-				ID:        tenantID,
+			tenant: &authv1.Tenant{
+				Id:        tenantID,
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 				CreatedBy: "admin",
-				CreatedAt: time.Now(),
+				CreatedAt: timestamppb.Now(),
 			},
 			expectedFindFilter: map[string]any{
-				"_id": tenantID.Hex(),
+				"_id": tenantID,
 			},
 			expectedUpdateFilter: map[string]any{},
-			returnFindTenant: &model_auth.Tenant{
-				ID:        tenantID,
+			returnFindTenant: &authv1.Tenant{
+				Id:        tenantID,
 				CreatedAt: createdAt,
 			},
 			returnFindError:     nil,
@@ -313,21 +313,21 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 		},
 		{
 			name: "update with database error",
-			tenant: &model_auth.Tenant{
-				ID:        tenantID,
+			tenant: &authv1.Tenant{
+				Id:        tenantID,
 				Name:      "Test Company",
-				Status:    model_auth.TenantStatusActive,
+				Status:    authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 				CreatedBy: "admin",
 				CreatedAt: createdAt,
 			},
 			expectedFindFilter: map[string]any{
-				"_id": tenantID.Hex(),
+				"_id": tenantID,
 			},
 			expectedUpdateFilter: map[string]any{
-				"_id": tenantID.Hex(),
+				"_id": tenantID,
 			},
-			returnFindTenant: &model_auth.Tenant{
-				ID:        tenantID,
+			returnFindTenant: &authv1.Tenant{
+				Id:        tenantID,
 				CreatedAt: createdAt,
 			},
 			returnFindError:     nil,
@@ -343,7 +343,7 @@ func TestTenantCollection_UpdateTenant(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.Tenant](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.Tenant](ctrl)
 			if tc.expectedFindCalls > 0 {
 				mockHandler.EXPECT().
 					FindOne(tc.expectedFindFilter).
@@ -412,7 +412,7 @@ func TestTenantCollection_DeleteTenant(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockHandler := mock_collection.NewMockCollectionHandler[model_auth.Tenant](ctrl)
+			mockHandler := mock_collection.NewMockCollectionHandler[authv1.Tenant](ctrl)
 			if tc.expectedCallTimes > 0 {
 				mockHandler.EXPECT().
 					Delete(tc.expectedFilter).

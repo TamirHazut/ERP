@@ -8,72 +8,85 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 
-	model_shared "erp.localhost/internal/infra/model/shared"
-	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
-	"erp.localhost/internal/infra/proto/validator"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	validator_infra "erp.localhost/internal/infra/model/infra/validator"
 )
 
 type AuthService struct {
 	logger  logger.Logger
 	authAPI *api.AuthAPI
-	proto_auth.UnimplementedAuthServiceServer
+	authv1.UnimplementedAuthServiceServer
 }
 
-func NewAuthService(authAPI *api.AuthAPI) *AuthService {
-	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
-
+func NewAuthService(authAPI *api.AuthAPI, logger logger.Logger) *AuthService {
 	return &AuthService{
 		logger:  logger,
 		authAPI: authAPI,
 	}
 }
 
-func (a *AuthService) Authenticate(ctx context.Context, req *proto_auth.AuthenticateRequest) (*proto_auth.TokensResponse, error) {
+func (a *AuthService) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.TokensResponse, error) {
+	tenantID := req.GetTenantId()
+	userPassword := req.GetPassword()
+
+	newTokenResponse, err := a.authAPI.Login(tenantID, req.GetEmail(), req.GetUsername(), userPassword)
+	if err != nil {
+		a.logger.Error("failed to authenticate", "error", err.Error())
+		return nil, infra_error.ToGRPCError(err)
+	}
+
+	return &authv1.TokensResponse{
+		Tokens: &authv1.Tokens{
+			Token:        newTokenResponse.Token,
+			RefreshToken: newTokenResponse.RefreshToken,
+		},
+		ExpiresIn: &authv1.ExpiresIn{
+			Token:        newTokenResponse.TokenExpiresAt,
+			RefreshToken: newTokenResponse.RefreshTokenExpiresAt,
+		},
+	}, nil
+}
+
+func (a *AuthService) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		a.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
 
 	tenantID := identifier.GetTenantId()
 	userID := identifier.GetUserId()
+	tokens := req.GetTokens()
 
-	newTokenResponse, err := a.authAPI.Authenticate(tenantID, userID, req.GetUserPassword(), req.GetUserHash())
+	message, err := a.authAPI.Logout(tenantID, userID, tokens.GetToken(), tokens.GetRefreshToken(), userID)
 	if err != nil {
-		a.logger.Warn("faild attemt to authenticate", "tenantID", tenantID, "userID", userID, "error", err)
-		return nil, infra_error.ToGRPCError(err)
+		a.logger.Error("failed to logout", "tenantID", tenantID, "userID", userID, "error", err.Error())
+	} else {
+		a.logger.Info("logout successful", "tenantID", tenantID, "userID", userID)
 	}
-	a.logger.Debug("user authenticated successfuly", "tenantID", tenantID, "userID", userID)
-	// Return response
-	return &proto_auth.TokensResponse{
-		Tokens: &proto_auth.Tokens{
-			AccessToken:  newTokenResponse.AccessToken,
-			RefreshToken: newTokenResponse.RefreshToken,
-		},
-		ExpiresIn: &proto_auth.ExpiresIn{
-			AccessToken:  newTokenResponse.AccessTokenExpiresAt,
-			RefreshToken: newTokenResponse.RefreshTokenExpiresAt,
-		},
-	}, nil
+
+	return &authv1.LogoutResponse{
+		Message: message,
+	}, infra_error.ToGRPCError(err)
 }
 
-func (a *AuthService) VerifyToken(ctx context.Context, req *proto_auth.VerifyTokenRequest) (*proto_auth.VerifyTokenResponse, error) {
-	err := a.authAPI.VerifyToken(req.GetAccessToken())
+func (a *AuthService) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRequest) (*authv1.VerifyTokenResponse, error) {
+	err := a.authAPI.VerifyToken(req.GetToken())
 	if err != nil {
 		a.logger.Error("failed to verify token", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
 	a.logger.Debug("token verified")
-	return &proto_auth.VerifyTokenResponse{
+	return &authv1.VerifyTokenResponse{
 		Valid: true,
 	}, nil
 }
 
-func (a *AuthService) RefreshToken(ctx context.Context, req *proto_auth.RefreshTokenRequest) (*proto_auth.TokensResponse, error) {
+func (a *AuthService) RefreshToken(ctx context.Context, req *authv1.RefreshTokenRequest) (*authv1.TokensResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		a.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -88,22 +101,22 @@ func (a *AuthService) RefreshToken(ctx context.Context, req *proto_auth.RefreshT
 		return nil, infra_error.ToGRPCError(err)
 	}
 	a.logger.Debug("tokens refreshed successfuly", "tenantID", tenantID, "userID", userID)
-	return &proto_auth.TokensResponse{
-		Tokens: &proto_auth.Tokens{
-			AccessToken:  newTokenResponse.AccessToken,
+	return &authv1.TokensResponse{
+		Tokens: &authv1.Tokens{
+			Token:        newTokenResponse.Token,
 			RefreshToken: newTokenResponse.RefreshToken,
 		},
-		ExpiresIn: &proto_auth.ExpiresIn{
-			AccessToken:  newTokenResponse.AccessTokenExpiresAt,
+		ExpiresIn: &authv1.ExpiresIn{
+			Token:        newTokenResponse.TokenExpiresAt,
 			RefreshToken: newTokenResponse.RefreshTokenExpiresAt,
 		},
 	}, nil
 }
 
-func (a *AuthService) RevokeToken(ctx context.Context, req *proto_auth.RevokeTokenRequest) (*proto_auth.RevokeTokenResponse, error) {
+func (a *AuthService) RevokeToken(ctx context.Context, req *authv1.RevokeTokenRequest) (*authv1.RevokeTokenResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		a.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -112,20 +125,20 @@ func (a *AuthService) RevokeToken(ctx context.Context, req *proto_auth.RevokeTok
 	userID := req.GetIdentifier().GetUserId()
 	revokedBy := req.GetRevokedBy()
 
-	if err := a.authAPI.RevokeTokens(tenantID, userID, req.GetTokens().GetAccessToken(), req.GetTokens().GetRefreshToken(), revokedBy); err != nil {
+	if err := a.authAPI.RevokeTokens(tenantID, userID, req.GetTokens().GetToken(), req.GetTokens().GetRefreshToken(), revokedBy); err != nil {
 		a.logger.Error("failed to revoke token", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy, "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
 	a.logger.Debug("token revoked successfuly", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy)
-	return &proto_auth.RevokeTokenResponse{
+	return &authv1.RevokeTokenResponse{
 		Revoked: true,
 	}, nil
 }
 
-func (a *AuthService) RevokeAllTenantTokens(ctx context.Context, req *proto_auth.RevokeAllTenantTokensRequest) (*proto_auth.RevokeAllTenantTokensResponse, error) {
+func (a *AuthService) RevokeAllTenantTokens(ctx context.Context, req *authv1.RevokeAllTenantTokensRequest) (*authv1.RevokeAllTenantTokensResponse, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		a.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -142,7 +155,7 @@ func (a *AuthService) RevokeAllTenantTokens(ctx context.Context, req *proto_auth
 
 	a.logger.Info("All tenant tokens revoked", "tenant_id", tenantID, "access_tokens_revoked", accessCount, "refresh_tokens_revoked", refreshCount)
 
-	return &proto_auth.RevokeAllTenantTokensResponse{
+	return &authv1.RevokeAllTenantTokensResponse{
 		Revoked:              true,
 		AccessTokensRevoked:  int32(accessCount),
 		RefreshTokensRevoked: int32(refreshCount),

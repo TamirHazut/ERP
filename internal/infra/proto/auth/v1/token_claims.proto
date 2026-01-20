@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "erp.localhost/internal/infra/model/auth/v1;authv1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Token Claims Models (for JWT tokens)
+// =============================================================================
+
+// AccessTokenClaims represents the claims in an access token
+message AccessTokenClaims {
+  string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+  string tenant_id = 2 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string username = 3 [(tagger.tags) = "bson:\"username\" json:\"username\""];
+  string email = 4 [(tagger.tags) = "bson:\"email\" json:\"email\""];
+  repeated string roles = 5 [(tagger.tags) = "bson:\"roles\" json:\"roles\""];
+  repeated string permissions = 6 [(tagger.tags) = "bson:\"permissions\" json:\"permissions\""];
+  google.protobuf.Timestamp issued_at = 7 [(tagger.tags) = "bson:\"issued_at\" json:\"issued_at\""];
+  google.protobuf.Timestamp expires_at = 8 [(tagger.tags) = "bson:\"expires_at\" json:\"expires_at\""];
+}

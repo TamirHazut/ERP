@@ -7,6 +7,7 @@ const (
 	AuthDB   DBName = "auth_db"
 	ConfigDB DBName = "config_db"
 	CoreDB   DBName = "core_db"
+	EventDB  DBName = "event_db"
 
 	// Auth DB Collections
 	AuditLogsCollection   Collection = "audit_logs"

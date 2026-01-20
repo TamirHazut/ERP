@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "erp.localhost/internal/infra/model/core/v1;corev1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// Category status enum
+enum CategoryStatus {
+  CATEGORY_STATUS_UNSPECIFIED = 0;
+  CATEGORY_STATUS_ACTIVE = 1;
+  CATEGORY_STATUS_INACTIVE = 2;
+}
+
+// Category model for MongoDB core_db.categories collection
+message Category {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string category_id = 2 [(tagger.tags) = "bson:\"category_id\" json:\"category_id\""];
+  string tenant_id = 3 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string name = 4 [(tagger.tags) = "bson:\"name\" json:\"name\""];
+  string slug = 5 [(tagger.tags) = "bson:\"slug\" json:\"slug\""];
+  string description = 6 [(tagger.tags) = "bson:\"description\" json:\"description\""];
+  string parent_category_id = 7 [(tagger.tags) = "bson:\"parent_category_id,omitempty\" json:\"parent_category_id,omitempty\""];
+  int32 level = 8 [(tagger.tags) = "bson:\"level\" json:\"level\""];
+  string path = 9 [(tagger.tags) = "bson:\"path\" json:\"path\""];
+  string image_url = 10 [(tagger.tags) = "bson:\"image_url,omitempty\" json:\"image_url,omitempty\""];
+  CategoryStatus status = 11 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  google.protobuf.Timestamp created_at = 12 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 13 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+}

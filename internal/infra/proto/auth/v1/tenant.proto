@@ -2,58 +2,98 @@ syntax = "proto3";
 
 package auth.v1;
 
-option go_package = "erp.localhost/internal/infra/proto/generated/auth/v1;authv1";
+option go_package = "erp.localhost/internal/infra/model/auth/v1;authv1";
 
 import "infra/v1/infra.proto";
 import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+import "core/v1/address.proto";
 
 // =============================================================================
-// Main Tenant Data Message
+// MongoDB Models (for database persistence)
 // =============================================================================
 
-message TenantData {
-    string id = 1;
-    string name = 2;
-    string status = 3;  // active, suspended, inactive, trial
-    google.protobuf.Timestamp created_at = 4;
-    google.protobuf.Timestamp updated_at = 5;
-    string created_by = 6;
+// Tenant status enum
+enum TenantStatus {
+  TENANT_STATUS_UNSPECIFIED = 0;
+  TENANT_STATUS_ACTIVE = 1;
+  TENANT_STATUS_SUSPENDED = 2;
+  TENANT_STATUS_INACTIVE = 3;
+  TENANT_STATUS_TRIAL = 4;
 }
 
-// =============================================================================
-// Create/Update Messages
-// =============================================================================
-
-message CreateTenantData {
-    string name = 1;
-    string status = 2;
-    string created_by = 3;
-    string admin_email = 4;      // NEW - Email for initial admin user
-    string admin_password = 5;    // NEW - Password for initial admin user
+// Tenant model for MongoDB auth_db.tenants collection
+message Tenant {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string name = 2 [(tagger.tags) = "bson:\"name\" json:\"name\""];
+  string slug = 3 [(tagger.tags) = "bson:\"slug\" json:\"slug\""];
+  string domain = 4 [(tagger.tags) = "bson:\"domain,omitempty\" json:\"domain,omitempty\""];
+  TenantStatus status = 5 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  Subscription subscription = 6 [(tagger.tags) = "bson:\"subscription\" json:\"subscription\""];
+  TenantSettings settings = 7 [(tagger.tags) = "bson:\"settings\" json:\"settings\""];
+  ContactInfo contact = 8 [(tagger.tags) = "bson:\"contact\" json:\"contact\""];
+  Branding branding = 9 [(tagger.tags) = "bson:\"branding,omitempty\" json:\"branding,omitempty\""];
+  google.protobuf.Timestamp created_at = 10 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 11 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+  string created_by = 12 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
+  TenantMetadata metadata = 13 [(tagger.tags) = "bson:\"metadata,omitempty\" json:\"metadata,omitempty\""];
 }
 
-message UpdateTenantData {
-    string id = 1;
-    optional string name = 2;
-    optional string status = 3;
+message Subscription {
+  string plan = 1 [(tagger.tags) = "bson:\"plan\" json:\"plan\""];
+  google.protobuf.Timestamp start_date = 2 [(tagger.tags) = "bson:\"start_date\" json:\"start_date\""];
+  google.protobuf.Timestamp end_date = 3 [(tagger.tags) = "bson:\"end_date\" json:\"end_date\""];
+  repeated string features = 4 [(tagger.tags) = "bson:\"features\" json:\"features\""];
+  SubscriptionLimits limits = 5 [(tagger.tags) = "bson:\"limits\" json:\"limits\""];
 }
+
+message SubscriptionLimits {
+  int32 max_users = 1 [(tagger.tags) = "bson:\"max_users\" json:\"max_users\""];
+  int32 max_products = 2 [(tagger.tags) = "bson:\"max_products\" json:\"max_products\""];
+  int32 max_orders_per_month = 3 [(tagger.tags) = "bson:\"max_orders_per_month\" json:\"max_orders_per_month\""];
+  int32 storage_gb = 4 [(tagger.tags) = "bson:\"storage_gb\" json:\"storage_gb\""];
+}
+
+message TenantSettings {
+  string timezone = 1 [(tagger.tags) = "bson:\"timezone\" json:\"timezone\""];
+  string currency = 2 [(tagger.tags) = "bson:\"currency\" json:\"currency\""];
+  string date_format = 3 [(tagger.tags) = "bson:\"date_format\" json:\"date_format\""];
+  string language = 4 [(tagger.tags) = "bson:\"language\" json:\"language\""];
+  map<string, Hours> business_hours = 5 [(tagger.tags) = "bson:\"business_hours,omitempty\" json:\"business_hours,omitempty\""];
+}
+
+message Hours {
+  string start = 1 [(tagger.tags) = "bson:\"start\" json:\"start\""];
+  string end = 2 [(tagger.tags) = "bson:\"end\" json:\"end\""];
+}
+
+message ContactInfo {
+  string email = 1 [(tagger.tags) = "bson:\"email\" json:\"email\""];
+  string phone = 2 [(tagger.tags) = "bson:\"phone\" json:\"phone\""];
+  core.v1.Address address = 3 [(tagger.tags) = "bson:\"address\" json:\"address\""];
+}
+
+message Branding {
+  string logo_url = 1 [(tagger.tags) = "bson:\"logo_url,omitempty\" json:\"logo_url,omitempty\""];
+  string primary_color = 2 [(tagger.tags) = "bson:\"primary_color,omitempty\" json:\"primary_color,omitempty\""];
+  string company_name = 3 [(tagger.tags) = "bson:\"company_name,omitempty\" json:\"company_name,omitempty\""];
+}
+
+message TenantMetadata {
+  bool onboarding_completed = 1 [(tagger.tags) = "bson:\"onboarding_completed\" json:\"onboarding_completed\""];
+  string industry = 2 [(tagger.tags) = "bson:\"industry,omitempty\" json:\"industry,omitempty\""];
+  string company_size = 3 [(tagger.tags) = "bson:\"company_size,omitempty\" json:\"company_size,omitempty\""];
+}
+
 
 // =============================================================================
 // Response Messages
 // =============================================================================
 
-message TenantResponse {
-    TenantData tenant = 1;
-}
-
-message TenantsResponse {
-    repeated TenantData tenants = 1;
-    infra.v1.PaginationResponse pagination = 2;
-}
 
 message CreateTenantRequest {
     infra.v1.UserIdentifier identifier = 1;
-    CreateTenantData tenant = 2;
+    Tenant tenant = 2;
 }
 
 message CreateTenantResponse {
@@ -68,15 +108,20 @@ message GetTenantRequest {
     }
 }
 
-message GetTenantsRequest {
+message ListTenantsRequest {
     infra.v1.UserIdentifier identifier = 1;
     optional string status = 2;  // Filter by status
     infra.v1.PaginationRequest pagination = 3;
 }
 
+message ListTenantsResponse {
+    repeated Tenant tenants = 1;
+    infra.v1.PaginationResponse pagination = 2;
+}
+
 message UpdateTenantRequest {
     infra.v1.UserIdentifier identifier = 1;
-    UpdateTenantData tenant = 2;
+    Tenant tenant = 2;
 }
 
 message UpdateTenantResponse {
@@ -99,8 +144,8 @@ message DeleteTenantResponse {
 service TenantService {
     // CRUD
     rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
-    rpc GetTenant(GetTenantRequest) returns (TenantResponse);
-    rpc GetTenants(GetTenantsRequest) returns (TenantsResponse);
+    rpc GetTenant(GetTenantRequest) returns (Tenant);
+    rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
     rpc UpdateTenant(UpdateTenantRequest) returns (UpdateTenantResponse);
     rpc DeleteTenant(DeleteTenantRequest) returns (DeleteTenantResponse);
 } 

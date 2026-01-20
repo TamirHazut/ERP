@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "erp.localhost/internal/infra/model/core/v1;corev1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// Inventory model for MongoDB core_db.inventory collection
+message Inventory {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string inventory_id = 2 [(tagger.tags) = "bson:\"inventory_id\" json:\"inventory_id\""];
+  string tenant_id = 3 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string product_id = 4 [(tagger.tags) = "bson:\"product_id\" json:\"product_id\""];
+  string warehouse_id = 5 [(tagger.tags) = "bson:\"warehouse_id\" json:\"warehouse_id\""];
+  int32 quantity = 6 [(tagger.tags) = "bson:\"quantity\" json:\"quantity\""];
+  int32 reserved = 7 [(tagger.tags) = "bson:\"reserved\" json:\"reserved\""];
+  int32 available = 8 [(tagger.tags) = "bson:\"available\" json:\"available\""];
+  InventoryLocation location = 9 [(tagger.tags) = "bson:\"location,omitempty\" json:\"location,omitempty\""];
+  string batch_number = 10 [(tagger.tags) = "bson:\"batch_number,omitempty\" json:\"batch_number,omitempty\""];
+  repeated string serial_numbers = 11 [(tagger.tags) = "bson:\"serial_numbers,omitempty\" json:\"serial_numbers,omitempty\""];
+  google.protobuf.Timestamp expiry_date = 12 [(tagger.tags) = "bson:\"expiry_date,omitempty\" json:\"expiry_date,omitempty\""];
+  google.protobuf.Timestamp received_date = 13 [(tagger.tags) = "bson:\"received_date\" json:\"received_date\""];
+  double cost = 14 [(tagger.tags) = "bson:\"cost\" json:\"cost\""];
+  google.protobuf.Timestamp updated_at = 15 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+}
+
+message InventoryLocation {
+  string aisle = 1 [(tagger.tags) = "bson:\"aisle,omitempty\" json:\"aisle,omitempty\""];
+  string shelf = 2 [(tagger.tags) = "bson:\"shelf,omitempty\" json:\"shelf,omitempty\""];
+  string bin = 3 [(tagger.tags) = "bson:\"bin,omitempty\" json:\"bin,omitempty\""];
+}

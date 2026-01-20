@@ -2,18 +2,19 @@ package token
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 
+	"erp.localhost/internal/auth/hash"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
-	model_auth_cache "erp.localhost/internal/infra/model/auth/cache"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
+	validator_auth "erp.localhost/internal/infra/model/auth/validator"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -30,29 +31,24 @@ type TokenManager struct {
 	secretKey            string
 	tokenDuration        time.Duration
 	refreshTokenDuration time.Duration
-	accessTokenHandler   TokenHandler[model_auth_cache.TokenMetadata]
-	refreshTokenHandler  TokenHandler[model_auth.RefreshToken]
+	accessTokenHandler   TokenHandler[authv1_cache.TokenMetadata]
+	refreshTokenHandler  TokenHandler[authv1_cache.RefreshToken]
 	logger               logger.Logger
 }
 
 // GenerateAccessTokenInput input for generating access tokens
 type GenerateAccessTokenInput struct {
-	UserID      string
-	TenantID    string
-	Email       string
-	Username    string
-	Roles       []string
-	Permissions []string
-	SessionID   string
-	DeviceID    string
+	UserId   string
+	TenantId string
+	Email    string
+	Username string
+	Roles    []string
 }
 
 // GenerateRefreshTokenInput input for generating refresh tokens
 type GenerateRefreshTokenInput struct {
-	UserID    string
-	TenantID  string
-	SessionID string
-	DeviceID  string
+	UserId    string
+	TenantId  string
 	IPAddress string
 	UserAgent string
 	CreatedAt time.Time
@@ -60,20 +56,17 @@ type GenerateRefreshTokenInput struct {
 
 func (i *GenerateAccessTokenInput) Validate() error {
 	missingFields := []string{}
-	if i.UserID == "" {
-		missingFields = append(missingFields, "UserID")
+	if i.UserId == "" {
+		missingFields = append(missingFields, "UserId")
 	}
-	if i.TenantID == "" {
-		missingFields = append(missingFields, "TenantID")
+	if i.TenantId == "" {
+		missingFields = append(missingFields, "TenantId")
 	}
-	if i.Username == "" {
-		missingFields = append(missingFields, "Username")
+	if i.Email == "" || i.Username == "" {
+		missingFields = append(missingFields, "Email", "Username")
 	}
 	if len(i.Roles) == 0 {
 		missingFields = append(missingFields, "Roles")
-	}
-	if len(i.Permissions) == 0 {
-		missingFields = append(missingFields, "Permissions")
 	}
 	if len(missingFields) > 0 {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
@@ -82,8 +75,7 @@ func (i *GenerateAccessTokenInput) Validate() error {
 }
 
 // NewTokenManager creates a new TokenManager
-func NewTokenManager(secretKey string, tokenDuration time.Duration, refreshTokenDuration time.Duration) *TokenManager {
-	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
+func NewTokenManager(secretKey string, tokenDuration time.Duration, refreshTokenDuration time.Duration, logger logger.Logger) *TokenManager {
 	if secretKey == "" {
 		logger.Fatal("secret key is required")
 		return nil
@@ -97,12 +89,23 @@ func NewTokenManager(secretKey string, tokenDuration time.Duration, refreshToken
 		return nil
 	}
 
+	accessTokenHandler := NewAccessTokenHandler(logger)
+	if accessTokenHandler == nil {
+		logger.Fatal("failed to create access token handler")
+		return nil
+	}
+
+	refreshTokenHandler := NewRefreshTokenHandler(logger)
+	if refreshTokenHandler == nil {
+		logger.Fatal("failed to create refresh token handler")
+		return nil
+	}
 	return &TokenManager{
 		secretKey:            secretKey,
 		tokenDuration:        tokenDuration,
 		refreshTokenDuration: refreshTokenDuration,
-		accessTokenHandler:   NewAccessTokenHandler(nil, nil, logger),
-		refreshTokenHandler:  NewRefreshTokenHandler(nil, nil, logger),
+		accessTokenHandler:   accessTokenHandler,
+		refreshTokenHandler:  refreshTokenHandler,
 		logger:               logger,
 	}
 }
@@ -111,74 +114,105 @@ func NewTokenManager(secretKey string, tokenDuration time.Duration, refreshToken
 // JWT TOKEN GENERATION AND VERIFICATION
 // ============================================================================
 
-// GenerateAccessToken generates a new JWT access token for the given user
-func (tm *TokenManager) GenerateAccessToken(input *GenerateAccessTokenInput) (string, error) {
+// GenerateAccessToken generates a new JWT access token
+func (tm *TokenManager) GenerateAccessToken(input *GenerateAccessTokenInput) (string, *authv1.AccessTokenClaims, error) {
 	if err := input.Validate(); err != nil {
-		return "", err
-	}
-	currentTimestamp := time.Now().Unix()
-	expiresAt := time.Now().Add(tm.tokenDuration)
-	claims := &model_auth.AccessTokenClaims{
-		UserID:      input.UserID,
-		TenantID:    input.TenantID,
-		Username:    input.Username,
-		Email:       input.Email,
-		Roles:       input.Roles,
-		Permissions: input.Permissions,
-		TokenType:   TokenTypeAccess,
-		SessionID:   input.SessionID,
-		DeviceID:    input.DeviceID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expiresAt),
-			IssuedAt:  jwt.NewNumericDate(time.Unix(currentTimestamp, 0)),
-			NotBefore: jwt.NewNumericDate(time.Unix(currentTimestamp, 0)),
-			Issuer:    Issuer,
-			Subject:   input.UserID,
-			Audience:  []string{uuid.New().String()},
-		},
+		return "", nil, err
 	}
 
-	if err := claims.Validate(); err != nil {
-		return "", err
+	now := time.Now()
+	expiresAt := now.Add(tm.tokenDuration)
+
+	// Create JWT claims with generated jti
+	jwtClaims := &JWTAccessClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.New().String(), // Generate jti (not persisted)
+			Issuer:    Issuer,
+			Subject:   input.UserId,
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(now),
+		},
+		UserID:   input.UserId,
+		TenantID: input.TenantId,
+		Email:    input.Email,
+		Roles:    input.Roles,
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign the JWT
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaims)
 	tokenString, err := token.SignedString([]byte(tm.secretKey))
 	if err != nil {
-		return "", infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
+		return "", nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
 	}
-	return tokenString, nil
+
+	// Convert to proto claims (jti not included)
+	protoClaims := jwtClaims.ToProtoClaims()
+
+	return tokenString, protoClaims, nil
 }
 
-// VerifyAccessToken verifies if the given JWT token is a valid access token
-func (tm *TokenManager) VerifyAccessToken(tokenString string) (*model_auth_cache.TokenMetadata, error) {
-	if tokenString == "" {
-		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("token is required"))
-	}
+// Full verification flow
+func (tm *TokenManager) VerifyAccessToken(tokenString string) (*authv1.AccessTokenClaims, error) {
+	// 1. Parse and verify JWT signature
+	token, err := jwt.ParseWithClaims(tokenString, &JWTAccessClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, infra_error.Internal(infra_error.InternalUnexpectedError, fmt.Errorf("unexpected signing method: %v", token.Header["alg"]))
+		}
+		return []byte(tm.secretKey), nil
+	})
 
-	accessTokenMetadata, err := tm.GetTokenMetadata(tokenString)
 	if err != nil {
 		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
 	}
-	if accessTokenMetadata == nil {
-		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("access token not found"))
-	}
-	if accessTokenMetadata.ExpiresAt.Before(time.Now()) {
-		return nil, infra_error.Auth(infra_error.AuthTokenExpired).WithError(errors.New("access token has expired"))
-	}
-	if accessTokenMetadata.Revoked {
-		return nil, infra_error.Auth(infra_error.AuthTokenRevoked).WithError(errors.New("access token has been revoked"))
-	}
-	if accessTokenMetadata.RevokedAt != nil && accessTokenMetadata.RevokedAt.Before(time.Now()) {
-		return nil, infra_error.Auth(infra_error.AuthTokenRevoked).WithError(errors.New("access token has been revoked"))
+
+	if !token.Valid {
+		return nil, infra_error.Auth(infra_error.AuthTokenInvalid)
 	}
 
-	return accessTokenMetadata, nil
+	// 2. Extract claims
+	jwtClaims, ok := token.Claims.(*JWTAccessClaims)
+	if !ok {
+		return nil, infra_error.Auth(infra_error.AuthTokenInvalid)
+	}
+
+	// 3. Verify against Redis storage (CRITICAL!)
+	storedMetadata, err := tm.accessTokenHandler.Validate(jwtClaims.TenantID, jwtClaims.UserID)
+	if err != nil {
+		tm.logger.Warn("Access token validation failed",
+			"tenantID", jwtClaims.TenantID,
+			"userID", jwtClaims.UserID,
+			"error", err)
+		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
+	}
+
+	// 4. Check if token is revoked
+	if storedMetadata.Revoked {
+		tm.logger.Info("Access token has been revoked",
+			"tenantID", jwtClaims.TenantID,
+			"userID", jwtClaims.UserID)
+		return nil, infra_error.Auth(infra_error.AuthTokenRevoked)
+	}
+
+	// 5. Verify token hasn't expired (double-check against Redis)
+	if time.Now().After(storedMetadata.ExpiresAt.AsTime()) {
+		tm.logger.Info("Access token has expired",
+			"tenantID", jwtClaims.TenantID,
+			"userID", jwtClaims.UserID)
+		return nil, infra_error.Auth(infra_error.AuthTokenExpired)
+	}
+
+	// 6. All checks passed - return the claims
+	tm.logger.Debug("Access token verified successfully",
+		"tenantID", jwtClaims.TenantID,
+		"userID", jwtClaims.UserID)
+
+	return jwtClaims.ToProtoClaims(), nil
 }
 
 // GenerateRefreshToken generates a new refresh token for the given user
-func (tm *TokenManager) GenerateRefreshToken(input GenerateRefreshTokenInput) (model_auth.RefreshToken, error) {
-	if input.UserID == "" {
-		return model_auth.RefreshToken{}, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("user_id is required"))
+func (tm *TokenManager) GenerateRefreshToken(input GenerateRefreshTokenInput) (string, *authv1_cache.RefreshToken, error) {
+	if input.UserId == "" {
+		return "", nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("user_id is required"))
 	}
 
 	tm.logger.Debug("Generating refresh token", "input", input)
@@ -192,42 +226,39 @@ func (tm *TokenManager) GenerateRefreshToken(input GenerateRefreshTokenInput) (m
 	// 32 bytes = 256 bits of entropy (very secure)
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
-		return model_auth.RefreshToken{}, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
+		return "", nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
 	}
 
 	// Encode to base64 URL-safe string (no padding)
 	tokenString := base64.RawURLEncoding.EncodeToString(tokenBytes)
-
+	tokenHash, err := hash.Hash(tokenString)
+	if err != nil {
+		return "", nil, infra_error.Internal(infra_error.InternalUnexpectedError, err)
+	}
 	// Create refresh token storage model with metadata
-	refreshToken := model_auth.RefreshToken{
-		Token:      tokenString,
-		UserID:     input.UserID,
-		TenantID:   input.TenantID,
-		SessionID:  input.SessionID,
-		DeviceID:   input.DeviceID,
-		IPAddress:  input.IPAddress,
-		UserAgent:  input.UserAgent,
-		ExpiresAt:  expiresAt,
-		CreatedAt:  now,
-		LastUsedAt: time.Time{},
-		RevokedAt:  time.Time{},
-		IsRevoked:  false,
+	refreshToken := &authv1_cache.RefreshToken{
+		TokenHash: tokenHash,
+		UserId:    input.UserId,
+		TenantId:  input.TenantId,
+		ExpiresAt: timestamppb.New(expiresAt),
+		CreatedAt: timestamppb.New(now),
+		Revoked:   false,
 	}
 
 	// Validate before storing
-	if err := refreshToken.Validate(); err != nil {
-		return model_auth.RefreshToken{}, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
+	if err := validator_auth.ValidateRefreshToken(refreshToken); err != nil {
+		return "", nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
 	}
 
-	// // Store refresh token in Redis (use tokenString as tokenID)
-	// if err := tm.refreshTokenHandler.Store(input.TenantID, input.UserID, tokenString, *refreshToken); err != nil {
-	// 	return "", infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
-	// }
-	return refreshToken, nil
+	// Store refresh token in Redis (use tokenString as tokenID)
+	if err := tm.refreshTokenHandler.Store(input.TenantId, input.UserId, refreshToken); err != nil {
+		return "", nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
+	}
+	return tokenString, refreshToken, nil
 }
 
 // VerifyRefreshToken verifies if the given refresh token is valid
-func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, tokenString string) (*model_auth.RefreshToken, error) {
+func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, tokenString string) (*authv1_cache.RefreshToken, error) {
 	if tenantID == "" {
 		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("tenantID is required"))
 	}
@@ -248,7 +279,8 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 
 	// SECURITY: Verify the stored token matches the provided token
 	// This is critical for detecting stolen/old tokens
-	if refreshToken.Token != tokenString {
+
+	if valid := hash.VerifyHash(tokenString, refreshToken.TokenHash); !valid {
 		tm.logger.Warn("Attempted use of invalid refresh token", "tenantID", tenantID, "userID", userID)
 		// Revoke the current valid token (security measure)
 		_ = tm.RevokeAllTokens(tenantID, userID, "system")
@@ -256,17 +288,17 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 	}
 
 	// Basic validation
-	if err := refreshToken.Validate(); err != nil {
+	if err := validator_auth.ValidateRefreshToken(refreshToken); err != nil {
 		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(err)
 	}
 
 	// Check if revoked
-	if !refreshToken.IsValid() {
+	if !validator_auth.IsValidRefreshToken(refreshToken) {
 		return nil, infra_error.Auth(infra_error.AuthTokenRevoked).WithError(errors.New("token has been revoked"))
 	}
 
 	// Check if expired
-	if refreshToken.IsExpired() {
+	if validator_auth.IsExpired(refreshToken) {
 		// Auto-cleanup expired token
 		if err := tm.refreshTokenHandler.Delete(tenantID, userID); err != nil {
 			return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
@@ -276,13 +308,13 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 
 	// SECURITY: Check for suspicious activity
 	// 1. Check if token is being reused (already used recently)
-	if !refreshToken.LastUsedAt.IsZero() {
-		timeSinceLastUse := time.Since(refreshToken.LastUsedAt)
+	if !refreshToken.LastUsedAt.AsTime().IsZero() {
+		timeSinceLastUse := time.Since(refreshToken.LastUsedAt.AsTime())
 		if timeSinceLastUse < 1*time.Minute {
 			// Token used twice within 1 minute - possible token theft
 			// Revoke all user tokens as security measure
 			tm.logger.Warn("Suspicious: Token reused within 1 minute", "tenantID", tenantID, "userID", userID)
-			if err := tm.RevokeAllTokens(tenantID, refreshToken.UserID, "system"); err != nil {
+			if err := tm.RevokeAllTokens(tenantID, refreshToken.UserId, "system"); err != nil {
 				return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 			}
 			return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("suspicious activity detected - all sessions terminated"))
@@ -308,7 +340,7 @@ func (tm *TokenManager) VerifyRefreshToken(tenantID string, userID string, token
 // StoreTokens stores both access and refresh tokens in Redis
 // This is typically called after successful authentication
 // Single token per user - automatically replaces any existing tokens
-func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenMetadata model_auth_cache.TokenMetadata, refreshToken model_auth.RefreshToken) error {
+func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenMetadata *authv1_cache.TokenMetadata, refreshToken *authv1_cache.RefreshToken) error {
 	tm.logger.Info("Storing token pair (single token per user - replaces existing)", "tenantID", tenantID, "userID", userID)
 
 	// Store access token (automatically replaces existing)
@@ -330,12 +362,12 @@ func (tm *TokenManager) StoreTokens(tenantID string, userID string, accessTokenM
 }
 
 // ValidateAccessTokenFromRedis validates an access token from Redis
-func (tm *TokenManager) ValidateAccessTokenFromRedis(tenantID string, userID string) (*model_auth_cache.TokenMetadata, error) {
+func (tm *TokenManager) ValidateAccessTokenFromRedis(tenantID string, userID string) (*authv1_cache.TokenMetadata, error) {
 	return tm.accessTokenHandler.Validate(tenantID, userID)
 }
 
 // ValidateRefreshTokenFromRedis validates a refresh token from Redis
-func (tm *TokenManager) ValidateRefreshTokenFromRedis(tenantID string, userID string) (*model_auth.RefreshToken, error) {
+func (tm *TokenManager) ValidateRefreshTokenFromRedis(tenantID string, userID string) (*authv1_cache.RefreshToken, error) {
 	return tm.refreshTokenHandler.Validate(tenantID, userID)
 }
 
@@ -381,22 +413,22 @@ func (tm *TokenManager) RevokeAllTokens(tenantID string, userID string, revokedB
 }
 
 // // GetAccessTokenFromRedis retrieves access token metadata from Redis
-// func (tm *TokenManager) GetAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*model_auth_cache.TokenMetadata, error) {
+// func (tm *TokenManager) GetAccessTokenFromRedis(tenantID string, userID string, tokenID string) (*authv1_cache.TokenMetadata, error) {
 // 	return tm.accessTokenHandler.GetOne(tenantID, userID, tokenID)
 // }
 
 // // GetAllAccessTokensFromRedis retrieves all access tokens from Redis
-// func (tm *TokenManager) GetAllAccessTokensFromRedis(tenantID string, userID string) ([]model_auth_cache.TokenMetadata, error) {
+// func (tm *TokenManager) GetAllAccessTokensFromRedis(tenantID string, userID string) ([]authv1_cache.TokenMetadata, error) {
 // 	return tm.accessTokenHandler.GetAll(tenantID, userID)
 // }
 
 // // GetRefreshTokenFromRedis retrieves refresh token from Redis
-// func (tm *TokenManager) GetRefreshTokenFromRedis(tenantID string, userID string, tokenID string) (*model_auth.RefreshToken, error) {
+// func (tm *TokenManager) GetRefreshTokenFromRedis(tenantID string, userID string, tokenID string) (*authv1_cache.RefreshToken, error) {
 // 	return tm.refreshTokenHandler.GetOne(tenantID, userID, tokenID)
 // }
 
 // // GetAllRefreshTokensFromRedis retrieves all refresh tokens from Redis
-// func (tm *TokenManager) GetAllRefreshTokensFromRedis(tenantID string, userID string) ([]model_auth.RefreshToken, error) {
+// func (tm *TokenManager) GetAllRefreshTokensFromRedis(tenantID string, userID string) ([]authv1_cache.RefreshToken, error) {
 // 	return tm.refreshTokenHandler.GetAll(tenantID, userID)
 // }
 
@@ -434,10 +466,10 @@ func (tm *TokenManager) RevokeAccessToken(tokenString string, revokedBy string) 
 	if metadata.Revoked {
 		return infra_error.Auth(infra_error.AuthTokenRevoked).WithError(errors.New("access token has been revoked"))
 	}
-	if metadata.RevokedAt != nil && metadata.RevokedAt.Before(time.Now()) {
+	if metadata.RevokedAt != nil && metadata.RevokedAt.AsTime().Before(time.Now()) {
 		return infra_error.Auth(infra_error.AuthTokenRevoked).WithError(errors.New("access token has been revoked"))
 	}
-	if err := tm.accessTokenHandler.Revoke(metadata.TenantID, metadata.UserID, revokedBy); err != nil {
+	if err := tm.accessTokenHandler.Revoke(metadata.TenantId, metadata.UserId, revokedBy); err != nil {
 		return err
 	}
 	return nil
@@ -573,14 +605,14 @@ func (tm *TokenManager) DeleteAllTenantTokens(tenantID string) (int, int, error)
 	}
 
 	// Delete all access tokens using pattern
-	accessCount, err := accessHandler.DeleteByPattern(tenantID)
+	accessCount, err := accessHandler.DeleteByPattern(tenantID, "")
 	if err != nil {
 		tm.logger.Error("Failed to delete access tokens by pattern", "error", err, "tenantID", tenantID)
 		// Continue with refresh tokens
 	}
 
 	// Delete all refresh tokens using pattern
-	refreshCount, err := refreshHandler.DeleteByPattern(tenantID)
+	refreshCount, err := refreshHandler.DeleteByPattern(tenantID, "")
 	if err != nil {
 		tm.logger.Error("Failed to delete refresh tokens by pattern", "error", err, "tenantID", tenantID)
 		return accessCount, refreshCount, err
@@ -612,11 +644,11 @@ func parseRedisKey(key string) []string {
 	return result
 }
 
-func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*model_auth_cache.TokenMetadata, error) {
+func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*authv1_cache.TokenMetadata, error) {
 	if accessTokenString == "" {
 		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("empty access token"))
 	}
-	claims := &model_auth.AccessTokenClaims{}
+	claims := &authv1.AccessTokenClaims{}
 
 	token, err := jwt.Parse(accessTokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -632,20 +664,20 @@ func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*model_auth_
 	}
 	if claimsMap, ok := token.Claims.(jwt.MapClaims); ok {
 		if sub, ok := claimsMap["sub"].(string); ok {
-			claims.UserID = sub
+			claims.UserId = sub
 		}
 		if tenantID, ok := claimsMap["tenant_id"].(string); ok {
-			claims.TenantID = tenantID
+			claims.TenantId = tenantID
 		}
 	}
-	if claims.UserID == "" {
+	if claims.UserId == "" {
 		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("user_id is required"))
 	}
-	if claims.TenantID == "" {
+	if claims.TenantId == "" {
 		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("tenant_id is required"))
 	}
 	// Get the single access token for this user
-	accessTokenMetadata, err := tm.accessTokenHandler.GetOne(claims.TenantID, claims.UserID)
+	accessTokenMetadata, err := tm.accessTokenHandler.GetOne(claims.TenantId, claims.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -654,11 +686,5 @@ func (tm *TokenManager) GetTokenMetadata(accessTokenString string) (*model_auth_
 		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("access token not found"))
 	}
 
-	// Verify the stored token matches the provided token
-	hashedAccessToken := sha256.Sum256([]byte(accessTokenString))
-	accessTokenID := hex.EncodeToString(hashedAccessToken[:])
-	if accessTokenMetadata.TokenID != accessTokenID {
-		return nil, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("access token ID mismatch - possible token theft"))
-	}
 	return accessTokenMetadata, nil
 }

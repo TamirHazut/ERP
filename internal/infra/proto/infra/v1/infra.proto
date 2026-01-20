@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package infra.v1;
 
-option go_package = "erp.localhost/internal/infra/proto/generated/infra/v1;infrav1";
+option go_package = "erp.localhost/internal/infra/model/infra/v1;infrav1";
 
 // Error category enumeration
 enum ErrorCategory {

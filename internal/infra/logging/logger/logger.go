@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	model_shared "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/internal/infra/model/shared"
 	"github.com/rs/zerolog"
 )
 
@@ -28,7 +28,7 @@ type BaseLogger struct {
 }
 
 // NewBaseLogger creates a new logger for each module.
-func NewBaseLogger(module model_shared.Module) *BaseLogger {
+func NewBaseLogger(module shared.Module) *BaseLogger {
 	baseLogger := zerolog.New(newConsoleWriter()).
 		With().
 		Timestamp().

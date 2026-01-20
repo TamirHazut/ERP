@@ -10,7 +10,6 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_redis "erp.localhost/internal/infra/model/db/redis"
-	model_shared "erp.localhost/internal/infra/model/shared"
 	redis "github.com/redis/go-redis/v9"
 )
 
@@ -33,9 +32,9 @@ type BaseRedisHandler struct {
 	keyPrefix model_redis.KeyPrefix
 }
 
-func NewBaseRedisHandler(keyPrefix model_redis.KeyPrefix) *BaseRedisHandler {
+func NewBaseRedisHandler(keyPrefix model_redis.KeyPrefix, logger logger.Logger) *BaseRedisHandler {
 	redisHandler := &BaseRedisHandler{
-		logger:    logger.NewBaseLogger(model_shared.ModuleDB),
+		logger:    logger,
 		keyPrefix: keyPrefix,
 	}
 	if err := redisHandler.init(); err != nil {
@@ -46,7 +45,6 @@ func NewBaseRedisHandler(keyPrefix model_redis.KeyPrefix) *BaseRedisHandler {
 }
 
 func (r *BaseRedisHandler) init() error {
-	r.logger = logger.NewBaseLogger(model_shared.ModuleDB)
 	uri := "redis://:supersecretredis@localhost:6379"
 	options, err := redis.ParseURL(uri)
 	if err != nil {
@@ -77,20 +75,31 @@ func (r *BaseRedisHandler) Create(key string, value any, opts ...map[string]any)
 		return "", infra_error.Conflict(infra_error.ConflictDuplicateResource)
 	}
 
-	result := r.client.Set(redisContext, formattedKey, value, 0)
+	valueBytes, err := json.Marshal(value)
+	if err != nil {
+		return "", infra_error.Internal(infra_error.InternalUnexpectedError, err)
+	}
+
+	result := r.client.Set(redisContext, formattedKey, valueBytes, 0)
 	if result.Err() != nil {
 		return "", result.Err()
+	}
+	// Handle TTL if provided
+	if len(opts) > 0 {
+		if ttl, ok := opts[0]["ttl"].(time.Duration); ok && ttl > 0 {
+			r.Expire(key, int(ttl.Seconds()), time.Second)
+		}
 	}
 	return result.Val(), nil
 }
 
 func (r *BaseRedisHandler) FindOne(key string, filter map[string]any, result any) error {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
-	value, err := r.client.Get(redisContext, formattedKey).Result()
+	value, err := r.client.Get(redisContext, formattedKey).Bytes()
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal([]byte(value), result)
+	err = json.Unmarshal(value, result)
 	if err != nil {
 		return err
 	}
@@ -98,35 +107,76 @@ func (r *BaseRedisHandler) FindOne(key string, filter map[string]any, result any
 }
 
 func (r *BaseRedisHandler) FindAll(key string, filter map[string]any, result any) error {
-	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
-	values, err := r.SMembers(formattedKey)
-	if err != nil {
-		return err
-	}
-	// Get the reflect.Value of the pointer
+	formattedKey := fmt.Sprintf("%s:%s*", r.keyPrefix, key)
+
 	resultVal := reflect.ValueOf(result)
 
-	// Make sure it's a pointer to a slice
-	if resultVal.Kind() != reflect.Ptr || resultVal.Elem().Kind() != reflect.Slice {
-		return fmt.Errorf("result must be a pointer to a slice")
+	// Enforce *[]*T
+	if resultVal.Kind() != reflect.Ptr ||
+		resultVal.Elem().Kind() != reflect.Slice ||
+		resultVal.Elem().Type().Elem().Kind() != reflect.Ptr {
+		return fmt.Errorf("result must be a pointer to a slice of pointers (e.g. *[]*T)")
 	}
 
-	// Get the slice itself
-	sliceVal := resultVal.Elem()
+	// 1️⃣ SCAN keys
+	var cursor uint64
+	keys := make([]string, 0)
 
-	// For each value, unmarshal and append
-	for _, value := range values {
-		// Create a new element of the slice's element type
-		elemType := sliceVal.Type().Elem()
-		newElem := reflect.New(elemType.Elem()).Interface()
-
-		// Unmarshal the JSON into the new element
-		if err := json.Unmarshal([]byte(value), newElem); err != nil {
+	for {
+		batch, nextCursor, err := r.client.Scan(
+			redisContext,
+			cursor,
+			formattedKey,
+			100,
+		).Result()
+		if err != nil {
 			return err
 		}
 
-		// Append the pointer to the slice
-		sliceVal.Set(reflect.Append(sliceVal, reflect.ValueOf(newElem)))
+		keys = append(keys, batch...)
+
+		cursor = nextCursor
+		if cursor == 0 {
+			break
+		}
+	}
+
+	// No keys found → return empty slice
+	if len(keys) == 0 {
+		return nil
+	}
+
+	// 2️⃣ MGET values
+	vals, err := r.client.MGet(redisContext, keys...).Result()
+	if err != nil {
+		return err
+	}
+
+	sliceVal := resultVal.Elem()
+	elemType := sliceVal.Type().Elem().Elem() // T
+
+	// 3️⃣ Unmarshal + append
+	for i := range keys {
+		if vals[i] == nil {
+			continue // expired between SCAN and MGET
+		}
+
+		var data []byte
+		switch v := vals[i].(type) {
+		case string:
+			data = []byte(v)
+		case []byte:
+			data = v
+		default:
+			continue
+		}
+
+		newElem := reflect.New(elemType) // *T
+		if err := json.Unmarshal(data, newElem.Interface()); err != nil {
+			return err
+		}
+
+		sliceVal.Set(reflect.Append(sliceVal, newElem))
 	}
 
 	return nil

@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package auth.v1.cache;
+
+option go_package = "erp.localhost/internal/infra/model/auth/v1/cache;authcache";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Redis Cache Models (for session caching)
+// =============================================================================
+
+// Session represents a user session stored in Redis
+// Key: sessions:{session_id}
+// TTL: 24 hours (configurable)
+message Session {
+  string session_id = 1 [(tagger.tags) = "json:\"session_id\""];
+  string user_id = 2 [(tagger.tags) = "json:\"user_id\""];
+  string tenant_id = 3 [(tagger.tags) = "json:\"tenant_id\""];
+  string email = 4 [(tagger.tags) = "json:\"email\""];
+  string username = 5 [(tagger.tags) = "json:\"username\""];
+  repeated string roles = 6 [(tagger.tags) = "json:\"roles\""];
+  repeated string permissions = 7 [(tagger.tags) = "json:\"permissions,omitempty\""];
+  google.protobuf.Timestamp expires_at = 8 [(tagger.tags) = "json:\"expires_at\""];
+  google.protobuf.Timestamp created_at = 9 [(tagger.tags) = "json:\"created_at\""];
+  google.protobuf.Timestamp last_activity = 10 [(tagger.tags) = "json:\"last_activity\""];
+  string ip_address = 11 [(tagger.tags) = "json:\"ip_address\""];
+  string user_agent = 12 [(tagger.tags) = "json:\"user_agent\""];
+  DeviceInfo device_info = 13 [(tagger.tags) = "json:\"device_info,omitempty\""];
+  map<string, string> metadata = 14 [(tagger.tags) = "json:\"metadata,omitempty\""];
+}
+
+message DeviceInfo {
+  string device_id = 1 [(tagger.tags) = "json:\"device_id,omitempty\""];
+  string device_type = 2 [(tagger.tags) = "json:\"device_type,omitempty\""];
+  string os = 3 [(tagger.tags) = "json:\"os,omitempty\""];
+  string browser = 4 [(tagger.tags) = "json:\"browser,omitempty\""];
+}

@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package config.v1;
+
+option go_package = "erp.localhost/internal/infra/model/config/v1;configv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// MongoDB Models (for database persistence)
+// =============================================================================
+
+// ServiceConfig represents configuration for a service
+// Stored in MongoDB config_db.service_configs collection
+message ServiceConfig {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string config_id = 2 [(tagger.tags) = "bson:\"config_id\" json:\"config_id\""];
+  string service_name = 3 [(tagger.tags) = "bson:\"service_name\" json:\"service_name\""];
+  string environment = 4 [(tagger.tags) = "bson:\"environment\" json:\"environment\""];
+  string tenant_id = 5 [(tagger.tags) = "bson:\"tenant_id,omitempty\" json:\"tenant_id,omitempty\""];
+  google.protobuf.Struct config = 6 [(tagger.tags) = "bson:\"config\" json:\"config\""];
+  int32 version = 7 [(tagger.tags) = "bson:\"version\" json:\"version\""];
+  bool is_active = 8 [(tagger.tags) = "bson:\"is_active\" json:\"is_active\""];
+  google.protobuf.Timestamp created_at = 9 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 10 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+  string updated_by = 11 [(tagger.tags) = "bson:\"updated_by\" json:\"updated_by\""];
+}

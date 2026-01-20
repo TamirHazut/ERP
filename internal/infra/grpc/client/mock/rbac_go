@@ -14,7 +14,7 @@ import (
 	reflect "reflect"
 
 	client "erp.localhost/internal/infra/grpc/client"
-	auth "erp.localhost/internal/infra/model/auth"
+	auth "erp.localhost/internal/infra/generated/auth/v1"
 	gomock "go.uber.org/mock/gomock"
 )
 

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "erp.localhost/internal/infra/model/core/v1;corev1";
+
+import "tagger/tagger.proto";
+
+// Address is a shared address type used across core models
+message Address {
+  string street = 1 [(tagger.tags) = "bson:\"street\" json:\"street\""];
+  string city = 2 [(tagger.tags) = "bson:\"city\" json:\"city\""];
+  string state = 3 [(tagger.tags) = "bson:\"state\" json:\"state\""];
+  string zip = 4 [(tagger.tags) = "bson:\"zip\" json:\"zip\""];
+  string country = 5 [(tagger.tags) = "bson:\"country\" json:\"country\""];
+}

@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package gateway.v1.cache;
+
+option go_package = "erp.localhost/internal/infra/model/gateway/v1/cache;gatewaycache";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Redis Cache Models (for GraphQL query caching)
+// =============================================================================
+
+// GraphQLQueryCache represents cached GraphQL query results
+// Stored in: query_cache:{tenant_id}:{query_hash} (Redis String with JSON-encoded response)
+message GraphQLQueryCache {
+  string query_hash = 1 [(tagger.tags) = "json:\"query_hash\""];
+  string tenant_id = 2 [(tagger.tags) = "json:\"tenant_id\""];
+  string user_id = 3 [(tagger.tags) = "json:\"user_id,omitempty\""];
+  string query = 4 [(tagger.tags) = "json:\"query\""];
+  google.protobuf.Struct variables = 5 [(tagger.tags) = "json:\"variables,omitempty\""];
+  google.protobuf.Value response = 6 [(tagger.tags) = "json:\"response\""];
+  google.protobuf.Timestamp cached_at = 7 [(tagger.tags) = "json:\"cached_at\""];
+  google.protobuf.Timestamp expires_at = 8 [(tagger.tags) = "json:\"expires_at\""];
+  int32 hit_count = 9 [(tagger.tags) = "json:\"hit_count\""];
+  google.protobuf.Timestamp last_access_at = 10 [(tagger.tags) = "json:\"last_access_at\""];
+}
+
+// PersistedQuery represents a persisted GraphQL query (APQ - Automatic Persisted Queries)
+// Stored in: persisted_queries:{query_hash} (Redis String with query text)
+// These are shared across all tenants for common queries
+message PersistedQuery {
+  string query_hash = 1 [(tagger.tags) = "json:\"query_hash\""];
+  string query_text = 2 [(tagger.tags) = "json:\"query_text\""];
+  string operation_name = 3 [(tagger.tags) = "json:\"operation_name,omitempty\""];
+  google.protobuf.Timestamp stored_at = 4 [(tagger.tags) = "json:\"stored_at\""];
+  google.protobuf.Timestamp last_used_at = 5 [(tagger.tags) = "json:\"last_used_at\""];
+  int32 use_count = 6 [(tagger.tags) = "json:\"use_count\""];
+  int32 version = 7 [(tagger.tags) = "json:\"version\""];
+}
+
+// ResolverCache represents cached field resolver results
+// Stored in: resolver_cache:{tenant_id}:{type}:{field}:{key} (Redis Hash)
+// Used for caching expensive field resolvers (e.g., computed fields, external API calls)
+message ResolverCache {
+  string cache_key = 1 [(tagger.tags) = "json:\"cache_key\""];
+  string tenant_id = 2 [(tagger.tags) = "json:\"tenant_id\""];
+  string type_name = 3 [(tagger.tags) = "json:\"type_name\""];
+  string field_name = 4 [(tagger.tags) = "json:\"field_name\""];
+  string parent_id = 5 [(tagger.tags) = "json:\"parent_id\""];
+  google.protobuf.Struct arguments = 6 [(tagger.tags) = "json:\"arguments,omitempty\""];
+  google.protobuf.Value result = 7 [(tagger.tags) = "json:\"result\""];
+  google.protobuf.Timestamp cached_at = 8 [(tagger.tags) = "json:\"cached_at\""];
+  google.protobuf.Timestamp expires_at = 9 [(tagger.tags) = "json:\"expires_at\""];
+  bool invalidated = 10 [(tagger.tags) = "json:\"invalidated\""];
+}

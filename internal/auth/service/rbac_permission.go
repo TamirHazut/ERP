@@ -4,13 +4,11 @@ import (
 	"context"
 
 	"erp.localhost/internal/auth/api"
-	"erp.localhost/internal/infra/convertor"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
-	model_shared "erp.localhost/internal/infra/model/shared"
-	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
-	proto_infra "erp.localhost/internal/infra/proto/generated/infra/v1"
-	"erp.localhost/internal/infra/proto/validator"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	infrav1 "erp.localhost/internal/infra/model/infra/v1"
+	validator_infra "erp.localhost/internal/infra/model/infra/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -19,12 +17,11 @@ import (
 type PermissionService struct {
 	permissionAPI *api.PermissionAPI
 	logger        logger.Logger
-	proto_auth.UnimplementedPermissionServiceServer
+	authv1.UnimplementedPermissionServiceServer
 }
 
 // NewPermissionService creates a new PermissionService instance
-func NewPermissionService(permissionAPI *api.PermissionAPI) *PermissionService {
-	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
+func NewPermissionService(permissionAPI *api.PermissionAPI, logger logger.Logger) *PermissionService {
 	return &PermissionService{
 		permissionAPI: permissionAPI,
 		logger:        logger,
@@ -32,102 +29,70 @@ func NewPermissionService(permissionAPI *api.PermissionAPI) *PermissionService {
 }
 
 // CreatePermission creates a new permission
-func (ps *PermissionService) CreatePermission(ctx context.Context, req *proto_auth.CreatePermissionRequest) (*proto_auth.CreatePermissionResponse, error) {
+func (ps *PermissionService) CreatePermission(ctx context.Context, req *authv1.CreatePermissionRequest) (*authv1.CreatePermissionResponse, error) {
 	ps.logger.Debug("gRPC CreatePermission called")
 
-	// 1. Validate request
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		ps.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
-	if req.GetPermission() == nil {
-		return nil, status.Error(codes.InvalidArgument, "permission data is required")
-	}
-	if req.GetTargetTenantId() == "" {
-		return nil, status.Error(codes.InvalidArgument, "target_tenant_id is required")
-	}
 
-	// 2. Convert proto → domain
-	permission, err := convertor.CreatePermissionFromProto(req.GetPermission())
-	if err != nil {
-		ps.logger.Error("Failed to convert proto to permission", "error", err)
-		return nil, status.Error(codes.InvalidArgument, err.Error())
-	}
+	tenantID := req.GetIdentifier().GetTenantId()
+	userID := req.GetIdentifier().GetUserId()
+	permission := req.GetPermission()
+	targetTenantID := req.GetPermission().GetTenantId()
 
-	// 3. Call API layer (with authorization)
-	permissionID, err := ps.permissionAPI.CreatePermission(
-		req.GetIdentifier().GetTenantId(),
-		req.GetIdentifier().GetUserId(),
-		permission,
-		req.GetTargetTenantId(),
-	)
+	permissionID, err := ps.permissionAPI.CreatePermission(tenantID, userID, permission, targetTenantID)
 	if err != nil {
 		ps.logger.Error("Failed to create permission", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	return &proto_auth.CreatePermissionResponse{PermissionId: permissionID}, nil
+	return &authv1.CreatePermissionResponse{PermissionId: permissionID}, nil
 }
 
 // UpdatePermission updates an existing permission
-func (ps *PermissionService) UpdatePermission(ctx context.Context, req *proto_auth.UpdatePermissionRequest) (*proto_infra.Response, error) {
+func (ps *PermissionService) UpdatePermission(ctx context.Context, req *authv1.UpdatePermissionRequest) (*infrav1.Response, error) {
 	ps.logger.Debug("gRPC UpdatePermission called")
 
 	// 1. Validate request
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		ps.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
-	if req.GetPermission() == nil {
-		return nil, status.Error(codes.InvalidArgument, "permission data is required")
-	}
-	if req.GetTargetTenantId() == "" {
-		return nil, status.Error(codes.InvalidArgument, "target_tenant_id is required")
-	}
+
+	tenantID := req.GetIdentifier().GetTenantId()
+	userID := req.GetIdentifier().GetUserId()
+	permission := req.GetPermission()
+	targetTenantID := req.GetPermission().GetTenantId()
 
 	// 2. Get existing permission
-	existingPermission, err := ps.permissionAPI.GetPermissionByID(
-		req.GetIdentifier().GetTenantId(),
-		req.GetIdentifier().GetUserId(),
-		req.GetPermission().GetId(),
-		req.GetTargetTenantId(),
-	)
-	if err != nil {
+	existingPermission, err := ps.permissionAPI.GetPermissionByID(tenantID, userID, permission.GetId(), targetTenantID)
+	if err != nil || existingPermission == nil {
 		ps.logger.Error("Failed to get existing permission", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	// 3. Apply updates
-	if err := convertor.UpdatePermissionFromProto(existingPermission, req.GetPermission()); err != nil {
-		ps.logger.Error("Failed to apply permission updates", "error", err)
-		return nil, status.Error(codes.InvalidArgument, err.Error())
-	}
-
 	// 4. Call API layer (with authorization)
-	if err := ps.permissionAPI.UpdatePermission(
-		req.GetIdentifier().GetTenantId(),
-		req.GetIdentifier().GetUserId(),
-		existingPermission,
-		req.GetTargetTenantId(),
-	); err != nil {
+	if err := ps.permissionAPI.UpdatePermission(tenantID, userID, permission, targetTenantID); err != nil {
 		ps.logger.Error("Failed to update permission", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	return &proto_infra.Response{
+	return &infrav1.Response{
 		Success: true,
 	}, nil
 }
 
 // GetPermission retrieves a permission by ID
-func (ps *PermissionService) GetPermission(ctx context.Context, req *proto_auth.GetPermissionRequest) (*proto_auth.GetPermissionResponse, error) {
+func (ps *PermissionService) GetPermission(ctx context.Context, req *authv1.GetPermissionRequest) (*authv1.Permission, error) {
 	ps.logger.Debug("gRPC GetPermission called")
 
 	// 1. Validate request
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		ps.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -149,23 +114,16 @@ func (ps *PermissionService) GetPermission(ctx context.Context, req *proto_auth.
 		ps.logger.Error("Failed to get permission", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
-
-	// 3. Convert domain → proto
-	permissionProto := convertor.PermissionToProto(permission)
-	if permissionProto == nil {
-		return nil, status.Error(codes.Internal, "failed to convert permission to proto")
-	}
-
-	return &proto_auth.GetPermissionResponse{Permission: permissionProto}, nil
+	return permission, nil
 }
 
 // ListPermissions retrieves all permissions for a tenant
-func (ps *PermissionService) ListPermissions(ctx context.Context, req *proto_auth.ListPermissionsRequest) (*proto_auth.ListPermissionsResponse, error) {
+func (ps *PermissionService) ListPermissions(ctx context.Context, req *authv1.ListPermissionsRequest) (*authv1.ListPermissionsResponse, error) {
 	ps.logger.Debug("gRPC ListPermissions called")
 
 	// 1. Validate request
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		ps.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -184,28 +142,19 @@ func (ps *PermissionService) ListPermissions(ctx context.Context, req *proto_aut
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	// 3. Convert domain → proto
-	permissionsProto := make([]*proto_auth.PermissionData, 0, len(permissions))
-	for _, permission := range permissions {
-		permissionProto := convertor.PermissionToProto(permission)
-		if permissionProto != nil {
-			permissionsProto = append(permissionsProto, permissionProto)
-		}
-	}
-
-	return &proto_auth.ListPermissionsResponse{
-		Permissions: permissionsProto,
+	return &authv1.ListPermissionsResponse{
+		Permissions: permissions,
 		// Pagination can be added later
 	}, nil
 }
 
 // DeletePermission deletes a permission
-func (ps *PermissionService) DeletePermission(ctx context.Context, req *proto_auth.DeletePermissionRequest) (*proto_infra.Response, error) {
+func (ps *PermissionService) DeletePermission(ctx context.Context, req *authv1.DeletePermissionRequest) (*infrav1.Response, error) {
 	ps.logger.Debug("gRPC DeletePermission called")
 
 	// 1. Validate request
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		ps.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -227,7 +176,7 @@ func (ps *PermissionService) DeletePermission(ctx context.Context, req *proto_au
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	return &proto_infra.Response{
+	return &infrav1.Response{
 		Success: true,
 	}, nil
 }

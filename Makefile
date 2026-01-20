@@ -13,10 +13,10 @@
 BIN_DIR := bin
 
 # Define services
-SERVICES := auth config #core gateway event
+SERVICES := auth config core gateway event
 
-# Define entire system modules including non services
-MODULES := infra $(SERVICES) init
+# Define entire system modules including non services (including shared for proto generation)
+MODULES := infra $(SERVICES) init #shared
 
 help: ## Show this help message
 	@echo "ERP System - Available targets:"
@@ -60,22 +60,32 @@ help: ## Show this help message
 # ============================================================================
 MODULE := erp.localhost
 PROTO_OUT := .
-INFRA_BASE_PROTO := internal/infra/proto
+INFRA_BASE := internal/infra
+PROTO_IN := $(INFRA_BASE)/proto
+THIRD_PARTY := third_party
+GENERATED_OUT = $(INFRA_BASE)/model
+PROTOC_COMMON_FLAGS := -I=$(PROTO_IN) -I=$(THIRD_PARTY)
+GO_GEN_FLAGS := --go_out=$(PROTO_OUT) --go_opt=module=$(MODULE) \
+                --go-grpc_out=$(PROTO_OUT) --go-grpc_opt=module=$(MODULE)
+GO_TAG_FLAGS := --gotag_out=module=$(MODULE):$(PROTO_OUT)
 
-# Function to generate proto for any service
 define generate_proto
-	@echo "Generating $(1) proto files..."
-	@if [ -d "$(INFRA_BASE_PROTO)/$(1)/v1" ]; then \
-		protoc --go_out=$(PROTO_OUT) \
-			--go_opt=module=$(MODULE) \
-			--go-grpc_out=$(PROTO_OUT) \
-			--go-grpc_opt=module=$(MODULE) \
-			-I=$(INFRA_BASE_PROTO) \
-			$(INFRA_BASE_PROTO)/$(1)/v1/*.proto; \
-		echo "✓ $(1) proto files generated"; \
-	else \
-		echo "Warning: Proto directory $(INFRA_BASE_PROTO)/$(1)/v1 not found"; \
-	fi
+	@SERVICE_DIR="$(PROTO_IN)/$(1)/v1"; \
+	if [ ! -d "$$SERVICE_DIR" ]; then \
+		echo "Warning: Proto directory $$SERVICE_DIR not found"; \
+		exit 0; \
+	fi; \
+	echo "Generating $(1) proto files..."; \
+	for dir in $$SERVICE_DIR $$SERVICE_DIR/cache; do \
+		if [ -d "$$dir" ] && [ "$$(ls $$dir/*.proto 2>/dev/null)" ]; then \
+			mkdir -p $(GENERATED_OUT)/$${dir#$(PROTO_IN)/}; \
+			protoc $(PROTOC_COMMON_FLAGS) $(GO_GEN_FLAGS) \
+				$$dir/*.proto || exit 1; \
+			protoc $(PROTOC_COMMON_FLAGS) $(GO_TAG_FLAGS) \
+				$$dir/*.proto || exit 1; \
+		fi; \
+	done; \
+	echo "✓ $(1) all files generated and tagged"
 endef
 
 proto: ## Generate all proto files
@@ -90,7 +100,7 @@ proto-%:
 
 proto-clean: ## Remove all generated proto files
 	@echo "Cleaning generated proto files..."
-	@find internal/infra/proto -name "*.pb.go" -type f -delete 2>/dev/null || true
+	@find $(GENERATED_OUT) -name "*.pb.go" -type f -delete 2>/dev/null || true
 	@echo "Proto files cleaned"
 
 # ============================================================================

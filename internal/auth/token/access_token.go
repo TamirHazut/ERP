@@ -6,13 +6,15 @@ import (
 	"erp.localhost/internal/infra/db/redis"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
-	model_auth_cache "erp.localhost/internal/infra/model/auth/cache"
+	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
+	validator_auth_cache "erp.localhost/internal/infra/model/auth/validator/cache"
+	model_redis "erp.localhost/internal/infra/model/db/redis"
 )
 
 //go:generate mockgen -destination=mock/mock_token_handler.go -package=mock erp.localhost/internal/auth/token TokenHandler
 type TokenHandler[T any] interface {
 	// Store stores a single token for a user (replaces existing if present)
-	Store(tenantID string, userID string, value T) error
+	Store(tenantID string, userID string, value *T) error
 	// GetOne retrieves the single token for a user
 	GetOne(tenantID string, userID string) (*T, error)
 	// Validate checks if the token is valid (exists, not revoked, not expired)
@@ -26,20 +28,25 @@ type TokenHandler[T any] interface {
 	// Delete permanently deletes the single token for a user
 	Delete(tenantID string, userID string) error
 	// Delete permanently deletes the tokens that match the pattern
-	DeleteByPattern(tenantID string) (int, error)
+	DeleteByPattern(tenantID string, pattern string) (int, error)
 }
 
 // AccessTokenHandler handles access token operations in Redis
 // Single token per user design - Key pattern: tokens:{tenant_id}:{user_id}
 // Stores only ONE access token per user - new logins replace existing tokens
 type AccessTokenHandler struct {
-	keyHandler redis.KeyHandler[model_auth_cache.TokenMetadata]
+	keyHandler redis.KeyHandler[authv1_cache.TokenMetadata]
 	logger     logger.Logger
 }
 
 // NewAccessTokenHandler creates a new AccessTokenHandler
-func NewAccessTokenHandler(keyHandler redis.KeyHandler[model_auth_cache.TokenMetadata], tokenIndex *TokenIndex, logger logger.Logger) *AccessTokenHandler {
-	// tokenIndex parameter kept for backward compatibility but no longer used
+func NewAccessTokenHandler(logger logger.Logger) *AccessTokenHandler {
+	dbHandler := redis.NewBaseRedisHandler(model_redis.RedisKeyToken, logger)
+	if dbHandler == nil {
+		logger.Fatal("failed to create access token db handler")
+		return nil
+	}
+	keyHandler := redis.NewBaseKeyHandler[authv1_cache.TokenMetadata](dbHandler, logger)
 	return &AccessTokenHandler{
 		keyHandler: keyHandler,
 		logger:     logger,
@@ -49,45 +56,40 @@ func NewAccessTokenHandler(keyHandler redis.KeyHandler[model_auth_cache.TokenMet
 // Store stores an access token in Redis (replaces existing token if present)
 // Key: tokens:{tenant_id}:{user_id}
 // Single token per user - automatically replaces any existing token
-func (h *AccessTokenHandler) Store(tenantID string, userID string, metadata model_auth_cache.TokenMetadata) error {
-	// Basic validation
-	if metadata.TokenID == "" {
-		return infra_error.Validation(infra_error.ValidationRequiredFields, "TokenID")
-	}
-	if metadata.UserID == "" {
-		return infra_error.Validation(infra_error.ValidationRequiredFields, "UserID")
-	}
-	if metadata.TenantID == "" {
-		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantID")
+func (h *AccessTokenHandler) Store(tenantID string, userID string, metadata *authv1_cache.TokenMetadata) error {
+	if err := validator_auth_cache.ValidateTokenMetaData(metadata); err != nil {
+		h.logger.Error("Failed to validate token", "error", err)
+		return err
 	}
 
 	// Ensure tenant_id matches
-	if metadata.TenantID != tenantID {
-		return infra_error.Validation(infra_error.ValidationInvalidFormat, "tenant_id mismatch")
+	if metadata.TenantId != tenantID || metadata.UserId != userID {
+		h.logger.Warn("tenant_id or user_id mismatch", "tenantID", tenantID, "token_tenantID", metadata.GetTenantId(), "userID", userID, "token_userID", metadata.GetUserId())
+		return infra_error.Validation(infra_error.ValidationInvalidFormat, "tenant_id or user_id mismatch")
 	}
-	if metadata.UserID != userID {
-		return infra_error.Validation(infra_error.ValidationInvalidFormat, "user_id mismatch")
-	}
+
+	ttl := time.Until(metadata.ExpiresAt.AsTime())
+	opts := map[string]any{"ttl": ttl}
 
 	// Check if existing token exists (for logging)
-	existingToken, _ := h.GetOne(tenantID, userID)
-	if existingToken != nil {
-		h.logger.Info("Replacing existing access token", "tenantID", tenantID, "userID", userID, "oldTokenID", existingToken.TokenID, "newTokenID", metadata.TokenID)
-	}
+	// existingToken, _ := h.GetOne(tenantID, userID)
+	// if existingToken != nil {
+	// 	h.logger.Info("Replacing existing access token", "tenantID", tenantID, "userID", userID)
+	// }
 
 	// Store token using userID as key (automatically replaces old token)
-	err := h.keyHandler.Set(tenantID, userID, metadata)
+	err := h.keyHandler.Set(tenantID, userID, metadata, opts)
 	if err != nil {
 		h.logger.Error("Failed to store access token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
 	}
 
-	h.logger.Debug("Access token stored", "tenantID", tenantID, "userID", userID, "tokenID", metadata.TokenID)
+	h.logger.Debug("Access token stored", "tenantID", tenantID, "userID", userID)
 	return nil
 }
 
 // GetOne retrieves the single access token for a user from Redis
-func (h *AccessTokenHandler) GetOne(tenantID string, userID string) (*model_auth_cache.TokenMetadata, error) {
+func (h *AccessTokenHandler) GetOne(tenantID string, userID string) (*authv1_cache.TokenMetadata, error) {
 	token, err := h.keyHandler.GetOne(tenantID, userID)
 	if err != nil {
 		h.logger.Debug("Access token not found", "tenantID", tenantID, "userID", userID)
@@ -98,7 +100,7 @@ func (h *AccessTokenHandler) GetOne(tenantID string, userID string) (*model_auth
 }
 
 // Validate checks if a token is valid (exists, not revoked, not expired)
-func (h *AccessTokenHandler) Validate(tenantID string, userID string) (*model_auth_cache.TokenMetadata, error) {
+func (h *AccessTokenHandler) Validate(tenantID string, userID string) (*authv1_cache.TokenMetadata, error) {
 	metadata, err := h.GetOne(tenantID, userID)
 	if err != nil {
 		return nil, err
@@ -110,7 +112,7 @@ func (h *AccessTokenHandler) Validate(tenantID string, userID string) (*model_au
 	}
 
 	// Check if expired
-	if time.Now().After(metadata.ExpiresAt) {
+	if time.Now().After(metadata.ExpiresAt.AsTime()) {
 		return nil, infra_error.Auth(infra_error.AuthTokenExpired)
 	}
 
@@ -120,24 +122,24 @@ func (h *AccessTokenHandler) Validate(tenantID string, userID string) (*model_au
 // Revoke revokes the single access token for a user
 func (h *AccessTokenHandler) Revoke(tenantID string, userID string, revokedBy string) error {
 	metadata, err := h.GetOne(tenantID, userID)
-	if err != nil {
+	if err != nil || metadata == nil {
 		// No token to revoke
 		h.logger.Debug("No access token to revoke", "tenantID", tenantID, "userID", userID)
 		return nil
 	}
 
-	now := time.Now()
-	metadata.Revoked = true
-	metadata.RevokedAt = &now
-	metadata.RevokedBy = revokedBy
+	// metadata.Revoked = true
+	// metadata.RevokedAt = timestamppb.Now()
+	// metadata.RevokedBy = revokedBy
 
-	err = h.keyHandler.Update(tenantID, userID, *metadata)
+	// err = h.keyHandler.Update(tenantID, userID, metadata)
+	err = h.Delete(tenantID, userID)
 	if err != nil {
 		h.logger.Error("Failed to revoke access token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
 	}
 
-	h.logger.Debug("Access token revoked", "tenantID", tenantID, "userID", userID, "tokenID", metadata.TokenID, "revokedBy", revokedBy)
+	h.logger.Debug("Access token revoked", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy)
 	return nil
 }
 
@@ -169,9 +171,9 @@ func (h *AccessTokenHandler) ScanKeys(tenantID string) ([]string, error) {
 
 // DeleteByPattern deletes all access tokens for a tenant
 // Returns the number of tokens deleted
-func (h *AccessTokenHandler) DeleteByPattern(tenantID string) (int, error) {
+func (h *AccessTokenHandler) DeleteByPattern(tenantID string, pattern string) (int, error) {
 	// Pattern: all user IDs in this tenant (tenantID:*)
-	count, err := h.keyHandler.DeleteByPattern(tenantID, "*")
+	count, err := h.keyHandler.DeleteByPattern(tenantID, pattern)
 	if err != nil {
 		h.logger.Error("Failed to delete access tokens by pattern", "error", err, "tenantID", tenantID)
 		return 0, err

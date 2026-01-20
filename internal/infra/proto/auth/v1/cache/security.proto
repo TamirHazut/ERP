@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package auth.v1.cache;
+
+option go_package = "erp.localhost/internal/infra/model/auth/v1/cache;authcache";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Redis Cache Models (for security tracking)
+// =============================================================================
+
+// LoginAttempts tracks failed login attempts
+message LoginAttempts {
+  string identifier = 1 [(tagger.tags) = "json:\"identifier\""];
+  int32 attempts = 2 [(tagger.tags) = "json:\"attempts\""];
+  google.protobuf.Timestamp first_attempt = 3 [(tagger.tags) = "json:\"first_attempt\""];
+  google.protobuf.Timestamp last_attempt = 4 [(tagger.tags) = "json:\"last_attempt\""];
+  bool locked = 5 [(tagger.tags) = "json:\"locked\""];
+  google.protobuf.Timestamp locked_until = 6 [(tagger.tags) = "json:\"locked_until,omitempty\""];
+  repeated string failed_ips = 7 [(tagger.tags) = "json:\"failed_ips,omitempty\""];
+}

@@ -2,132 +2,100 @@ syntax = "proto3";
 
 package auth.v1;
 
-option go_package = "erp.localhost/internal/infra/proto/generated/auth/v1;authv1";
+option go_package = "erp.localhost/internal/infra/model/auth/v1;authv1";
 
 import "infra/v1/infra.proto";
-import "auth/v1/auth.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "tagger/tagger.proto";
 
 // =============================================================================
-// Nested Data Messages
+// MongoDB Models (for database persistence)
 // =============================================================================
 
-message UserProfileData {
-    string first_name = 1;
-    string last_name = 2;
-    string display_name = 3;
-    string avatar_url = 4;
-    string phone = 5;
-    string title = 6;
-    string department = 7;
+// User status enum
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  USER_STATUS_ACTIVE = 1;
+  USER_STATUS_INACTIVE = 2;
+  USER_STATUS_SUSPENDED = 3;
+  USER_STATUS_INVITED = 4;
 }
 
-message UserRoleData {
-    string role_id = 1;
-    string tenant_id = 2;
-    google.protobuf.Timestamp assigned_at = 3;
-    string assigned_by = 4;
-    google.protobuf.Timestamp expires_at = 5;
+// User model for MongoDB auth_db.users collection
+message User {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string tenant_id = 2 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string email = 3 [(tagger.tags) = "bson:\"email\" json:\"email\""];
+  string username = 4 [(tagger.tags) = "bson:\"username\" json:\"username\""];
+  string password_hash = 5 [(tagger.tags) = "bson:\"password_hash\" json:\"-\""];
+  UserProfile profile = 6 [(tagger.tags) = "bson:\"profile\" json:\"profile\""];
+  repeated UserRole roles = 7 [(tagger.tags) = "bson:\"roles\" json:\"roles\""];
+  repeated string additional_permissions = 8 [(tagger.tags) = "bson:\"additional_permissions,omitempty\" json:\"additional_permissions,omitempty\""];
+  repeated string revoked_permissions = 9 [(tagger.tags) = "bson:\"revoked_permissions,omitempty\" json:\"revoked_permissions,omitempty\""];
+  UserStatus status = 10 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  bool email_verified = 11 [(tagger.tags) = "bson:\"email_verified\" json:\"email_verified\""];
+  bool phone_verified = 12 [(tagger.tags) = "bson:\"phone_verified\" json:\"phone_verified\""];
+  bool mfa_enabled = 13 [(tagger.tags) = "bson:\"mfa_enabled\" json:\"mfa_enabled\""];
+  string mfa_secret = 14 [(tagger.tags) = "bson:\"mfa_secret,omitempty\" json:\"-\""];
+  google.protobuf.Timestamp last_login = 15 [(tagger.tags) = "bson:\"last_login,omitempty\" json:\"last_login,omitempty\""];
+  google.protobuf.Timestamp last_password_change = 16 [(tagger.tags) = "bson:\"last_password_change\" json:\"last_password_change\""];
+  string password_reset_token = 17 [(tagger.tags) = "bson:\"password_reset_token,omitempty\" json:\"-\""];
+  google.protobuf.Timestamp password_reset_expires = 18 [(tagger.tags) = "bson:\"password_reset_expires,omitempty\" json:\"-\""];
+  UserPreferences preferences = 19 [(tagger.tags) = "bson:\"preferences\" json:\"preferences\""];
+  google.protobuf.Timestamp created_at = 20 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 21 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+  string created_by = 22 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
+  google.protobuf.Timestamp last_activity = 23 [(tagger.tags) = "bson:\"last_activity\" json:\"last_activity\""];
+  repeated LoginRecord login_history = 24 [(tagger.tags) = "bson:\"login_history,omitempty\" json:\"login_history,omitempty\""];
 }
 
-message NotificationSettingsData {
-    bool email = 1;
-    bool push = 2;
-    bool sms = 3;
+message UserProfile {
+  string first_name = 1 [(tagger.tags) = "bson:\"first_name\" json:\"first_name\""];
+  string last_name = 2 [(tagger.tags) = "bson:\"last_name\" json:\"last_name\""];
+  string display_name = 3 [(tagger.tags) = "bson:\"display_name\" json:\"display_name\""];
+  string avatar_url = 4 [(tagger.tags) = "bson:\"avatar_url,omitempty\" json:\"avatar_url,omitempty\""];
+  string phone = 5 [(tagger.tags) = "bson:\"phone,omitempty\" json:\"phone,omitempty\""];
+  string title = 6 [(tagger.tags) = "bson:\"title,omitempty\" json:\"title,omitempty\""];
+  string department = 7 [(tagger.tags) = "bson:\"department,omitempty\" json:\"department,omitempty\""];
 }
 
-message UserPreferencesData {
-    string language = 1;
-    string timezone = 2;
-    string theme = 3;
-    NotificationSettingsData notifications = 4;
+message UserRole {
+  string role_id = 1 [(tagger.tags) = "bson:\"role_id\" json:\"role_id\""];
+  string tenant_id = 2 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  google.protobuf.Timestamp assigned_at = 3 [(tagger.tags) = "bson:\"assigned_at\" json:\"assigned_at\""];
+  string assigned_by = 4 [(tagger.tags) = "bson:\"assigned_by\" json:\"assigned_by\""];
+  google.protobuf.Timestamp expires_at = 5 [(tagger.tags) = "bson:\"expires_at,omitempty\" json:\"expires_at,omitempty\""];
 }
 
-// =============================================================================
-// Main User Data Message
-// =============================================================================
-
-message UserData {
-    string id = 1;
-    string tenant_id = 2;
-    string email = 3;
-    string username = 4;
-    UserProfileData profile = 5;
-    repeated UserRoleData roles = 6;
-    repeated string additional_permissions = 7;
-    repeated string revoked_permissions = 8;
-    string status = 9;
-    bool email_verified = 10;
-    bool phone_verified = 11;
-    bool mfa_enabled = 12;
-    google.protobuf.Timestamp last_login = 13;
-    google.protobuf.Timestamp last_password_change = 14;
-    UserPreferencesData preferences = 15;
-    google.protobuf.Timestamp created_at = 16;
-    google.protobuf.Timestamp updated_at = 17;
-    string created_by = 18;
-    google.protobuf.Timestamp last_activity = 19;
+message UserPreferences {
+  string language = 1 [(tagger.tags) = "bson:\"language\" json:\"language\""];
+  string timezone = 2 [(tagger.tags) = "bson:\"timezone\" json:\"timezone\""];
+  string theme = 3 [(tagger.tags) = "bson:\"theme\" json:\"theme\""];
+  NotificationSettings notifications = 4 [(tagger.tags) = "bson:\"notifications\" json:\"notifications\""];
+  google.protobuf.Struct dashboard_layout = 5 [(tagger.tags) = "bson:\"dashboard_layout,omitempty\" json:\"dashboard_layout,omitempty\""];
 }
 
-// =============================================================================
-// Create/Update Messages
-// =============================================================================
-
-message CreateUserData {
-    string tenant_id = 1;
-    string email = 2;
-    string username = 3;
-    string password_hash = 4;
-    UserProfileData profile = 5;
-    repeated string role_ids = 6;
-    repeated string additional_permissions = 7;
-    string status = 8;
-    string created_by = 9;
-    UserPreferencesData preferences = 10;
+message NotificationSettings {
+  bool email = 1 [(tagger.tags) = "bson:\"email\" json:\"email\""];
+  bool push = 2 [(tagger.tags) = "bson:\"push\" json:\"push\""];
+  bool sms = 3 [(tagger.tags) = "bson:\"sms\" json:\"sms\""];
 }
 
-message UpdateRolesData {
-    repeated string add_role_ids = 1;
-    repeated string remove_role_ids = 2;
-}
-
-message UpdatePermissionsData {
-    repeated string add_permissions = 1;
-    repeated string remove_permissions = 2;
-    repeated string revoke_permissions = 3;
-    repeated string unrevoke_permissions = 4;
-}
-
-message UpdateUserData {
-    string id = 1;
-    string tenant_id = 2;
-    optional string email = 3;
-    optional string username = 4;
-    optional UserProfileData profile = 5;
-    optional UpdateRolesData roles = 6;
-    optional UpdatePermissionsData permissions = 7;
-    optional string status = 8;
-    optional bool email_verified = 9;
-    optional bool phone_verified = 10;
-    optional UserPreferencesData preferences = 11;
+message LoginRecord {
+  google.protobuf.Timestamp timestamp = 1 [(tagger.tags) = "bson:\"timestamp\" json:\"timestamp\""];
+  string ip_address = 2 [(tagger.tags) = "bson:\"ip_address\" json:\"ip_address\""];
+  string user_agent = 3 [(tagger.tags) = "bson:\"user_agent\" json:\"user_agent\""];
+  bool success = 4 [(tagger.tags) = "bson:\"success\" json:\"success\""];
 }
 
 // =============================================================================
 // Response Messages
 // =============================================================================
 
-message UserResponse {
-    UserData user = 1;
-}
-
-message UsersResponse {
-    repeated UserData users = 1;
-    infra.v1.PaginationResponse pagination = 2;
-}
-
 message CreateUserRequest {
     infra.v1.UserIdentifier identifier = 1;
-    CreateUserData user = 2;
+    User user = 2;
 }
 
 message CreateUserResponse {
@@ -140,15 +108,20 @@ message GetUserRequest {
     string account_id = 3;
 }
 
-message GetUsersRequest {
+message ListUsersRequest {
     infra.v1.UserIdentifier identifier = 1;
     string target_tenant_id = 2;
     optional string role_id = 3;
 }
 
+message ListUsersResponse {
+    repeated User users = 1;
+    infra.v1.PaginationResponse pagination = 2;
+}
+
 message UpdateUserRequest {
     infra.v1.UserIdentifier identifier = 1;
-    UpdateUserData user = 2;
+    User user = 2;
 }
 
 message UpdateUserResponse {
@@ -165,35 +138,11 @@ message DeleteUserResponse {
     bool deleted = 1;
 }
 
-
-// Login + Logout
-message LoginRequest {
-    string tenant_id = 1;
-    oneof account_id {
-        string email = 2;
-        string username = 3;
-    }
-    string password = 4;
-}
-
-message LogoutRequest {
-    infra.v1.UserIdentifier identifier = 1;
-    auth.v1.Tokens tokens = 2;
-}
-
-message LogoutResponse {
-    string message = 1;
-}
-
 service UserService {
     // CRUD
     rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
-    rpc GetUser(GetUserRequest) returns (UserResponse);
-    rpc GetUsers(GetUsersRequest) returns (UsersResponse);
+    rpc GetUser(GetUserRequest) returns (User);
+    rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
     rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
     rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
-
-    // Login + Logout
-    rpc Login(LoginRequest) returns (auth.v1.TokensResponse);
-    rpc Logout(LogoutRequest) returns (LogoutResponse);
 }

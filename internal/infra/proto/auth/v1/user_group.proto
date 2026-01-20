@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "erp.localhost/internal/infra/model/auth/v1;authv1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// MongoDB Models (for database persistence)
+// =============================================================================
+
+// UserGroup model for MongoDB auth_db.user_groups collection
+message UserGroup {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string tenant_id = 2 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string name = 3 [(tagger.tags) = "bson:\"name\" json:\"name\""];
+  string description = 4 [(tagger.tags) = "bson:\"description\" json:\"description\""];
+  repeated GroupMember members = 5 [(tagger.tags) = "bson:\"members\" json:\"members\""];
+  repeated string roles = 6 [(tagger.tags) = "bson:\"roles\" json:\"roles\""];
+  repeated string permissions = 7 [(tagger.tags) = "bson:\"permissions,omitempty\" json:\"permissions,omitempty\""];
+  string status = 8 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  google.protobuf.Timestamp created_at = 9 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 10 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+  string created_by = 11 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
+}
+
+message GroupMember {
+  string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+  google.protobuf.Timestamp joined_at = 2 [(tagger.tags) = "bson:\"joined_at\" json:\"joined_at\""];
+  string added_by = 3 [(tagger.tags) = "bson:\"added_by\" json:\"added_by\""];
+}

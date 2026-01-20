@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package config.v1.cache;
+
+option go_package = "erp.localhost/internal/infra/model/config/v1/cache;configcache";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Redis Cache Models (for feature flag caching)
+// =============================================================================
+
+// FeatureFlagCache represents cached feature flag configuration
+// Stored in: feature_flags:{tenant_id}:{flag_key} (Redis Hash)
+// Or: feature_flags:{tenant_id} (Redis Hash with multiple flags)
+// TTL: 10 minutes
+message FeatureFlagCache {
+  string flag_key = 1 [(tagger.tags) = "json:\"flag_key\""];
+  string tenant_id = 2 [(tagger.tags) = "json:\"tenant_id,omitempty\""];
+  bool enabled = 3 [(tagger.tags) = "json:\"enabled\""];
+  google.protobuf.Value value = 4 [(tagger.tags) = "json:\"value,omitempty\""];
+  RolloutConfig rollout = 5 [(tagger.tags) = "json:\"rollout,omitempty\""];
+  TargetingRules targeting = 6 [(tagger.tags) = "json:\"targeting,omitempty\""];
+  string environment = 7 [(tagger.tags) = "json:\"environment\""];
+  google.protobuf.Timestamp cached_at = 8 [(tagger.tags) = "json:\"cached_at\""];
+  google.protobuf.Timestamp expires_at = 9 [(tagger.tags) = "json:\"expires_at\""];
+  int32 version = 10 [(tagger.tags) = "json:\"version\""];
+}
+
+// RolloutConfig represents percentage-based feature rollout
+message RolloutConfig {
+  int32 percentage = 1 [(tagger.tags) = "json:\"percentage\""];
+  repeated string buckets = 2 [(tagger.tags) = "json:\"buckets,omitempty\""];
+}
+
+// TargetingRules represents feature flag targeting rules
+message TargetingRules {
+  repeated string user_ids = 1 [(tagger.tags) = "json:\"user_ids,omitempty\""];
+  repeated string group_ids = 2 [(tagger.tags) = "json:\"group_ids,omitempty\""];
+  repeated TargetingRule rules = 3 [(tagger.tags) = "json:\"rules,omitempty\""];
+}
+
+// TargetingRule represents a single targeting rule
+message TargetingRule {
+  string attribute = 1 [(tagger.tags) = "json:\"attribute\""];
+  string operator = 2 [(tagger.tags) = "json:\"operator\""];
+  google.protobuf.Value value = 3 [(tagger.tags) = "json:\"value\""];
+}
+
+// TenantFeatureFlagsCache represents all feature flags for a tenant (bulk cache)
+// Stored in: tenant_feature_flags:{tenant_id} (Redis Hash)
+// TTL: 10 minutes
+message TenantFeatureFlagsCache {
+  string tenant_id = 1 [(tagger.tags) = "json:\"tenant_id\""];
+  string environment = 2 [(tagger.tags) = "json:\"environment\""];
+  map<string, FeatureFlagCache> flags = 3 [(tagger.tags) = "json:\"flags\""];
+  google.protobuf.Timestamp cached_at = 4 [(tagger.tags) = "json:\"cached_at\""];
+  google.protobuf.Timestamp expires_at = 5 [(tagger.tags) = "json:\"expires_at\""];
+}

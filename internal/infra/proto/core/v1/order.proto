@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "erp.localhost/internal/infra/model/core/v1;corev1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+import "core/v1/address.proto";
+
+// Order status enum
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_DRAFT = 1;
+  ORDER_STATUS_PENDING = 2;
+  ORDER_STATUS_CONFIRMED = 3;
+  ORDER_STATUS_SHIPPED = 4;
+  ORDER_STATUS_DELIVERED = 5;
+  ORDER_STATUS_CANCELLED = 6;
+}
+
+// Order type enum
+enum OrderType {
+  ORDER_TYPE_UNSPECIFIED = 0;
+  ORDER_TYPE_SALES = 1;
+  ORDER_TYPE_PURCHASE = 2;
+  ORDER_TYPE_TRANSFER = 3;
+}
+
+// Payment status enum
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_PAID = 2;
+  PAYMENT_STATUS_REFUNDED = 3;
+  PAYMENT_STATUS_FAILED = 4;
+}
+
+// Order item status enum
+enum OrderItemStatus {
+  ORDER_ITEM_STATUS_UNSPECIFIED = 0;
+  ORDER_ITEM_STATUS_PENDING = 1;
+  ORDER_ITEM_STATUS_FULFILLED = 2;
+  ORDER_ITEM_STATUS_CANCELLED = 3;
+  ORDER_ITEM_STATUS_RETURNED = 4;
+}
+
+// Order model for MongoDB core_db.orders collection
+message Order {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string order_id = 2 [(tagger.tags) = "bson:\"order_id\" json:\"order_id\""];
+  string tenant_id = 3 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string order_number = 4 [(tagger.tags) = "bson:\"order_number\" json:\"order_number\""];
+  OrderType order_type = 5 [(tagger.tags) = "bson:\"order_type\" json:\"order_type\""];
+  string customer_id = 6 [(tagger.tags) = "bson:\"customer_id,omitempty\" json:\"customer_id,omitempty\""];
+  string vendor_id = 7 [(tagger.tags) = "bson:\"vendor_id,omitempty\" json:\"vendor_id,omitempty\""];
+  OrderStatus status = 8 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  repeated string items = 9 [(tagger.tags) = "bson:\"items\" json:\"items\""];
+  OrderTotals totals = 10 [(tagger.tags) = "bson:\"totals\" json:\"totals\""];
+  Address shipping_address = 11 [(tagger.tags) = "bson:\"shipping_address\" json:\"shipping_address\""];
+  Address billing_address = 12 [(tagger.tags) = "bson:\"billing_address\" json:\"billing_address\""];
+  PaymentInfo payment = 13 [(tagger.tags) = "bson:\"payment\" json:\"payment\""];
+  FulfillmentInfo fulfillment = 14 [(tagger.tags) = "bson:\"fulfillment,omitempty\" json:\"fulfillment,omitempty\""];
+  string notes = 15 [(tagger.tags) = "bson:\"notes,omitempty\" json:\"notes,omitempty\""];
+  google.protobuf.Timestamp created_at = 16 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 17 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+  string created_by = 18 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
+  repeated OrderTimelineEvent timeline = 19 [(tagger.tags) = "bson:\"timeline,omitempty\" json:\"timeline,omitempty\""];
+}
+
+message OrderTotals {
+  double subtotal = 1 [(tagger.tags) = "bson:\"subtotal\" json:\"subtotal\""];
+  double tax = 2 [(tagger.tags) = "bson:\"tax\" json:\"tax\""];
+  double shipping = 3 [(tagger.tags) = "bson:\"shipping\" json:\"shipping\""];
+  double discount = 4 [(tagger.tags) = "bson:\"discount\" json:\"discount\""];
+  double total = 5 [(tagger.tags) = "bson:\"total\" json:\"total\""];
+  string currency = 6 [(tagger.tags) = "bson:\"currency\" json:\"currency\""];
+}
+
+message PaymentInfo {
+  string method = 1 [(tagger.tags) = "bson:\"method\" json:\"method\""];
+  PaymentStatus status = 2 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  google.protobuf.Timestamp paid_at = 3 [(tagger.tags) = "bson:\"paid_at,omitempty\" json:\"paid_at,omitempty\""];
+  string transaction_id = 4 [(tagger.tags) = "bson:\"transaction_id,omitempty\" json:\"transaction_id,omitempty\""];
+}
+
+message FulfillmentInfo {
+  string warehouse_id = 1 [(tagger.tags) = "bson:\"warehouse_id,omitempty\" json:\"warehouse_id,omitempty\""];
+  google.protobuf.Timestamp shipped_at = 2 [(tagger.tags) = "bson:\"shipped_at,omitempty\" json:\"shipped_at,omitempty\""];
+  google.protobuf.Timestamp delivered_at = 3 [(tagger.tags) = "bson:\"delivered_at,omitempty\" json:\"delivered_at,omitempty\""];
+  string tracking_number = 4 [(tagger.tags) = "bson:\"tracking_number,omitempty\" json:\"tracking_number,omitempty\""];
+  string carrier = 5 [(tagger.tags) = "bson:\"carrier,omitempty\" json:\"carrier,omitempty\""];
+}
+
+message OrderTimelineEvent {
+  string status = 1 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  google.protobuf.Timestamp timestamp = 2 [(tagger.tags) = "bson:\"timestamp\" json:\"timestamp\""];
+  string user_id = 3 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+  string notes = 4 [(tagger.tags) = "bson:\"notes,omitempty\" json:\"notes,omitempty\""];
+}
+
+// OrderItem model for MongoDB core_db.order_items collection
+message OrderItem {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string item_id = 2 [(tagger.tags) = "bson:\"item_id\" json:\"item_id\""];
+  string order_id = 3 [(tagger.tags) = "bson:\"order_id\" json:\"order_id\""];
+  string tenant_id = 4 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string product_id = 5 [(tagger.tags) = "bson:\"product_id\" json:\"product_id\""];
+  string sku = 6 [(tagger.tags) = "bson:\"sku\" json:\"sku\""];
+  string name = 7 [(tagger.tags) = "bson:\"name\" json:\"name\""];
+  int32 quantity = 8 [(tagger.tags) = "bson:\"quantity\" json:\"quantity\""];
+  double unit_price = 9 [(tagger.tags) = "bson:\"unit_price\" json:\"unit_price\""];
+  double tax_rate = 10 [(tagger.tags) = "bson:\"tax_rate\" json:\"tax_rate\""];
+  double discount = 11 [(tagger.tags) = "bson:\"discount\" json:\"discount\""];
+  double subtotal = 12 [(tagger.tags) = "bson:\"subtotal\" json:\"subtotal\""];
+  double tax = 13 [(tagger.tags) = "bson:\"tax\" json:\"tax\""];
+  double total = 14 [(tagger.tags) = "bson:\"total\" json:\"total\""];
+  OrderItemStatus status = 15 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  google.protobuf.Timestamp created_at = 16 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+}

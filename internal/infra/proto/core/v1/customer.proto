@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "erp.localhost/internal/infra/model/core/v1;corev1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "tagger/tagger.proto";
+
+// Customer type enum
+enum CustomerType {
+  CUSTOMER_TYPE_UNSPECIFIED = 0;
+  CUSTOMER_TYPE_INDIVIDUAL = 1;
+  CUSTOMER_TYPE_BUSINESS = 2;
+}
+
+// Customer status enum
+enum CustomerStatus {
+  CUSTOMER_STATUS_UNSPECIFIED = 0;
+  CUSTOMER_STATUS_ACTIVE = 1;
+  CUSTOMER_STATUS_INACTIVE = 2;
+  CUSTOMER_STATUS_BLOCKED = 3;
+}
+
+// Customer address type enum
+enum CustomerAddressType {
+  CUSTOMER_ADDRESS_TYPE_UNSPECIFIED = 0;
+  CUSTOMER_ADDRESS_TYPE_BILLING = 1;
+  CUSTOMER_ADDRESS_TYPE_SHIPPING = 2;
+}
+
+// Customer model for MongoDB core_db.customers collection
+message Customer {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string customer_id = 2 [(tagger.tags) = "bson:\"customer_id\" json:\"customer_id\""];
+  string tenant_id = 3 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  CustomerType type = 4 [(tagger.tags) = "bson:\"type\" json:\"type\""];
+  string name = 5 [(tagger.tags) = "bson:\"name\" json:\"name\""];
+  string email = 6 [(tagger.tags) = "bson:\"email\" json:\"email\""];
+  string phone = 7 [(tagger.tags) = "bson:\"phone\" json:\"phone\""];
+  CompanyInfo company = 8 [(tagger.tags) = "bson:\"company,omitempty\" json:\"company,omitempty\""];
+  repeated CustomerAddress addresses = 9 [(tagger.tags) = "bson:\"addresses\" json:\"addresses\""];
+  repeated PaymentMethod payment_methods = 10 [(tagger.tags) = "bson:\"payment_methods,omitempty\" json:\"payment_methods,omitempty\""];
+  double credit_limit = 11 [(tagger.tags) = "bson:\"credit_limit\" json:\"credit_limit\""];
+  CustomerStatus status = 12 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  double lifetime_value = 13 [(tagger.tags) = "bson:\"lifetime_value\" json:\"lifetime_value\""];
+  int32 total_orders = 14 [(tagger.tags) = "bson:\"total_orders\" json:\"total_orders\""];
+  google.protobuf.Timestamp last_order_date = 15 [(tagger.tags) = "bson:\"last_order_date,omitempty\" json:\"last_order_date,omitempty\""];
+  google.protobuf.Timestamp created_at = 16 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 17 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+}
+
+message CompanyInfo {
+  string name = 1 [(tagger.tags) = "bson:\"name,omitempty\" json:\"name,omitempty\""];
+  string tax_id = 2 [(tagger.tags) = "bson:\"tax_id,omitempty\" json:\"tax_id,omitempty\""];
+}
+
+message CustomerAddress {
+  string address_id = 1 [(tagger.tags) = "bson:\"address_id\" json:\"address_id\""];
+  CustomerAddressType type = 2 [(tagger.tags) = "bson:\"type\" json:\"type\""];
+  bool is_default = 3 [(tagger.tags) = "bson:\"is_default\" json:\"is_default\""];
+  string street = 4 [(tagger.tags) = "bson:\"street\" json:\"street\""];
+  string city = 5 [(tagger.tags) = "bson:\"city\" json:\"city\""];
+  string state = 6 [(tagger.tags) = "bson:\"state\" json:\"state\""];
+  string zip = 7 [(tagger.tags) = "bson:\"zip\" json:\"zip\""];
+  string country = 8 [(tagger.tags) = "bson:\"country\" json:\"country\""];
+}
+
+message PaymentMethod {
+  string method_id = 1 [(tagger.tags) = "bson:\"method_id\" json:\"method_id\""];
+  string type = 2 [(tagger.tags) = "bson:\"type\" json:\"type\""];
+  bool is_default = 3 [(tagger.tags) = "bson:\"is_default\" json:\"is_default\""];
+  google.protobuf.Struct details = 4 [(tagger.tags) = "bson:\"details,omitempty\" json:\"-\""];
+}

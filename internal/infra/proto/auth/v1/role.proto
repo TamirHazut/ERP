@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "erp.localhost/internal/infra/model/auth/v1;authv1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// MongoDB Models (for database persistence)
+// =============================================================================
+
+// Role type enum
+enum RoleType {
+  ROLE_TYPE_UNSPECIFIED = 0;
+  ROLE_TYPE_SYSTEM = 1;
+  ROLE_TYPE_TENANT = 2;
+  ROLE_TYPE_CUSTOM = 3;
+}
+
+// Role status enum
+enum RoleStatus {
+  ROLE_STATUS_UNSPECIFIED = 0;
+  ROLE_STATUS_ACTIVE = 1;
+  ROLE_STATUS_INACTIVE = 2;
+  ROLE_STATUS_SUSPENDED = 3;
+}
+
+// Role model for MongoDB auth_db.roles collection
+message Role {
+  string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
+  string tenant_id = 2 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+  string name = 3 [(tagger.tags) = "bson:\"name\" json:\"name\""];
+  string description = 4 [(tagger.tags) = "bson:\"description\" json:\"description\""];
+  RoleType type = 5 [(tagger.tags) = "bson:\"type\" json:\"type\""];
+  repeated string permissions = 6 [(tagger.tags) = "bson:\"permissions\" json:\"permissions\""];
+  bool is_default = 7 [(tagger.tags) = "bson:\"is_default\" json:\"is_default\""];
+  RoleStatus status = 8 [(tagger.tags) = "bson:\"status\" json:\"status\""];
+  RoleMetadata metadata = 9 [(tagger.tags) = "bson:\"metadata,omitempty\" json:\"metadata,omitempty\""];
+  google.protobuf.Timestamp created_at = 10 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+  google.protobuf.Timestamp updated_at = 11 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+  string created_by = 12 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
+}
+
+message RoleMetadata {
+  int32 priority = 1 [(tagger.tags) = "bson:\"priority\" json:\"priority\""];
+  repeated string inherits_from = 2 [(tagger.tags) = "bson:\"inherits_from,omitempty\" json:\"inherits_from,omitempty\""];
+}

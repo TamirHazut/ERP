@@ -5,16 +5,13 @@ import (
 
 	"erp.localhost/internal/auth/api"
 	collection "erp.localhost/internal/auth/collection"
-	"erp.localhost/internal/infra/convertor"
 	mongo_collection "erp.localhost/internal/infra/db/mongo/collection"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
+	authv1 "erp.localhost/internal/infra/model/auth/v1"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
-	model_shared "erp.localhost/internal/infra/model/shared"
-	proto_auth "erp.localhost/internal/infra/proto/generated/auth/v1"
-	proto_infra "erp.localhost/internal/infra/proto/generated/infra/v1"
-	"erp.localhost/internal/infra/proto/validator"
+	validator_infra "erp.localhost/internal/infra/model/infra/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -26,13 +23,12 @@ type TenantService struct {
 	authAPI          *api.AuthAPI
 	rbacAPI          *api.RBACAPI
 	userAPI          *api.UserAPI
-	proto_auth.UnimplementedTenantServiceServer
+	authv1.UnimplementedTenantServiceServer
 }
 
-func NewTenantService(authAPI *api.AuthAPI, rbacAPI *api.RBACAPI, userAPI *api.UserAPI) *TenantService {
-	logger := logger.NewBaseLogger(model_shared.ModuleCore)
+func NewTenantService(authAPI *api.AuthAPI, rbacAPI *api.RBACAPI, userAPI *api.UserAPI, logger logger.Logger) *TenantService {
 
-	tenantHandler := mongo_collection.NewBaseCollectionHandler[model_auth.Tenant](model_mongo.AuthDB, model_mongo.TenantsCollection, logger)
+	tenantHandler := mongo_collection.NewBaseCollectionHandler[authv1.Tenant](model_mongo.AuthDB, model_mongo.TenantsCollection, logger)
 	tenantCollection := collection.NewTenantCollection(tenantHandler, logger)
 	if tenantCollection == nil {
 		logger.Fatal("failed to create tenants collection")
@@ -79,10 +75,10 @@ func (t *TenantService) checkPermission(ctx context.Context, tenantID, userID, r
 	return nil
 }
 
-func (t *TenantService) CreateTenant(ctx context.Context, req *proto_auth.CreateTenantRequest) (*proto_auth.CreateTenantResponse, error) {
+func (t *TenantService) CreateTenant(ctx context.Context, req *authv1.CreateTenantRequest) (*authv1.CreateTenantResponse, error) {
 	// Step 1: Validate identifier
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		t.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -93,20 +89,19 @@ func (t *TenantService) CreateTenant(ctx context.Context, req *proto_auth.Create
 	}
 
 	// Step 3: Validate tenant data
-	tenantData := req.GetTenant()
-	if tenantData == nil {
+	tenant := req.GetTenant()
+	if tenant == nil {
 		t.logger.Error("tenant data is required")
 		return nil, status.Error(codes.InvalidArgument, "tenant data is required")
 	}
 
-	t.logger.Info("creating tenant", "name", tenantData.Name, "requested_by", identifier.UserId)
-
-	// Step 4: Convert proto → model
-	tenant, err := convertor.CreateTenantFromProto(tenantData)
-	if err != nil {
-		t.logger.Error("failed to convert proto to tenant model", "error", err)
-		return nil, infra_error.ToGRPCError(err)
+	adminEmail := tenant.GetContact().GetEmail()
+	if adminEmail == "" {
+		t.logger.Error("email is required")
+		return nil, status.Error(codes.InvalidArgument, "email is required")
 	}
+
+	t.logger.Info("creating tenant", "name", tenant.Name, "requested_by", identifier.UserId)
 
 	// Step 5: Create tenant in MongoDB
 	tenantID, err := t.tenantCollection.CreateTenant(tenant)
@@ -117,7 +112,7 @@ func (t *TenantService) CreateTenant(ctx context.Context, req *proto_auth.Create
 	t.logger.Info("tenant created in database", "tenant_id", tenantID)
 
 	// Step 6: Seed defaults (permission, role, admin user)
-	defaults, err := t.tenantSeeder.SeedDefaults(ctx, tenantID, tenantData.AdminEmail, tenantData.AdminPassword, identifier.UserId)
+	defaults, err := t.tenantSeeder.SeedDefaults(ctx, tenantID, adminEmail, identifier.UserId)
 	if err != nil {
 		t.logger.Error("failed to seed tenant defaults", "tenant_id", tenantID, "error", err)
 
@@ -128,15 +123,15 @@ func (t *TenantService) CreateTenant(ctx context.Context, req *proto_auth.Create
 
 		return nil, status.Error(codes.Internal, "failed to seed tenant defaults")
 	}
-	t.logger.Info("tenant defaults seeded", "tenant_id", tenantID, "permission_id", defaults.PermissionID, "role_id", defaults.RoleID, "user_id", defaults.UserID)
+	t.logger.Info("tenant defaults seeded", "tenant_id", tenantID, "permission_id", defaults.PermissionID, "role_id", defaults.RoleId, "user_id", defaults.UserId)
 
-	return &proto_auth.CreateTenantResponse{TenantId: tenantID}, nil
+	return &authv1.CreateTenantResponse{TenantId: tenantID}, nil
 }
 
-func (t *TenantService) GetTenant(ctx context.Context, req *proto_auth.GetTenantRequest) (*proto_auth.TenantResponse, error) {
+func (t *TenantService) GetTenant(ctx context.Context, req *authv1.GetTenantRequest) (*authv1.Tenant, error) {
 	// Step 1: Validate identifier
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		t.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -147,14 +142,14 @@ func (t *TenantService) GetTenant(ctx context.Context, req *proto_auth.GetTenant
 	}
 
 	// Step 3: Extract tenant identifier from oneof
-	var tenant *model_auth.Tenant
+	var tenant *authv1.Tenant
 	var err error
 
 	switch v := req.Tenant.(type) {
-	case *proto_auth.GetTenantRequest_TenantId:
+	case *authv1.GetTenantRequest_TenantId:
 		t.logger.Debug("getting tenant by id", "tenant_id", v.TenantId)
 		tenant, err = t.tenantCollection.GetTenantByID(v.TenantId)
-	case *proto_auth.GetTenantRequest_Name:
+	case *authv1.GetTenantRequest_Name:
 		t.logger.Debug("getting tenant by name", "name", v.Name)
 		tenant, err = t.tenantCollection.GetTenantByName(v.Name)
 	default:
@@ -168,21 +163,14 @@ func (t *TenantService) GetTenant(ctx context.Context, req *proto_auth.GetTenant
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	// Step 5: Convert model → proto
-	tenantProto := convertor.TenantToProto(tenant)
-	if tenantProto == nil {
-		t.logger.Error("failed to convert tenant to proto")
-		return nil, status.Error(codes.Internal, "failed to convert tenant")
-	}
-
-	t.logger.Info("tenant retrieved", "tenant_id", tenant.ID.Hex())
-	return &proto_auth.TenantResponse{Tenant: tenantProto}, nil
+	t.logger.Info("tenant retrieved", "tenant_id", tenant.Id)
+	return tenant, nil
 }
 
-func (t *TenantService) GetTenants(ctx context.Context, req *proto_auth.GetTenantsRequest) (*proto_auth.TenantsResponse, error) {
+func (t *TenantService) ListTenants(ctx context.Context, req *authv1.ListTenantsRequest) (*authv1.ListTenantsResponse, error) {
 	// Step 1: Validate identifier
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		t.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -193,7 +181,7 @@ func (t *TenantService) GetTenants(ctx context.Context, req *proto_auth.GetTenan
 	}
 
 	// Step 3: Get tenants with optional status filter
-	var tenants []*model_auth.Tenant
+	var tenants []*authv1.Tenant
 	var err error
 
 	if req.Status != nil && *req.Status != "" {
@@ -209,31 +197,27 @@ func (t *TenantService) GetTenants(ctx context.Context, req *proto_auth.GetTenan
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	// Step 4: Convert models → proto
-	tenantsProto := convertor.TenantsToProto(tenants)
+	// // Step 5: Build pagination response (TODO: implement actual pagination)
+	// // For now, return all results without pagination
+	// paginationResp := &proto_infra.PaginationResponse{
+	// 	Page:       1,
+	// 	PageSize:   int32(len(tenants)),
+	// 	TotalPages: 1,
+	// 	TotalItems: int64(len(tenants)),
+	// 	HasNext:    false,
+	// 	HasPrev:    false,
+	// }
 
-	// Step 5: Build pagination response (TODO: implement actual pagination)
-	// For now, return all results without pagination
-	paginationResp := &proto_infra.PaginationResponse{
-		Page:       1,
-		PageSize:   int32(len(tenantsProto)),
-		TotalPages: 1,
-		TotalItems: int64(len(tenantsProto)),
-		HasNext:    false,
-		HasPrev:    false,
-	}
-
-	t.logger.Info("tenants retrieved", "count", len(tenantsProto))
-	return &proto_auth.TenantsResponse{
-		Tenants:    tenantsProto,
-		Pagination: paginationResp,
+	t.logger.Info("tenants retrieved", "count", len(tenants))
+	return &authv1.ListTenantsResponse{
+		Tenants: tenants,
 	}, nil
 }
 
-func (t *TenantService) UpdateTenant(ctx context.Context, req *proto_auth.UpdateTenantRequest) (*proto_auth.UpdateTenantResponse, error) {
+func (t *TenantService) UpdateTenant(ctx context.Context, req *authv1.UpdateTenantRequest) (*authv1.UpdateTenantResponse, error) {
 	// Step 1: Validate identifier
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		t.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -244,46 +228,40 @@ func (t *TenantService) UpdateTenant(ctx context.Context, req *proto_auth.Update
 	}
 
 	// Step 3: Validate tenant data
-	tenantData := req.GetTenant()
-	if tenantData == nil {
+	tenant := req.GetTenant()
+	if tenant == nil {
 		t.logger.Error("tenant data is required")
 		return nil, status.Error(codes.InvalidArgument, "tenant data is required")
 	}
 
-	if tenantData.Id == "" {
+	if tenant.Id == "" {
 		t.logger.Error("tenant id is required")
 		return nil, status.Error(codes.InvalidArgument, "tenant id is required")
 	}
 
-	t.logger.Info("updating tenant", "tenant_id", tenantData.Id, "requested_by", identifier.UserId)
+	t.logger.Info("updating tenant", "tenant_id", tenant.Id, "requested_by", identifier.UserId)
 
 	// Step 4: Get existing tenant
-	existingTenant, err := t.tenantCollection.GetTenantByID(tenantData.Id)
-	if err != nil {
-		t.logger.Error("failed to get existing tenant", "tenant_id", tenantData.Id, "error", err)
-		return nil, infra_error.ToGRPCError(err)
-	}
-
-	// Step 5: Apply updates from proto
-	if err := convertor.UpdateTenantFromProto(existingTenant, tenantData); err != nil {
-		t.logger.Error("failed to apply updates", "tenant_id", tenantData.Id, "error", err)
+	existingTenant, err := t.tenantCollection.GetTenantByID(tenant.Id)
+	if err != nil || existingTenant == nil {
+		t.logger.Error("failed to get existing tenant", "tenant_id", tenant.Id, "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
 
 	// Step 6: Update in MongoDB
-	if err := t.tenantCollection.UpdateTenant(existingTenant); err != nil {
-		t.logger.Error("failed to update tenant", "tenant_id", tenantData.Id, "error", err)
+	if err := t.tenantCollection.UpdateTenant(tenant); err != nil {
+		t.logger.Error("failed to update tenant", "tenant_id", tenant.Id, "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
 
-	t.logger.Info("tenant updated successfully", "tenant_id", tenantData.Id)
-	return &proto_auth.UpdateTenantResponse{Updated: true}, nil
+	t.logger.Info("tenant updated successfully", "tenant_id", tenant.Id)
+	return &authv1.UpdateTenantResponse{Updated: true}, nil
 }
 
-func (t *TenantService) DeleteTenant(ctx context.Context, req *proto_auth.DeleteTenantRequest) (*proto_auth.DeleteTenantResponse, error) {
+func (t *TenantService) DeleteTenant(ctx context.Context, req *authv1.DeleteTenantRequest) (*authv1.DeleteTenantResponse, error) {
 	// Step 1: Validate identifier
 	identifier := req.GetIdentifier()
-	if err := validator.ValidateUserIdentifier(identifier); err != nil {
+	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
 		t.logger.Error("invalid identifier", "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
@@ -347,5 +325,5 @@ func (t *TenantService) DeleteTenant(ctx context.Context, req *proto_auth.Delete
 	}
 
 	t.logger.Info("tenant deleted successfully", "target_tenant_id", targetTenantID)
-	return &proto_auth.DeleteTenantResponse{Deleted: true}, nil
+	return &authv1.DeleteTenantResponse{Deleted: true}, nil
 }

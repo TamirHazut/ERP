@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package config.v1.cache;
+
+option go_package = "erp.localhost/internal/infra/model/config/v1/cache;configcache";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "tagger/tagger.proto";
+
+// =============================================================================
+// Redis Cache Models (for service config caching)
+// =============================================================================
+
+// ServiceConfigCache represents cached service configuration
+// Stored in: service_config_cache:{service_name}:{environment}:{tenant_id} (Redis Hash)
+// TTL: 30 minutes
+message ServiceConfigCache {
+  string config_id = 1 [(tagger.tags) = "json:\"config_id\""];
+  string service_name = 2 [(tagger.tags) = "json:\"service_name\""];
+  string environment = 3 [(tagger.tags) = "json:\"environment\""];
+  string tenant_id = 4 [(tagger.tags) = "json:\"tenant_id,omitempty\""];
+  google.protobuf.Struct config = 5 [(tagger.tags) = "json:\"config\""];
+  int32 version = 6 [(tagger.tags) = "json:\"version\""];
+  google.protobuf.Timestamp cached_at = 7 [(tagger.tags) = "json:\"cached_at\""];
+  google.protobuf.Timestamp expires_at = 8 [(tagger.tags) = "json:\"expires_at\""];
+}
+
+// ConfigVersionCache tracks the latest version of each config
+// Stored in: config_versions:{service_name}:{environment} (Redis Hash)
+// Used for cache invalidation when config changes
+message ConfigVersionCache {
+  string service_name = 1 [(tagger.tags) = "json:\"service_name\""];
+  string environment = 2 [(tagger.tags) = "json:\"environment\""];
+  int32 latest_version = 3 [(tagger.tags) = "json:\"latest_version\""];
+  map<string, int32> tenant_versions = 4 [(tagger.tags) = "json:\"tenant_versions,omitempty\""];
+  google.protobuf.Timestamp updated_at = 5 [(tagger.tags) = "json:\"updated_at\""];
+}
