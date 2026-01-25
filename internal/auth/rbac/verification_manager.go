@@ -1,7 +1,7 @@
 package rbac
 
 import (
-	collection "erp.localhost/internal/auth/collection"
+	"erp.localhost/internal/auth/handler"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
@@ -9,67 +9,200 @@ import (
 )
 
 type VerificationManager struct {
-	userCollection        *collection.UserCollection
-	rolesCollection       *collection.RolesCollection
-	permissionsCollection *collection.PermissionsCollection
-	tenantCollection      *collection.TenantCollection
-	systemTenantID        string // System tenant ID (from config or constant)
-	logger                logger.Logger
+	userHandler       *handler.UserHandler
+	roleHandler       *handler.RoleHandler
+	permissionHandler *handler.PermissionHandler
+	tenantHandler     *handler.TenantHandler
+	systemTenantID    string // System tenant ID (from config or constant)
+	logger            logger.Logger
 }
 
 // NewVerificationManager creates a new VerificationManager instance
 func NewVerificationManager(
-	userCollection *collection.UserCollection,
-	rolesCollection *collection.RolesCollection,
-	permissionsCollection *collection.PermissionsCollection,
-	tenantCollection *collection.TenantCollection,
+	userHandler *handler.UserHandler,
+	roleHandler *handler.RoleHandler,
+	permissionHandler *handler.PermissionHandler,
+	tenantHandler *handler.TenantHandler,
 	logger logger.Logger,
 ) *VerificationManager {
 	return &VerificationManager{
-		userCollection:        userCollection,
-		rolesCollection:       rolesCollection,
-		permissionsCollection: permissionsCollection,
-		tenantCollection:      tenantCollection,
-		systemTenantID:        model_auth.SystemTenantID,
-		logger:                logger,
+		userHandler:       userHandler,
+		roleHandler:       roleHandler,
+		permissionHandler: permissionHandler,
+		tenantHandler:     tenantHandler,
+		systemTenantID:    model_auth.SystemTenantID,
+		logger:            logger,
 	}
 }
 
-// Core implementation - uncomment and adapt from rbac_manager.go:106-129
-func (vm *VerificationManager) GetUserPermissions(tenantID, userID string) (map[string]bool, error) {
+// GetUserPermissionsIDs retrieves all the users permissions in a map with the format <id> -> <has permission (true/false)>
+func (vm *VerificationManager) GetUserPermissionsIDs(tenantID, userID string) (map[string]bool, error) {
 	// 1. Get user from UserCollection
-	user, err := vm.userCollection.GetUserByID(tenantID, userID)
+	user, err := vm.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {
 		vm.logger.Error(err.Error())
 		return nil, err
 	}
 
-	// 2. Check if user is tenant admin → grant ALL permissions
 	if vm.isTenantAdmin(user) {
-		return vm.getAllPermissions(), nil // Returns map with all possible permissions
+		// Return all permission IDs from database
+		return vm.getAllPermissionIDs(tenantID), nil
 	}
 
 	// 3. Resolve permissions from user.Roles
 	userPermissions := make(map[string]bool)
 	for _, userRole := range user.Roles {
-		role, err := vm.rolesCollection.GetRoleByID(tenantID, userRole.RoleId)
+		role, err := vm.roleHandler.GetRoleByID(tenantID, userRole.RoleId)
 		if err != nil {
 			vm.logger.Error(err.Error())
 			return nil, err
 		}
 		for _, permission := range role.Permissions {
-			userPermissions[permission] = true
+			perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permission)
+			if err != nil {
+				continue
+			}
+			switch perm.Status {
+			case authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE:
+				userPermissions[perm.PermissionString] = true
+			default:
+				userPermissions[perm.PermissionString] = false
+			}
 		}
 	}
 
 	// 4. Apply user.AdditionalPermissions
 	for _, permission := range user.AdditionalPermissions {
-		userPermissions[permission] = true
+		perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permission)
+		if err != nil {
+			continue
+		}
+		switch perm.Status {
+		case authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE:
+			userPermissions[perm.PermissionString] = true
+		default:
+			userPermissions[perm.PermissionString] = false
+		}
 	}
 
 	// 5. Apply user.RevokedPermissions
 	for _, permission := range user.RevokedPermissions {
 		userPermissions[permission] = false
+	}
+
+	return userPermissions, nil
+}
+
+// Returns permission strings (for RBAC checks like "users:read")
+// OPTIMIZED: Uses MongoDB aggregation to replace 70+ queries with 1-2 queries
+func (vm *VerificationManager) GetUserPermissions(tenantID, userID string) (map[string]bool, error) {
+	// OPTIMIZATION: Check admin status using aggregation (1 query instead of N)
+	roles, err := vm.roleHandler.GetUserRolesAggregation(tenantID, userID, []string{"name"})
+	if err != nil {
+		// Fallback to original method if aggregation fails
+		vm.logger.Warn("role aggregation failed, falling back to original method", "error", err)
+		return vm.getUserPermissionsLegacy(tenantID, userID)
+	}
+
+	// Check if user has admin role
+	for _, role := range roles {
+		if role.Name == model_auth.RoleTenantAdmin || role.Name == model_auth.RoleSystemAdmin {
+			return vm.getAllPermissions(), nil
+		}
+	}
+
+	// OPTIMIZATION: Get all permissions in single aggregation (1 query instead of 50+)
+	permissions, err := vm.permissionHandler.GetUserPermissionsAggregation(tenantID, userID, nil)
+	if err != nil {
+		vm.logger.Warn("permission aggregation failed, falling back to original method", "error", err)
+		return vm.getUserPermissionsLegacy(tenantID, userID)
+	}
+
+	// Process results into permission map
+	userPermissions := make(map[string]bool)
+	for _, perm := range permissions {
+		if perm.Status == authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE {
+			userPermissions[perm.PermissionString] = true
+		}
+	}
+
+	// Handle additional and revoked permissions
+	// These are much smaller sets, so individual queries are acceptable
+	user, err := vm.userHandler.GetUserByID(tenantID, userID)
+	if err == nil {
+		// Apply additional permissions
+		for _, permissionID := range user.AdditionalPermissions {
+			perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permissionID)
+			if err != nil {
+				continue
+			}
+			if perm.Status == authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE {
+				userPermissions[perm.PermissionString] = true
+			}
+		}
+
+		// Apply revoked permissions
+		for _, permissionID := range user.RevokedPermissions {
+			perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permissionID)
+			if err != nil {
+				continue
+			}
+			userPermissions[perm.PermissionString] = false
+		}
+	}
+
+	return userPermissions, nil
+}
+
+// getUserPermissionsLegacy is the original implementation kept as fallback
+func (vm *VerificationManager) getUserPermissionsLegacy(tenantID, userID string) (map[string]bool, error) {
+	user, err := vm.userHandler.GetUserByID(tenantID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if vm.isTenantAdmin(user) {
+		return vm.getAllPermissions(), nil
+	}
+
+	userPermissions := make(map[string]bool)
+
+	// Resolve from roles
+	for _, userRole := range user.Roles {
+		role, err := vm.roleHandler.GetRoleByID(tenantID, userRole.RoleId)
+		if err != nil {
+			continue
+		}
+		for _, permissionID := range role.Permissions {
+			perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permissionID)
+			if err != nil {
+				continue
+			}
+			userPermissions[perm.PermissionString] = true
+		}
+	}
+
+	// Apply additional permissions
+	for _, permissionID := range user.AdditionalPermissions {
+		perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permissionID)
+		if err != nil {
+			continue
+		}
+		switch perm.Status {
+		case authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE:
+			userPermissions[perm.PermissionString] = true
+		default:
+			userPermissions[perm.PermissionString] = false
+		}
+	}
+
+	// Apply revoked permissions
+	for _, permissionID := range user.RevokedPermissions {
+		perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permissionID)
+		if err != nil {
+			continue
+		}
+		userPermissions[perm.PermissionString] = false
 	}
 
 	return userPermissions, nil
@@ -81,33 +214,69 @@ func (vm *VerificationManager) IsSystemTenantUser(tenantID string) bool {
 }
 
 // Check if user has tenant admin role
+// OPTIMIZED: Uses MongoDB aggregation to replace N queries with 1 query
 func (vm *VerificationManager) isTenantAdmin(user *authv1.User) bool {
-	for _, userRole := range user.Roles {
-		role, err := vm.rolesCollection.GetRoleByID(user.TenantId, userRole.RoleId)
-		if err != nil {
-			continue
-		}
-		if role.Name == model_auth.RoleTenantAdmin {
+	roles, err := vm.roleHandler.GetUserRolesAggregation(user.TenantId, user.Id, []string{"name"})
+	if err != nil {
+		// Fallback to original method if aggregation fails
+		vm.logger.Warn("role aggregation failed in isTenantAdmin, falling back", "error", err)
+		return vm.isTenantAdminLegacy(user)
+	}
+
+	for _, role := range roles {
+		if role.Name == model_auth.RoleTenantAdmin || role.Name == model_auth.RoleSystemAdmin {
 			return true
 		}
 	}
 	return false
 }
 
+// isTenantAdminLegacy is the original implementation kept as fallback
+func (vm *VerificationManager) isTenantAdminLegacy(user *authv1.User) bool {
+	for _, userRole := range user.Roles {
+		role, err := vm.roleHandler.GetRoleByID(user.TenantId, userRole.RoleId)
+		if err != nil {
+			continue
+		}
+		if role.Name == model_auth.RoleTenantAdmin || role.Name == model_auth.RoleSystemAdmin {
+			return true
+		}
+	}
+	return false
+}
+
+// Get all permission IDs (for tenant admin)
+func (vm *VerificationManager) getAllPermissionIDs(tenantID string) map[string]bool {
+	// Query all permissions from database
+	permissions, err := vm.permissionHandler.GetPermissionsByTenantID(tenantID)
+	if err != nil {
+		vm.logger.Error("failed to get all permissions", "error", err)
+		return map[string]bool{}
+	}
+
+	result := make(map[string]bool)
+	for _, perm := range permissions {
+		result[perm.Id] = true
+	}
+
+	return result
+}
+
 // Get all possible permissions (for tenant admin)
 func (vm *VerificationManager) getAllPermissions() map[string]bool {
+	wildCard, _ := model_auth.CreatePermissionString(model_auth.ResourceTypeAll, model_auth.PermissionActionAll)
 	// Query all permissions from PermissionsCollection
 	// Or return a predefined set of all possible permissions
 	return map[string]bool{
 		// All possible permissions are granted
-		"*:*": true, // Wildcard permission
+		wildCard: true, // Wildcard permission
 	}
 }
 
 // GetUserRoles returns all role IDs assigned to a user
 func (vm *VerificationManager) GetUserRoles(tenantID, userID string) ([]string, error) {
 	// Get user from UserCollection
-	user, err := vm.userCollection.GetUserByID(tenantID, userID)
+	user, err := vm.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {
 		vm.logger.Error(err.Error())
 		return nil, err
@@ -125,7 +294,7 @@ func (vm *VerificationManager) GetUserRoles(tenantID, userID string) ([]string, 
 // CheckPermissions with system tenant and tenant admin logic
 func (vm *VerificationManager) CheckPermissions(tenantID, userID string, permissions []string) (map[string]bool, error) {
 	// 1. Get user
-	user, err := vm.userCollection.GetUserByID(tenantID, userID)
+	user, err := vm.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {
 		vm.logger.Error(err.Error())
 		return nil, err
@@ -161,7 +330,7 @@ func (vm *VerificationManager) CheckPermissions(tenantID, userID string, permiss
 // HasPermission with cross-tenant check for system tenant users
 func (vm *VerificationManager) HasPermission(tenantID, userID, permission string, targetTenantID string) error {
 	// 1. Get user
-	user, err := vm.userCollection.GetUserByID(tenantID, userID)
+	user, err := vm.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {
 		return err
 	}

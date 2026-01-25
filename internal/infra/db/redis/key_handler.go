@@ -6,6 +6,7 @@ import (
 	db "erp.localhost/internal/infra/db"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
+	model_redis "erp.localhost/internal/infra/model/db/redis"
 )
 
 //go:generate mockgen -destination=mock/mock_key_handler.go -package=mock erp.localhost/internal/infra/db/redis KeyHandler
@@ -26,11 +27,15 @@ type BaseKeyHandler[T any] struct {
 	logger    logger.Logger
 }
 
-func NewBaseKeyHandler[T any](dbHandler db.DBHandler, logger logger.Logger) *BaseKeyHandler[T] {
+func NewBaseKeyHandler[T any](keyPrefix model_redis.KeyPrefix, logger logger.Logger) (*BaseKeyHandler[T], error) {
+	dbHandler, err := NewBaseRedisHandler(keyPrefix, logger)
+	if err != nil {
+		return nil, err
+	}
 	return &BaseKeyHandler[T]{
 		dbHandler: dbHandler,
 		logger:    logger,
-	}
+	}, nil
 }
 
 func (k *BaseKeyHandler[T]) Set(tenantID string, key string, value *T, opts ...map[string]any) error {

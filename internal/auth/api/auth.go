@@ -2,12 +2,9 @@ package api
 
 import (
 	"errors"
-	"os"
-	"strconv"
 	"time"
 
 	"erp.localhost/internal/auth/hash"
-	token "erp.localhost/internal/auth/token"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
@@ -18,85 +15,26 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// TokenConfig holds configuration for token management
-type TokenConfig struct {
-	SecretKey            string
-	TokenDuration        time.Duration
-	RefreshTokenDuration time.Duration
-}
-
-// LoadTokenConfig loads token configuration from environment variables with defaults
-func LoadTokenConfig() *TokenConfig {
-	return &TokenConfig{
-		SecretKey:            getEnv("JWT_SECRET_KEY", "secret"),
-		TokenDuration:        parseDuration(getEnv("ACCESS_TOKEN_DURATION", "1h"), 1*time.Hour),
-		RefreshTokenDuration: parseDuration(getEnv("REFRESH_TOKEN_DURATION", "168h"), 7*24*time.Hour),
-	}
-}
-
-// getEnv gets an environment variable or returns a default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-// parseDuration parses a duration string or returns a default value
-func parseDuration(value string, defaultDuration time.Duration) time.Duration {
-	if value == "" {
-		return defaultDuration
-	}
-
-	// Try parsing as duration string (e.g., "1h", "24h")
-	if duration, err := time.ParseDuration(value); err == nil {
-		return duration
-	}
-
-	// Try parsing as seconds (e.g., "3600" for 1 hour)
-	if seconds, err := strconv.ParseInt(value, 10, 64); err == nil {
-		return time.Duration(seconds) * time.Second
-	}
-
-	return defaultDuration
-}
-
-type NewTokenResponse struct {
-	UserId                string `json:"user_id"`
-	TenantId              string `json:"tenant_id"`
-	Token                 string `json:"token"`
-	TokenExpiresAt        int64  `json:"token_expires_at"`
-	RefreshToken          string `json:"refresh_token"`
-	RefreshTokenExpiresAt int64  `json:"refresh_token_expires_at"`
-}
-
 type AuthAPI struct {
 	logger       logger.Logger
 	rbacAPI      *RBACAPI
 	userAPI      *UserAPI
-	tokenManager *token.TokenManager
-	config       *TokenConfig
+	tokenManager *TokenAPI
 }
 
-func NewAuthAPI(rbacAPI *RBACAPI, userAPI *UserAPI, logger logger.Logger) *AuthAPI {
-	// Load configuration from environment variables
-	config := LoadTokenConfig()
-	logger.Info("Token configuration loaded",
-		"access_token_duration", config.TokenDuration.String(),
-		"refresh_token_duration", config.RefreshTokenDuration.String())
+func NewAuthAPI(rbacAPI *RBACAPI, userAPI *UserAPI, logger logger.Logger) (*AuthAPI, error) {
 
-	tokenManager := token.NewTokenManager(config.SecretKey, config.TokenDuration, config.RefreshTokenDuration, logger)
-	if tokenManager == nil {
-		logger.Fatal("failed to create token manager")
-		return nil
+	tokenManager, err := NewTokenAPI(logger)
+	if err != nil {
+		logger.Fatal("failed to create token manager", "error", err)
+		return nil, err
 	}
 	return &AuthAPI{
 		logger:       logger,
 		rbacAPI:      rbacAPI,
 		userAPI:      userAPI,
 		tokenManager: tokenManager,
-		config:       config,
-	}
+	}, nil
 }
 
 func (a *AuthAPI) Login(tenantID, email, username, password string) (*NewTokenResponse, error) {
@@ -128,7 +66,7 @@ func (a *AuthAPI) Login(tenantID, email, username, password string) (*NewTokenRe
 		Timestamp: timestamppb.Now(),
 		Success:   tokens != nil,
 	})
-	if updateErr := a.userAPI.userCollection.UpdateUser(user); updateErr != nil {
+	if updateErr := a.userAPI.userHandler.UpdateUser(user); updateErr != nil {
 		a.logger.Error("failed to update user login history", "error", err)
 	}
 	return tokens, err
@@ -252,7 +190,7 @@ func (a *AuthAPI) generateAccessToken(user *authv1.User) (string, *authv1_cache.
 	for i, role := range user.GetRoles() {
 		userRoles[i] = role.RoleId
 	}
-	accessToken, claims, err := a.tokenManager.GenerateAccessToken(&token.GenerateAccessTokenInput{
+	accessToken, claims, err := a.tokenManager.GenerateAccessToken(&GenerateAccessTokenInput{
 		UserId:   user.GetId(),
 		TenantId: user.GetTenantId(),
 		Username: user.GetUsername(),
@@ -283,7 +221,7 @@ func (a *AuthAPI) generateAccessToken(user *authv1.User) (string, *authv1_cache.
 func (a *AuthAPI) generateRefreshToken(tenantID string, userID string) (string, *authv1_cache.RefreshToken, error) {
 	issuedAt := time.Now()
 	// Generate refresh token
-	tokenString, refreshToken, err := a.tokenManager.GenerateRefreshToken(token.GenerateRefreshTokenInput{
+	tokenString, refreshToken, err := a.tokenManager.GenerateRefreshToken(GenerateRefreshTokenInput{
 		UserId:    userID,
 		TenantId:  tenantID,
 		CreatedAt: issuedAt,

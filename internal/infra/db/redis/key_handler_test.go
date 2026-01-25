@@ -18,6 +18,14 @@ type TestModel struct {
 	Name string `json:"name"`
 }
 
+func createNewHandler(mockDBHandler *mock_db.MockDBHandler) *BaseKeyHandler[TestModel] {
+	handler := &BaseKeyHandler[TestModel]{
+		dbHandler: mockDBHandler,
+		logger:    logger.NewBaseLogger(shared.ModuleDB),
+	}
+	return handler
+}
+
 func TestKeyHandler_Set(t *testing.T) {
 	testCases := []struct {
 		tenantID          string
@@ -55,7 +63,7 @@ func TestKeyHandler_Set(t *testing.T) {
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
 			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
 			mockHandler.EXPECT().Create(formattedKey, tc.value).Return(tc.returnID, tc.returnError).Times(tc.expectedCallTimes)
-			handler := NewBaseKeyHandler[TestModel](mockHandler, logger.NewBaseLogger(shared.ModuleDB))
+			handler := createNewHandler(mockHandler)
 			err := handler.Set(tc.tenantID, tc.key, tc.value)
 			if tc.returnError != nil {
 				require.Error(t, err)
@@ -113,7 +121,7 @@ func TestKeyHandler_GetOne(t *testing.T) {
 					return tc.returnError
 				}).Times(tc.expectedCallTimes)
 
-			handler := NewBaseKeyHandler[TestModel](mockHandler, logger.NewBaseLogger(shared.ModuleDB))
+			handler := createNewHandler(mockHandler)
 
 			result, err := handler.GetOne(tc.tenantID, tc.key)
 			if tc.returnError != nil {
@@ -192,8 +200,7 @@ func TestKeyHandler_GetAll(t *testing.T) {
 					return tc.returnError
 				}).Times(tc.expectedCallTimes)
 
-			// mockHandler.EXPECT().FindAll(formattedKey, nil).Return(tc.returnData, tc.returnError).Times(tc.expectedCallTimes)
-			handler := NewBaseKeyHandler[TestModel](mockHandler, logger.NewBaseLogger(shared.ModuleDB))
+			handler := createNewHandler(mockHandler)
 
 			result, err := handler.GetAll(tc.tenantID, tc.key)
 			if tc.returnError != nil {
@@ -240,7 +247,7 @@ func TestKeyHandler_Update(t *testing.T) {
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
 			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
 			mockHandler.EXPECT().Update(formattedKey, nil, tc.value).Return(tc.returnError).Times(tc.expectedCallTimes)
-			handler := NewBaseKeyHandler[TestModel](mockHandler, logger.NewBaseLogger(shared.ModuleDB))
+			handler := createNewHandler(mockHandler)
 
 			err := handler.Update(tc.tenantID, tc.key, tc.value)
 			if tc.returnError != nil {
@@ -283,7 +290,7 @@ func TestKeyHandler_Delete(t *testing.T) {
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
 			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
 			mockHandler.EXPECT().Delete(formattedKey, nil).Return(tc.returnError).Times(tc.expectedCallTimes)
-			handler := NewBaseKeyHandler[TestModel](mockHandler, logger.NewBaseLogger(shared.ModuleDB))
+			handler := createNewHandler(mockHandler)
 
 			err := handler.Delete(tc.tenantID, tc.key)
 			if tc.returnError != nil {

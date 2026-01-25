@@ -32,16 +32,16 @@ type BaseRedisHandler struct {
 	keyPrefix model_redis.KeyPrefix
 }
 
-func NewBaseRedisHandler(keyPrefix model_redis.KeyPrefix, logger logger.Logger) *BaseRedisHandler {
+func NewBaseRedisHandler(keyPrefix model_redis.KeyPrefix, logger logger.Logger) (*BaseRedisHandler, error) {
 	redisHandler := &BaseRedisHandler{
 		logger:    logger,
 		keyPrefix: keyPrefix,
 	}
 	if err := redisHandler.init(); err != nil {
 		redisHandler.logger.Error("Failed to initialize Redis", "error", err)
-		return nil
+		return nil, err
 	}
-	return redisHandler
+	return redisHandler, nil
 }
 
 func (r *BaseRedisHandler) init() error {

@@ -4,15 +4,12 @@ import (
 	"errors"
 	"slices"
 
-	"erp.localhost/internal/auth/collection"
-	collection_auth "erp.localhost/internal/auth/collection"
-	mongo_collection "erp.localhost/internal/infra/db/mongo/collection"
+	"erp.localhost/internal/auth/handler"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 	validator_auth "erp.localhost/internal/infra/model/auth/validator"
-	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 )
 
 type FilterType int
@@ -25,23 +22,22 @@ const (
 )
 
 type UserAPI struct {
-	logger         logger.Logger
-	userCollection *collection_auth.UserCollection
-	rbacAPI        *RBACAPI
+	logger      logger.Logger
+	userHandler *handler.UserHandler
+	rbacAPI     *RBACAPI
 }
 
-func NewUserAPI(rbacAPI *RBACAPI, logger logger.Logger) *UserAPI {
-	userHandler := mongo_collection.NewBaseCollectionHandler[authv1.User](model_mongo.AuthDB, model_mongo.UsersCollection, logger)
-	userCollection := collection.NewUserCollection(userHandler, logger)
-	if userCollection == nil {
-		logger.Fatal("failed to create users collection")
-		return nil
+func NewUserAPI(rbacAPI *RBACAPI, logger logger.Logger) (*UserAPI, error) {
+	userHander, err := handler.NewUserHandler(logger)
+	if err != nil {
+		logger.Error("failed to create new user handler", "error", err)
+		return nil, err
 	}
 	return &UserAPI{
-		rbacAPI:        rbacAPI,
-		userCollection: userCollection,
-		logger:         logger,
-	}
+		rbacAPI:     rbacAPI,
+		userHandler: userHander,
+		logger:      logger,
+	}, nil
 }
 
 func (u *UserAPI) CreateUser(tenantID, userID string, newUser *authv1.User) (string, error) {
@@ -73,7 +69,7 @@ func (u *UserAPI) CreateUser(tenantID, userID string, newUser *authv1.User) (str
 	}
 
 	// convert from proto user to model user
-	return u.userCollection.CreateUser(newUser)
+	return u.userHandler.CreateUser(newUser)
 }
 
 func (u *UserAPI) GetUser(tenantID, userID, targetTenantID, accountID string) (*authv1.User, error) {
@@ -102,9 +98,9 @@ func (u *UserAPI) GetUsers(tenantID, userID, targetTenantID, roleID string) ([]*
 	}
 
 	if roleID != "" {
-		return u.userCollection.GetUsersByRoleID(targetTenantID, roleID)
+		return u.userHandler.GetUsersByRoleID(targetTenantID, roleID)
 	}
-	return u.userCollection.GetUsersByTenantID(targetTenantID)
+	return u.userHandler.GetUsersByTenantID(targetTenantID)
 }
 
 // TODO: finish logic
@@ -154,7 +150,7 @@ func (u *UserAPI) DeleteUser(tenantID, userID, targetTenantID, accountID string)
 		return err
 	}
 
-	if err := u.userCollection.DeleteUser(targetTenantID, accountID); err != nil {
+	if err := u.userHandler.DeleteUser(targetTenantID, accountID); err != nil {
 		u.logger.Error("failed to delete user", "tenant_id", tenantID, "user_id", userID, "error", err)
 		return err
 	}
@@ -174,7 +170,7 @@ func (u *UserAPI) DeleteTenantUsers(tenantID, userID, targetTenantID string) err
 		return err
 	}
 
-	if err := u.userCollection.DeleteTenantUsers(targetTenantID); err != nil {
+	if err := u.userHandler.DeleteTenantUsers(targetTenantID); err != nil {
 		u.logger.Error("failed to delete tenant users", "tenant_id", tenantID, "user_id", userID, "error", err)
 		return err
 	}
@@ -194,11 +190,11 @@ func (u *UserAPI) hasPermission(tenantID, userID, action, targetTenantID string)
 func (u *UserAPI) getUser(tenantID string, accountID string, filterType FilterType) (*authv1.User, error) {
 	switch filterType {
 	case filterTypeID:
-		return u.userCollection.GetUserByID(tenantID, accountID)
+		return u.userHandler.GetUserByID(tenantID, accountID)
 	case filterTypeEmail:
-		return u.userCollection.GetUserByEmail(tenantID, accountID)
+		return u.userHandler.GetUserByEmail(tenantID, accountID)
 	case filterTypeUsername:
-		return u.userCollection.GetUserByUsername(tenantID, accountID)
+		return u.userHandler.GetUserByUsername(tenantID, accountID)
 	default:
 		return nil, infra_error.Validation(infra_error.ValidationInvalidValue, "account identifier")
 	}
@@ -207,7 +203,7 @@ func (u *UserAPI) getUser(tenantID string, accountID string, filterType FilterTy
 func (u *UserAPI) updateUser(user *authv1.User) (bool, error) {
 	tenantID := user.GetTenantId()
 	userID := user.GetId()
-	err := u.userCollection.UpdateUser(user)
+	err := u.userHandler.UpdateUser(user)
 	success := err == nil
 	if success {
 		u.logger.Debug("user updated successfuly", "tenant_id", tenantID, "user_id", userID, "target_tenant_id")

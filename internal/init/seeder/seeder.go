@@ -3,10 +3,10 @@ package seeder
 import (
 	"fmt"
 
+	collection_auth "erp.localhost/internal/auth/collection"
 	"erp.localhost/internal/auth/hash"
 	"erp.localhost/internal/infra/db"
 	mongo_db "erp.localhost/internal/infra/db/mongo"
-	"erp.localhost/internal/infra/db/mongo/collection"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	"erp.localhost/internal/infra/model/auth"
@@ -20,36 +20,40 @@ type Seeder struct {
 	logger logger.Logger
 
 	// Handlers for database operations
-	tenantHandler     *collection.BaseCollectionHandler[authv1.Tenant]
-	userHandler       *collection.BaseCollectionHandler[authv1.User]
-	permissionHandler *collection.BaseCollectionHandler[authv1.Permission]
-	roleHandler       *collection.BaseCollectionHandler[authv1.Role]
+	tenantHandler     *collection_auth.TenantCollection
+	userHandler       *collection_auth.UserCollection
+	permissionHandler *collection_auth.PermissionCollection
+	roleHandler       *collection_auth.RoleCollection
 }
 
-func NewSeeder(logger logger.Logger) *Seeder {
-	return &Seeder{
-		logger: logger,
-		tenantHandler: collection.NewBaseCollectionHandler[authv1.Tenant](
-			model_mongo.AuthDB,
-			model_mongo.TenantsCollection,
-			logger,
-		),
-		userHandler: collection.NewBaseCollectionHandler[authv1.User](
-			model_mongo.AuthDB,
-			model_mongo.UsersCollection,
-			logger,
-		),
-		permissionHandler: collection.NewBaseCollectionHandler[authv1.Permission](
-			model_mongo.AuthDB,
-			model_mongo.PermissionsCollection,
-			logger,
-		),
-		roleHandler: collection.NewBaseCollectionHandler[authv1.Role](
-			model_mongo.AuthDB,
-			model_mongo.RolesCollection,
-			logger,
-		),
+func NewSeeder(logger logger.Logger) (*Seeder, error) {
+	th, err := collection_auth.NewTenantCollection(logger)
+	if err != nil {
+		logger.Fatal("failed to create tenant collection", "error", err)
+		return nil, err
 	}
+	uh, err := collection_auth.NewUserCollection(logger)
+	if err != nil {
+		logger.Fatal("failed to create user collection", "error", err)
+		return nil, err
+	}
+	ph, err := collection_auth.NewPermissionCollection(logger)
+	if err != nil {
+		logger.Fatal("failed to create permission collection", "error", err)
+		return nil, err
+	}
+	rh, err := collection_auth.NewRoleCollection(logger)
+	if err != nil {
+		logger.Fatal("failed to create role collection", "error", err)
+		return nil, err
+	}
+	return &Seeder{
+		logger:            logger,
+		tenantHandler:     th,
+		userHandler:       uh,
+		permissionHandler: ph,
+		roleHandler:       rh,
+	}, nil
 }
 
 func (s *Seeder) SeedSystemData() error {
@@ -126,15 +130,16 @@ func (s *Seeder) SeedIndexes() error {
 
 	// Create indexes for each collection
 	for _, mapping := range indexMappings {
-		dbManager := mongo_db.NewMongoDBManager(mapping.dbName, s.logger)
-		if dbManager == nil {
-			return fmt.Errorf("failed to create DB manager for %s", mapping.dbName)
+		dbManager, err := mongo_db.NewMongoDBManager(mapping.dbName, s.logger)
+		if err != nil {
+			s.logger.Error(fmt.Sprintf("failed to create DB manager for %s", mapping.dbName), "error", err)
+			return err
 		}
 		defer dbManager.Close()
 
 		if err := dbManager.EnsureIndexes(string(mapping.collection), mapping.indexes); err != nil {
-			return fmt.Errorf("failed to create indexes for %s.%s: %w",
-				mapping.dbName, mapping.collection, err)
+			s.logger.Error(fmt.Sprintf("failed to create indexes for %s.%s", mapping.dbName, mapping.collection), "error", err)
+			return err
 		}
 	}
 
@@ -174,12 +179,10 @@ func (s *Seeder) seedSystemTenant() error {
 func (s *Seeder) seedSystemPermission() error {
 	s.logger.Debug("Checking for existing system permission")
 
-	permissionString := fmt.Sprintf("%s:%s", auth.ResourceTypeAll, auth.PermissionActionAll)
-
 	// Check if permission already exists
 	filter := map[string]any{
 		"tenant_id":         db.SystemTenantID,
-		"permission_string": permissionString,
+		"permission_string": db.TenantAdminPermission,
 	}
 	existing, err := s.permissionHandler.FindOne(filter)
 	if err == nil && existing != nil {
@@ -198,7 +201,8 @@ func (s *Seeder) seedSystemPermission() error {
 		CreatedBy:        "System",
 		DisplayName:      "System Controller",
 		Description:      "Full system access - all resources and actions",
-		PermissionString: permissionString,
+		PermissionString: db.TenantAdminPermission,
+		Status:           authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE,
 		IsDangerous:      true,
 	}
 

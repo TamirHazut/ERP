@@ -15,7 +15,11 @@ func Main() {
 
 	// Run seeding
 	logger.Info("Starting system data seeding")
-	s := seeder.NewSeeder(logger)
+	s, err := seeder.NewSeeder(logger)
+	if err != nil {
+		logger.Fatal("failed to init seeder", "error", err)
+		os.Exit(1)
+	}
 	if err := s.SeedSystemData(); err != nil {
 		logger.Error("Seeding failed", "error", err)
 		os.Exit(1)
@@ -23,5 +27,4 @@ func Main() {
 
 	logger.Info("System data seeded successfully")
 	logger.Info("Init Service - Exiting")
-	// os.Exit(0)
 }

@@ -24,13 +24,13 @@ type BaseCollectionHandler[T any] struct {
 	logger     logger.Logger
 }
 
-func NewBaseCollectionHandler[T any](dbName model_mongo.DBName, collection model_mongo.Collection, logger logger.Logger) *BaseCollectionHandler[T] {
+func NewBaseCollectionHandler[T any](dbName model_mongo.DBName, collection model_mongo.Collection, logger logger.Logger) (*BaseCollectionHandler[T], error) {
 	if logger == nil {
-		return nil
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "logger")
 	}
-	dbHandler := mongo.NewMongoDBManager(dbName, logger)
-	if dbHandler == nil {
-		return nil
+	dbHandler, err := mongo.NewMongoDBManager(dbName, logger)
+	if err != nil {
+		return nil, err
 	}
 	collectionHandler := &BaseCollectionHandler[T]{
 		dbHandler:  dbHandler,
@@ -39,9 +39,9 @@ func NewBaseCollectionHandler[T any](dbName model_mongo.DBName, collection model
 	}
 	if err := collectionHandler.createCollectionInDBIfNotExists(); err != nil {
 		logger.Error(err.Error(), "collection", collection, "error", err)
-		return nil
+		return nil, err
 	}
-	return collectionHandler
+	return collectionHandler, nil
 }
 
 func (r *BaseCollectionHandler[T]) createCollectionInDBIfNotExists() error {

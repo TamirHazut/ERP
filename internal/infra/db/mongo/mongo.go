@@ -21,18 +21,18 @@ type MongoDBManager struct {
 	logger logger.Logger
 }
 
-func NewMongoDBManager(dbName model_mongo.DBName, logger logger.Logger) *MongoDBManager {
+func NewMongoDBManager(dbName model_mongo.DBName, logger logger.Logger) (*MongoDBManager, error) {
 	if logger == nil {
-		return nil
+		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "logger")
 	}
 	m := &MongoDBManager{
 		dbName: dbName,
 		logger: logger,
 	}
 	if err := m.Init(); err != nil {
-		return nil
+		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
-	return m
+	return m, nil
 }
 
 func (m *MongoDBManager) Close() error {
@@ -103,13 +103,14 @@ func (m *MongoDBManager) Create(collectionName string, data any, opts ...map[str
 
 func (m *MongoDBManager) FindOne(collectionName string, filter map[string]any, result any) error {
 	m.logger.Debug("finding one", "collection", collectionName, "filter", filter)
-	collection := m.db.Collection(collectionName)
 	if filter == nil {
 		return errors.New("filter is required and cannot be nil")
 	}
+	collection := m.db.Collection(collectionName)
+	m.convertFilterToMongoTypes(filter)
 	item := collection.FindOne(context.Background(), filter)
-	if item.Err() != nil {
-		return item.Err()
+	if err := item.Err(); err != nil {
+		return err
 	}
 	if item == nil {
 		return errors.New("no result found")
@@ -122,10 +123,11 @@ func (m *MongoDBManager) FindOne(collectionName string, filter map[string]any, r
 
 func (m *MongoDBManager) FindAll(collectionName string, filter map[string]any, result any) error {
 	m.logger.Debug("finding all", "collection", collectionName, "filter", filter)
-	collection := m.db.Collection(collectionName)
 	if filter == nil {
 		return errors.New("filter is required and cannot be nil")
 	}
+	collection := m.db.Collection(collectionName)
+	m.convertFilterToMongoTypes(filter)
 	cursor, err := collection.Find(context.Background(), filter)
 	if err != nil {
 		return err
@@ -138,7 +140,11 @@ func (m *MongoDBManager) FindAll(collectionName string, filter map[string]any, r
 
 func (m *MongoDBManager) Update(collectionName string, filter map[string]any, data any, opts ...map[string]any) error {
 	m.logger.Debug("updating data", "collection", collectionName, "filter", filter, "data", data)
+	if filter == nil {
+		return errors.New("filter is required and cannot be nil")
+	}
 	collection := m.db.Collection(collectionName)
+	m.convertFilterToMongoTypes(filter)
 	_, err := collection.UpdateOne(context.Background(), filter, bson.M{"$set": data})
 	if err != nil {
 		return err
@@ -148,7 +154,11 @@ func (m *MongoDBManager) Update(collectionName string, filter map[string]any, da
 
 func (m *MongoDBManager) Delete(collectionName string, filter map[string]any) error {
 	m.logger.Debug("deleting data", "collection", collectionName, "filter", filter)
+	if filter == nil {
+		return errors.New("filter is required and cannot be nil")
+	}
 	collection := m.db.Collection(collectionName)
+	m.convertFilterToMongoTypes(filter)
 	_, err := collection.DeleteOne(context.Background(), filter)
 	if err != nil {
 		return err
@@ -210,4 +220,30 @@ func (m *MongoDBManager) DropIndex(collectionName, indexName string) error {
 
 	m.logger.Info("index dropped", "collection", collectionName, "index", indexName)
 	return nil
+}
+
+// Aggregate executes an aggregation pipeline on a collection
+func (m *MongoDBManager) Aggregate(ctx context.Context, collectionName string, pipeline interface{}) (*mongo.Cursor, error) {
+	m.logger.Debug("executing aggregation", "collection", collectionName)
+	collection := m.db.Collection(collectionName)
+
+	cursor, err := collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		m.logger.Error("aggregation failed", "collection", collectionName, "error", err)
+		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
+	}
+
+	return cursor, nil
+}
+
+// In your repository or collection wrapper
+func (m *MongoDBManager) convertFilterToMongoTypes(filter map[string]any) {
+	if value, ok := filter["_id"]; ok {
+		if id, ok := value.(string); ok {
+			objectID, err := primitive.ObjectIDFromHex(id)
+			if err == nil {
+				filter["_id"] = objectID
+			}
+		}
+	}
 }

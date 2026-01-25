@@ -1,11 +1,11 @@
-package token
+package api
 
 import (
 	"errors"
 	"testing"
 	"time"
 
-	mock_token "erp.localhost/internal/auth/token/mock"
+	mock_token "erp.localhost/internal/auth/handler/mock"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
@@ -15,14 +15,6 @@ import (
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
-
-func TestNewTokenManager(t *testing.T) {
-	tm := NewTokenManager("test-secret-key-12345", time.Hour, 7*24*time.Hour, &logger.BaseLogger{})
-	require.NotNil(t, tm)
-	assert.NotNil(t, tm.accessTokenHandler)
-	assert.NotNil(t, tm.refreshTokenHandler)
-	assert.NotNil(t, tm.logger)
-}
 
 func TestTokenManager_StoreTokens(t *testing.T) {
 	testCases := []struct {
@@ -131,7 +123,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 					Times(tc.expectedDeleteCalls)
 			}
 
-			tm := &TokenManager{
+			tm := &TokenAPI{
 				accessTokenHandler:  accessMock,
 				refreshTokenHandler: refreshMock,
 				logger:              logger.NewBaseLogger(shared.ModuleAuth),
@@ -199,7 +191,7 @@ func TestTokenManager_ValidateAccessToken(t *testing.T) {
 					Times(tc.expectedValidateCallTimes)
 			}
 
-			tm := &TokenManager{
+			tm := &TokenAPI{
 				accessTokenHandler: mock,
 				logger:             logger.NewBaseLogger(shared.ModuleAuth),
 			}
@@ -265,7 +257,7 @@ func TestTokenManager_ValidateRefreshToken(t *testing.T) {
 					Times(tc.expectedValidateCallTimes)
 			}
 
-			tm := &TokenManager{
+			tm := &TokenAPI{
 				refreshTokenHandler: mock,
 				logger:              logger.NewBaseLogger(shared.ModuleAuth),
 			}

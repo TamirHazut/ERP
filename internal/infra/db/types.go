@@ -1,15 +1,19 @@
 package db
 
-import "time"
+import (
+	"time"
+
+	model_auth "erp.localhost/internal/infra/model/auth"
+)
 
 const (
 	SystemTenant          = "system"
-	SystemAdminUser       = "SystemAdmin"
+	SystemAdminUser       = model_auth.RoleSystemAdmin
 	SystemAdminEmail      = "system@system.com"
 	SystemAdminPassword   = "ERP@SystemAdmin.Secret5"
 	TenantAdminUser       = "admin"
-	TenantAdminRole       = "admin"
-	TenantAdminPermission = "*:*"
+	TenantAdminRole       = model_auth.RoleTenantAdmin
+	TenantAdminPermission = model_auth.ResourceTypeAll + ":" + model_auth.PermissionActionAll
 	TenantAdminPassword   = "admin"
 )
 

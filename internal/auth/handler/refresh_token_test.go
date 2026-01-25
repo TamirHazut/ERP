@@ -1,4 +1,4 @@
-package token
+package handler
 
 import (
 	"errors"
@@ -36,11 +36,12 @@ func (m refreshTokenMatcher) String() string {
 	return "matches refresh token fields except LastUsedAt"
 }
 
-func TestNewRefreshTokenKeyHandler(t *testing.T) {
-	// Note: This test requires a running Redis instance
-	// If Redis is not available, it will fail
-	// For unit testing, use newRefreshTokenKeyHandlerWithMock instead
-	t.Skip("Skipping test that requires Redis connection")
+func createNewRefreshTokenHandler(mockHandler *mock_redis.MockKeyHandler[authv1_cache.RefreshToken]) *RefreshTokenHandler {
+	handler := &RefreshTokenHandler{
+		handler: mockHandler,
+		logger:  logger.NewBaseLogger(shared.ModuleAuth),
+	}
+	return handler
 }
 
 func TestRefreshTokenKeyHandler_Store(t *testing.T) {
@@ -54,28 +55,22 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                    string
-		tenantID                string
-		userID                  string
-		refreshToken            *authv1_cache.RefreshToken
-		returnGetOneToken       *authv1_cache.RefreshToken
-		returnGetOneError       error
-		returnSetError          error
-		wantErr                 bool
-		expectedSetCallTimes    int
-		expectedGetOneCallTimes int
+		name                 string
+		tenantID             string
+		userID               string
+		refreshToken         *authv1_cache.RefreshToken
+		returnSetError       error
+		wantErr              bool
+		expectedSetCallTimes int
 	}{
 		{
-			name:                    "successful store",
-			tenantID:                "tenant-123",
-			userID:                  "user-123",
-			refreshToken:            validToken,
-			returnGetOneToken:       nil,
-			returnGetOneError:       nil,
-			returnSetError:          nil,
-			wantErr:                 false,
-			expectedSetCallTimes:    1,
-			expectedGetOneCallTimes: 1,
+			name:                 "successful store",
+			tenantID:             "tenant-123",
+			userID:               "user-123",
+			refreshToken:         validToken,
+			returnSetError:       nil,
+			wantErr:              false,
+			expectedSetCallTimes: 1,
 		},
 		{
 			name:     "store with validation error - missing token",
@@ -107,16 +102,13 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			expectedSetCallTimes: 0,
 		},
 		{
-			name:                    "store with database error",
-			tenantID:                "tenant-123",
-			userID:                  "user-123",
-			refreshToken:            validToken,
-			returnGetOneToken:       nil,
-			returnGetOneError:       nil,
-			returnSetError:          errors.New("database connection failed"),
-			wantErr:                 true,
-			expectedSetCallTimes:    1,
-			expectedGetOneCallTimes: 1,
+			name:                 "store with database error",
+			tenantID:             "tenant-123",
+			userID:               "user-123",
+			refreshToken:         validToken,
+			returnSetError:       errors.New("database connection failed"),
+			wantErr:              true,
+			expectedSetCallTimes: 1,
 		},
 	}
 
@@ -126,22 +118,14 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.RefreshToken](ctrl)
-			if tc.expectedGetOneCallTimes > 0 {
-				mockHandler.EXPECT().
-					GetOne(tc.tenantID, tc.userID).
-					Return(tc.returnGetOneToken, tc.returnGetOneError).
-					Times(tc.expectedGetOneCallTimes)
-			}
 			if tc.expectedSetCallTimes > 0 {
 				mockHandler.EXPECT().
-					Set(tc.tenantID, tc.userID, tc.refreshToken).
+					Set(tc.tenantID, tc.userID, tc.refreshToken, gomock.Any()).
 					Return(tc.returnSetError).
 					Times(tc.expectedSetCallTimes)
 			}
 
-			logger := logger.NewBaseLogger(shared.ModuleAuth)
-			handler := NewRefreshTokenHandler(logger)
-			handler.keyHandler = mockHandler
+			handler := createNewRefreshTokenHandler(mockHandler)
 
 			err := handler.Store(tc.tenantID, tc.userID, tc.refreshToken)
 			if tc.wantErr {
@@ -218,9 +202,7 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 					Times(tc.expectedGetOneCallTimes)
 			}
 
-			logger := logger.NewBaseLogger(shared.ModuleAuth)
-			handler := NewRefreshTokenHandler(logger)
-			handler.keyHandler = mockHandler
+			handler := createNewRefreshTokenHandler(mockHandler)
 
 			result, err := handler.GetOne(tc.tenantID, tc.userID)
 			if tc.wantErr {
@@ -322,9 +304,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 					Times(tc.expectedGetOneCallTimes)
 			}
 
-			logger := logger.NewBaseLogger(shared.ModuleAuth)
-			handler := NewRefreshTokenHandler(logger)
-			handler.keyHandler = mockHandler
+			handler := createNewRefreshTokenHandler(mockHandler)
 
 			result, err := handler.Validate(tc.tenantID, tc.userID)
 			if tc.wantErr {
@@ -354,10 +334,10 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 		userID                  string
 		returnGetToken          *authv1_cache.RefreshToken
 		returnGetError          error
-		returnUpdateError       error
+		returnDeleteError       error
 		wantErr                 bool
 		expectedGetOneCallTimes int
-		expectedUpdateCallTimes int
+		expectedDeleteCallTimes int
 	}{
 		{
 			name:                    "successful revoke",
@@ -365,10 +345,10 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			userID:                  "user-123",
 			returnGetToken:          &validToken,
 			returnGetError:          nil,
-			returnUpdateError:       nil,
+			returnDeleteError:       nil,
 			wantErr:                 false,
 			expectedGetOneCallTimes: 1,
-			expectedUpdateCallTimes: 1,
+			expectedDeleteCallTimes: 1,
 		},
 		{
 			name:                    "token not found",
@@ -376,10 +356,10 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			userID:                  "user-123",
 			returnGetToken:          nil,
 			returnGetError:          errors.New("token not found"),
-			returnUpdateError:       nil,
+			returnDeleteError:       nil,
 			wantErr:                 false,
 			expectedGetOneCallTimes: 1,
-			expectedUpdateCallTimes: 0,
+			expectedDeleteCallTimes: 0,
 		},
 		{
 			name:                    "update fails",
@@ -387,10 +367,10 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			userID:                  "user-123",
 			returnGetToken:          &validToken,
 			returnGetError:          nil,
-			returnUpdateError:       errors.New("update failed"),
+			returnDeleteError:       errors.New("update failed"),
 			wantErr:                 true,
 			expectedGetOneCallTimes: 1,
-			expectedUpdateCallTimes: 1,
+			expectedDeleteCallTimes: 1,
 		},
 	}
 
@@ -406,19 +386,17 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 					Return(tc.returnGetToken, tc.returnGetError).
 					Times(tc.expectedGetOneCallTimes)
 			}
-			if tc.expectedUpdateCallTimes > 0 {
+			if tc.expectedDeleteCallTimes > 0 {
 				// Create expected token with Revoked=true
 				expectedToken := tc.returnGetToken
 				expectedToken.Revoked = true
 				mockHandler.EXPECT().
-					Update(tc.tenantID, tc.userID, refreshTokenMatcher{expected: expectedToken}).
-					Return(tc.returnUpdateError).
-					Times(tc.expectedUpdateCallTimes)
+					Delete(tc.tenantID, tc.userID).
+					Return(tc.returnDeleteError).
+					Times(tc.expectedDeleteCallTimes)
 			}
 
-			logger := logger.NewBaseLogger(shared.ModuleAuth)
-			handler := NewRefreshTokenHandler(logger)
-			handler.keyHandler = mockHandler
+			handler := createNewRefreshTokenHandler(mockHandler)
 
 			err := handler.Revoke(tc.tenantID, tc.userID, "system")
 			if tc.wantErr {
@@ -470,9 +448,7 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 					Times(tc.expectedDeleteCallTimes)
 			}
 
-			logger := logger.NewBaseLogger(shared.ModuleAuth)
-			handler := NewRefreshTokenHandler(logger)
-			handler.keyHandler = mockHandler
+			handler := createNewRefreshTokenHandler(mockHandler)
 
 			err := handler.Delete(tc.tenantID, tc.userID)
 			if tc.wantErr {

@@ -9,16 +9,14 @@ import (
 	"time"
 
 	"erp.localhost/internal/auth/api"
-	collection_auth "erp.localhost/internal/auth/collection"
+	"erp.localhost/internal/auth/handler"
 	"erp.localhost/internal/auth/rbac"
 	"erp.localhost/internal/auth/service"
-	mongo_collection "erp.localhost/internal/infra/db/mongo/collection"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/grpc/server"
 	grpc_server "erp.localhost/internal/infra/grpc/server"
 	"erp.localhost/internal/infra/logging/logger"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
-	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 	model_shared "erp.localhost/internal/infra/model/shared"
 )
 
@@ -60,13 +58,13 @@ func Main() {
 		return
 	}
 
-	roleManager := createRoleManager(logger)
-	if roleManager == nil {
+	roleHanlder := createRoleHandler(logger)
+	if roleHanlder == nil {
 		logger.Error(infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to create role manager")).Error())
 		return
 	}
-	permManager := createPermissionManager(logger)
-	if permManager == nil {
+	permHandler := createPermissionHandler(logger)
+	if permHandler == nil {
 		logger.Error(infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to create permission manager")).Error())
 		return
 	}
@@ -75,9 +73,10 @@ func Main() {
 		logger.Error(infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to create verification manager")).Error())
 		return
 	}
-	rbacAPI := api.NewRBACAPI(roleManager, permManager, verificationManager, logger)
-	userAPI := api.NewUserAPI(rbacAPI, logger)
-	authAPI := api.NewAuthAPI(rbacAPI, userAPI, logger)
+	rbacAPI := api.NewRBACAPI(roleHanlder, permHandler, verificationManager, logger)
+	userAPI, err := api.NewUserAPI(rbacAPI, logger)
+	authAPI, err := api.NewAuthAPI(rbacAPI, userAPI, logger)
+	tenantAPI, err := api.NewTenantAPI(authAPI, rbacAPI, userAPI, logger)
 
 	/* Register services */
 	logger.Info("Registering gRPC services...")
@@ -97,7 +96,7 @@ func Main() {
 	userService := service.NewUserService(userAPI, logger)
 	srv.RegisterService(&authv1.UserService_ServiceDesc, userService)
 	// Tenant service
-	tenantService := service.NewTenantService(authAPI, rbacAPI, userAPI, logger)
+	tenantService := service.NewTenantService(tenantAPI, logger)
 	srv.RegisterService(&authv1.TenantService_ServiceDesc, tenantService)
 
 	// WaitGroup to wait for the gRPC server goroutine to finish
@@ -124,63 +123,46 @@ func Main() {
 	logger.Warn("gRPC server stopped")
 }
 
-func createRoleManager(logger logger.Logger) *rbac.RoleManager {
-	roleHandler := mongo_collection.NewBaseCollectionHandler[authv1.Role](model_mongo.AuthDB, model_mongo.RolesCollection, logger)
-	if roleHandler == nil {
-		logger.Fatal("failed to init role collection", "error", errors.New("failed to create collection handler"))
+func createRoleHandler(logger logger.Logger) *handler.RoleHandler {
+	hanlder, err := handler.NewRoleHandler(logger)
+	if err != nil {
+		logger.Fatal("failed to init role handler", "error", err)
 	}
-	rc := collection_auth.NewRoleCollection(roleHandler, logger)
-
-	if rc == nil {
-		return nil
-	}
-
-	return rbac.NewRoleManager(rc, logger)
+	return hanlder
 }
 
-func createPermissionManager(logger logger.Logger) *rbac.PermissionManager {
-	permHandler := mongo_collection.NewBaseCollectionHandler[authv1.Permission](model_mongo.AuthDB, model_mongo.PermissionsCollection, logger)
-	if permHandler == nil {
-		logger.Fatal("failed to init permission collection", "error", errors.New("failed to create collection handler"))
+func createPermissionHandler(logger logger.Logger) *handler.PermissionHandler {
+	hanlder, err := handler.NewPermissionHandler(logger)
+	if err != nil {
+		logger.Fatal("failed to init role handler", "error", err)
 	}
-	pc := collection_auth.NewPermissionCollection(permHandler, logger)
-
-	if pc == nil {
-		return nil
+	return hanlder
+}
+func createUserManager(logger logger.Logger) *handler.UserHandler {
+	hanlder, err := handler.NewUserHandler(logger)
+	if err != nil {
+		logger.Fatal("failed to init role handler", "error", err)
 	}
-
-	return rbac.NewPermissionManager(pc, logger)
+	return hanlder
+}
+func createTenantManager(logger logger.Logger) *handler.TenantHandler {
+	hanlder, err := handler.NewTenantHandler(logger)
+	if err != nil {
+		logger.Fatal("failed to init role handler", "error", err)
+	}
+	return hanlder
 }
 
 func createVerificationManager(logger logger.Logger) *rbac.VerificationManager {
-	permHandler := mongo_collection.NewBaseCollectionHandler[authv1.Permission](model_mongo.AuthDB, model_mongo.PermissionsCollection, logger)
-	if permHandler == nil {
-		logger.Fatal("failed to init permission collection", "error", errors.New("failed to create collection handler"))
-	}
-	pc := collection_auth.NewPermissionCollection(permHandler, logger)
+	uh := createUserManager(logger)
+	rh := createRoleHandler(logger)
+	ph := createPermissionHandler(logger)
+	th := createTenantManager(logger)
 
-	roleHandler := mongo_collection.NewBaseCollectionHandler[authv1.Role](model_mongo.AuthDB, model_mongo.RolesCollection, logger)
-	if roleHandler == nil {
-		logger.Fatal("failed to init role collection", "error", errors.New("failed to create collection handler"))
-	}
-	rc := collection_auth.NewRoleCollection(roleHandler, logger)
-
-	userHandler := mongo_collection.NewBaseCollectionHandler[authv1.User](model_mongo.AuthDB, model_mongo.UsersCollection, logger)
-	if userHandler == nil {
-		logger.Fatal("failed to init user collection", "error", errors.New("failed to create collection handler"))
-	}
-	uc := collection_auth.NewUserCollection(userHandler, logger)
-
-	tenantHandler := mongo_collection.NewBaseCollectionHandler[authv1.Tenant](model_mongo.AuthDB, model_mongo.TenantsCollection, logger)
-	if tenantHandler == nil {
-		logger.Fatal("failed to init tenant collection", "error", errors.New("failed to create collection handler"))
-	}
-	tc := collection_auth.NewTenantCollection(tenantHandler, logger)
-
-	if rc == nil || uc == nil || pc == nil || tc == nil {
+	if rh == nil || ph == nil || uh == nil || th == nil {
 		return nil
 	}
 
-	return rbac.NewVerificationManager(uc, rc, pc, tc, logger)
+	return rbac.NewVerificationManager(uh, rh, ph, th, logger)
 
 }
