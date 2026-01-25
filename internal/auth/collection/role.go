@@ -14,7 +14,7 @@ type RoleCollection struct {
 func NewRoleCollection(logger logger.Logger) (*RoleCollection, error) {
 	collection, err := collection.NewBaseCollectionHandler[authv1.Role](
 		model_mongo.AuthDB,
-		model_mongo.UsersCollection,
+		model_mongo.RolesCollection,
 		logger,
 	)
 	if err != nil {

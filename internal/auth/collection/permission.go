@@ -14,7 +14,7 @@ type PermissionCollection struct {
 func NewPermissionCollection(logger logger.Logger) (*PermissionCollection, error) {
 	collection, err := collection.NewBaseCollectionHandler[authv1.Permission](
 		model_mongo.AuthDB,
-		model_mongo.UsersCollection,
+		model_mongo.PermissionsCollection,
 		logger,
 	)
 	if err != nil {

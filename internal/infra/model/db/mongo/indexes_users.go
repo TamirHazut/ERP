@@ -14,14 +14,14 @@ func GetUsersIndexes() []mongo.IndexModel {
 				{Key: "tenant_id", Value: 1},
 				{Key: "email", Value: 1},
 			},
-			Options: options.Index().SetUnique(true).SetName("idx_tenant_email_unique"),
+			Options: options.Index().SetUnique(true).SetSparse(true).SetName("idx_tenant_email_unique"),
 		},
 		{
 			Keys: bson.D{
 				{Key: "tenant_id", Value: 1},
 				{Key: "username", Value: 1},
 			},
-			Options: options.Index().SetUnique(true).SetName("idx_tenant_username_unique"),
+			Options: options.Index().SetUnique(true).SetSparse(true).SetName("idx_tenant_username_unique"),
 		},
 		{
 			Keys: bson.D{{Key: "tenant_id", Value: 1}},

@@ -121,11 +121,11 @@ func (s *Seeder) SeedIndexes() error {
 			collection: model_mongo.PermissionsCollection,
 			indexes:    model_mongo.GetPermissionsIndexes(),
 		},
-		{
-			dbName:     model_mongo.EventDB,
-			collection: model_mongo.AuditLogsCollection,
-			indexes:    model_mongo.GetAuditLogsIndexes(),
-		},
+		// {
+		// 	dbName:     model_mongo.EventDB,
+		// 	collection: model_mongo.AuditLogsCollection,
+		// 	indexes:    model_mongo.GetAuditLogsIndexes(),
+		// },
 	}
 
 	// Create indexes for each collection
