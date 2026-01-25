@@ -62,7 +62,7 @@ MODULE := erp.localhost
 PROTO_OUT := .
 INFRA_BASE := internal/infra
 PROTO_IN := $(INFRA_BASE)/proto
-THIRD_PARTY := third_party
+THIRD_PARTY := $(PROTO_IN)/third_party
 GENERATED_OUT = $(INFRA_BASE)/model
 PROTOC_COMMON_FLAGS := -I=$(PROTO_IN) -I=$(THIRD_PARTY)
 GO_GEN_FLAGS := --go_out=$(PROTO_OUT) --go_opt=module=$(MODULE) \
@@ -102,6 +102,40 @@ proto-clean: ## Remove all generated proto files
 	@echo "Cleaning generated proto files..."
 	@find $(GENERATED_OUT) -name "*.pb.go" -type f -delete 2>/dev/null || true
 	@echo "Proto files cleaned"
+
+# Python proto generation directory
+PYTHON_PROTO_OUT := internal/infra/functional/proto
+
+proto-python: ## Generate Python gRPC stubs from proto files
+	@echo "Generating Python proto files..."
+	@mkdir -p $(PYTHON_PROTO_OUT)
+	@# Generate for each service
+	@for service in infra auth config core gateway event; do \
+		SERVICE_DIR="$(PROTO_IN)/$$service/v1"; \
+		if [ -d "$$SERVICE_DIR" ]; then \
+			echo "Generating Python stubs for $$service..."; \
+			python -m grpc_tools.protoc \
+				-I=$(PROTO_IN) \
+				-I=$(THIRD_PARTY) \
+				--python_out=$(PYTHON_PROTO_OUT) \
+				--grpc_python_out=$(PYTHON_PROTO_OUT) \
+				$$SERVICE_DIR/*.proto; \
+			if [ -d "$$SERVICE_DIR/cache" ]; then \
+				python -m grpc_tools.protoc \
+					-I=$(PROTO_IN) \
+					-I=$(THIRD_PARTY) \
+					--python_out=$(PYTHON_PROTO_OUT) \
+					--grpc_python_out=$(PYTHON_PROTO_OUT) \
+					$$SERVICE_DIR/cache/*.proto; \
+			fi; \
+		fi; \
+	done
+	@echo "✓ Python proto files generated in $(PYTHON_PROTO_OUT)"
+
+proto-python-clean: ## Clean generated Python proto files
+	@echo "Cleaning Python proto files..."
+	@rm -rf $(PYTHON_PROTO_OUT)
+	@echo "✓ Python proto files cleaned"
 
 # ============================================================================
 # BUILD TARGETS
@@ -167,6 +201,38 @@ test-coverage: ## Run tests with coverage for all services
 		$(MAKE) -C internal/$$module test-coverage; \
 	done
 	@echo "✓ All modules coverage reports generated"
+
+# ============================================================================
+# FUNCTIONAL TEST TARGETS
+# ============================================================================
+
+.PHONY: test-functional-setup test-functional-% test-functional-all test-functional-clean
+
+test-functional-setup: proto-python ## Setup Python test environment
+	@echo "Setting up Python functional test environment..."
+	@cd internal/infra/functional && python -m pip install -r requirements.txt
+	@echo "✓ Python dependencies installed"
+
+test-functional-%: test-functional-setup ## Run functional tests for a specific service
+	@echo "Running $* service functional tests..."
+	@cd internal/$*/functional && python -m pytest -v --tb=short
+	@echo "✓ $* functional tests completed"
+
+test-functional-all: test-functional-setup ## Run all functional tests
+	@echo "Running all functional tests..."
+	@for service in $(SERVICES); do \
+		if [ -d "internal/$$service/functional" ]; then \
+			$(MAKE) test-functional-$$service; \
+		fi; \
+	done
+	@echo "✓ All functional tests completed"
+
+test-functional-clean: proto-python-clean ## Clean functional test artifacts
+	@echo "Cleaning functional test artifacts..."
+	@find internal -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find internal -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find internal -type f -name "*.pyc" -delete 2>/dev/null || true
+	@echo "✓ Functional test artifacts cleaned"
 
 # ============================================================================
 # QUALITY TARGETS
@@ -257,39 +323,17 @@ mocks-verify: mocks
 # CERTIFICATE GENERATION (mTLS)
 # ============================================================================
 
-# Certificate configuration
-CA_DIR := resources/certs/ca
-CA_KEY := $(CA_DIR)/ca-key.pem
-CA_CERT := $(CA_DIR)/ca-cert.pem
-CA_DAYS := 3650
-CERT_DAYS := 365
-
 certs: certs-clean ## Create CA and certificates for all services
-	@echo "Creating Certificate Authority (CA) and all service certificates..."
-	@mkdir -p $(CA_DIR)
-	@if [ ! -f $(CA_CERT) ]; then \
-		echo "Creating root CA certificate..."; \
-		openssl genrsa -out $(CA_KEY) 4096; \
-		openssl req -new -x509 -days $(CA_DAYS) -key $(CA_KEY) -out $(CA_CERT) \
-			-subj "/C=US/ST=State/L=City/O=ERP System/OU=Certificate Authority/CN=ERP Root CA"; \
-		echo "✓ CA certificate created: $(CA_CERT)"; \
-		echo "✓ CA private key created: $(CA_KEY)"; \
-		echo ""; \
-		echo "⚠️  IMPORTANT: Keep $(CA_KEY) secure and never commit to version control!"; \
-		echo ""; \
-	else \
-		echo "✓ CA certificate already exists: $(CA_CERT)"; \
-	fi
-	@echo "Creating service certificates..."
-	@for service in $(SERVICES); do \
-		$(MAKE) -C internal/$$service certs; \
+	@echo "Creating certificates..."
+	@for module in $(MODULES); do \
+		$(MAKE) -C internal/$$module certs; \
 	done
 	@echo "✓ All certificates created successfully"
 
 certs-clean: ## Remove all certificates (CA and service certificates)
 	@echo "Removing all certificates..."
-	@rm -rf resources/certs
-	@for service in $(SERVICES); do \
-		$(MAKE) -C internal/$$service certs-clean; \
+	@rm -rf internal/infra/resources/certs
+	@for module in $(MODULES); do \
+		$(MAKE) -C internal/$$module certs-clean; \
 	done
 	@echo "✓ All certificates removed"

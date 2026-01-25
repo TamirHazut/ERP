@@ -1,0 +1,22 @@
+# gRPC and Protobuf
+grpcio>=1.60.0
+grpcio-tools>=1.60.0
+protobuf>=4.25.0
+
+# Testing framework
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-timeout>=2.2.0
+pytest-xdist>=3.5.0  # Parallel test execution
+
+# Database clients
+pymongo>=4.6.0
+redis>=5.0.0
+
+# Password hashing
+bcrypt>=4.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+faker>=22.0.0  # For generating test data

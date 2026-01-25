@@ -1,6 +1,6 @@
 # init Service Makefile
 
-.PHONY: build test test-coverage run lint clean help mocks mocks-clean
+.PHONY: build test test-coverage run lint clean help mocks mocks-clean certs certs-clean
 
 # Service configuration
 SERVICE_NAME := init
@@ -57,3 +57,9 @@ mocks-clean:
 	@echo "Cleaning generated infra mocks..."
 	@find . -path "*/mocks/mock_*.go" -type f -delete
 	@echo "✅ Init mocks cleaned"
+
+certs: certs-clean ## Create CA and certificates for all services
+	@echo "No certs in init module"
+
+certs-clean: ## Remove all certificates (CA and service certificates)
+	@echo "No certs in init module"

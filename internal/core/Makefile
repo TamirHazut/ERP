@@ -71,7 +71,7 @@ mocks-clean:
 
 # Certificate paths
 CERTS_DIR := resources/certs
-CA_DIR := ../../resources/certs/ca
+CA_DIR := ../infra/resources/certs/ca
 CA_KEY := $(CA_DIR)/ca-key.pem
 CA_CERT := $(CA_DIR)/ca-cert.pem
 SERVICE_KEY := $(CERTS_DIR)/key.pem

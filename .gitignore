@@ -25,6 +25,13 @@ coverage.html
 !README.md
 !ROADMAP.md
 
+# Python functional tests
+internal/infra/functional/proto/
+**/__pycache__/
+**/.pytest_cache/
+*.pyc
+*.pyo
+
 # Certificates (mTLS) - NEVER commit private keys!
 resources/certs/
 **/resources/certs/
@@ -33,3 +40,4 @@ resources/certs/
 *.key
 
 plans/
+logs/

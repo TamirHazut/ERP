@@ -54,3 +54,40 @@ mocks-clean:
 	@echo "Cleaning generated infra mocks..."
 	@find . -path "*/mocks/mock_*.go" -type f -delete
 	@echo "✅ Infra mocks cleaned"
+
+
+# ============================================================================
+# CERTIFICATE GENERATION (mTLS)
+# ============================================================================
+
+# Certificate configuration
+CA_DIR := resources/certs/ca
+CA_KEY := $(CA_DIR)/ca-key.pem
+CA_CERT := $(CA_DIR)/ca-cert.pem
+CA_DAYS := 3650
+CERT_DAYS := 365
+
+certs: certs-clean ## Create CA and certificates for all services
+	@echo "Creating Certificate Authority (CA)..."
+	@mkdir -p $(CA_DIR)
+	@if [ ! -f $(CA_CERT) ]; then \
+		echo "Creating root CA certificate..."; \
+		openssl genrsa -out $(CA_KEY) 4096; \
+		openssl req -new -x509 -days $(CA_DAYS) -key $(CA_KEY) -out $(CA_CERT) \
+			-subj "/C=US/ST=State/L=City/O=ERP System/OU=Certificate Authority/CN=ERP Root CA"; \
+		echo "✓ CA certificate created: $(CA_CERT)"; \
+		echo "✓ CA private key created: $(CA_KEY)"; \
+		echo ""; \
+		echo "⚠️  IMPORTANT: Keep $(CA_KEY) secure and never commit to version control!"; \
+		echo ""; \
+	else \
+		echo "✓ CA certificate already exists: $(CA_CERT)"; \
+	fi
+
+certs-clean: ## Remove all certificates (CA and service certificates)
+	@echo "Removing all certificates..."
+	@rm -rf resources/certs
+	@for service in $(SERVICES); do \
+		$(MAKE) -C internal/$$service certs-clean; \
+	done
+	@echo "✓ All certificates removed"
