@@ -21,6 +21,7 @@ const (
 
 func Main() {
 	logger := logger.NewBaseLogger(model_shared.ModuleCore)
+	defer logger.Close()
 	logger.Info("Starting service...")
 	// Channel to listen for OS signals for graceful shutdown
 	stopChan := make(chan os.Signal, 1)

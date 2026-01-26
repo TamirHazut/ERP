@@ -67,7 +67,7 @@ func (a *AuthAPI) Login(tenantID, email, username, password string) (*NewTokenRe
 		Success:   tokens != nil,
 	})
 	if updateErr := a.userAPI.userHandler.UpdateUser(user); updateErr != nil {
-		a.logger.Error("failed to update user login history", "error", err)
+		a.logger.Error("failed to update user login history", "error", updateErr)
 	}
 	return tokens, err
 }

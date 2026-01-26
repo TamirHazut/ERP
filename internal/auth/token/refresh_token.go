@@ -17,7 +17,7 @@ type RefreshTokenKeyHandler struct {
 // NewRefreshTokenKeyHandler creates a new RefreshTokenHandler
 func NewRefreshTokenKeyHandler(logger logger.Logger) (*RefreshTokenKeyHandler, error) {
 	keyHandler, err := redis.NewBaseKeyHandler[authv1_cache.RefreshToken](
-		model_redis.RedisKeyToken,
+		model_redis.RedisKeyRefreshToken,
 		logger,
 	)
 	if err != nil {

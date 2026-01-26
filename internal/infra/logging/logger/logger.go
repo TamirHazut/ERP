@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"erp.localhost/internal/infra/model/shared"
@@ -23,20 +24,191 @@ type Logger interface {
 	Fatal(msg string, extraFields ...any)
 }
 
+// FileOpenMode defines how log files should be opened
+type FileOpenMode int
+
+const (
+	FileModeAppend FileOpenMode = iota
+	FileModeTruncate
+)
+
+// LoggerConfig holds configuration for the logger from environment variables
+type LoggerConfig struct {
+	LogsDir        string
+	FileMode       FileOpenMode
+	ConsoleEnabled bool
+	Module         shared.Module
+}
+
 type BaseLogger struct {
-	logger zerolog.Logger
+	logger      zerolog.Logger
+	fileCleanup func()
+}
+
+// getLoggerConfigFromEnv reads logger configuration from environment variables
+func getLoggerConfigFromEnv() LoggerConfig {
+	config := LoggerConfig{
+		LogsDir:        os.Getenv("LOG_FILE_PATH"),
+		FileMode:       FileModeTruncate,
+		ConsoleEnabled: true,
+	}
+
+	// Parse LOG_FILE_MODE
+	if mode := os.Getenv("LOG_FILE_MODE"); mode == "append" {
+		config.FileMode = FileModeAppend
+	}
+
+	// Parse LOG_CONSOLE_ENABLED
+	if console := os.Getenv("LOG_CONSOLE_ENABLED"); console == "false" {
+		config.ConsoleEnabled = false
+	}
+
+	return config
+}
+
+// findProjectRoot walks up the directory tree to find go.mod
+func findProjectRoot() (string, error) {
+	// Start from executable directory
+	execPath, err := os.Executable()
+	if err != nil {
+		// Fallback to working directory
+		return os.Getwd()
+	}
+	dir := filepath.Dir(execPath)
+
+	// Walk up directory tree looking for go.mod
+	for {
+		goModPath := filepath.Join(dir, "go.mod")
+		if _, err := os.Stat(goModPath); err == nil {
+			return dir, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached root without finding go.mod
+			break
+		}
+		dir = parent
+	}
+
+	// Fallback to working directory
+	return os.Getwd()
+}
+
+// createFileWriter creates a file writer with the specified configuration
+func createFileWriter(config LoggerConfig) (io.Writer, *os.File, error) {
+	if config.LogsDir == "" {
+		return nil, nil, fmt.Errorf("file path is empty")
+	}
+
+	// Resolve file path
+	filePath := fmt.Sprintf("%s/%s.log", config.LogsDir, strings.ToLower(string(config.Module)))
+	if !filepath.IsAbs(filePath) {
+		// Relative path - resolve from project root
+		projectRoot, err := findProjectRoot()
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to find project root: %w", err)
+		}
+		filePath = filepath.Join(projectRoot, filePath)
+	}
+
+	// Create directory if needed
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, nil, fmt.Errorf("failed to create log directory: %w", err)
+	}
+
+	// Determine file opening flags
+	flags := os.O_CREATE | os.O_WRONLY
+	if config.FileMode == FileModeAppend {
+		flags |= os.O_APPEND
+	} else {
+		flags |= os.O_TRUNC
+	}
+
+	// Open file
+	file, err := os.OpenFile(filePath, flags, 0644)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open log file: %w", err)
+	}
+
+	// Wrap in pipeFormatter
+	writer := &pipeFormatter{w: file}
+	return writer, file, nil
+}
+
+// createMultiWriter creates a writer based on configuration (console, file, or both)
+func createMultiWriter(config LoggerConfig) (io.Writer, func(), error) {
+	var writers []io.Writer
+	var fileHandle *os.File
+
+	// Cleanup function to close file handle
+	cleanup := func() {
+		if fileHandle != nil {
+			fileHandle.Close()
+		}
+	}
+
+	// Add console writer if enabled
+	if config.ConsoleEnabled {
+		writers = append(writers, &pipeFormatter{w: os.Stdout})
+	}
+
+	// Add file writer if path is provided
+	if config.LogsDir != "" {
+		fileWriter, file, err := createFileWriter(config)
+		if err != nil {
+			return nil, cleanup, err
+		}
+		writers = append(writers, fileWriter)
+		fileHandle = file
+	}
+
+	// Return appropriate writer
+	if len(writers) == 0 {
+		// No writers - fallback to console
+		return &pipeFormatter{w: os.Stdout}, cleanup, nil
+	} else if len(writers) == 1 {
+		return writers[0], cleanup, nil
+	} else {
+		return io.MultiWriter(writers...), cleanup, nil
+	}
 }
 
 // NewBaseLogger creates a new logger for each module.
-func NewBaseLogger(module shared.Module) *BaseLogger {
-	baseLogger := zerolog.New(newConsoleWriter()).
+func NewBaseLogger(module shared.Module, opts ...map[string]string) *BaseLogger {
+	// Read configuration from environment
+	config := getLoggerConfigFromEnv()
+	config.Module = module
+
+	// Create multi-writer (console, file, or both)
+	writer, cleanup, err := createMultiWriter(config)
+	if err != nil {
+		// If file logging fails, fall back to console-only and log warning
+		writer = newConsoleWriter()
+		cleanup = func() {}
+
+		// Create a temporary logger to log the warning
+		tempLogger := zerolog.New(writer).
+			With().
+			Timestamp().
+			Str("module", string(module)).
+			Logger()
+		tempLogger.Warn().
+			Err(err).
+			Str("file_path", config.LogsDir).
+			Msg("Failed to initialize file logging, using console only")
+	}
+
+	baseLogger := zerolog.New(writer).
 		With().
 		Timestamp().
 		Str("module", string(module)).
 		Logger()
 
 	return &BaseLogger{
-		logger: baseLogger,
+		logger:      baseLogger,
+		fileCleanup: cleanup,
 	}
 }
 
@@ -165,4 +337,12 @@ func (l *BaseLogger) log(level zerolog.Level, msg string, extraFields ...any) {
 	}
 
 	ev.Msg(msg)
+}
+
+// Close releases any resources held by the logger (e.g., file handles)
+func (l *BaseLogger) Close() error {
+	if l != nil && l.fileCleanup != nil {
+		l.fileCleanup()
+	}
+	return nil
 }

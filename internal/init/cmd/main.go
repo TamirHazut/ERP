@@ -11,6 +11,13 @@ import (
 func Main() {
 	// Initialize logger
 	logger := logger.NewBaseLogger(shared.ModuleInit)
+	defer logger.Close()
+
+	disableInit := getEnv("DISABLE_INIT", "")
+	if disableInit != "" {
+		logger.Info("ERP System - Init Service disabled")
+		return
+	}
 	logger.Info("ERP System - Init Service Started")
 
 	// Run seeding
@@ -27,4 +34,12 @@ func Main() {
 
 	logger.Info("System data seeded successfully")
 	logger.Info("Init Service - Exiting")
+}
+
+// getEnv gets an environment variable or returns a default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

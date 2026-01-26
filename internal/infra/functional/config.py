@@ -27,7 +27,7 @@ class DatabaseConfig:
     port: int
     username: str
     password: str
-    database: str
+    database: str = None
 
     @property
     def mongo_uri(self) -> str:
@@ -40,6 +40,12 @@ class DatabaseConfig:
 
 class TestConfig:
     """Global test configuration."""
+        # Test database names (with env variable support)
+    TEST_DATABASES = {
+        "auth": os.getenv("AUTH_DB_NAME", "auth_db_test"),
+        "config": os.getenv("CONFIG_DB_NAME", "config_db_test"),
+        "core": os.getenv("CORE_DB_NAME", "core_db_test"),
+    }
 
     # Service endpoints
     AUTH_SERVICE = ServiceConfig(
@@ -69,7 +75,6 @@ class TestConfig:
         port=int(os.getenv("MONGO_PORT", "27017")),
         username=os.getenv("MONGO_USER", "root"),
         password=os.getenv("MONGO_PASSWORD", "secret"),
-        database="auth_db_test"  # Separate test database
     )
 
     # Redis configuration

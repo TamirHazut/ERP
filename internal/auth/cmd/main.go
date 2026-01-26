@@ -27,6 +27,7 @@ const (
 // TODO: when breaking to microservices, this will be the entry point for the auth service
 func Main() {
 	logger := logger.NewBaseLogger(model_shared.ModuleAuth)
+	defer logger.Close()
 	logger.Info("Starting service...")
 	// Channel to listen for OS signals for graceful shutdown
 	stopChan := make(chan os.Signal, 1)

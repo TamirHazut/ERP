@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"erp.localhost/internal/infra/db/mongo/codec"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
@@ -47,7 +48,13 @@ func (m *MongoDBManager) Init() error {
 	uri := "mongodb://root:secret@localhost:27017"
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+
+	// Create client options with custom codec registry for timestamppb.Timestamp support
+	clientOpts := options.Client().
+		ApplyURI(uri).
+		SetRegistry(codec.GetRegistry())
+
+	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {
 		m.logger.Fatal("failed to connect to mongo", "error", err)
 		return err
@@ -236,7 +243,7 @@ func (m *MongoDBManager) Aggregate(ctx context.Context, collectionName string, p
 	return cursor, nil
 }
 
-// In your repository or collection wrapper
+// convertFilterToMongoTypes converts string IDs to MongoDB ObjectIDs in filters
 func (m *MongoDBManager) convertFilterToMongoTypes(filter map[string]any) {
 	if value, ok := filter["_id"]; ok {
 		if id, ok := value.(string); ok {

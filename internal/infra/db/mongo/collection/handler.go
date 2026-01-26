@@ -6,6 +6,7 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 //go:generate mockgen -destination=mock/mock_collection_handler.go -package=mock erp.localhost/internal/infra/db/mongo/collection CollectionHandler
@@ -103,12 +104,41 @@ func (r *BaseCollectionHandler[T]) Update(filter map[string]any, item *T) error 
 		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter, "item", item)
 		return err
 	}
-	if err := r.dbHandler.Update(r.collection, filter, item); err != nil {
+
+	// Convert item to BSON map and exclude _id field (immutable in MongoDB)
+	updateData, err := r.prepareUpdateData(item)
+	if err != nil {
+		err = infra_error.Internal(infra_error.InternalDatabaseError, err)
+		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter, "item", item)
+		return err
+	}
+
+	if err := r.dbHandler.Update(r.collection, filter, updateData); err != nil {
 		err = infra_error.Internal(infra_error.InternalDatabaseError, err)
 		r.logger.Error(err.Error(), "collection", r.collection, "filter", filter, "item", item)
 		return err
 	}
 	return nil
+}
+
+// prepareUpdateData converts item to BSON map and excludes the _id field
+func (r *BaseCollectionHandler[T]) prepareUpdateData(item *T) (bson.M, error) {
+	// Marshal to BSON bytes
+	bytes, err := bson.Marshal(item)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal to bson.M
+	var updateMap bson.M
+	if err := bson.Unmarshal(bytes, &updateMap); err != nil {
+		return nil, err
+	}
+
+	// Remove _id field (immutable in MongoDB)
+	delete(updateMap, "_id")
+
+	return updateMap, nil
 }
 
 func (r *BaseCollectionHandler[T]) Delete(filter map[string]any) error {

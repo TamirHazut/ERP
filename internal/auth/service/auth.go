@@ -28,8 +28,10 @@ func NewAuthService(authAPI *api.AuthAPI, logger logger.Logger) *AuthService {
 func (a *AuthService) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.TokensResponse, error) {
 	tenantID := req.GetTenantId()
 	userPassword := req.GetPassword()
+	email := req.GetEmail()
+	username := req.GetUsername()
 
-	newTokenResponse, err := a.authAPI.Login(tenantID, req.GetEmail(), req.GetUsername(), userPassword)
+	newTokenResponse, err := a.authAPI.Login(tenantID, email, username, userPassword)
 	if err != nil {
 		a.logger.Error("failed to authenticate", "error", err.Error())
 		return nil, infra_error.ToGRPCError(err)

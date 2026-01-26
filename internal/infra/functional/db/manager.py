@@ -4,7 +4,12 @@ Handles test database setup, teardown, and cleanup.
 """
 from pymongo import MongoClient
 import redis
-from ..config import TestConfig
+import sys
+import os
+
+# Add infra functional path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config import TestConfig
 
 
 class DatabaseManager:
@@ -37,13 +42,14 @@ class DatabaseManager:
             self.mongo_client.close()
         if self.redis_client:
             self.redis_client.close()
-
+            
+    # TODO: fix problematic login since there are multiple db's and only the test itself knows which db he needs
     def clean_test_data(self):
         """Clean all test data from databases."""
         if self.mongo_client:
-            # Drop test database
-            db = self.mongo_client[TestConfig.MONGODB.database]
-            db.client.drop_database(TestConfig.MONGODB.database)
+            # Drop all test databases from central config
+            for db_name in TestConfig.TEST_DATABASES.values():
+                self.mongo_client.drop_database(db_name)
 
         if self.redis_client:
             # Flush Redis (careful - only use in test environment!)

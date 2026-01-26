@@ -167,7 +167,7 @@ define run_service
 endef
 
 run: 
-	@go run ./cmd/
+	@LOG_FILE_PATH=./logs go run ./cmd/
 
 run-%:
 	$(call run_service,$*)
@@ -215,7 +215,7 @@ test-functional-setup: proto-python ## Setup Python test environment
 
 test-functional-%: test-functional-setup ## Run functional tests for a specific service
 	@echo "Running $* service functional tests..."
-	@cd internal/$*/functional && python -m pytest -v --tb=short
+	@cd internal/$*/functional && LOG_LEVEL=DEBUG python -m pytest -v -s --tb=short
 	@echo "✓ $* functional tests completed"
 
 test-functional-all: test-functional-setup ## Run all functional tests

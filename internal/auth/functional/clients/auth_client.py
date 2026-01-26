@@ -4,14 +4,16 @@ Provides high-level methods for authentication operations.
 """
 import sys
 import os
-
-# Add proto path to system path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../infra/functional'))
-
-from proto.auth.v1 import auth_pb2, auth_pb2_grpc
-from proto.infra.v1 import infra_pb2
 import grpc
 from typing import Optional, Tuple
+
+# Add paths for imports
+infra_functional_path = os.path.join(os.path.dirname(__file__), '../../../infra/functional')
+sys.path.insert(0, infra_functional_path)
+sys.path.insert(0, os.path.join(infra_functional_path, 'proto'))
+
+from auth.v1 import auth_pb2, auth_pb2_grpc
+from infra.v1 import infra_pb2
 
 
 class AuthClient:
@@ -20,7 +22,7 @@ class AuthClient:
     def __init__(self, channel: grpc.Channel):
         self.stub = auth_pb2_grpc.AuthServiceStub(channel)
 
-    def login(self, tenant_id: str, account_id: str, password: str) -> Tuple[str, str, int, int]:
+    def login(self, tenant_id: str, email: str, password: str) -> Tuple[str, str, int, int]:
         """
         Login user and get tokens.
 
@@ -28,7 +30,7 @@ class AuthClient:
         """
         request = auth_pb2.LoginRequest(
             tenant_id=tenant_id,
-            account_id=account_id,
+            email=email,
             password=password
         )
         response = self.stub.Login(request)
