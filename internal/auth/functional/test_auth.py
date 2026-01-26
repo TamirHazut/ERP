@@ -18,6 +18,7 @@ from config import TestConfig
 from auth.v1 import auth_pb2, auth_pb2_grpc
 from infra.v1 import infra_pb2
 from logger import get_logger
+from db.redis_client import RedisClient
 
 # Test logger
 logger = get_logger("tests.auth")
@@ -256,35 +257,82 @@ class TestTokenRevocation:
             # Assert
             assert revoke_response.revoked is True
 
-            logger.info("Step 4: Verify - checking revoked token is invalid")
-            # Verify: Check that the revoked token is now invalid
-            verify_request = auth_pb2.VerifyTokenRequest(token=access_token)
-            verify_response = stub.VerifyToken(verify_request)
-            assert verify_response.valid is False
+            logger.info("Step 4: Verify - checking Redis keys are deleted")
+            # Verify: Check that the Redis keys for both tokens are deleted
+            with RedisClient() as redis:
+                access_token_key = f"tokens:{self.tenant_id}:{self.user_id}"
+                refresh_token_key = f"refresh_tokens:{self.tenant_id}:{self.user_id}"
+
+                assert redis.exists(access_token_key) is False, f"Access token key {access_token_key} should not exist"
+                assert redis.exists(refresh_token_key) is False, f"Refresh token key {refresh_token_key} should not exist"
+                logger.info(f"Verified: Both Redis keys deleted (tokens and refresh_tokens)")
 
             logger.info("Step 5: Token revocation test completed successfully")
 
     def test_revoke_all_tenant_tokens_success(self):
-        """Test revoking all tokens for a tenant."""
-        logger.info("Step 1: Pre-test - logging in 3 times to create multiple token sets")
+        """Test revoking all tokens for a tenant.
 
-        tokens = []
+        Note: System uses single token per user design, so we create 3 users
+        and login once with each to get 3 token sets.
+        """
+        logger.info("Step 1: Pre-test - creating 3 users and logging in with each")
+
+        from db.mongo_client import MongoDBClient
+        import bcrypt
+        from datetime import datetime
+
+        database = os.getenv("AUTH_DB_NAME", "auth_db_test")
+        user_ids = []
+
+        # Create 3 additional test users
+        with MongoDBClient(database) as mongo:
+            for i in range(1, 4):
+                password_hash = bcrypt.hashpw(
+                    TestConfig.DEFAULT_ADMIN_PASSWORD.encode('utf-8'),
+                    bcrypt.gensalt()
+                ).decode('utf-8')
+
+                user = {
+                    "tenant_id": self.tenant_id,
+                    "email": f"testuser{i}@test.com",
+                    "username": f"testuser{i}",
+                    "password_hash": password_hash,
+                    "status": 1,  # ACTIVE
+                    "email_verified": True,
+                    "roles": [{
+                        "role_id": self.role_id,
+                        "tenant_id": self.tenant_id,
+                        "assigned_at": datetime.now(),
+                        "assigned_by": "System"
+                    }],
+                    "created_at": datetime.now(),
+                    "created_by": "System"
+                }
+                user_id = mongo.insert_one("users", user)
+                user_ids.append(user_id)
+                logger.info(f"Created test user {i}/3: testuser{i}@test.com")
+
+        # Login with each user to create tokens
         with GrpcClient(TestConfig.AUTH_SERVICE) as client:
             stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
 
-            # Pre-test: Login 3 times to create 3 sets of tokens
-            for i in range(3):
+            # Pre-test: Login to get tokens
+            login_request = auth_pb2.LoginRequest(
+                tenant_id=self.tenant_id,
+                email=self.user_email,
+                password=self.user_password
+            )
+            login_response = stub.Login(login_request)
+            logger.info(f"Logged in admin user - created token set")
+
+            for i in range(1, 4):
                 login_request = auth_pb2.LoginRequest(
                     tenant_id=self.tenant_id,
-                    email=self.user_email,
-                    password=self.user_password
+                    email=f"testuser{i}@test.com",
+                    password=TestConfig.DEFAULT_ADMIN_PASSWORD
                 )
                 login_response = stub.Login(login_request)
-                tokens.append({
-                    'access': login_response.tokens.token,
-                    'refresh': login_response.tokens.refresh_token
-                })
-                logger.info(f"Created token set {i+1}/3")
+                logger.info(f"Logged in user {i}/3 - created token set")
 
             logger.info("Step 2: Act - calling RevokeAllTenantTokens RPC")
             # Act: Revoke all tokens for the tenant
@@ -298,18 +346,28 @@ class TestTokenRevocation:
             revoke_all_response = stub.RevokeAllTenantTokens(revoke_all_request)
 
             logger.info("Step 3: Assert - validating revocation response")
-            # Assert
+            # Assert - Should revoke tokens for 3 test users + 1 admin user = 4 total
             assert revoke_all_response.revoked is True
-            assert revoke_all_response.access_tokens_revoked >= 3
-            assert revoke_all_response.refresh_tokens_revoked >= 3
+            assert revoke_all_response.access_tokens_revoked >= 4, f"Expected at least 4 access tokens revoked, got {revoke_all_response.access_tokens_revoked}"
+            assert revoke_all_response.refresh_tokens_revoked >= 4, f"Expected at least 4 refresh tokens revoked, got {revoke_all_response.refresh_tokens_revoked}"
             logger.info(f"Revoked {revoke_all_response.access_tokens_revoked} access tokens and {revoke_all_response.refresh_tokens_revoked} refresh tokens")
 
-            logger.info("Step 4: Verify - checking all access tokens are invalid")
-            # Verify: All access tokens should now be invalid
-            for i, token_set in enumerate(tokens):
-                verify_request = auth_pb2.VerifyTokenRequest(token=token_set['access'])
-                verify_response = stub.VerifyToken(verify_request)
-                assert verify_response.valid is False
-                logger.info(f"Token {i+1}/3 is invalid (as expected)")
+            logger.info("Step 4: Verify - checking Redis keys are deleted for all users")
+            # Verify: Check that Redis keys for all users are deleted
+            with RedisClient() as redis:
+                # Check admin user tokens
+                access_token_key = f"tokens:{self.tenant_id}:{self.user_id}"
+                refresh_token_key = f"refresh_tokens:{self.tenant_id}:{self.user_id}"
+                assert redis.exists(access_token_key) is False, f"Admin access token key should not exist"
+                assert redis.exists(refresh_token_key) is False, f"Admin refresh token key should not exist"
+
+                # Check test user tokens
+                for user_id in user_ids:
+                    access_token_key = f"tokens:{self.tenant_id}:{user_id}"
+                    refresh_token_key = f"refresh_tokens:{self.tenant_id}:{user_id}"
+                    assert redis.exists(access_token_key) is False, f"Test user {user_id} access token key should not exist"
+                    assert redis.exists(refresh_token_key) is False, f"Test user {user_id} refresh token key should not exist"
+
+                logger.info(f"Verified: All Redis keys deleted for tenant {self.tenant_id} (4 users)")
 
             logger.info("Step 5: RevokeAllTenantTokens test completed successfully")

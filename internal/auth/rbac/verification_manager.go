@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"erp.localhost/internal/auth/handler"
+	"erp.localhost/internal/infra/db"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
@@ -30,7 +31,7 @@ func NewVerificationManager(
 		roleHandler:       roleHandler,
 		permissionHandler: permissionHandler,
 		tenantHandler:     tenantHandler,
-		systemTenantID:    model_auth.SystemTenantID,
+		systemTenantID:    db.SystemTenantID,
 		logger:            logger,
 	}
 }

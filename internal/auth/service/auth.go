@@ -126,8 +126,10 @@ func (a *AuthService) RevokeToken(ctx context.Context, req *authv1.RevokeTokenRe
 	tenantID := req.GetIdentifier().GetTenantId()
 	userID := req.GetIdentifier().GetUserId()
 	revokedBy := req.GetRevokedBy()
+	token := req.GetTokens().GetToken()
+	refreshToken := req.GetTokens().GetRefreshToken()
 
-	if err := a.authAPI.RevokeTokens(tenantID, userID, req.GetTokens().GetToken(), req.GetTokens().GetRefreshToken(), revokedBy); err != nil {
+	if err := a.authAPI.RevokeTokens(tenantID, userID, token, refreshToken, revokedBy); err != nil {
 		a.logger.Error("failed to revoke token", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy, "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}

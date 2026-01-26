@@ -19,7 +19,7 @@ type PermissionAggregationHandler struct {
 func NewPermissionAggregationHandler(logger logger.Logger) (*PermissionAggregationHandler, error) {
 	aggregation, err := aggregation.NewBaseAggregationHandler[authv1.Permission](
 		model_mongo.AuthDB,
-		model_mongo.PermissionsCollection,
+		model_mongo.RolesCollection,
 		logger,
 	)
 	if err != nil {

@@ -20,7 +20,7 @@ type RoleAggregationHandler struct {
 func NewRoleAggregationHandler(logger logger.Logger) (*RoleAggregationHandler, error) {
 	aggregation, err := aggregation.NewBaseAggregationHandler[authv1.Role](
 		model_mongo.AuthDB,
-		model_mongo.RolesCollection,
+		model_mongo.UsersCollection,
 		logger,
 	)
 	if err != nil {

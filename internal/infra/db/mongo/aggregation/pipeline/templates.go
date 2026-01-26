@@ -6,28 +6,71 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// BuildUserPermissionsPipeline creates a pipeline to get all permissions for a user
-// This replaces the N+1 query pattern: User → Roles → Permissions
-// Pipeline: Match user → Lookup roles → Unwind → Lookup permissions from role → Unwind → Group unique permissions
+//
+// ---------- Helpers ----------
+//
+
+// safeObjectIdConvert builds a $convert expression that safely converts a value to ObjectId.
+// We use this everywhere IDs are stored as strings to avoid lookup mismatches and crashes.
+func safeObjectIdConvert(field string) bson.M {
+	return bson.M{
+		"$convert": bson.M{
+			"input":   field,
+			"to":      "objectId",
+			"onError": nil,
+			"onNull":  nil,
+		},
+	}
+}
+
+// ==========================================================
+// BuildUserPermissionsPipeline
+// ==========================================================
+//
+// Purpose:
+//
+//	Resolve ALL permissions a user effectively has.
+//	This includes:
+//	  - permissions inherited via roles
+//	  - permissions directly assigned to the user
+//
+// Why this pipeline exists:
+//
+//	Avoids N+1 queries:
+//	  user → roles → permissions
 func BuildUserPermissionsPipeline(tenantID, userID string) []bson.M {
 	userObjectID, _ := primitive.ObjectIDFromHex(userID)
 
 	return []bson.M{
-		// Stage 1: Match the specific user
+		// Select the single user within the tenant.
+		// Everything else in this pipeline operates on this user only.
 		{
 			"$match": bson.M{
 				"tenant_id": tenantID,
 				"_id":       userObjectID,
 			},
 		},
-		// Stage 2: Unwind user roles array to process each role
+
+		// Expand the user's roles array so each role can be processed independently.
+		// preserveNullAndEmptyArrays allows users with no roles to still continue
+		// (they may still have additional_permissions).
 		{
 			"$unwind": bson.M{
 				"path":                       "$roles",
 				"preserveNullAndEmptyArrays": true,
 			},
 		},
-		// Stage 3: Lookup role details from roles collection
+
+		// Convert roles.role_id from string → ObjectId so it can be joined
+		// against roles._id in the roles collection.
+		{
+			"$addFields": bson.M{
+				"roles.role_id": safeObjectIdConvert("$roles.role_id"),
+			},
+		},
+
+		// Join the full role document for each user role.
+		// This gives us access to role.permissions.
 		{
 			"$lookup": bson.M{
 				"from":         string(model_mongo.RolesCollection),
@@ -36,21 +79,33 @@ func BuildUserPermissionsPipeline(tenantID, userID string) []bson.M {
 				"as":           "role_details",
 			},
 		},
-		// Stage 4: Unwind role_details array
+
+		// Flatten the joined role document.
 		{
 			"$unwind": bson.M{
 				"path":                       "$role_details",
 				"preserveNullAndEmptyArrays": true,
 			},
 		},
-		// Stage 5: Unwind permissions array from role
+
+		// Expand the permissions array inside each role so permissions
+		// can be resolved individually.
 		{
 			"$unwind": bson.M{
 				"path":                       "$role_details.permissions",
 				"preserveNullAndEmptyArrays": true,
 			},
 		},
-		// Stage 6: Lookup permission details from permissions collection
+
+		// Convert role permission IDs from string → ObjectId
+		// so they can be joined against permissions._id.
+		{
+			"$addFields": bson.M{
+				"role_details.permissions": safeObjectIdConvert("$role_details.permissions"),
+			},
+		},
+
+		// Join the permission documents referenced by the role.
 		{
 			"$lookup": bson.M{
 				"from":         string(model_mongo.PermissionsCollection),
@@ -59,30 +114,45 @@ func BuildUserPermissionsPipeline(tenantID, userID string) []bson.M {
 				"as":           "permission_details",
 			},
 		},
-		// Stage 7: Unwind permission_details array
+
+		// Flatten the permission document.
 		{
 			"$unwind": bson.M{
 				"path":                       "$permission_details",
 				"preserveNullAndEmptyArrays": true,
 			},
 		},
-		// Stage 8: Also handle additional_permissions from user
+
+		// UNION additional_permissions directly assigned to the user.
+		// These bypass roles entirely.
 		{
 			"$unionWith": bson.M{
 				"coll": string(model_mongo.UsersCollection),
 				"pipeline": []bson.M{
+					// Re-select the same user.
 					{
 						"$match": bson.M{
 							"tenant_id": tenantID,
 							"_id":       userObjectID,
 						},
 					},
+
+					// Expand additional_permissions array.
 					{
 						"$unwind": bson.M{
 							"path":                       "$additional_permissions",
 							"preserveNullAndEmptyArrays": true,
 						},
 					},
+
+					// Convert permission ID to ObjectId for lookup.
+					{
+						"$addFields": bson.M{
+							"additional_permissions": safeObjectIdConvert("$additional_permissions"),
+						},
+					},
+
+					// Join permission documents.
 					{
 						"$lookup": bson.M{
 							"from":         string(model_mongo.PermissionsCollection),
@@ -91,13 +161,17 @@ func BuildUserPermissionsPipeline(tenantID, userID string) []bson.M {
 							"as":           "permission_details",
 						},
 					},
+
+					// Flatten permission document.
 					{
 						"$unwind": "$permission_details",
 					},
 				},
 			},
 		},
-		// Stage 9: Group by permission ID to get unique permissions
+
+		// Deduplicate permissions coming from multiple roles
+		// or both role-based and direct assignment.
 		{
 			"$group": bson.M{
 				"_id": "$permission_details._id",
@@ -106,7 +180,8 @@ func BuildUserPermissionsPipeline(tenantID, userID string) []bson.M {
 				},
 			},
 		},
-		// Stage 10: Replace root with permission document
+
+		// Output clean permission documents as the final result.
 		{
 			"$replaceRoot": bson.M{
 				"newRoot": "$permission",
@@ -115,28 +190,38 @@ func BuildUserPermissionsPipeline(tenantID, userID string) []bson.M {
 	}
 }
 
-// BuildUserRolesPipeline creates a pipeline to get all roles for a user
-// This replaces the N query pattern where we fetch each role individually
-// Pipeline: Match user → Unwind roles → Lookup role details
+// ==========================================================
+// BuildUserRolesPipeline
+// ==========================================================
+//
+// Purpose:
+//
+//	Fetch all roles assigned to a user as full role documents.
 func BuildUserRolesPipeline(tenantID, userID string) []bson.M {
 	userObjectID, _ := primitive.ObjectIDFromHex(userID)
 
 	return []bson.M{
-		// Stage 1: Match the specific user
+		// Select the user within the tenant.
 		{
 			"$match": bson.M{
 				"tenant_id": tenantID,
 				"_id":       userObjectID,
 			},
 		},
-		// Stage 2: Unwind user roles array
+
+		// Expand roles array so each role can be resolved.
 		{
-			"$unwind": bson.M{
-				"path":                       "$roles",
-				"preserveNullAndEmptyArrays": false,
+			"$unwind": "$roles",
+		},
+
+		// Normalize role_id for lookup compatibility.
+		{
+			"$addFields": bson.M{
+				"roles.role_id": safeObjectIdConvert("$roles.role_id"),
 			},
 		},
-		// Stage 3: Lookup role details from roles collection
+
+		// Join role documents.
 		{
 			"$lookup": bson.M{
 				"from":         string(model_mongo.RolesCollection),
@@ -145,11 +230,13 @@ func BuildUserRolesPipeline(tenantID, userID string) []bson.M {
 				"as":           "role_details",
 			},
 		},
-		// Stage 4: Unwind role_details array
+
+		// Flatten joined role.
 		{
 			"$unwind": "$role_details",
 		},
-		// Stage 5: Replace root with role document
+
+		// Output role document directly.
 		{
 			"$replaceRoot": bson.M{
 				"newRoot": "$role_details",
@@ -158,27 +245,38 @@ func BuildUserRolesPipeline(tenantID, userID string) []bson.M {
 	}
 }
 
-// BuildRolePermissionsPipeline creates a pipeline to get all permissions for a role
-// Pipeline: Match role → Unwind permissions → Lookup permission details
+// ==========================================================
+// BuildRolePermissionsPipeline
+// ==========================================================
+//
+// Purpose:
+//
+//	Resolve all permissions belonging to a single role.
 func BuildRolePermissionsPipeline(tenantID, roleID string) []bson.M {
 	roleObjectID, _ := primitive.ObjectIDFromHex(roleID)
 
 	return []bson.M{
-		// Stage 1: Match the specific role
+		// Select the role within the tenant.
 		{
 			"$match": bson.M{
 				"tenant_id": tenantID,
 				"_id":       roleObjectID,
 			},
 		},
-		// Stage 2: Unwind permissions array
+
+		// Expand permissions array so each permission can be resolved.
 		{
-			"$unwind": bson.M{
-				"path":                       "$permissions",
-				"preserveNullAndEmptyArrays": false,
+			"$unwind": "$permissions",
+		},
+
+		// Normalize permission ID for lookup.
+		{
+			"$addFields": bson.M{
+				"permissions": safeObjectIdConvert("$permissions"),
 			},
 		},
-		// Stage 3: Lookup permission details from permissions collection
+
+		// Join permission documents.
 		{
 			"$lookup": bson.M{
 				"from":         string(model_mongo.PermissionsCollection),
@@ -187,180 +285,16 @@ func BuildRolePermissionsPipeline(tenantID, roleID string) []bson.M {
 				"as":           "permission_details",
 			},
 		},
-		// Stage 4: Unwind permission_details array
+
+		// Flatten permission.
 		{
 			"$unwind": "$permission_details",
 		},
-		// Stage 5: Replace root with permission document
+
+		// Output permission document.
 		{
 			"$replaceRoot": bson.M{
 				"newRoot": "$permission_details",
-			},
-		},
-	}
-}
-
-// BuildBatchGetByIDsPipeline creates a pipeline to get multiple documents by IDs
-// Uses $in operator for efficient batch fetching
-func BuildBatchGetByIDsPipeline(tenantID string, ids []string) []bson.M {
-	// Convert string IDs to ObjectIDs
-	objectIDs := make([]primitive.ObjectID, 0, len(ids))
-	for _, id := range ids {
-		if objectID, err := primitive.ObjectIDFromHex(id); err == nil {
-			objectIDs = append(objectIDs, objectID)
-		}
-	}
-
-	return []bson.M{
-		{
-			"$match": bson.M{
-				"tenant_id": tenantID,
-				"_id":       bson.M{"$in": objectIDs},
-			},
-		},
-	}
-}
-
-// BuildTenantWithUsersPipeline creates a pipeline to get a tenant with all its users
-func BuildTenantWithUsersPipeline(tenantID string) []bson.M {
-	tenantObjectID, _ := primitive.ObjectIDFromHex(tenantID)
-
-	return []bson.M{
-		// Stage 1: Match the specific tenant
-		{
-			"$match": bson.M{
-				"_id": tenantObjectID,
-			},
-		},
-		// Stage 2: Lookup all users for this tenant
-		{
-			"$lookup": bson.M{
-				"from":         string(model_mongo.UsersCollection),
-				"localField":   "_id",
-				"foreignField": "tenant_id",
-				"as":           "users",
-			},
-		},
-	}
-}
-
-// BuildTenantWithRolesPipeline creates a pipeline to get a tenant with all its roles
-func BuildTenantWithRolesPipeline(tenantID string) []bson.M {
-	tenantObjectID, _ := primitive.ObjectIDFromHex(tenantID)
-
-	return []bson.M{
-		// Stage 1: Match the specific tenant
-		{
-			"$match": bson.M{
-				"_id": tenantObjectID,
-			},
-		},
-		// Stage 2: Lookup all roles for this tenant
-		{
-			"$lookup": bson.M{
-				"from":         string(model_mongo.RolesCollection),
-				"localField":   "_id",
-				"foreignField": "tenant_id",
-				"as":           "roles",
-			},
-		},
-	}
-}
-
-// BuildRolesWithUserCountsPipeline creates a pipeline to get all roles with user counts
-func BuildRolesWithUserCountsPipeline(tenantID string) []bson.M {
-	return []bson.M{
-		// Stage 1: Match roles for tenant
-		{
-			"$match": bson.M{
-				"tenant_id": tenantID,
-			},
-		},
-		// Stage 2: Lookup users that have this role
-		{
-			"$lookup": bson.M{
-				"from":         string(model_mongo.UsersCollection),
-				"localField":   "_id",
-				"foreignField": "roles.role_id",
-				"as":           "users_with_role",
-			},
-		},
-		// Stage 3: Add user_count field
-		{
-			"$addFields": bson.M{
-				"user_count": bson.M{"$size": "$users_with_role"},
-			},
-		},
-		// Stage 4: Remove the users_with_role array (we only need the count)
-		{
-			"$project": bson.M{
-				"users_with_role": 0,
-			},
-		},
-	}
-}
-
-// BuildPermissionsWithRoleCountsPipeline creates a pipeline to get all permissions with role usage counts
-func BuildPermissionsWithRoleCountsPipeline(tenantID string) []bson.M {
-	return []bson.M{
-		// Stage 1: Match permissions for tenant
-		{
-			"$match": bson.M{
-				"tenant_id": tenantID,
-			},
-		},
-		// Stage 2: Lookup roles that have this permission
-		{
-			"$lookup": bson.M{
-				"from":         string(model_mongo.RolesCollection),
-				"localField":   "_id",
-				"foreignField": "permissions",
-				"as":           "roles_with_permission",
-			},
-		},
-		// Stage 3: Add role_count field
-		{
-			"$addFields": bson.M{
-				"role_count": bson.M{"$size": "$roles_with_permission"},
-			},
-		},
-		// Stage 4: Remove the roles_with_permission array (we only need the count)
-		{
-			"$project": bson.M{
-				"roles_with_permission": 0,
-			},
-		},
-	}
-}
-
-// BuildUnusedPermissionsPipeline creates a pipeline to get permissions not assigned to any role
-func BuildUnusedPermissionsPipeline(tenantID string) []bson.M {
-	return []bson.M{
-		// Stage 1: Match permissions for tenant
-		{
-			"$match": bson.M{
-				"tenant_id": tenantID,
-			},
-		},
-		// Stage 2: Lookup roles that have this permission
-		{
-			"$lookup": bson.M{
-				"from":         string(model_mongo.RolesCollection),
-				"localField":   "_id",
-				"foreignField": "permissions",
-				"as":           "roles_with_permission",
-			},
-		},
-		// Stage 3: Match only permissions with no roles
-		{
-			"$match": bson.M{
-				"roles_with_permission": bson.M{"$size": 0},
-			},
-		},
-		// Stage 4: Remove the roles_with_permission array
-		{
-			"$project": bson.M{
-				"roles_with_permission": 0,
 			},
 		},
 	}
