@@ -7,6 +7,7 @@ import (
 	"erp.localhost/internal/auth/hash"
 	"erp.localhost/internal/infra/db"
 	mongo_db "erp.localhost/internal/infra/db/mongo"
+	"erp.localhost/internal/infra/db/redis"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	"erp.localhost/internal/infra/model/auth"
@@ -24,6 +25,8 @@ type Seeder struct {
 	userHandler       *collection_auth.UserCollection
 	permissionHandler *collection_auth.PermissionCollection
 	roleHandler       *collection_auth.RoleCollection
+
+	systemKeyHandler *redis.SystemKeyHandler
 }
 
 func NewSeeder(logger logger.Logger) (*Seeder, error) {
@@ -47,12 +50,18 @@ func NewSeeder(logger logger.Logger) (*Seeder, error) {
 		logger.Fatal("failed to create role collection", "error", err)
 		return nil, err
 	}
+	systemKeyHandler, err := redis.NewSystemKeyHandler(logger)
+	if err != nil {
+		logger.Fatal("failed to system key handler", "error", err)
+		return nil, err
+	}
 	return &Seeder{
 		logger:            logger,
 		tenantHandler:     th,
 		userHandler:       uh,
 		permissionHandler: ph,
 		roleHandler:       rh,
+		systemKeyHandler:  systemKeyHandler,
 	}, nil
 }
 
@@ -65,28 +74,32 @@ func (s *Seeder) SeedSystemData() error {
 	}
 
 	// Step 1: Create system tenant
-	if err := s.seedSystemTenant(); err != nil {
+	systemTenantID, err := s.seedSystemTenant()
+	if err != nil {
 		return fmt.Errorf("failed to seed system tenant: %w", err)
 	}
-	s.logger.Info("System tenant seeded", "tenant_id", db.SystemTenantID)
+	s.logger.Info("System tenant seeded")
 
 	// Step 2: Create system permission
-	if err := s.seedSystemPermission(); err != nil {
+	permissionID, err := s.seedSystemPermission(systemTenantID)
+	if err != nil {
 		return fmt.Errorf("failed to seed system permission: %w", err)
 	}
-	s.logger.Info("System permission seeded", "permission_id", db.SystemAdminPermissionID)
+	s.logger.Info("System permission seeded")
 
 	// Step 3: Create system role
-	if err := s.seedSystemRole(); err != nil {
+	roleID, err := s.seedSystemRole(systemTenantID, permissionID)
+	if err != nil {
 		return fmt.Errorf("failed to seed system role: %w", err)
 	}
-	s.logger.Info("System role seeded", "role_id", db.SystemAdminRoleID)
+	s.logger.Info("System role seeded")
 
 	// Step 4: Create system admin user
-	if err := s.seedSystemAdminUser(); err != nil {
+	_, err = s.seedSystemAdminUser(systemTenantID, roleID)
+	if err != nil {
 		return fmt.Errorf("failed to seed system admin user: %w", err)
 	}
-	s.logger.Info("System admin user seeded", "user_id", db.SystemAdminUserID)
+	s.logger.Info("System admin user seeded")
 
 	return nil
 }
@@ -147,15 +160,14 @@ func (s *Seeder) SeedIndexes() error {
 	return nil
 }
 
-func (s *Seeder) seedSystemTenant() error {
+func (s *Seeder) seedSystemTenant() (string, error) {
 	s.logger.Debug("Checking for existing system tenant")
 	// Check if system tenant already exists
 	filter := map[string]any{"name": db.SystemTenant}
 	existing, err := s.tenantHandler.FindOne(filter)
 	if err == nil && existing != nil {
 		s.logger.Info("System tenant already exists, skipping creation")
-		db.SystemTenantID = existing.Id
-		return nil
+		return existing.Id, s.systemKeyHandler.Set("tenant", &existing.Id)
 	}
 
 	s.logger.Debug("Creating system tenant")
@@ -169,33 +181,31 @@ func (s *Seeder) seedSystemTenant() error {
 
 	tenantID, err := s.tenantHandler.Create(tenant)
 	if err != nil {
-		return infra_error.Internal(infra_error.InternalDatabaseError, err)
+		return "", infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
-	db.SystemTenantID = tenantID
-	return nil
+	return tenantID, s.systemKeyHandler.Set("tenant", &tenantID)
 }
 
-func (s *Seeder) seedSystemPermission() error {
+func (s *Seeder) seedSystemPermission(systemTenantID string) (string, error) {
 	s.logger.Debug("Checking for existing system permission")
 
 	// Check if permission already exists
 	filter := map[string]any{
-		"tenant_id":         db.SystemTenantID,
+		"tenant_id":         systemTenantID,
 		"permission_string": db.TenantAdminPermission,
 	}
 	existing, err := s.permissionHandler.FindOne(filter)
 	if err == nil && existing != nil {
 		s.logger.Info("System permission already exists, skipping creation")
-		db.SystemAdminPermissionID = existing.Id
-		return nil
+		return existing.Id, s.systemKeyHandler.Set("permission", &existing.Id)
 	}
 
 	s.logger.Debug("Creating system permission")
 
 	// Create permission
 	permission := &authv1.Permission{
-		TenantId:         db.SystemTenantID,
+		TenantId:         systemTenantID,
 		Resource:         auth.ResourceTypeAll,
 		Action:           auth.PermissionActionAll,
 		CreatedBy:        "System",
@@ -208,62 +218,58 @@ func (s *Seeder) seedSystemPermission() error {
 
 	permissionID, err := s.permissionHandler.Create(permission)
 	if err != nil {
-		return infra_error.Internal(infra_error.InternalDatabaseError, err)
+		return "", infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
-	db.SystemAdminPermissionID = permissionID
-	return nil
+	return permissionID, s.systemKeyHandler.Set("permission", &permissionID)
 }
 
-func (s *Seeder) seedSystemRole() error {
+func (s *Seeder) seedSystemRole(systemTenantID, systemPermissionID string) (string, error) {
 	s.logger.Debug("Checking for existing system role")
 
 	// Check if role already exists
 	filter := map[string]any{
-		"tenant_id": db.SystemTenantID,
+		"tenant_id": systemTenantID,
 		"name":      db.SystemAdminUser,
 	}
 	existing, err := s.roleHandler.FindOne(filter)
 	if err == nil && existing != nil {
 		s.logger.Info("System role already exists, skipping creation")
-		db.SystemAdminRoleID = existing.Id
-		return nil
+		return existing.Id, s.systemKeyHandler.Set("role", &existing.Id)
 	}
 
 	s.logger.Debug("Creating system role")
 
 	// Create role
 	role := &authv1.Role{
-		TenantId:    db.SystemTenantID,
+		TenantId:    systemTenantID,
 		Name:        db.SystemAdminUser,
 		Description: "System administrator role with full access to all resources",
-		Permissions: []string{db.SystemAdminPermissionID},
+		Permissions: []string{systemPermissionID},
 		Status:      authv1.RoleStatus_ROLE_STATUS_ACTIVE,
 		CreatedBy:   "System",
 	}
 
 	roleID, err := s.roleHandler.Create(role)
 	if err != nil {
-		return infra_error.Internal(infra_error.InternalDatabaseError, err)
+		return "", infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
-	db.SystemAdminRoleID = roleID
-	return nil
+	return roleID, s.systemKeyHandler.Set("role", &roleID)
 }
 
-func (s *Seeder) seedSystemAdminUser() error {
+func (s *Seeder) seedSystemAdminUser(systemTenantID, systemRoleID string) (string, error) {
 	s.logger.Debug("Checking for existing system admin user")
 
 	// Check if user already exists
 	filter := map[string]any{
-		"tenant_id": db.SystemTenantID,
+		"tenant_id": systemTenantID,
 		"email":     db.SystemAdminEmail,
 	}
 	existing, err := s.userHandler.FindOne(filter)
 	if err == nil && existing != nil {
 		s.logger.Info("System admin user already exists, skipping creation")
-		db.SystemAdminUserID = existing.Id
-		return nil
+		return existing.Id, s.systemKeyHandler.Set("user", &existing.Id)
 	}
 
 	s.logger.Debug("Creating system admin user")
@@ -271,12 +277,12 @@ func (s *Seeder) seedSystemAdminUser() error {
 	// Hash password
 	hash, err := hash.HashPassword(db.SystemAdminPassword)
 	if err != nil {
-		return infra_error.Internal(infra_error.InternalUnexpectedError, err)
+		return "", infra_error.Internal(infra_error.InternalUnexpectedError, err)
 	}
 
 	// Create user with system admin role
 	user := &authv1.User{
-		TenantId:     db.SystemTenantID,
+		TenantId:     systemTenantID,
 		Username:     db.SystemAdminUser,
 		Email:        db.SystemAdminEmail,
 		PasswordHash: hash,
@@ -284,8 +290,8 @@ func (s *Seeder) seedSystemAdminUser() error {
 		CreatedBy:    "System",
 		Roles: []*authv1.UserRole{
 			{
-				TenantId:   db.SystemTenantID,
-				RoleId:     db.SystemAdminRoleID,
+				TenantId:   systemTenantID,
+				RoleId:     systemRoleID,
 				AssignedAt: timestamppb.Now(),
 				AssignedBy: "System",
 			},
@@ -294,9 +300,8 @@ func (s *Seeder) seedSystemAdminUser() error {
 
 	userID, err := s.userHandler.Create(user)
 	if err != nil {
-		return infra_error.Internal(infra_error.InternalDatabaseError, err)
+		return "", infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
-	db.SystemAdminUserID = userID
-	return nil
+	return userID, s.systemKeyHandler.Set("user", &userID)
 }

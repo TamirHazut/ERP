@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -125,8 +126,9 @@ func TestAccessTokenKeyHandler_Store(t *testing.T) {
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.TokenMetadata](ctrl)
 			if tc.expectedSetCallTimes > 0 {
+				key := fmt.Sprintf("%s:%s", tc.expectedTenantID, tc.expectedUserID)
 				mockHandler.EXPECT().
-					Set(tc.expectedTenantID, tc.expectedUserID, tc.metadata, gomock.Any()).
+					Set(key, tc.metadata, gomock.Any()).
 					Return(tc.returnSetError).
 					Times(tc.expectedSetCallTimes)
 			}
@@ -209,8 +211,9 @@ func TestAccessTokenKeyHandler_GetOne(t *testing.T) {
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.TokenMetadata](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
+				key := fmt.Sprintf("%s:%s", tc.expectedTenantID, tc.expectedUserID)
 				mockHandler.EXPECT().
-					GetOne(tc.expectedTenantID, tc.expectedUserID).
+					GetOne(key).
 					Return(tc.returnMetadata, tc.returnError).
 					Times(tc.expectedGetOneCallTimes)
 			}
@@ -317,8 +320,9 @@ func TestAccessTokenKeyHandler_Validate(t *testing.T) {
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.TokenMetadata](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
+				key := fmt.Sprintf("%s:%s", tc.expectedTenantID, tc.expectedUserID)
 				mockHandler.EXPECT().
-					GetOne(tc.expectedTenantID, tc.expectedUserID).
+					GetOne(key).
 					Return(tc.returnMetadata, tc.returnError).
 					Times(tc.expectedGetOneCallTimes)
 			}
@@ -420,8 +424,9 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.TokenMetadata](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
+				key := fmt.Sprintf("%s:%s", tc.expectedGetTenantID, tc.expectedGetUserID)
 				mockHandler.EXPECT().
-					GetOne(tc.expectedGetTenantID, tc.expectedGetUserID).
+					GetOne(key).
 					Return(tc.returnGetMetadata, tc.returnGetError).
 					Times(tc.expectedGetOneCallTimes)
 			}
@@ -430,8 +435,9 @@ func TestAccessTokenKeyHandler_Revoke(t *testing.T) {
 				expectedMetadata := tc.returnGetMetadata
 				expectedMetadata.Revoked = true
 				expectedMetadata.RevokedBy = tc.revokedBy
+				key := fmt.Sprintf("%s:%s", tc.expectedDeleteTenantID, tc.expectedDeleteUserID)
 				mockHandler.EXPECT().
-					Delete(tc.expectedDeleteTenantID, tc.expectedDeleteUserID).
+					Delete(key).
 					Return(tc.returnDeleteError).
 					Times(tc.expectedDeleteCallTimes)
 			}
@@ -488,8 +494,9 @@ func TestAccessTokenKeyHandler_Delete(t *testing.T) {
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.TokenMetadata](ctrl)
 			if tc.expectedDeleteCallTimes > 0 {
+				key := fmt.Sprintf("%s:%s", tc.expectedDeleteTenantID, tc.expectedDeleteUserID)
 				mockHandler.EXPECT().
-					Delete(tc.expectedDeleteTenantID, tc.expectedDeleteUserID).
+					Delete(key).
 					Return(tc.returnDeleteError).
 					Times(tc.expectedDeleteCallTimes)
 			}

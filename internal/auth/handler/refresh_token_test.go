@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -119,8 +120,9 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.RefreshToken](ctrl)
 			if tc.expectedSetCallTimes > 0 {
+				key := fmt.Sprintf("%s:%s", tc.tenantID, tc.userID)
 				mockHandler.EXPECT().
-					Set(tc.tenantID, tc.userID, tc.refreshToken, gomock.Any()).
+					Set(key, tc.refreshToken, gomock.Any()).
 					Return(tc.returnSetError).
 					Times(tc.expectedSetCallTimes)
 			}
@@ -196,8 +198,9 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.RefreshToken](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
+				key := fmt.Sprintf("%s:%s", tc.tenantID, tc.userID)
 				mockHandler.EXPECT().
-					GetOne(tc.tenantID, tc.userID).
+					GetOne(key).
 					Return(tc.returnToken, tc.returnError).
 					Times(tc.expectedGetOneCallTimes)
 			}
@@ -298,8 +301,9 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.RefreshToken](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
+				key := fmt.Sprintf("%s:%s", tc.tenantID, tc.userID)
 				mockHandler.EXPECT().
-					GetOne(tc.tenantID, tc.userID).
+					GetOne(key).
 					Return(tc.returnToken, tc.returnError).
 					Times(tc.expectedGetOneCallTimes)
 			}
@@ -381,8 +385,9 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.RefreshToken](ctrl)
 			if tc.expectedGetOneCallTimes > 0 {
+				key := fmt.Sprintf("%s:%s", tc.tenantID, tc.userID)
 				mockHandler.EXPECT().
-					GetOne(tc.tenantID, tc.userID).
+					GetOne(key).
 					Return(tc.returnGetToken, tc.returnGetError).
 					Times(tc.expectedGetOneCallTimes)
 			}
@@ -390,8 +395,9 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 				// Create expected token with Revoked=true
 				expectedToken := tc.returnGetToken
 				expectedToken.Revoked = true
+				key := fmt.Sprintf("%s:%s", tc.tenantID, tc.userID)
 				mockHandler.EXPECT().
-					Delete(tc.tenantID, tc.userID).
+					Delete(key).
 					Return(tc.returnDeleteError).
 					Times(tc.expectedDeleteCallTimes)
 			}
@@ -442,8 +448,9 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 
 			mockHandler := mock_redis.NewMockKeyHandler[authv1_cache.RefreshToken](ctrl)
 			if tc.expectedDeleteCallTimes > 0 {
+				key := fmt.Sprintf("%s:%s", tc.tenantID, tc.userID)
 				mockHandler.EXPECT().
-					Delete(tc.tenantID, tc.userID).
+					Delete(key).
 					Return(tc.returnDeleteError).
 					Times(tc.expectedDeleteCallTimes)
 			}

@@ -119,8 +119,8 @@ func (p *PermissionHandler) UpdatePermission(permission *authv1.Permission) erro
 	if err != nil {
 		return err
 	}
-	if permission.CreatedAt != currentPermission.CreatedAt {
-		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields, "CreatedAt")
+	if permission.CreatedAt.AsTime().IsZero() || currentPermission.CreatedAt.AsTime().After(permission.CreatedAt.AsTime()) {
+		permission.CreatedAt = currentPermission.CreatedAt
 	}
 	permission.UpdatedAt = timestamppb.Now()
 	return p.collection.Update(filter, permission)

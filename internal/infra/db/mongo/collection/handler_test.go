@@ -9,6 +9,7 @@ import (
 	"erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/mock/gomock"
 )
 
@@ -210,6 +211,7 @@ func TestCollection_Update(t *testing.T) {
 		collection        string
 		filter            map[string]any
 		item              *TestModel
+		expectedItem      bson.M
 		returnError       error
 		expectedCallTimes int
 	}{
@@ -218,6 +220,7 @@ func TestCollection_Update(t *testing.T) {
 			collection:        "test_collection",
 			filter:            map[string]any{"_id": "1"},
 			item:              &TestModel{ID: "1", Name: "updated"},
+			expectedItem:      bson.M{"name": "updated"},
 			returnError:       nil,
 			expectedCallTimes: 1,
 		},
@@ -226,6 +229,7 @@ func TestCollection_Update(t *testing.T) {
 			collection:        "test_collection",
 			filter:            nil,
 			item:              &TestModel{ID: "1", Name: "updated"},
+			expectedItem:      bson.M{"name": "updated"},
 			returnError:       errors.New("filter is required and cannot be nil"),
 			expectedCallTimes: 0,
 		},
@@ -234,6 +238,7 @@ func TestCollection_Update(t *testing.T) {
 			collection:        "test_collection",
 			filter:            map[string]any{"_id": "1"},
 			item:              &TestModel{ID: "1", Name: "updated"},
+			expectedItem:      bson.M{"name": "updated"},
 			returnError:       errors.New("update failed"),
 			expectedCallTimes: 1,
 		},
@@ -244,7 +249,7 @@ func TestCollection_Update(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
-			mockHandler.EXPECT().Update(tc.collection, tc.filter, tc.item).Return(tc.returnError).Times(tc.expectedCallTimes)
+			mockHandler.EXPECT().Update(tc.collection, tc.filter, tc.expectedItem).Return(tc.returnError).Times(tc.expectedCallTimes)
 
 			collectionHanlder := BaseCollectionHandler[TestModel]{
 				dbHandler:  mockHandler,

@@ -40,83 +40,83 @@ func (m *MockKeyHandler[T]) EXPECT() *MockKeyHandlerMockRecorder[T] {
 }
 
 // Delete mocks base method.
-func (m *MockKeyHandler[T]) Delete(tenantID, key string) error {
+func (m *MockKeyHandler[T]) Delete(key string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", tenantID, key)
+	ret := m.ctrl.Call(m, "Delete", key)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockKeyHandlerMockRecorder[T]) Delete(tenantID, key any) *gomock.Call {
+func (mr *MockKeyHandlerMockRecorder[T]) Delete(key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockKeyHandler[T])(nil).Delete), tenantID, key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockKeyHandler[T])(nil).Delete), key)
 }
 
 // DeleteByPattern mocks base method.
-func (m *MockKeyHandler[T]) DeleteByPattern(tenantID, pattern string) (int, error) {
+func (m *MockKeyHandler[T]) DeleteByPattern(pattern string) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteByPattern", tenantID, pattern)
+	ret := m.ctrl.Call(m, "DeleteByPattern", pattern)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteByPattern indicates an expected call of DeleteByPattern.
-func (mr *MockKeyHandlerMockRecorder[T]) DeleteByPattern(tenantID, pattern any) *gomock.Call {
+func (mr *MockKeyHandlerMockRecorder[T]) DeleteByPattern(pattern any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByPattern", reflect.TypeOf((*MockKeyHandler[T])(nil).DeleteByPattern), tenantID, pattern)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByPattern", reflect.TypeOf((*MockKeyHandler[T])(nil).DeleteByPattern), pattern)
 }
 
 // GetAll mocks base method.
-func (m *MockKeyHandler[T]) GetAll(tenantID, userID string) ([]*T, error) {
+func (m *MockKeyHandler[T]) GetAll(key string) ([]*T, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAll", tenantID, userID)
+	ret := m.ctrl.Call(m, "GetAll", key)
 	ret0, _ := ret[0].([]*T)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAll indicates an expected call of GetAll.
-func (mr *MockKeyHandlerMockRecorder[T]) GetAll(tenantID, userID any) *gomock.Call {
+func (mr *MockKeyHandlerMockRecorder[T]) GetAll(key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockKeyHandler[T])(nil).GetAll), tenantID, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockKeyHandler[T])(nil).GetAll), key)
 }
 
 // GetOne mocks base method.
-func (m *MockKeyHandler[T]) GetOne(tenantID, key string) (*T, error) {
+func (m *MockKeyHandler[T]) GetOne(key string) (*T, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOne", tenantID, key)
+	ret := m.ctrl.Call(m, "GetOne", key)
 	ret0, _ := ret[0].(*T)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetOne indicates an expected call of GetOne.
-func (mr *MockKeyHandlerMockRecorder[T]) GetOne(tenantID, key any) *gomock.Call {
+func (mr *MockKeyHandlerMockRecorder[T]) GetOne(key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOne", reflect.TypeOf((*MockKeyHandler[T])(nil).GetOne), tenantID, key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOne", reflect.TypeOf((*MockKeyHandler[T])(nil).GetOne), key)
 }
 
 // ScanKeys mocks base method.
-func (m *MockKeyHandler[T]) ScanKeys(tenantID, pattern string) ([]string, error) {
+func (m *MockKeyHandler[T]) ScanKeys(pattern string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ScanKeys", tenantID, pattern)
+	ret := m.ctrl.Call(m, "ScanKeys", pattern)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ScanKeys indicates an expected call of ScanKeys.
-func (mr *MockKeyHandlerMockRecorder[T]) ScanKeys(tenantID, pattern any) *gomock.Call {
+func (mr *MockKeyHandlerMockRecorder[T]) ScanKeys(pattern any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanKeys", reflect.TypeOf((*MockKeyHandler[T])(nil).ScanKeys), tenantID, pattern)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanKeys", reflect.TypeOf((*MockKeyHandler[T])(nil).ScanKeys), pattern)
 }
 
 // Set mocks base method.
-func (m *MockKeyHandler[T]) Set(tenantID, key string, value *T, opts ...map[string]any) error {
+func (m *MockKeyHandler[T]) Set(key string, value *T, opts ...map[string]any) error {
 	m.ctrl.T.Helper()
-	varargs := []any{tenantID, key, value}
+	varargs := []any{key, value}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
@@ -126,16 +126,16 @@ func (m *MockKeyHandler[T]) Set(tenantID, key string, value *T, opts ...map[stri
 }
 
 // Set indicates an expected call of Set.
-func (mr *MockKeyHandlerMockRecorder[T]) Set(tenantID, key, value any, opts ...any) *gomock.Call {
+func (mr *MockKeyHandlerMockRecorder[T]) Set(key, value any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{tenantID, key, value}, opts...)
+	varargs := append([]any{key, value}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockKeyHandler[T])(nil).Set), varargs...)
 }
 
 // Update mocks base method.
-func (m *MockKeyHandler[T]) Update(tenantID, key string, value *T, opts ...map[string]any) error {
+func (m *MockKeyHandler[T]) Update(key string, value *T, opts ...map[string]any) error {
 	m.ctrl.T.Helper()
-	varargs := []any{tenantID, key, value}
+	varargs := []any{key, value}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
@@ -145,8 +145,8 @@ func (m *MockKeyHandler[T]) Update(tenantID, key string, value *T, opts ...map[s
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockKeyHandlerMockRecorder[T]) Update(tenantID, key, value any, opts ...any) *gomock.Call {
+func (mr *MockKeyHandlerMockRecorder[T]) Update(key, value any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{tenantID, key, value}, opts...)
+	varargs := append([]any{key, value}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockKeyHandler[T])(nil).Update), varargs...)
 }

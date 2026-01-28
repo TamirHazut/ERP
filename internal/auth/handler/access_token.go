@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"time"
 
 	"erp.localhost/internal/auth/token"
@@ -69,7 +70,8 @@ func (h *AccessTokenHandler) Store(tenantID string, userID string, metadata *aut
 	opts := map[string]any{"ttl": ttl}
 
 	// Store token using userID as key (automatically replaces old token)
-	err := h.handler.Set(tenantID, userID, metadata, opts)
+	key := fmt.Sprintf("%s:%s", tenantID, userID)
+	err := h.handler.Set(key, metadata, opts)
 	if err != nil {
 		h.logger.Error("Failed to store access token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
@@ -81,7 +83,8 @@ func (h *AccessTokenHandler) Store(tenantID string, userID string, metadata *aut
 
 // GetOne retrieves the single access token for a user from Redis
 func (h *AccessTokenHandler) GetOne(tenantID string, userID string) (*authv1_cache.TokenMetadata, error) {
-	token, err := h.handler.GetOne(tenantID, userID)
+	key := fmt.Sprintf("%s:%s", tenantID, userID)
+	token, err := h.handler.GetOne(key)
 	if err != nil {
 		h.logger.Debug("Access token not found", "tenantID", tenantID, "userID", userID)
 		return nil, err
@@ -92,7 +95,8 @@ func (h *AccessTokenHandler) GetOne(tenantID string, userID string) (*authv1_cac
 
 // Validate checks if a token is valid (exists, not revoked, not expired)
 func (h *AccessTokenHandler) Validate(tenantID string, userID string) (*authv1_cache.TokenMetadata, error) {
-	metadata, err := h.handler.GetOne(tenantID, userID)
+	key := fmt.Sprintf("%s:%s", tenantID, userID)
+	metadata, err := h.handler.GetOne(key)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +140,8 @@ func (h *AccessTokenHandler) Revoke(tenantID string, userID string, revokedBy st
 
 // Delete permanently removes the access token from Redis (hard delete)
 func (h *AccessTokenHandler) Delete(tenantID string, userID string) error {
-	err := h.handler.Delete(tenantID, userID)
+	key := fmt.Sprintf("%s:%s", tenantID, userID)
+	err := h.handler.Delete(key)
 	if err != nil {
 		h.logger.Error("Failed to delete access token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
@@ -150,7 +155,8 @@ func (h *AccessTokenHandler) Delete(tenantID string, userID string) error {
 // Used for tenant-level token management (revoke/delete all tokens for a tenant)
 func (h *AccessTokenHandler) ScanKeys(tenantID string) ([]string, error) {
 	// Pattern: all user IDs in this tenant (tenantID:*)
-	keys, err := h.handler.ScanKeys(tenantID, "*")
+	key := fmt.Sprintf("%s:*", tenantID)
+	keys, err := h.handler.ScanKeys(key)
 	if err != nil {
 		h.logger.Error("Failed to scan access token keys", "error", err, "tenantID", tenantID)
 		return nil, err
@@ -164,7 +170,8 @@ func (h *AccessTokenHandler) ScanKeys(tenantID string) ([]string, error) {
 // Returns the number of tokens deleted
 func (h *AccessTokenHandler) DeleteByPattern(tenantID string, pattern string) (int, error) {
 	// Pattern: all user IDs in this tenant (tenantID:*)
-	count, err := h.handler.DeleteByPattern(tenantID, pattern)
+	newPattern := fmt.Sprintf("%s:%s", tenantID, pattern)
+	count, err := h.handler.DeleteByPattern(newPattern)
 	if err != nil {
 		h.logger.Error("Failed to delete access tokens by pattern", "error", err, "tenantID", tenantID)
 		return 0, err

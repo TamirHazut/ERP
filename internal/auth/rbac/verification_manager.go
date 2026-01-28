@@ -2,7 +2,7 @@ package rbac
 
 import (
 	"erp.localhost/internal/auth/handler"
-	"erp.localhost/internal/infra/db"
+	"erp.localhost/internal/infra/db/redis"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
@@ -14,7 +14,7 @@ type VerificationManager struct {
 	roleHandler       *handler.RoleHandler
 	permissionHandler *handler.PermissionHandler
 	tenantHandler     *handler.TenantHandler
-	systemTenantID    string // System tenant ID (from config or constant)
+	systemKeyHandler  *redis.SystemKeyHandler
 	logger            logger.Logger
 }
 
@@ -25,15 +25,19 @@ func NewVerificationManager(
 	permissionHandler *handler.PermissionHandler,
 	tenantHandler *handler.TenantHandler,
 	logger logger.Logger,
-) *VerificationManager {
+) (*VerificationManager, error) {
+	systemHandler, err := redis.NewSystemKeyHandler(logger)
+	if err != nil {
+		return nil, err
+	}
 	return &VerificationManager{
 		userHandler:       userHandler,
 		roleHandler:       roleHandler,
 		permissionHandler: permissionHandler,
 		tenantHandler:     tenantHandler,
-		systemTenantID:    db.SystemTenantID,
+		systemKeyHandler:  systemHandler,
 		logger:            logger,
-	}
+	}, nil
 }
 
 // GetUserPermissionsIDs retrieves all the users permissions in a map with the format <id> -> <has permission (true/false)>
@@ -211,7 +215,11 @@ func (vm *VerificationManager) getUserPermissionsLegacy(tenantID, userID string)
 
 // Check if user belongs to system tenant
 func (vm *VerificationManager) IsSystemTenantUser(tenantID string) bool {
-	return tenantID == vm.systemTenantID
+	systemTenantID, err := vm.systemKeyHandler.GetOne("tenant")
+	if err != nil {
+		return false
+	}
+	return tenantID == *systemTenantID
 }
 
 // Check if user has tenant admin role
@@ -349,7 +357,7 @@ func (vm *VerificationManager) HasPermission(tenantID, userID, permission string
 		if err != nil {
 			return err
 		}
-		if userPermissions[permission] {
+		if userPermissions[permission] || userPermissions[model_auth.PermissionAdminString] {
 			return nil // System user has permission for cross-tenant operation
 		}
 		return infra_error.Auth(infra_error.AuthPermissionDenied)

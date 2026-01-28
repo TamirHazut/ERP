@@ -18,10 +18,14 @@ from config import TestConfig
 from auth.v1 import rbac_pb2, rbac_pb2_grpc
 from infra.v1 import infra_pb2
 from logger import get_logger
+from db.mongo_client import MongoDBClient
+from seeders.system_seeder import SystemSeeder
+from db.redis_client import RedisClient
 
 # Test logger
 logger = get_logger("tests.rbac")
 
+database = os.getenv("AUTH_DB_NAME", "auth_db_test")
 
 @pytest.mark.auth
 @pytest.mark.integration
@@ -31,14 +35,12 @@ class TestRBACVerification:
     @pytest.fixture(autouse=True)
     def setup(self, clean_database):
         """Setup test data before each test."""
-        from db.mongo_client import MongoDBClient
-        from seeders.system_seeder import SystemSeeder
 
         database = os.getenv("AUTH_DB_NAME", "auth_db_test")
 
         # Seed system data (admin user has system_admin role with "*:*" permission)
-        with MongoDBClient(database) as mongo:
-            seeder = SystemSeeder(mongo)
+        with MongoDBClient(database) as mongo, RedisClient() as redis:
+            seeder = SystemSeeder(mongo, redis)
             system_data = seeder.seed_all()
 
             self.tenant_id = system_data["tenant_id"]

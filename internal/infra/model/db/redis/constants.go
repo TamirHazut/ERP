@@ -9,6 +9,7 @@ const (
 	RedisKeyUserSessions = "user_sessions" // user_sessions:{tenant_id}:{user_id} -> set of session_ids
 
 	// Token keys
+	RedisKeySystem         = "system"
 	RedisKeyToken          = "tokens"         // tokens:{tenant_id}:{user_id}
 	RedisKeyRefreshToken   = "refresh_tokens" // refresh_tokens:{tenant_id}:{user_id}
 	RedisKeyRevokedToken   = "revoked_tokens" // revoked_tokens:{tenant_id}:{user_id}

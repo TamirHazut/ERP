@@ -301,7 +301,7 @@ func (t *TenantAPI) createWildcardPermission(tenantID, createdBy string) (string
 	permission := &authv1.Permission{
 		TenantId:         tenantID,
 		DisplayName:      "Full Access",
-		PermissionString: db.SystemAdminPermissionID,
+		PermissionString: model_auth.PermissionAdminString,
 		Description:      "Grants full access to all resources and actions",
 		Resource:         model_auth.ResourceTypeAll,     // "*"
 		Action:           model_auth.PermissionActionAll, // "*"

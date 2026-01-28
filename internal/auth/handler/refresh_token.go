@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"time"
 
 	"erp.localhost/internal/auth/token"
@@ -47,7 +48,8 @@ func (h *RefreshTokenHandler) Store(tenantID string, userID string, refreshToken
 	opts := map[string]any{"ttl": ttl}
 
 	// Store token using userID as key (automatically replaces old token)
-	err := h.handler.Set(tenantID, userID, refreshToken, opts)
+	key := fmt.Sprintf("%s:%s", tenantID, userID)
+	err := h.handler.Set(key, refreshToken, opts)
 	if err != nil {
 		h.logger.Error("Failed to store refresh token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
@@ -59,7 +61,8 @@ func (h *RefreshTokenHandler) Store(tenantID string, userID string, refreshToken
 
 // GetOne retrieves the single refresh token for a user from Redis
 func (h *RefreshTokenHandler) GetOne(tenantID string, userID string) (*authv1_cache.RefreshToken, error) {
-	token, err := h.handler.GetOne(tenantID, userID)
+	key := fmt.Sprintf("%s:%s", tenantID, userID)
+	token, err := h.handler.GetOne(key)
 	if err != nil {
 		h.logger.Debug("Refresh token not found", "tenantID", tenantID, "userID", userID)
 		return nil, err
@@ -115,7 +118,8 @@ func (h *RefreshTokenHandler) UpdateLastUsed(tenantID string, userID string, tok
 
 	token.LastUsedAt = timestamppb.Now()
 
-	err = h.handler.Update(tenantID, userID, token)
+	key := fmt.Sprintf("%s:%s", tenantID, userID)
+	err = h.handler.Update(key, token)
 	if err != nil {
 		h.logger.Error("Failed to update refresh token last used", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
@@ -126,7 +130,8 @@ func (h *RefreshTokenHandler) UpdateLastUsed(tenantID string, userID string, tok
 
 // Delete permanently removes the refresh token from Redis (hard delete)
 func (h *RefreshTokenHandler) Delete(tenantID string, userID string) error {
-	err := h.handler.Delete(tenantID, userID)
+	key := fmt.Sprintf("%s:%s", tenantID, userID)
+	err := h.handler.Delete(key)
 	if err != nil {
 		h.logger.Error("Failed to delete refresh token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
@@ -140,7 +145,8 @@ func (h *RefreshTokenHandler) Delete(tenantID string, userID string) error {
 // Used for tenant-level token management (revoke/delete all tokens for a tenant)
 func (h *RefreshTokenHandler) ScanKeys(tenantID string) ([]string, error) {
 	// Pattern: all user IDs in this tenant (tenantID:*)
-	keys, err := h.handler.ScanKeys(tenantID, "*")
+	key := fmt.Sprintf("%s:*", tenantID)
+	keys, err := h.handler.ScanKeys(key)
 	if err != nil {
 		h.logger.Error("Failed to scan refresh token keys", "error", err, "tenantID", tenantID)
 		return nil, err
@@ -154,7 +160,8 @@ func (h *RefreshTokenHandler) ScanKeys(tenantID string) ([]string, error) {
 // Returns the number of tokens deleted
 func (h *RefreshTokenHandler) DeleteByPattern(tenantID, pattern string) (int, error) {
 	// Pattern: all user IDs in this tenant (tenantID:*)
-	count, err := h.handler.DeleteByPattern(tenantID, pattern)
+	newPattern := fmt.Sprintf("%s:%s", tenantID, pattern)
+	count, err := h.handler.DeleteByPattern(newPattern)
 	if err != nil {
 		h.logger.Error("Failed to delete refresh tokens by pattern", "error", err, "tenantID", tenantID)
 		return 0, err

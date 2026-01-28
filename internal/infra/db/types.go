@@ -17,13 +17,6 @@ const (
 	TenantAdminPassword   = "admin"
 )
 
-var (
-	SystemTenantID          = ""
-	SystemAdminUserID       = ""
-	SystemAdminRoleID       = ""
-	SystemAdminPermissionID = ""
-)
-
 // ============================================================================
 // HELPER STRUCTS AND TYPES
 // ============================================================================

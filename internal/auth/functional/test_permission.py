@@ -18,10 +18,14 @@ from config import TestConfig
 from auth.v1 import rbac_pb2, rbac_pb2_grpc, permission_pb2
 from infra.v1 import infra_pb2
 from logger import get_logger
+from db.mongo_client import MongoDBClient
+from seeders.system_seeder import SystemSeeder
+from db.redis_client import RedisClient
 
 # Test logger
 logger = get_logger("tests.permission")
 
+database = os.getenv("AUTH_DB_NAME", "auth_db_test")
 
 @pytest.mark.auth
 @pytest.mark.integration
@@ -31,13 +35,9 @@ class TestPermissionManagement:
     @pytest.fixture(autouse=True)
     def setup(self, clean_database):
         """Setup test data before each test."""
-        from db.mongo_client import MongoDBClient
-        from seeders.system_seeder import SystemSeeder
 
-        database = os.getenv("AUTH_DB_NAME", "auth_db_test")
-
-        with MongoDBClient(database) as mongo:
-            seeder = SystemSeeder(mongo)
+        with MongoDBClient(database) as mongo, RedisClient() as redis:
+            seeder = SystemSeeder(mongo, redis)
             system_data = seeder.seed_all()
 
             self.tenant_id = system_data["tenant_id"]
@@ -65,7 +65,8 @@ class TestPermissionManagement:
                 display_name="Read Products",
                 description="View product list",
                 status=permission_pb2.PERMISSION_STATUS_ACTIVE,
-                is_dangerous=False
+                is_dangerous=False,
+                created_by=self.user_id
             )
 
             create_request = rbac_pb2.CreatePermissionRequest(
@@ -102,7 +103,8 @@ class TestPermissionManagement:
                 display_name="Write Products",
                 description="Create and edit products",
                 status=permission_pb2.PERMISSION_STATUS_ACTIVE,
-                is_dangerous=False
+                is_dangerous=False,
+                created_by=self.user_id
             )
 
             create_request = rbac_pb2.CreatePermissionRequest(
@@ -126,7 +128,8 @@ class TestPermissionManagement:
                 display_name="Write Products",
                 description="Updated: View product catalog",
                 status=permission_pb2.PERMISSION_STATUS_ACTIVE,
-                is_dangerous=False
+                is_dangerous=False,
+                created_by=self.user_id
             )
 
             update_request = rbac_pb2.UpdatePermissionRequest(
@@ -174,7 +177,8 @@ class TestPermissionManagement:
                 display_name="Create Orders",
                 description="Create new orders",
                 status=permission_pb2.PERMISSION_STATUS_ACTIVE,
-                is_dangerous=False
+                is_dangerous=False,
+                created_by=self.user_id
             )
 
             create_request = rbac_pb2.CreatePermissionRequest(
@@ -232,7 +236,8 @@ class TestPermissionManagement:
                     display_name=f"{action.title()} {resource.title()}",
                     description=f"{action.title()} permission for {resource}",
                     status=permission_pb2.PERMISSION_STATUS_ACTIVE,
-                    is_dangerous=False
+                    is_dangerous=False,
+                    created_by=self.user_id
                 )
 
                 create_request = rbac_pb2.CreatePermissionRequest(
@@ -284,7 +289,8 @@ class TestPermissionManagement:
                 display_name="Test Permission",
                 description="This permission will be deleted",
                 status=permission_pb2.PERMISSION_STATUS_ACTIVE,
-                is_dangerous=False
+                is_dangerous=False,
+                created_by=self.user_id
             )
 
             create_request = rbac_pb2.CreatePermissionRequest(
@@ -314,22 +320,12 @@ class TestPermissionManagement:
             assert delete_response.success is True
 
             logger.info("Step 4: Verify - checking permission no longer exists")
-            # Verify: Try to get the permission and expect an error
-            get_request = rbac_pb2.GetPermissionRequest(
-                identifier=infra_pb2.UserIdentifier(
-                    tenant_id=self.tenant_id,
-                    user_id=self.user_id
-                ),
-                permission_id=permission_id,
-                target_tenant_id=self.tenant_id
-            )
-            try:
-                stub.GetPermission(get_request)
-                # If we get here, the permission still exists (test should fail)
-                assert False, "Permission should not exist after deletion"
-            except grpc.RpcError as e:
-                # Expected: permission not found
-                assert e.code() in [grpc.StatusCode.NOT_FOUND, grpc.StatusCode.UNKNOWN]
-                logger.info("Permission successfully deleted (not found)")
-
+            # Verify: get inside mongo and verify
+            with MongoDBClient(database) as mongo:
+                filter = {
+                    "tenant_id": self.tenant_id,
+                    "_id": permission_id, 
+                }
+                result = mongo.find_one("permissions", filter)
+                assert not result
             logger.info("Step 5: DeletePermission test completed successfully")

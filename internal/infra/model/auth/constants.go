@@ -131,6 +131,7 @@ func IsValidPermissionAction(permissionAction string) bool {
 	}
 	permissionAction = strings.ToLower(permissionAction)
 	validPermissionActions := map[string]bool{
+		PermissionActionAll:              true,
 		PermissionActionCreate:           true,
 		PermissionActionRead:             true,
 		PermissionActionUpdate:           true,
@@ -213,3 +214,7 @@ func IsValidResourceType(resourceType string) bool {
 
 	return validResourceTypes[resourceType]
 }
+
+const (
+	PermissionAdminString = ResourceTypeAll + ":" + PermissionActionAll
+)

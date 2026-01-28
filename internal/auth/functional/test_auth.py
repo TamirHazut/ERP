@@ -18,7 +18,9 @@ from config import TestConfig
 from auth.v1 import auth_pb2, auth_pb2_grpc
 from infra.v1 import infra_pb2
 from logger import get_logger
+from db.mongo_client import MongoDBClient
 from db.redis_client import RedisClient
+from seeders.system_seeder import SystemSeeder
 
 # Test logger
 logger = get_logger("tests.auth")
@@ -32,15 +34,12 @@ class TestAuthenticationFlows:
     @pytest.fixture(autouse=True)
     def setup(self, clean_database):
         """Setup test data before each test."""
-        # Import seeder
-        from db.mongo_client import MongoDBClient
-        from seeders.system_seeder import SystemSeeder
 
         database=os.getenv("AUTH_DB_NAME","auth_db_test")  # Separate test database
 
         # Seed system data (tenant, permission, role, admin user)
-        with MongoDBClient(database) as mongo:
-            seeder = SystemSeeder(mongo)
+        with MongoDBClient(database) as mongo, RedisClient() as redis:
+            seeder = SystemSeeder(mongo, redis)
             system_data = seeder.seed_all()
 
             # Store IDs for use in tests (these are real MongoDB ObjectIDs)
@@ -195,79 +194,53 @@ class TestAuthenticationFlows:
 
             logger.info("Step 5: Token verification test completed successfully")
 
-
-@pytest.mark.auth
-@pytest.mark.integration
-class TestTokenRevocation:
-    """Test token revocation flows (happy path)."""
-
-    @pytest.fixture(autouse=True)
-    def setup(self, clean_database):
-        """Setup test data before each test."""
-        from db.mongo_client import MongoDBClient
-        from seeders.system_seeder import SystemSeeder
-
-        database = os.getenv("AUTH_DB_NAME", "auth_db_test")
-
-        with MongoDBClient(database) as mongo:
-            seeder = SystemSeeder(mongo)
-            system_data = seeder.seed_all()
-
-            self.tenant_id = system_data["tenant_id"]
-            self.user_id = system_data["user_id"]
-            self.role_id = system_data["role_id"]
-            self.permission_id = system_data["permission_id"]
-
-        self.user_email = TestConfig.DEFAULT_ADMIN_EMAIL
-        self.user_password = TestConfig.DEFAULT_ADMIN_PASSWORD
-
     def test_revoke_token_success(self):
-        """Test revoking a user's access token."""
-        logger.info("Step 1: Pre-test - logging in to obtain tokens")
+            """Test revoking a user's access token."""
+            logger.info("Step 1: Pre-test - logging in to obtain tokens")
 
-        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
-            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
+            with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+                stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
 
-            # Pre-test: Login to get tokens
-            login_request = auth_pb2.LoginRequest(
-                tenant_id=self.tenant_id,
-                email=self.user_email,
-                password=self.user_password
-            )
-            login_response = stub.Login(login_request)
-            access_token = login_response.tokens.token
-            refresh_token = login_response.tokens.refresh_token
-
-            logger.info("Step 2: Act - calling RevokeToken RPC")
-            # Act: Revoke the tokens
-            revoke_request = auth_pb2.RevokeTokenRequest(
-                identifier=infra_pb2.UserIdentifier(
+                # Pre-test: Login to get tokens
+                login_request = auth_pb2.LoginRequest(
                     tenant_id=self.tenant_id,
-                    user_id=self.user_id
-                ),
-                revoked_by=self.user_id,
-                tokens=auth_pb2.Tokens(
-                    token=access_token,
-                    refresh_token=refresh_token
+                    email=self.user_email,
+                    password=self.user_password
                 )
-            )
-            revoke_response = stub.RevokeToken(revoke_request)
+                login_response = stub.Login(login_request)
+                access_token = login_response.tokens.token
+                refresh_token = login_response.tokens.refresh_token
 
-            logger.info("Step 3: Assert - validating token was revoked")
-            # Assert
-            assert revoke_response.revoked is True
+                logger.info("Step 2: Act - calling RevokeToken RPC")
+                # Act: Revoke the tokens
+                revoke_request = auth_pb2.RevokeTokenRequest(
+                    identifier=infra_pb2.UserIdentifier(
+                        tenant_id=self.tenant_id,
+                        user_id=self.user_id
+                    ),
+                    revoked_by=self.user_id,
+                    tokens=auth_pb2.Tokens(
+                        token=access_token,
+                        refresh_token=refresh_token
+                    )
+                )
+                revoke_response = stub.RevokeToken(revoke_request)
 
-            logger.info("Step 4: Verify - checking Redis keys are deleted")
-            # Verify: Check that the Redis keys for both tokens are deleted
-            with RedisClient() as redis:
-                access_token_key = f"tokens:{self.tenant_id}:{self.user_id}"
-                refresh_token_key = f"refresh_tokens:{self.tenant_id}:{self.user_id}"
+                logger.info("Step 3: Assert - validating token was revoked")
+                # Assert
+                assert revoke_response.revoked is True
 
-                assert redis.exists(access_token_key) is False, f"Access token key {access_token_key} should not exist"
-                assert redis.exists(refresh_token_key) is False, f"Refresh token key {refresh_token_key} should not exist"
-                logger.info(f"Verified: Both Redis keys deleted (tokens and refresh_tokens)")
+                logger.info("Step 4: Verify - checking Redis keys are deleted")
+                # Verify: Check that the Redis keys for both tokens are deleted
+                with RedisClient() as redis:
+                    access_token_key = f"tokens:{self.tenant_id}:{self.user_id}"
+                    refresh_token_key = f"refresh_tokens:{self.tenant_id}:{self.user_id}"
 
-            logger.info("Step 5: Token revocation test completed successfully")
+                    assert redis.exists(access_token_key) is False, f"Access token key {access_token_key} should not exist"
+                    assert redis.exists(refresh_token_key) is False, f"Refresh token key {refresh_token_key} should not exist"
+                    logger.info(f"Verified: Both Redis keys deleted (tokens and refresh_tokens)")
+
+                logger.info("Step 5: Token revocation test completed successfully")
 
     def test_revoke_all_tenant_tokens_success(self):
         """Test revoking all tokens for a tenant.

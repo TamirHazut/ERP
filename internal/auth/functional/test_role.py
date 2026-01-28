@@ -18,10 +18,14 @@ from config import TestConfig
 from auth.v1 import rbac_pb2, rbac_pb2_grpc, role_pb2
 from infra.v1 import infra_pb2
 from logger import get_logger
+from db.mongo_client import MongoDBClient
+from seeders.system_seeder import SystemSeeder
+from db.redis_client import RedisClient
 
 # Test logger
 logger = get_logger("tests.role")
 
+database = os.getenv("AUTH_DB_NAME", "auth_db_test")
 
 @pytest.mark.auth
 @pytest.mark.integration
@@ -31,13 +35,9 @@ class TestRoleManagement:
     @pytest.fixture(autouse=True)
     def setup(self, clean_database):
         """Setup test data before each test."""
-        from db.mongo_client import MongoDBClient
-        from seeders.system_seeder import SystemSeeder
 
-        database = os.getenv("AUTH_DB_NAME", "auth_db_test")
-
-        with MongoDBClient(database) as mongo:
-            seeder = SystemSeeder(mongo)
+        with MongoDBClient(database) as mongo, RedisClient() as redis:
+            seeder = SystemSeeder(mongo, redis)
             system_data = seeder.seed_all()
 
             self.tenant_id = system_data["tenant_id"]
@@ -61,9 +61,10 @@ class TestRoleManagement:
                 tenant_id=self.tenant_id,
                 name="test_manager",
                 description="Test manager role",
-                permissions=[],  # Empty permissions for now
+                permissions=[self.permission_id],  # Empty permissions for now
                 status=role_pb2.ROLE_STATUS_ACTIVE,
-                type=role_pb2.ROLE_TYPE_CUSTOM
+                type=role_pb2.ROLE_TYPE_CUSTOM,
+                created_by=self.user_id
             )
 
             create_request = rbac_pb2.CreateRoleRequest(
@@ -96,9 +97,10 @@ class TestRoleManagement:
                 tenant_id=self.tenant_id,
                 name="test_role",
                 description="Test description",
-                permissions=[],
+                permissions=[self.permission_id],
                 status=role_pb2.ROLE_STATUS_ACTIVE,
-                type=role_pb2.ROLE_TYPE_CUSTOM
+                type=role_pb2.ROLE_TYPE_CUSTOM,
+                created_by=self.user_id
             )
 
             create_request = rbac_pb2.CreateRoleRequest(
@@ -118,9 +120,10 @@ class TestRoleManagement:
                 tenant_id=self.tenant_id,
                 name="test_role",
                 description="Updated description",
-                permissions=[],
+                permissions=[self.permission_id],
                 status=role_pb2.ROLE_STATUS_ACTIVE,
-                type=role_pb2.ROLE_TYPE_CUSTOM
+                type=role_pb2.ROLE_TYPE_CUSTOM,
+                created_by=self.user_id
             )
 
             update_request = rbac_pb2.UpdateRoleRequest(
@@ -164,9 +167,10 @@ class TestRoleManagement:
                 tenant_id=self.tenant_id,
                 name="test_role",
                 description="Test description",
-                permissions=[],
+                permissions=[self.permission_id],
                 status=role_pb2.ROLE_STATUS_ACTIVE,
-                type=role_pb2.ROLE_TYPE_CUSTOM
+                type=role_pb2.ROLE_TYPE_CUSTOM,
+                created_by=self.user_id
             )
 
             create_request = rbac_pb2.CreateRoleRequest(
@@ -215,9 +219,10 @@ class TestRoleManagement:
                     tenant_id=self.tenant_id,
                     name=name,
                     description=f"Description for {name}",
-                    permissions=[],
+                    permissions=[self.permission_id],
                     status=role_pb2.ROLE_STATUS_ACTIVE,
-                    type=role_pb2.ROLE_TYPE_CUSTOM
+                    type=role_pb2.ROLE_TYPE_CUSTOM,
+                created_by=self.user_id
                 )
 
                 create_request = rbac_pb2.CreateRoleRequest(
@@ -264,9 +269,10 @@ class TestRoleManagement:
                 tenant_id=self.tenant_id,
                 name="test_role_to_delete",
                 description="This role will be deleted",
-                permissions=[],
+                permissions=[self.permission_id],
                 status=role_pb2.ROLE_STATUS_ACTIVE,
-                type=role_pb2.ROLE_TYPE_CUSTOM
+                type=role_pb2.ROLE_TYPE_CUSTOM,
+                created_by=self.user_id
             )
 
             create_request = rbac_pb2.CreateRoleRequest(
@@ -297,21 +303,12 @@ class TestRoleManagement:
 
             logger.info("Step 4: Verify - checking role no longer exists")
             # Verify: Try to get the role and expect an error
-            get_request = rbac_pb2.GetRoleRequest(
-                identifier=infra_pb2.UserIdentifier(
-                    tenant_id=self.tenant_id,
-                    user_id=self.user_id
-                ),
-                role_id=role_id,
-                target_tenant_id=self.tenant_id
-            )
-            try:
-                stub.GetRole(get_request)
-                # If we get here, the role still exists (test should fail)
-                assert False, "Role should not exist after deletion"
-            except grpc.RpcError as e:
-                # Expected: role not found
-                assert e.code() in [grpc.StatusCode.NOT_FOUND, grpc.StatusCode.UNKNOWN]
-                logger.info("Role successfully deleted (not found)")
+            with MongoDBClient(database) as mongo:
+                filter = {
+                    "tenant_id": self.tenant_id,
+                    "_id": role_id, 
+                }
+                result = mongo.find_one("roles", filter)
+                assert not result
 
             logger.info("Step 5: DeleteRole test completed successfully")

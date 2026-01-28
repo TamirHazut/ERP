@@ -99,9 +99,14 @@ func (r *BaseRedisHandler) FindOne(key string, filter map[string]any, result any
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(value, result)
-	if err != nil {
-		return err
+	switch v := result.(type) {
+	case *string:
+		*v = string(value)
+	default:
+		err = json.Unmarshal(value, result)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

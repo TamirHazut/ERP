@@ -101,8 +101,8 @@ func (r *RoleHandler) UpdateRole(role *authv1.Role) error {
 	if err != nil {
 		return err
 	}
-	if role.CreatedAt != currentRole.CreatedAt {
-		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields, "CreatedAt")
+	if role.CreatedAt.AsTime().IsZero() || currentRole.CreatedAt.AsTime().After(role.CreatedAt.AsTime()) {
+		role.CreatedAt = currentRole.CreatedAt
 	}
 	role.UpdatedAt = timestamppb.Now()
 	return r.collection.Update(filter, role)

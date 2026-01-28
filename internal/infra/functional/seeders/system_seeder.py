@@ -11,6 +11,7 @@ import os
 # Add infra functional path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from db.mongo_client import MongoDBClient
+from db.redis_client import RedisClient
 from config import TestConfig
 from logger import get_logger
 
@@ -21,8 +22,9 @@ logger = get_logger("seeders.system")
 class SystemSeeder:
     """Seeds system-level test data."""
     
-    def __init__(self, mongo_client: MongoDBClient):
+    def __init__(self, mongo_client: MongoDBClient, redis_client: RedisClient = None):
         self.mongo = mongo_client
+        self.redis = redis_client
 
     def seed_indexes(self):
         """Create MongoDB indexes for all collections."""
@@ -80,11 +82,21 @@ class SystemSeeder:
 
         logger.info(f"System seeding completed: tenant_id={tenant_id}, role_id={role_id}, permission_id={permission_id}, user_id={user_id}")
 
+        if self.redis:
+            try:
+                self.redis.set("system:tenant", tenant_id)
+                self.redis.set("system:permission", permission_id)
+                self.redis.set("system:role", role_id)
+                self.redis.set("system:user", user_id)
+                logger.info(f"System IDs written to Redis")
+            except Exception as e:
+                logger.warning(f"Failed to write system IDs to Redis: {e}")
+
         return {
             "tenant_id": tenant_id,
             "permission_id": permission_id,
             "role_id": role_id,
-            "user_id": user_id
+            "user_id": user_id,
         }
 
     def seed_tenant(self) -> str:

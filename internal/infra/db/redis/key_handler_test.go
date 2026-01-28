@@ -61,10 +61,10 @@ func TestKeyHandler_Set(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
-			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
-			mockHandler.EXPECT().Create(formattedKey, tc.value).Return(tc.returnID, tc.returnError).Times(tc.expectedCallTimes)
+			key := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
+			mockHandler.EXPECT().Create(key, tc.value).Return(tc.returnID, tc.returnError).Times(tc.expectedCallTimes)
 			handler := createNewHandler(mockHandler)
-			err := handler.Set(tc.tenantID, tc.key, tc.value)
+			err := handler.Set(key, tc.value)
 			if tc.returnError != nil {
 				require.Error(t, err)
 			} else {
@@ -109,11 +109,11 @@ func TestKeyHandler_GetOne(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
-			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
+			key := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
 			model := &TestModel{}
 			mockHandler.EXPECT().
-				FindOne(formattedKey, nil, model).
-				DoAndReturn(func(formattedKey string, filter map[string]any, result any) error {
+				FindOne(key, nil, model).
+				DoAndReturn(func(key string, filter map[string]any, result any) error {
 					// Cast result to the correct type and set its value
 					if m, ok := result.(*TestModel); ok {
 						*m = tc.returnData
@@ -123,7 +123,7 @@ func TestKeyHandler_GetOne(t *testing.T) {
 
 			handler := createNewHandler(mockHandler)
 
-			result, err := handler.GetOne(tc.tenantID, tc.key)
+			result, err := handler.GetOne(key)
 			if tc.returnError != nil {
 				require.Error(t, err)
 			} else {
@@ -185,12 +185,12 @@ func TestKeyHandler_GetAll(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
-			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
+			key := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
 
 			models := make([]*TestModel, 0)
 			mockHandler.EXPECT().
-				FindAll(formattedKey, nil, &models).
-				DoAndReturn(func(formattedKey string, filter map[string]any, result any) error {
+				FindAll(key, nil, &models).
+				DoAndReturn(func(key string, filter map[string]any, result any) error {
 					if m, ok := result.(*[]*TestModel); ok {
 						*m = make([]*TestModel, len(tc.returnData))
 						for i, item := range tc.returnData {
@@ -202,7 +202,7 @@ func TestKeyHandler_GetAll(t *testing.T) {
 
 			handler := createNewHandler(mockHandler)
 
-			result, err := handler.GetAll(tc.tenantID, tc.key)
+			result, err := handler.GetAll(key)
 			if tc.returnError != nil {
 				require.Error(t, err)
 			} else {
@@ -245,11 +245,11 @@ func TestKeyHandler_Update(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
-			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
-			mockHandler.EXPECT().Update(formattedKey, nil, tc.value).Return(tc.returnError).Times(tc.expectedCallTimes)
+			key := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
+			mockHandler.EXPECT().Update(key, nil, tc.value).Return(tc.returnError).Times(tc.expectedCallTimes)
 			handler := createNewHandler(mockHandler)
 
-			err := handler.Update(tc.tenantID, tc.key, tc.value)
+			err := handler.Update(key, tc.value)
 			if tc.returnError != nil {
 				require.Error(t, err)
 			} else {
@@ -288,11 +288,11 @@ func TestKeyHandler_Delete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockHandler := mock_db.NewMockDBHandler(ctrl)
-			formattedKey := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
-			mockHandler.EXPECT().Delete(formattedKey, nil).Return(tc.returnError).Times(tc.expectedCallTimes)
+			key := fmt.Sprintf("%s:%s", tc.tenantID, tc.key)
+			mockHandler.EXPECT().Delete(key, nil).Return(tc.returnError).Times(tc.expectedCallTimes)
 			handler := createNewHandler(mockHandler)
 
-			err := handler.Delete(tc.tenantID, tc.key)
+			err := handler.Delete(key)
 			if tc.returnError != nil {
 				require.Error(t, err)
 			} else {

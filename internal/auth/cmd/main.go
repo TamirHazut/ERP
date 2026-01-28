@@ -163,7 +163,12 @@ func createVerificationManager(logger logger.Logger) *rbac.VerificationManager {
 	if rh == nil || ph == nil || uh == nil || th == nil {
 		return nil
 	}
+	vm, err := rbac.NewVerificationManager(uh, rh, ph, th, logger)
+	if err != nil {
+		logger.Fatal("failed to create verification manager", "error", err)
+		return nil
+	}
 
-	return rbac.NewVerificationManager(uh, rh, ph, th, logger)
+	return vm
 
 }
