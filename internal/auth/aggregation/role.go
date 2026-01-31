@@ -5,6 +5,7 @@ import (
 
 	"erp.localhost/internal/infra/db/mongo/aggregation"
 	"erp.localhost/internal/infra/db/mongo/aggregation/pipeline"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
@@ -17,7 +18,7 @@ type RoleAggregationHandler struct {
 }
 
 // NewRoleAggregationHandler creates a new role aggregation handler
-func NewRoleAggregationHandler(logger logger.Logger) (*RoleAggregationHandler, error) {
+func NewRoleAggregationHandler(logger logger.Logger) (*RoleAggregationHandler, *infra_error.AppError) {
 	aggregation, err := aggregation.NewBaseAggregationHandler[authv1.Role](
 		model_mongo.AuthDB,
 		model_mongo.UsersCollection,
@@ -38,7 +39,7 @@ func (h *RoleAggregationHandler) GetUserRoles(
 	ctx context.Context,
 	tenantID, userID string,
 	fields []string,
-) ([]*authv1.Role, error) {
+) ([]*authv1.Role, *infra_error.AppError) {
 	pipelineStages := pipeline.BuildUserRolesPipeline(tenantID, userID)
 	return h.Aggregate(ctx, pipelineStages, fields)
 }
@@ -48,7 +49,7 @@ func (h *RoleAggregationHandler) GetUserRoles(
 func (h *RoleAggregationHandler) GetRoleWithPermissionsAggregation(
 	tenantID, roleID string,
 	fields []string,
-) ([]*authv1.Permission, error) {
+) ([]*authv1.Permission, *infra_error.AppError) {
 	// Create permission aggregation handler to get permissions for this role
 	permHandler, err := NewPermissionAggregationHandler(h.logger)
 	if err != nil {

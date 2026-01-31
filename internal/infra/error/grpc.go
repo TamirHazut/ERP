@@ -34,6 +34,9 @@ func ToGRPCError(err error) error {
 	if !ok {
 		return Internal(InternalUnexpectedError, err)
 	}
+	if appErr == nil {
+		return nil
+	}
 	// Determine the gRPC status code
 	grpcCode := codes.Internal
 	if code, ok := categoryToGRPCCode[appErr.Category]; ok {

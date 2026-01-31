@@ -12,6 +12,7 @@ package mock
 import (
 	reflect "reflect"
 
+	error "erp.localhost/internal/infra/error"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -40,10 +41,10 @@ func (m *MockTokenHandler[T]) EXPECT() *MockTokenHandlerMockRecorder[T] {
 }
 
 // Delete mocks base method.
-func (m *MockTokenHandler[T]) Delete(tenantID, userID string) error {
+func (m *MockTokenHandler[T]) Delete(tenantID, userID string) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", tenantID, userID)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -54,11 +55,11 @@ func (mr *MockTokenHandlerMockRecorder[T]) Delete(tenantID, userID any) *gomock.
 }
 
 // DeleteByPattern mocks base method.
-func (m *MockTokenHandler[T]) DeleteByPattern(tenantID, pattern string) (int, error) {
+func (m *MockTokenHandler[T]) DeleteByPattern(tenantID, pattern string) (int, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteByPattern", tenantID, pattern)
 	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -69,11 +70,11 @@ func (mr *MockTokenHandlerMockRecorder[T]) DeleteByPattern(tenantID, pattern any
 }
 
 // GetOne mocks base method.
-func (m *MockTokenHandler[T]) GetOne(tenantID, userID string) (*T, error) {
+func (m *MockTokenHandler[T]) GetOne(tenantID, userID string) (*T, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOne", tenantID, userID)
 	ret0, _ := ret[0].(*T)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -84,10 +85,10 @@ func (mr *MockTokenHandlerMockRecorder[T]) GetOne(tenantID, userID any) *gomock.
 }
 
 // Revoke mocks base method.
-func (m *MockTokenHandler[T]) Revoke(tenantID, userID, revokedBy string) error {
+func (m *MockTokenHandler[T]) Revoke(tenantID, userID, revokedBy string) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Revoke", tenantID, userID, revokedBy)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -98,11 +99,11 @@ func (mr *MockTokenHandlerMockRecorder[T]) Revoke(tenantID, userID, revokedBy an
 }
 
 // ScanKeys mocks base method.
-func (m *MockTokenHandler[T]) ScanKeys(tenantID string) ([]string, error) {
+func (m *MockTokenHandler[T]) ScanKeys(tenantID string) ([]string, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ScanKeys", tenantID)
 	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -113,10 +114,10 @@ func (mr *MockTokenHandlerMockRecorder[T]) ScanKeys(tenantID any) *gomock.Call {
 }
 
 // Store mocks base method.
-func (m *MockTokenHandler[T]) Store(tenantID, userID string, value *T) error {
+func (m *MockTokenHandler[T]) Store(tenantID, userID string, value *T) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Store", tenantID, userID, value)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -127,11 +128,11 @@ func (mr *MockTokenHandlerMockRecorder[T]) Store(tenantID, userID, value any) *g
 }
 
 // Validate mocks base method.
-func (m *MockTokenHandler[T]) Validate(tenantID, userID string) (*T, error) {
+func (m *MockTokenHandler[T]) Validate(tenantID, userID string) (*T, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Validate", tenantID, userID)
 	ret0, _ := ret[0].(*T)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 

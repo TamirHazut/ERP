@@ -3,6 +3,7 @@ package api
 import (
 	"erp.localhost/internal/auth/handler"
 	"erp.localhost/internal/auth/rbac"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
@@ -29,7 +30,7 @@ func NewRoleAPI(
 }
 
 // CreateRole creates a new role with authorization check
-func (ra *RoleAPI) CreateRole(tenantID, requestorUserID string, role *authv1.Role, targetTenantID string) (string, error) {
+func (ra *RoleAPI) CreateRole(tenantID, requestorUserID string, role *authv1.Role, targetTenantID string) (string, *infra_error.AppError) {
 	// 1. Check permission (with cross-tenant support)
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionCreate)
 	if err != nil {
@@ -49,7 +50,7 @@ func (ra *RoleAPI) CreateRole(tenantID, requestorUserID string, role *authv1.Rol
 }
 
 // UpdateRole updates an existing role with authorization check
-func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, role *authv1.Role, targetTenantID string) error {
+func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, role *authv1.Role, targetTenantID string) *infra_error.AppError {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionUpdate)
 	if err != nil {
 		return err
@@ -64,7 +65,7 @@ func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, role *authv1.Rol
 }
 
 // GetRoleByID retrieves a role by ID with authorization check
-func (ra *RoleAPI) GetRoleByID(tenantID, requestorUserID, roleID string, targetTenantID string) (*authv1.Role, error) {
+func (ra *RoleAPI) GetRoleByID(tenantID, requestorUserID, roleID string, targetTenantID string) (*authv1.Role, *infra_error.AppError) {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionRead)
 	if err != nil {
 		return nil, err
@@ -79,7 +80,7 @@ func (ra *RoleAPI) GetRoleByID(tenantID, requestorUserID, roleID string, targetT
 }
 
 // ListRoles retrieves all roles for a tenant with authorization check
-func (ra *RoleAPI) ListRoles(tenantID, requestorUserID string, targetTenantID string) ([]*authv1.Role, error) {
+func (ra *RoleAPI) ListRoles(tenantID, requestorUserID string, targetTenantID string) ([]*authv1.Role, *infra_error.AppError) {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionRead)
 	if err != nil {
 		return nil, err
@@ -94,7 +95,7 @@ func (ra *RoleAPI) ListRoles(tenantID, requestorUserID string, targetTenantID st
 }
 
 // DeleteRole deletes a role with authorization check
-func (ra *RoleAPI) DeleteRole(tenantID, requestorUserID, roleID string, targetTenantID string) error {
+func (ra *RoleAPI) DeleteRole(tenantID, requestorUserID, roleID string, targetTenantID string) *infra_error.AppError {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionDelete)
 	if err != nil {
 		return err
@@ -108,7 +109,7 @@ func (ra *RoleAPI) DeleteRole(tenantID, requestorUserID, roleID string, targetTe
 	return ra.roleHandler.DeleteRole(targetTenantID, roleID)
 }
 
-func (ra *RoleAPI) DeleteTenantRoles(tenantID, requestorUserID, targetTenantID string) error {
+func (ra *RoleAPI) DeleteTenantRoles(tenantID, requestorUserID, targetTenantID string) *infra_error.AppError {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionDelete)
 	if err != nil {
 		return err

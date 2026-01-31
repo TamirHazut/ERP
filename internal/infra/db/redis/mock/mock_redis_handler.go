@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 	time "time"
 
+	error "erp.localhost/internal/infra/error"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,10 +42,10 @@ func (m *MockRedisHandler) EXPECT() *MockRedisHandlerMockRecorder {
 }
 
 // Clear mocks base method.
-func (m *MockRedisHandler) Clear(key string) error {
+func (m *MockRedisHandler) Clear(key string) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clear", key)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -55,10 +56,10 @@ func (mr *MockRedisHandlerMockRecorder) Clear(key any) *gomock.Call {
 }
 
 // Expire mocks base method.
-func (m *MockRedisHandler) Expire(key string, ttl int, unit time.Duration) error {
+func (m *MockRedisHandler) Expire(key string, ttl int, unit time.Duration) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Expire", key, ttl, unit)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -69,14 +70,14 @@ func (mr *MockRedisHandlerMockRecorder) Expire(key, ttl, unit any) *gomock.Call 
 }
 
 // SAdd mocks base method.
-func (m *MockRedisHandler) SAdd(key string, members ...any) error {
+func (m *MockRedisHandler) SAdd(key string, members ...any) *error.AppError {
 	m.ctrl.T.Helper()
 	varargs := []any{key}
 	for _, a := range members {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "SAdd", varargs...)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -88,11 +89,11 @@ func (mr *MockRedisHandlerMockRecorder) SAdd(key any, members ...any) *gomock.Ca
 }
 
 // SMembers mocks base method.
-func (m *MockRedisHandler) SMembers(key string) ([]string, error) {
+func (m *MockRedisHandler) SMembers(key string) ([]string, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SMembers", key)
 	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -103,14 +104,14 @@ func (mr *MockRedisHandlerMockRecorder) SMembers(key any) *gomock.Call {
 }
 
 // SRem mocks base method.
-func (m *MockRedisHandler) SRem(key string, members ...any) error {
+func (m *MockRedisHandler) SRem(key string, members ...any) *error.AppError {
 	m.ctrl.T.Helper()
 	varargs := []any{key}
 	for _, a := range members {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "SRem", varargs...)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 

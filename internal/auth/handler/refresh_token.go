@@ -9,7 +9,7 @@ import (
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
-	"erp.localhost/internal/infra/model/auth/validator"
+	validator_auth_cache "erp.localhost/internal/infra/model/auth/validator/cache"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -18,7 +18,7 @@ type RefreshTokenHandler struct {
 	logger  logger.Logger
 }
 
-func NewRefreshTokenHandler(logger logger.Logger) (*RefreshTokenHandler, error) {
+func NewRefreshTokenHandler(logger logger.Logger) (*RefreshTokenHandler, *infra_error.AppError) {
 	handler, err := token.NewRefreshTokenKeyHandler(logger)
 	if err != nil {
 		return nil, err
@@ -32,8 +32,8 @@ func NewRefreshTokenHandler(logger logger.Logger) (*RefreshTokenHandler, error) 
 // Store stores a refresh token in Redis (replaces existing token if present)
 // Key: refresh_tokens:{tenant_id}:{user_id}
 // Single token per user - automatically replaces any existing token
-func (h *RefreshTokenHandler) Store(tenantID string, userID string, refreshToken *authv1_cache.RefreshToken) error {
-	if err := validator.ValidateRefreshToken(refreshToken); err != nil {
+func (h *RefreshTokenHandler) Store(tenantID string, userID string, refreshToken *authv1_cache.RefreshToken) *infra_error.AppError {
+	if err := validator_auth_cache.ValidateRefreshToken(refreshToken); err != nil {
 		h.logger.Error("Failed to validate refresh token", "error", err)
 		return err
 	}
@@ -60,7 +60,7 @@ func (h *RefreshTokenHandler) Store(tenantID string, userID string, refreshToken
 }
 
 // GetOne retrieves the single refresh token for a user from Redis
-func (h *RefreshTokenHandler) GetOne(tenantID string, userID string) (*authv1_cache.RefreshToken, error) {
+func (h *RefreshTokenHandler) GetOne(tenantID string, userID string) (*authv1_cache.RefreshToken, *infra_error.AppError) {
 	key := fmt.Sprintf("%s:%s", tenantID, userID)
 	token, err := h.handler.GetOne(key)
 	if err != nil {
@@ -71,7 +71,7 @@ func (h *RefreshTokenHandler) GetOne(tenantID string, userID string) (*authv1_ca
 }
 
 // Validate checks if a refresh token is valid (exists, not revoked, not expired)
-func (h *RefreshTokenHandler) Validate(tenantID string, userID string) (*authv1_cache.RefreshToken, error) {
+func (h *RefreshTokenHandler) Validate(tenantID string, userID string) (*authv1_cache.RefreshToken, *infra_error.AppError) {
 	token, err := h.GetOne(tenantID, userID)
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func (h *RefreshTokenHandler) Validate(tenantID string, userID string) (*authv1_
 }
 
 // Revoke revokes the single refresh token for a user
-func (h *RefreshTokenHandler) Revoke(tenantID string, userID string, revokedBy string) error {
+func (h *RefreshTokenHandler) Revoke(tenantID string, userID string, revokedBy string) *infra_error.AppError {
 	token, err := h.GetOne(tenantID, userID)
 	if err != nil || token == nil {
 		// No token to revoke
@@ -110,7 +110,7 @@ func (h *RefreshTokenHandler) Revoke(tenantID string, userID string, revokedBy s
 }
 
 // UpdateLastUsed updates the LastUsedAt timestamp for a refresh token
-func (h *RefreshTokenHandler) UpdateLastUsed(tenantID string, userID string, tokenString string) error {
+func (h *RefreshTokenHandler) UpdateLastUsed(tenantID string, userID string, tokenString string) *infra_error.AppError {
 	token, err := h.GetOne(tenantID, userID)
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func (h *RefreshTokenHandler) UpdateLastUsed(tenantID string, userID string, tok
 }
 
 // Delete permanently removes the refresh token from Redis (hard delete)
-func (h *RefreshTokenHandler) Delete(tenantID string, userID string) error {
+func (h *RefreshTokenHandler) Delete(tenantID string, userID string) *infra_error.AppError {
 	key := fmt.Sprintf("%s:%s", tenantID, userID)
 	err := h.handler.Delete(key)
 	if err != nil {
@@ -143,7 +143,7 @@ func (h *RefreshTokenHandler) Delete(tenantID string, userID string) error {
 
 // ScanKeys returns all refresh token keys for a tenant
 // Used for tenant-level token management (revoke/delete all tokens for a tenant)
-func (h *RefreshTokenHandler) ScanKeys(tenantID string) ([]string, error) {
+func (h *RefreshTokenHandler) ScanKeys(tenantID string) ([]string, *infra_error.AppError) {
 	// Pattern: all user IDs in this tenant (tenantID:*)
 	key := fmt.Sprintf("%s:*", tenantID)
 	keys, err := h.handler.ScanKeys(key)
@@ -158,7 +158,7 @@ func (h *RefreshTokenHandler) ScanKeys(tenantID string) ([]string, error) {
 
 // DeleteByPattern deletes all refresh tokens for a tenant
 // Returns the number of tokens deleted
-func (h *RefreshTokenHandler) DeleteByPattern(tenantID, pattern string) (int, error) {
+func (h *RefreshTokenHandler) DeleteByPattern(tenantID, pattern string) (int, *infra_error.AppError) {
 	// Pattern: all user IDs in this tenant (tenantID:*)
 	newPattern := fmt.Sprintf("%s:%s", tenantID, pattern)
 	count, err := h.handler.DeleteByPattern(newPattern)

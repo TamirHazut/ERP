@@ -109,11 +109,10 @@ func (u *UserService) UpdateUser(ctx context.Context, req *authv1.UpdateUserRequ
 	res, err := u.userAPI.UpdateUser(tenantID, userID, newUser)
 	if err != nil {
 		u.logger.Error("failed to update account", "tenantID", tenantID, "error", err)
-		err = infra_error.ToGRPCError(err)
 	}
 	return &authv1.UpdateUserResponse{
 		Updated: res,
-	}, err
+	}, infra_error.ToGRPCError(err)
 }
 
 func (u *UserService) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequest) (*authv1.DeleteUserResponse, error) {
@@ -132,9 +131,8 @@ func (u *UserService) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequ
 	err := u.userAPI.DeleteUser(tenantID, userID, targetTenantID, accountID)
 	if err != nil {
 		u.logger.Error("failed to delete account", "tenantID", tenantID, "error", err)
-		err = infra_error.ToGRPCError(err)
 	}
 	return &authv1.DeleteUserResponse{
 		Deleted: err == nil,
-	}, err
+	}, infra_error.ToGRPCError(err)
 }

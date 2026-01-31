@@ -22,7 +22,7 @@ type PermissionHandler struct {
 	logger      logger.Logger
 }
 
-func NewPermissionHandler(logger logger.Logger) (*PermissionHandler, error) {
+func NewPermissionHandler(logger logger.Logger) (*PermissionHandler, *infra_error.AppError) {
 	collection, err := collection_auth.NewPermissionCollection(logger)
 	if err != nil {
 		logger.Error("failed to create user collection handler", "error", err)
@@ -40,7 +40,7 @@ func NewPermissionHandler(logger logger.Logger) (*PermissionHandler, error) {
 	}, nil
 }
 
-func (p *PermissionHandler) CreatePermission(permission *authv1.Permission) (string, error) {
+func (p *PermissionHandler) CreatePermission(permission *authv1.Permission) (string, *infra_error.AppError) {
 	if err := validator_auth.ValidatePermission(permission, true); err != nil {
 		return "", err
 	}
@@ -52,7 +52,7 @@ func (p *PermissionHandler) CreatePermission(permission *authv1.Permission) (str
 	return p.collection.Create(permission)
 }
 
-func (p *PermissionHandler) GetPermissionByID(tenantID, permissionID string) (*authv1.Permission, error) {
+func (p *PermissionHandler) GetPermissionByID(tenantID, permissionID string) (*authv1.Permission, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       permissionID,
@@ -61,7 +61,7 @@ func (p *PermissionHandler) GetPermissionByID(tenantID, permissionID string) (*a
 	return p.findPermissionByFilter(filter)
 }
 
-func (p *PermissionHandler) GetPermissionByName(tenantID, name string) (*authv1.Permission, error) {
+func (p *PermissionHandler) GetPermissionByName(tenantID, name string) (*authv1.Permission, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id":         tenantID,
 		"permission_string": name,
@@ -70,7 +70,7 @@ func (p *PermissionHandler) GetPermissionByName(tenantID, name string) (*authv1.
 	return p.findPermissionByFilter(filter)
 }
 
-func (p *PermissionHandler) GetPermissionsByTenantID(tenantID string) ([]*authv1.Permission, error) {
+func (p *PermissionHandler) GetPermissionsByTenantID(tenantID string) ([]*authv1.Permission, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
@@ -78,7 +78,7 @@ func (p *PermissionHandler) GetPermissionsByTenantID(tenantID string) ([]*authv1
 	return p.findPermissionsByFilter(filter)
 }
 
-func (p *PermissionHandler) GetPermissionsByResource(tenantID, resource string) ([]*authv1.Permission, error) {
+func (p *PermissionHandler) GetPermissionsByResource(tenantID, resource string) ([]*authv1.Permission, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"resource":  resource,
@@ -87,7 +87,7 @@ func (p *PermissionHandler) GetPermissionsByResource(tenantID, resource string) 
 	return p.findPermissionsByFilter(filter)
 }
 
-func (p *PermissionHandler) GetPermissionsByAction(tenantID, action string) ([]*authv1.Permission, error) {
+func (p *PermissionHandler) GetPermissionsByAction(tenantID, action string) ([]*authv1.Permission, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"action":    action,
@@ -96,7 +96,7 @@ func (p *PermissionHandler) GetPermissionsByAction(tenantID, action string) ([]*
 	return p.findPermissionsByFilter(filter)
 }
 
-func (p *PermissionHandler) GetPermissionsByResourceAndAction(tenantID, resource, action string) ([]*authv1.Permission, error) {
+func (p *PermissionHandler) GetPermissionsByResourceAndAction(tenantID, resource, action string) ([]*authv1.Permission, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"resource":  resource,
@@ -106,7 +106,7 @@ func (p *PermissionHandler) GetPermissionsByResourceAndAction(tenantID, resource
 	return p.findPermissionsByFilter(filter)
 }
 
-func (p *PermissionHandler) UpdatePermission(permission *authv1.Permission) error {
+func (p *PermissionHandler) UpdatePermission(permission *authv1.Permission) *infra_error.AppError {
 	if err := validator_auth.ValidatePermission(permission, false); err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (p *PermissionHandler) UpdatePermission(permission *authv1.Permission) erro
 	return p.collection.Update(filter, permission)
 }
 
-func (p *PermissionHandler) DeletePermission(tenantID, permissionID string) error {
+func (p *PermissionHandler) DeletePermission(tenantID, permissionID string) *infra_error.AppError {
 	if tenantID == "" || permissionID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId", "PermissionID")
 	}
@@ -138,7 +138,7 @@ func (p *PermissionHandler) DeletePermission(tenantID, permissionID string) erro
 	return p.collection.Delete(filter)
 }
 
-func (p *PermissionHandler) DeleteTenantPermissions(tenantID string) error {
+func (p *PermissionHandler) DeleteTenantPermissions(tenantID string) *infra_error.AppError {
 	if tenantID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId")
 	}
@@ -149,7 +149,7 @@ func (p *PermissionHandler) DeleteTenantPermissions(tenantID string) error {
 	return p.collection.Delete(filter)
 }
 
-func (p *PermissionHandler) findPermissionByFilter(filter map[string]any) (*authv1.Permission, error) {
+func (p *PermissionHandler) findPermissionByFilter(filter map[string]any) (*authv1.Permission, *infra_error.AppError) {
 	if tenant_id, ok := filter["tenant_id"]; !ok || tenant_id == nil {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}
@@ -160,7 +160,7 @@ func (p *PermissionHandler) findPermissionByFilter(filter map[string]any) (*auth
 	return permission, nil
 }
 
-func (p *PermissionHandler) findPermissionsByFilter(filter map[string]any) ([]*authv1.Permission, error) {
+func (p *PermissionHandler) findPermissionsByFilter(filter map[string]any) ([]*authv1.Permission, *infra_error.AppError) {
 	if tenant_id, ok := filter["tenant_id"]; !ok || tenant_id == nil {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}
@@ -181,7 +181,7 @@ func (p *PermissionHandler) GetPermissionsByIDsAggregation(
 	tenantID string,
 	permissionIDs []string,
 	fields []string,
-) ([]*authv1.Permission, error) {
+) ([]*authv1.Permission, *infra_error.AppError) {
 	if p.aggregation == nil {
 		p.logger.Warn("aggregation handler not initialized, falling back to sequential queries")
 		// Fallback to sequential queries if aggregation handler not available
@@ -206,7 +206,7 @@ func (p *PermissionHandler) GetPermissionsByIDsAggregation(
 func (p *PermissionHandler) GetUserPermissionsAggregation(
 	tenantID, userID string,
 	fields []string,
-) ([]*authv1.Permission, error) {
+) ([]*authv1.Permission, *infra_error.AppError) {
 	if p.aggregation == nil {
 		return nil, infra_error.Internal(infra_error.InternalDatabaseError, nil)
 	}

@@ -12,6 +12,7 @@ package mock
 import (
 	reflect "reflect"
 
+	error "erp.localhost/internal/infra/error"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -40,11 +41,11 @@ func (m *MockCollectionHandler[T]) EXPECT() *MockCollectionHandlerMockRecorder[T
 }
 
 // Create mocks base method.
-func (m *MockCollectionHandler[T]) Create(item *T) (string, error) {
+func (m *MockCollectionHandler[T]) Create(item *T) (string, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", item)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -55,10 +56,10 @@ func (mr *MockCollectionHandlerMockRecorder[T]) Create(item any) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockCollectionHandler[T]) Delete(filter map[string]any) error {
+func (m *MockCollectionHandler[T]) Delete(filter map[string]any) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", filter)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -69,11 +70,11 @@ func (mr *MockCollectionHandlerMockRecorder[T]) Delete(filter any) *gomock.Call 
 }
 
 // FindAll mocks base method.
-func (m *MockCollectionHandler[T]) FindAll(filter map[string]any) ([]*T, error) {
+func (m *MockCollectionHandler[T]) FindAll(filter map[string]any) ([]*T, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindAll", filter)
 	ret0, _ := ret[0].([]*T)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -84,11 +85,11 @@ func (mr *MockCollectionHandlerMockRecorder[T]) FindAll(filter any) *gomock.Call
 }
 
 // FindOne mocks base method.
-func (m *MockCollectionHandler[T]) FindOne(filter map[string]any) (*T, error) {
+func (m *MockCollectionHandler[T]) FindOne(filter map[string]any) (*T, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindOne", filter)
 	ret0, _ := ret[0].(*T)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -99,10 +100,10 @@ func (mr *MockCollectionHandlerMockRecorder[T]) FindOne(filter any) *gomock.Call
 }
 
 // Update mocks base method.
-func (m *MockCollectionHandler[T]) Update(filter map[string]any, item *T) error {
+func (m *MockCollectionHandler[T]) Update(filter map[string]any, item *T) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", filter, item)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 

@@ -12,6 +12,7 @@ package mock
 import (
 	reflect "reflect"
 
+	error "erp.localhost/internal/infra/error"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -40,10 +41,10 @@ func (m *MockKeyHandler[T]) EXPECT() *MockKeyHandlerMockRecorder[T] {
 }
 
 // Delete mocks base method.
-func (m *MockKeyHandler[T]) Delete(key string) error {
+func (m *MockKeyHandler[T]) Delete(key string) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", key)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -54,11 +55,11 @@ func (mr *MockKeyHandlerMockRecorder[T]) Delete(key any) *gomock.Call {
 }
 
 // DeleteByPattern mocks base method.
-func (m *MockKeyHandler[T]) DeleteByPattern(pattern string) (int, error) {
+func (m *MockKeyHandler[T]) DeleteByPattern(pattern string) (int, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteByPattern", pattern)
 	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -69,11 +70,11 @@ func (mr *MockKeyHandlerMockRecorder[T]) DeleteByPattern(pattern any) *gomock.Ca
 }
 
 // GetAll mocks base method.
-func (m *MockKeyHandler[T]) GetAll(key string) ([]*T, error) {
+func (m *MockKeyHandler[T]) GetAll(key string) ([]*T, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAll", key)
 	ret0, _ := ret[0].([]*T)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -84,11 +85,11 @@ func (mr *MockKeyHandlerMockRecorder[T]) GetAll(key any) *gomock.Call {
 }
 
 // GetOne mocks base method.
-func (m *MockKeyHandler[T]) GetOne(key string) (*T, error) {
+func (m *MockKeyHandler[T]) GetOne(key string) (*T, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOne", key)
 	ret0, _ := ret[0].(*T)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -99,11 +100,11 @@ func (mr *MockKeyHandlerMockRecorder[T]) GetOne(key any) *gomock.Call {
 }
 
 // ScanKeys mocks base method.
-func (m *MockKeyHandler[T]) ScanKeys(pattern string) ([]string, error) {
+func (m *MockKeyHandler[T]) ScanKeys(pattern string) ([]string, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ScanKeys", pattern)
 	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -114,14 +115,14 @@ func (mr *MockKeyHandlerMockRecorder[T]) ScanKeys(pattern any) *gomock.Call {
 }
 
 // Set mocks base method.
-func (m *MockKeyHandler[T]) Set(key string, value *T, opts ...map[string]any) error {
+func (m *MockKeyHandler[T]) Set(key string, value *T, opts ...map[string]any) *error.AppError {
 	m.ctrl.T.Helper()
 	varargs := []any{key, value}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Set", varargs...)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -133,14 +134,14 @@ func (mr *MockKeyHandlerMockRecorder[T]) Set(key, value any, opts ...any) *gomoc
 }
 
 // Update mocks base method.
-func (m *MockKeyHandler[T]) Update(key string, value *T, opts ...map[string]any) error {
+func (m *MockKeyHandler[T]) Update(key string, value *T, opts ...map[string]any) *error.AppError {
 	m.ctrl.T.Helper()
 	varargs := []any{key, value}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Update", varargs...)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 

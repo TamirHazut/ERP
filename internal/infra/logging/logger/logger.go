@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/model/shared"
 	"github.com/rs/zerolog"
 )
@@ -67,12 +68,13 @@ func getLoggerConfigFromEnv() LoggerConfig {
 }
 
 // findProjectRoot walks up the directory tree to find go.mod
-func findProjectRoot() (string, error) {
+func findProjectRoot() (string, *infra_error.AppError) {
 	// Start from executable directory
 	execPath, err := os.Executable()
 	if err != nil {
 		// Fallback to working directory
-		return os.Getwd()
+		dir, err := os.Getwd()
+		return dir, infra_error.Internal(infra_error.InternalUnexpectedError, err)
 	}
 	dir := filepath.Dir(execPath)
 
@@ -92,13 +94,14 @@ func findProjectRoot() (string, error) {
 	}
 
 	// Fallback to working directory
-	return os.Getwd()
+	dir, err = os.Getwd()
+	return dir, infra_error.Internal(infra_error.InternalUnexpectedError, err)
 }
 
 // createFileWriter creates a file writer with the specified configuration
-func createFileWriter(config LoggerConfig) (io.Writer, *os.File, error) {
+func createFileWriter(config LoggerConfig) (io.Writer, *os.File, *infra_error.AppError) {
 	if config.LogsDir == "" {
-		return nil, nil, fmt.Errorf("file path is empty")
+		return nil, nil, infra_error.Internal(infra_error.InternalUnexpectedError, fmt.Errorf("file path is empty"))
 	}
 
 	// Resolve file path
@@ -107,7 +110,7 @@ func createFileWriter(config LoggerConfig) (io.Writer, *os.File, error) {
 		// Relative path - resolve from project root
 		projectRoot, err := findProjectRoot()
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to find project root: %w", err)
+			return nil, nil, infra_error.Internal(infra_error.InternalUnexpectedError, fmt.Errorf("failed to find project root: %w", err))
 		}
 		filePath = filepath.Join(projectRoot, filePath)
 	}
@@ -115,7 +118,7 @@ func createFileWriter(config LoggerConfig) (io.Writer, *os.File, error) {
 	// Create directory if needed
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, nil, fmt.Errorf("failed to create log directory: %w", err)
+		return nil, nil, infra_error.Internal(infra_error.InternalUnexpectedError, fmt.Errorf("failed to create log directory: %w", err))
 	}
 
 	// Determine file opening flags
@@ -129,7 +132,7 @@ func createFileWriter(config LoggerConfig) (io.Writer, *os.File, error) {
 	// Open file
 	file, err := os.OpenFile(filePath, flags, 0644)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open log file: %w", err)
+		return nil, nil, infra_error.Internal(infra_error.InternalUnexpectedError, fmt.Errorf("failed to open log file: %w", err))
 	}
 
 	// Wrap in pipeFormatter
@@ -138,7 +141,7 @@ func createFileWriter(config LoggerConfig) (io.Writer, *os.File, error) {
 }
 
 // createMultiWriter creates a writer based on configuration (console, file, or both)
-func createMultiWriter(config LoggerConfig) (io.Writer, func(), error) {
+func createMultiWriter(config LoggerConfig) (io.Writer, func(), *infra_error.AppError) {
 	var writers []io.Writer
 	var fileHandle *os.File
 
@@ -340,7 +343,7 @@ func (l *BaseLogger) log(level zerolog.Level, msg string, extraFields ...any) {
 }
 
 // Close releases any resources held by the logger (e.g., file handles)
-func (l *BaseLogger) Close() error {
+func (l *BaseLogger) Close() *infra_error.AppError {
 	if l != nil && l.fileCleanup != nil {
 		l.fileCleanup()
 	}

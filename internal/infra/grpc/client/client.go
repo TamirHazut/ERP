@@ -38,7 +38,7 @@ type GRPCClient struct {
 	logger logger.Logger
 }
 
-func NewGRPCClient(ctx context.Context, config *Config, logger logger.Logger) (*GRPCClient, error) {
+func NewGRPCClient(ctx context.Context, config *Config, logger logger.Logger) (*GRPCClient, *infra_error.AppError) {
 	// Build dial options
 	opts, err := buildDialOptions(config, logger)
 	if err != nil {
@@ -46,10 +46,10 @@ func NewGRPCClient(ctx context.Context, config *Config, logger logger.Logger) (*
 		return nil, err
 	}
 
-	conn, err := grpc.NewClient(config.Address, opts...)
-	if err != nil {
+	conn, conErr := grpc.NewClient(config.Address, opts...)
+	if conErr != nil {
 		logger.Error("failed to connect to gRPC server", "address", config.Address, "error", err)
-		return nil, err
+		return nil, infra_error.Internal(infra_error.InternalGRPCError, conErr)
 	}
 
 	logger.Info("connected to gRPC server", "address", config.Address)
@@ -67,15 +67,15 @@ func (c *GRPCClient) Conn() *grpc.ClientConn {
 }
 
 // Close closes the gRPC connection
-func (c *GRPCClient) Close() error {
+func (c *GRPCClient) Close() *infra_error.AppError {
 	if c.Conn() != nil {
 		c.logger.Info("closing gRPC client connection")
-		return c.Conn().Close()
+		return infra_error.Internal(infra_error.InternalGRPCError, c.Conn().Close())
 	}
 	return nil
 }
 
-func buildDialOptions(config *Config, logger logger.Logger) ([]grpc.DialOption, error) {
+func buildDialOptions(config *Config, logger logger.Logger) ([]grpc.DialOption, *infra_error.AppError) {
 	opts := []grpc.DialOption{
 		grpc.WithChainUnaryInterceptor(
 			interceptor.ClientLoggingInterceptor(logger),
@@ -99,7 +99,7 @@ func buildDialOptions(config *Config, logger logger.Logger) ([]grpc.DialOption, 
 	return opts, nil
 }
 
-func buildTLSOptions(certs *shared.Certs) ([]grpc.DialOption, error) {
+func buildTLSOptions(certs *shared.Certs) ([]grpc.DialOption, *infra_error.AppError) {
 	if certs == nil || !certs.IsValidCerts() {
 		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("invalid or missing certificates"))
 	}

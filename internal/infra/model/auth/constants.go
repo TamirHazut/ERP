@@ -62,7 +62,7 @@ func IsValidTenantStatus(tenantStatus string) bool {
 
 /* RBAC */
 
-func CreatePermissionString(resource string, action string) (string, error) {
+func CreatePermissionString(resource string, action string) (string, *infra_error.AppError) {
 	resource = strings.ToLower(resource)
 	if !IsValidResourceType(resource) {
 		return "", infra_error.Validation(infra_error.ValidationInvalidType, "resource")

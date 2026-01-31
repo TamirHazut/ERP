@@ -22,7 +22,7 @@ type MongoDBManager struct {
 	logger logger.Logger
 }
 
-func NewMongoDBManager(dbName model_mongo.DBName, logger logger.Logger) (*MongoDBManager, error) {
+func NewMongoDBManager(dbName model_mongo.DBName, logger logger.Logger) (*MongoDBManager, *infra_error.AppError) {
 	if logger == nil {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "logger")
 	}
@@ -31,20 +31,20 @@ func NewMongoDBManager(dbName model_mongo.DBName, logger logger.Logger) (*MongoD
 		logger: logger,
 	}
 	if err := m.Init(); err != nil {
-		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
+		return nil, err
 	}
 	return m, nil
 }
 
-func (m *MongoDBManager) Close() error {
+func (m *MongoDBManager) Close() *infra_error.AppError {
 	if err := m.client.Disconnect(context.Background()); err != nil {
 		m.logger.Error("failed to disconnect from mongo", "error", err)
-		return err
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	return nil
 }
 
-func (m *MongoDBManager) Init() error {
+func (m *MongoDBManager) Init() *infra_error.AppError {
 	uri := "mongodb://root:secret@localhost:27017"
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -57,11 +57,11 @@ func (m *MongoDBManager) Init() error {
 	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {
 		m.logger.Fatal("failed to connect to mongo", "error", err)
-		return err
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	if err := client.Ping(ctx, nil); err != nil {
 		m.logger.Fatal("failed to ping mongo", "error", err)
-		return err
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	m.client = client
 	if err := m.createDBIfNotExists(); err != nil {
@@ -70,7 +70,7 @@ func (m *MongoDBManager) Init() error {
 	return nil
 }
 
-func (m *MongoDBManager) CreateCollectionInDBIfNotExists(collectionName string) error {
+func (m *MongoDBManager) CreateCollectionInDBIfNotExists(collectionName string) *infra_error.AppError {
 	m.logger.Debug("checking if collection esists", "db", m.dbName, "collection", collectionName)
 	filter := bson.M{"name": collectionName}
 	names, err := m.db.ListCollectionNames(context.Background(), filter)
@@ -89,7 +89,7 @@ func (m *MongoDBManager) CreateCollectionInDBIfNotExists(collectionName string) 
 	return nil
 }
 
-func (m *MongoDBManager) createDBIfNotExists() error {
+func (m *MongoDBManager) createDBIfNotExists() *infra_error.AppError {
 	m.logger.Debug("checking if db esists", "dbName", m.dbName)
 	m.db = m.client.Database(string(m.dbName))
 	if m.db == nil {
@@ -98,83 +98,83 @@ func (m *MongoDBManager) createDBIfNotExists() error {
 	return nil
 }
 
-func (m *MongoDBManager) Create(collectionName string, data any, opts ...map[string]any) (string, error) {
+func (m *MongoDBManager) Create(collectionName string, data any, opts ...map[string]any) (string, *infra_error.AppError) {
 	m.logger.Debug("creating data", "collection", collectionName, "data", data)
 	collection := m.db.Collection(collectionName)
 	result, err := collection.InsertOne(context.Background(), data)
 	if err != nil {
-		return "", err
+		return "", infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	return result.InsertedID.(primitive.ObjectID).Hex(), nil
 }
 
-func (m *MongoDBManager) FindOne(collectionName string, filter map[string]any, result any) error {
+func (m *MongoDBManager) FindOne(collectionName string, filter map[string]any, result any) *infra_error.AppError {
 	m.logger.Debug("finding one", "collection", collectionName, "filter", filter)
 	if filter == nil {
-		return errors.New("filter is required and cannot be nil")
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "filter")
 	}
 	collection := m.db.Collection(collectionName)
 	m.convertFilterToMongoTypes(filter)
-	item := collection.FindOne(context.Background(), filter)
-	if err := item.Err(); err != nil {
-		return err
+	err := collection.FindOne(context.Background(), filter).Decode(result)
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, mongo.ErrNoDocuments):
+		return infra_error.NotFound(infra_error.NotFoundItem, collectionName, filter)
+	default:
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
-	if item == nil {
-		return errors.New("no result found")
-	}
-	if err := item.Decode(result); err != nil {
-		return err
-	}
-	return nil
 }
 
-func (m *MongoDBManager) FindAll(collectionName string, filter map[string]any, result any) error {
+func (m *MongoDBManager) FindAll(collectionName string, filter map[string]any, result any) *infra_error.AppError {
 	m.logger.Debug("finding all", "collection", collectionName, "filter", filter)
 	if filter == nil {
-		return errors.New("filter is required and cannot be nil")
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "filter")
 	}
 	collection := m.db.Collection(collectionName)
 	m.convertFilterToMongoTypes(filter)
-	cursor, err := collection.Find(context.Background(), filter)
+	ctx := context.Background()
+	cursor, err := collection.Find(ctx, filter)
 	if err != nil {
-		return err
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
-	if err := cursor.All(context.Background(), result); err != nil {
-		return err
+	defer cursor.Close(ctx)
+	if err := cursor.All(ctx, result); err != nil {
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	return nil
 }
 
-func (m *MongoDBManager) Update(collectionName string, filter map[string]any, data any, opts ...map[string]any) error {
+func (m *MongoDBManager) Update(collectionName string, filter map[string]any, data any, opts ...map[string]any) *infra_error.AppError {
 	m.logger.Debug("updating data", "collection", collectionName, "filter", filter, "data", data)
 	if filter == nil {
-		return errors.New("filter is required and cannot be nil")
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "filter")
 	}
 	collection := m.db.Collection(collectionName)
 	m.convertFilterToMongoTypes(filter)
 	_, err := collection.UpdateOne(context.Background(), filter, bson.M{"$set": data})
 	if err != nil {
-		return err
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	return nil
 }
 
-func (m *MongoDBManager) Delete(collectionName string, filter map[string]any) error {
+func (m *MongoDBManager) Delete(collectionName string, filter map[string]any) *infra_error.AppError {
 	m.logger.Debug("deleting data", "collection", collectionName, "filter", filter)
 	if filter == nil {
-		return errors.New("filter is required and cannot be nil")
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "filter")
 	}
 	collection := m.db.Collection(collectionName)
 	m.convertFilterToMongoTypes(filter)
 	_, err := collection.DeleteOne(context.Background(), filter)
 	if err != nil {
-		return err
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	return nil
 }
 
 // EnsureIndexes creates indexes for a collection if they don't exist (idempotent)
-func (m *MongoDBManager) EnsureIndexes(collectionName string, indexes []mongo.IndexModel) error {
+func (m *MongoDBManager) EnsureIndexes(collectionName string, indexes []mongo.IndexModel) *infra_error.AppError {
 	m.logger.Debug("ensuring indexes", "collection", collectionName, "count", len(indexes))
 	collection := m.db.Collection(collectionName)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -191,7 +191,7 @@ func (m *MongoDBManager) EnsureIndexes(collectionName string, indexes []mongo.In
 }
 
 // ListIndexes returns all indexes for a collection
-func (m *MongoDBManager) ListIndexes(collectionName string) ([]bson.M, error) {
+func (m *MongoDBManager) ListIndexes(collectionName string) ([]bson.M, *infra_error.AppError) {
 	m.logger.Debug("listing indexes", "collection", collectionName)
 	collection := m.db.Collection(collectionName)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -213,7 +213,7 @@ func (m *MongoDBManager) ListIndexes(collectionName string) ([]bson.M, error) {
 }
 
 // DropIndex drops a specific index by name
-func (m *MongoDBManager) DropIndex(collectionName, indexName string) error {
+func (m *MongoDBManager) DropIndex(collectionName, indexName string) *infra_error.AppError {
 	m.logger.Debug("dropping index", "collection", collectionName, "index", indexName)
 	collection := m.db.Collection(collectionName)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -230,7 +230,7 @@ func (m *MongoDBManager) DropIndex(collectionName, indexName string) error {
 }
 
 // Aggregate executes an aggregation pipeline on a collection
-func (m *MongoDBManager) Aggregate(ctx context.Context, collectionName string, pipeline interface{}) (*mongo.Cursor, error) {
+func (m *MongoDBManager) Aggregate(ctx context.Context, collectionName string, pipeline interface{}) (*mongo.Cursor, *infra_error.AppError) {
 	m.logger.Debug("executing aggregation", "collection", collectionName)
 	collection := m.db.Collection(collectionName)
 

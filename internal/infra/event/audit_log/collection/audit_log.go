@@ -22,7 +22,7 @@ func NewAuditLogsCollection(collection collection.CollectionHandler[eventv1.Audi
 	}
 }
 
-func (c *AuditLogsCollection) CreateAuditLog(tenantID string, auditLog *eventv1.AuditLog) error {
+func (c *AuditLogsCollection) CreateAuditLog(tenantID string, auditLog *eventv1.AuditLog) *infra_error.AppError {
 	if tenantID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "tenantID")
 	}
@@ -57,7 +57,7 @@ func (c *AuditLogsCollection) CreateAuditLog(tenantID string, auditLog *eventv1.
 // - resource_type
 // - resource_id
 // - resource_name
-func (c *AuditLogsCollection) GetAuditLogsByFilter(tenantID string, filter map[string]any) ([]*eventv1.AuditLog, error) {
+func (c *AuditLogsCollection) GetAuditLogsByFilter(tenantID string, filter map[string]any) ([]*eventv1.AuditLog, *infra_error.AppError) {
 	if tenantID == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenantID")
 	}

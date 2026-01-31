@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	infra_error "erp.localhost/internal/infra/error"
 )
 
 const (
@@ -54,19 +56,19 @@ func (c *Certs) IsValidCerts() bool {
 	return true
 }
 
-func getRelativeDir(filename string) (string, error) {
+func getRelativeDir(filename string) (string, *infra_error.AppError) {
 	functionFileDir := filepath.Dir(filename)
 
 	// 2. Get the current working directory
 	workingDir, err := os.Getwd()
 	if err != nil {
-		return "", err
+		return "", infra_error.Internal(infra_error.InternalUnexpectedError, err)
 	}
 
 	// 3. Calculate the relative path from CWD to the function's file directory
 	relativePath, err := filepath.Rel(workingDir, functionFileDir)
 	if err != nil {
-		return "", err
+		return "", infra_error.Internal(infra_error.InternalUnexpectedError, err)
 	}
 
 	return relativePath, nil

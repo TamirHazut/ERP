@@ -15,21 +15,21 @@ import (
 //go:generate mockgen -destination=mock/mock_token_handler.go -package=mock erp.localhost/internal/auth/handler TokenHandler
 type TokenHandler[T any] interface {
 	// Store stores a single token for a user (replaces existing if present)
-	Store(tenantID string, userID string, value *T) error
+	Store(tenantID string, userID string, value *T) *infra_error.AppError
 	// GetOne retrieves the single token for a user
-	GetOne(tenantID string, userID string) (*T, error)
+	GetOne(tenantID string, userID string) (*T, *infra_error.AppError)
 	// Validate checks if the token is valid (exists, not revoked, not expired)
-	Validate(tenantID string, userID string) (*T, error)
+	Validate(tenantID string, userID string) (*T, *infra_error.AppError)
 	// Revoke revokes the single token for a user
-	Revoke(tenantID string, userID string, revokedBy string) error
+	Revoke(tenantID string, userID string, revokedBy string) *infra_error.AppError
 	// // RevokeAll revokes all the tokens that are related to a pattern
 	// RevokeAll(pattern string, revokedBy string) error
 	// ScanKeys finds all the keys that are related to a tenant
-	ScanKeys(tenantID string) ([]string, error)
+	ScanKeys(tenantID string) ([]string, *infra_error.AppError)
 	// Delete permanently deletes the single token for a user
-	Delete(tenantID string, userID string) error
+	Delete(tenantID string, userID string) *infra_error.AppError
 	// Delete permanently deletes the tokens that match the pattern
-	DeleteByPattern(tenantID string, pattern string) (int, error)
+	DeleteByPattern(tenantID string, pattern string) (int, *infra_error.AppError)
 }
 
 // AccessTokenHandler handles access token operations in Redis
@@ -40,7 +40,7 @@ type AccessTokenHandler struct {
 	logger  logger.Logger
 }
 
-func NewAccessTokenHandler(logger logger.Logger) (*AccessTokenHandler, error) {
+func NewAccessTokenHandler(logger logger.Logger) (*AccessTokenHandler, *infra_error.AppError) {
 	handler, err := token.NewAccessTokenKeyHandler(logger)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func NewAccessTokenHandler(logger logger.Logger) (*AccessTokenHandler, error) {
 // Store stores an access token in Redis (replaces existing token if present)
 // Key: tokens:{tenant_id}:{user_id}
 // Single token per user - automatically replaces any existing token
-func (h *AccessTokenHandler) Store(tenantID string, userID string, metadata *authv1_cache.TokenMetadata) error {
+func (h *AccessTokenHandler) Store(tenantID string, userID string, metadata *authv1_cache.TokenMetadata) *infra_error.AppError {
 	if err := validator_auth_cache.ValidateTokenMetaData(metadata); err != nil {
 		h.logger.Error("Failed to validate token", "error", err)
 		return err
@@ -82,7 +82,7 @@ func (h *AccessTokenHandler) Store(tenantID string, userID string, metadata *aut
 }
 
 // GetOne retrieves the single access token for a user from Redis
-func (h *AccessTokenHandler) GetOne(tenantID string, userID string) (*authv1_cache.TokenMetadata, error) {
+func (h *AccessTokenHandler) GetOne(tenantID string, userID string) (*authv1_cache.TokenMetadata, *infra_error.AppError) {
 	key := fmt.Sprintf("%s:%s", tenantID, userID)
 	token, err := h.handler.GetOne(key)
 	if err != nil {
@@ -94,7 +94,7 @@ func (h *AccessTokenHandler) GetOne(tenantID string, userID string) (*authv1_cac
 }
 
 // Validate checks if a token is valid (exists, not revoked, not expired)
-func (h *AccessTokenHandler) Validate(tenantID string, userID string) (*authv1_cache.TokenMetadata, error) {
+func (h *AccessTokenHandler) Validate(tenantID string, userID string) (*authv1_cache.TokenMetadata, *infra_error.AppError) {
 	key := fmt.Sprintf("%s:%s", tenantID, userID)
 	metadata, err := h.handler.GetOne(key)
 	if err != nil {
@@ -115,7 +115,7 @@ func (h *AccessTokenHandler) Validate(tenantID string, userID string) (*authv1_c
 }
 
 // Revoke revokes the single access token for a user
-func (h *AccessTokenHandler) Revoke(tenantID string, userID string, revokedBy string) error {
+func (h *AccessTokenHandler) Revoke(tenantID string, userID string, revokedBy string) *infra_error.AppError {
 	metadata, err := h.GetOne(tenantID, userID)
 	if err != nil || metadata == nil {
 		// No token to revoke
@@ -139,7 +139,7 @@ func (h *AccessTokenHandler) Revoke(tenantID string, userID string, revokedBy st
 }
 
 // Delete permanently removes the access token from Redis (hard delete)
-func (h *AccessTokenHandler) Delete(tenantID string, userID string) error {
+func (h *AccessTokenHandler) Delete(tenantID string, userID string) *infra_error.AppError {
 	key := fmt.Sprintf("%s:%s", tenantID, userID)
 	err := h.handler.Delete(key)
 	if err != nil {
@@ -153,7 +153,7 @@ func (h *AccessTokenHandler) Delete(tenantID string, userID string) error {
 
 // ScanKeys returns all access token keys for a tenant
 // Used for tenant-level token management (revoke/delete all tokens for a tenant)
-func (h *AccessTokenHandler) ScanKeys(tenantID string) ([]string, error) {
+func (h *AccessTokenHandler) ScanKeys(tenantID string) ([]string, *infra_error.AppError) {
 	// Pattern: all user IDs in this tenant (tenantID:*)
 	key := fmt.Sprintf("%s:*", tenantID)
 	keys, err := h.handler.ScanKeys(key)
@@ -168,7 +168,7 @@ func (h *AccessTokenHandler) ScanKeys(tenantID string) ([]string, error) {
 
 // DeleteByPattern deletes all access tokens for a tenant
 // Returns the number of tokens deleted
-func (h *AccessTokenHandler) DeleteByPattern(tenantID string, pattern string) (int, error) {
+func (h *AccessTokenHandler) DeleteByPattern(tenantID string, pattern string) (int, *infra_error.AppError) {
 	// Pattern: all user IDs in this tenant (tenantID:*)
 	newPattern := fmt.Sprintf("%s:%s", tenantID, pattern)
 	count, err := h.handler.DeleteByPattern(newPattern)

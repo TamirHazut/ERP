@@ -12,6 +12,7 @@ package mock
 import (
 	reflect "reflect"
 
+	error "erp.localhost/internal/infra/error"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -40,10 +41,10 @@ func (m *MockDBHandler) EXPECT() *MockDBHandlerMockRecorder {
 }
 
 // Close mocks base method.
-func (m *MockDBHandler) Close() error {
+func (m *MockDBHandler) Close() *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -54,7 +55,7 @@ func (mr *MockDBHandlerMockRecorder) Close() *gomock.Call {
 }
 
 // Create mocks base method.
-func (m *MockDBHandler) Create(db string, data any, opts ...map[string]any) (string, error) {
+func (m *MockDBHandler) Create(db string, data any, opts ...map[string]any) (string, *error.AppError) {
 	m.ctrl.T.Helper()
 	varargs := []any{db, data}
 	for _, a := range opts {
@@ -62,7 +63,7 @@ func (m *MockDBHandler) Create(db string, data any, opts ...map[string]any) (str
 	}
 	ret := m.ctrl.Call(m, "Create", varargs...)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -74,10 +75,10 @@ func (mr *MockDBHandlerMockRecorder) Create(db, data any, opts ...any) *gomock.C
 }
 
 // Delete mocks base method.
-func (m *MockDBHandler) Delete(db string, filter map[string]any) error {
+func (m *MockDBHandler) Delete(db string, filter map[string]any) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", db, filter)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -88,10 +89,10 @@ func (mr *MockDBHandlerMockRecorder) Delete(db, filter any) *gomock.Call {
 }
 
 // FindAll mocks base method.
-func (m *MockDBHandler) FindAll(db string, filter map[string]any, result any) error {
+func (m *MockDBHandler) FindAll(db string, filter map[string]any, result any) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindAll", db, filter, result)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -102,10 +103,10 @@ func (mr *MockDBHandlerMockRecorder) FindAll(db, filter, result any) *gomock.Cal
 }
 
 // FindOne mocks base method.
-func (m *MockDBHandler) FindOne(db string, filter map[string]any, result any) error {
+func (m *MockDBHandler) FindOne(db string, filter map[string]any, result any) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindOne", db, filter, result)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -116,14 +117,14 @@ func (mr *MockDBHandlerMockRecorder) FindOne(db, filter, result any) *gomock.Cal
 }
 
 // Update mocks base method.
-func (m *MockDBHandler) Update(db string, filter map[string]any, data any, opts ...map[string]any) error {
+func (m *MockDBHandler) Update(db string, filter map[string]any, data any, opts ...map[string]any) *error.AppError {
 	m.ctrl.T.Helper()
 	varargs := []any{db, filter, data}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Update", varargs...)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 

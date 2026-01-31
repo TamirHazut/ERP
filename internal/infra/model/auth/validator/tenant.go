@@ -5,7 +5,7 @@ import (
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 )
 
-func ValidateTenant(t *authv1.Tenant, createOperation bool) error {
+func ValidateTenant(t *authv1.Tenant, createOperation bool) *infra_error.AppError {
 	missingFields := []string{}
 	if !createOperation {
 		if t.Id == "" {

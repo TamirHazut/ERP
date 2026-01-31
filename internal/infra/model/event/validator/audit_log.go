@@ -1,15 +1,13 @@
 package validator
 
 import (
-	"fmt"
-
 	infra_error "erp.localhost/internal/infra/error"
 	model_event "erp.localhost/internal/infra/model/event"
 	eventv1 "erp.localhost/internal/infra/model/event/v1"
 )
 
 // Validate validates the audit log structure
-func ValidateAuditLog(a *eventv1.AuditLog) error {
+func ValidateAuditLog(a *eventv1.AuditLog) *infra_error.AppError {
 	missingFields := []string{}
 	// Required fields
 	if a.Category == "" {
@@ -82,14 +80,14 @@ func ValidateAuditLog(a *eventv1.AuditLog) error {
 	// Validate changes structure if present
 	if a.Changes != nil {
 		if err := ValidateChanges(a.Changes); err != nil {
-			return fmt.Errorf("invalid changes: %w", err)
+			return err
 		}
 	}
 
 	// Validate context if present
 	if a.Context != nil {
 		if err := ValidateAuditContext(a.Context); err != nil {
-			return fmt.Errorf("invalid context: %w", err)
+			return err
 		}
 	}
 
@@ -97,7 +95,7 @@ func ValidateAuditLog(a *eventv1.AuditLog) error {
 }
 
 // Validate validates the Changes structure
-func ValidateChanges(c *eventv1.Changes) error {
+func ValidateChanges(c *eventv1.Changes) *infra_error.AppError {
 	missingFields := []string{}
 	// If status change is specified, both from and to should be set
 	if (c.StatusFrom != "" && c.StatusTo == "") || (c.StatusFrom == "" && c.StatusTo != "") {
@@ -141,7 +139,7 @@ func ValidateChanges(c *eventv1.Changes) error {
 }
 
 // Validate validates the AuditContext structure
-func ValidateAuditContext(c *eventv1.AuditContext) error {
+func ValidateAuditContext(c *eventv1.AuditContext) *infra_error.AppError {
 	missingFields := []string{}
 	// IP address validation (basic)
 	if c.IpAddress != "" && len(c.IpAddress) > 45 {

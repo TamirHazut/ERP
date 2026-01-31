@@ -28,16 +28,16 @@ type RevokeResponse struct {
 
 type AuthClient interface {
 	// Authentication - Login + Logout
-	Login(ctx context.Context, tenantID, email, username, password string) (*TokensResponse, error)
-	Logout(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (string, error)
+	Login(ctx context.Context, tenantID, email, username, password string) (*TokensResponse, *infra_error.AppError)
+	Logout(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (string, *infra_error.AppError)
 	// Access + Refresh Tokens
-	VerifyToken(ctx context.Context, accessToken string) (bool, error)
-	RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, error)
-	RevokeToken(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (bool, error)
+	VerifyToken(ctx context.Context, accessToken string) (bool, *infra_error.AppError)
+	RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, *infra_error.AppError)
+	RevokeToken(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (bool, *infra_error.AppError)
 	// Tenant-level token management
-	RevokeAllTenantTokens(ctx context.Context, tenantID, userID, targetTenantID string) (*RevokeResponse, error)
+	RevokeAllTenantTokens(ctx context.Context, tenantID, userID, targetTenantID string) (*RevokeResponse, *infra_error.AppError)
 
-	Close() error
+	Close() *infra_error.AppError
 }
 
 // rbacClient implements RBACClient
@@ -47,7 +47,7 @@ type authClient struct {
 	stub       authv1.AuthServiceClient
 }
 
-func NewAuthGRPCClient(ctx context.Context, config *Config, logger logger.Logger) (AuthClient, error) {
+func NewAuthGRPCClient(ctx context.Context, config *Config, logger logger.Logger) (AuthClient, *infra_error.AppError) {
 	grpcClient, err := NewGRPCClient(ctx, config, logger)
 	if err != nil {
 		return nil, infra_error.Internal(infra_error.InternalGRPCError, err)
@@ -60,7 +60,7 @@ func NewAuthGRPCClient(ctx context.Context, config *Config, logger logger.Logger
 	}, nil
 }
 
-func (a *authClient) Login(ctx context.Context, tenantID, email, username, password string) (*TokensResponse, error) {
+func (a *authClient) Login(ctx context.Context, tenantID, email, username, password string) (*TokensResponse, *infra_error.AppError) {
 	req := &authv1.LoginRequest{
 		TenantId: tenantID,
 		Password: password,
@@ -88,7 +88,7 @@ func (a *authClient) Login(ctx context.Context, tenantID, email, username, passw
 	}, nil
 }
 
-func (a *authClient) Logout(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (string, error) {
+func (a *authClient) Logout(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (string, *infra_error.AppError) {
 	req := &authv1.LogoutRequest{
 		Identifier: &infrav1.UserIdentifier{
 			TenantId: tenantID,
@@ -106,7 +106,7 @@ func (a *authClient) Logout(ctx context.Context, tenantID, userID, accessToken, 
 	return res.GetMessage(), nil
 }
 
-func (a *authClient) VerifyToken(ctx context.Context, accessToken string) (bool, error) {
+func (a *authClient) VerifyToken(ctx context.Context, accessToken string) (bool, *infra_error.AppError) {
 	req := &authv1.VerifyTokenRequest{
 		Token: accessToken,
 	}
@@ -117,7 +117,7 @@ func (a *authClient) VerifyToken(ctx context.Context, accessToken string) (bool,
 	return res.GetValid(), nil
 }
 
-func (a *authClient) RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, error) {
+func (a *authClient) RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, *infra_error.AppError) {
 	req := &authv1.RefreshTokenRequest{
 		Identifier: &infrav1.UserIdentifier{
 			TenantId: tenantID,
@@ -137,7 +137,7 @@ func (a *authClient) RefreshToken(ctx context.Context, tenantID, userID, refresh
 	}, nil
 }
 
-func (a *authClient) RevokeToken(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (bool, error) {
+func (a *authClient) RevokeToken(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (bool, *infra_error.AppError) {
 	req := &authv1.RevokeTokenRequest{
 		Identifier: &infrav1.UserIdentifier{
 			TenantId: tenantID,
@@ -155,7 +155,7 @@ func (a *authClient) RevokeToken(ctx context.Context, tenantID, userID, accessTo
 	return res.GetRevoked(), nil
 }
 
-func (a *authClient) RevokeAllTenantTokens(ctx context.Context, tenantID, userID, targetTenantID string) (*RevokeResponse, error) {
+func (a *authClient) RevokeAllTenantTokens(ctx context.Context, tenantID, userID, targetTenantID string) (*RevokeResponse, *infra_error.AppError) {
 	req := &authv1.RevokeAllTenantTokensRequest{
 		Identifier: &infrav1.UserIdentifier{
 			TenantId: tenantID,
@@ -174,6 +174,6 @@ func (a *authClient) RevokeAllTenantTokens(ctx context.Context, tenantID, userID
 	}, nil
 }
 
-func (a *authClient) Close() error {
-	return a.grpcClient.Close()
+func (a *authClient) Close() *infra_error.AppError {
+	return infra_error.Internal(infra_error.InternalGRPCError, a.grpcClient.Close())
 }

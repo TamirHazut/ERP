@@ -5,6 +5,7 @@ import (
 
 	"erp.localhost/internal/infra/db/mongo/aggregation"
 	"erp.localhost/internal/infra/db/mongo/aggregation/pipeline"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
@@ -16,7 +17,7 @@ type PermissionAggregationHandler struct {
 }
 
 // NewPermissionAggregationHandler creates a new permission aggregation handler
-func NewPermissionAggregationHandler(logger logger.Logger) (*PermissionAggregationHandler, error) {
+func NewPermissionAggregationHandler(logger logger.Logger) (*PermissionAggregationHandler, *infra_error.AppError) {
 	aggregation, err := aggregation.NewBaseAggregationHandler[authv1.Permission](
 		model_mongo.AuthDB,
 		model_mongo.RolesCollection,
@@ -36,7 +37,7 @@ func (h *PermissionAggregationHandler) GetUserPermissions(
 	ctx context.Context,
 	tenantID, userID string,
 	fields []string,
-) ([]*authv1.Permission, error) {
+) ([]*authv1.Permission, *infra_error.AppError) {
 	pipelineStages := pipeline.BuildUserPermissionsPipeline(tenantID, userID)
 	return h.Aggregate(ctx, pipelineStages, fields)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"erp.localhost/internal/infra/db/mongo"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,10 +15,10 @@ import (
 // Follows same pattern as CollectionHandler[T] for consistency
 type AggregationHandler[T any] interface {
 	// Aggregate executes an aggregation pipeline and returns results of type T
-	Aggregate(ctx context.Context, pipeline []bson.M, fields []string) ([]*T, error)
+	Aggregate(ctx context.Context, pipeline []bson.M, fields []string) ([]*T, *infra_error.AppError)
 
 	// BatchGetByIDs retrieves multiple documents by IDs using $in operator
-	BatchGetByIDs(ctx context.Context, tenantID string, ids []string, fields []string) ([]*T, error)
+	BatchGetByIDs(ctx context.Context, tenantID string, ids []string, fields []string) ([]*T, *infra_error.AppError)
 }
 
 // BaseAggregationHandler provides generic aggregation functionality
@@ -29,7 +30,7 @@ type BaseAggregationHandler[T any] struct {
 }
 
 // NewBaseAggregationHandler creates a new generic aggregation handler
-func NewBaseAggregationHandler[T any](dbName model_mongo.DBName, collection model_mongo.Collection, logger logger.Logger) (*BaseAggregationHandler[T], error) {
+func NewBaseAggregationHandler[T any](dbName model_mongo.DBName, collection model_mongo.Collection, logger logger.Logger) (*BaseAggregationHandler[T], *infra_error.AppError) {
 	dbHandler, err := mongo.NewMongoDBManager(dbName, logger)
 	if dbHandler == nil {
 		logger.Fatal("failed to create mongo db manager for aggregation handler", "error", err)
@@ -48,7 +49,7 @@ func (h *BaseAggregationHandler[T]) Aggregate(
 	ctx context.Context,
 	pipeline []bson.M,
 	fields []string,
-) ([]*T, error) {
+) ([]*T, *infra_error.AppError) {
 	// Apply field projection if specified
 	if len(fields) > 0 {
 		projection := bson.M{}
@@ -72,7 +73,7 @@ func (h *BaseAggregationHandler[T]) Aggregate(
 	results := make([]*T, 0)
 	if err := cursor.All(ctx, &results); err != nil {
 		h.logger.Error("failed to decode aggregation results", "error", err, "collection", h.collection)
-		return nil, err
+		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
 	h.logger.Debug("aggregation completed", "collection", h.collection, "results_count", len(results))
@@ -85,7 +86,7 @@ func (h *BaseAggregationHandler[T]) BatchGetByIDs(
 	tenantID string,
 	ids []string,
 	fields []string,
-) ([]*T, error) {
+) ([]*T, *infra_error.AppError) {
 	// Convert string IDs to ObjectIDs
 	objectIDs := make([]primitive.ObjectID, 0, len(ids))
 	for _, id := range ids {

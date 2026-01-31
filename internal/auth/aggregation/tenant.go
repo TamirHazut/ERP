@@ -2,6 +2,7 @@ package aggregation
 
 import (
 	"erp.localhost/internal/infra/db/mongo/aggregation"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
@@ -13,7 +14,7 @@ type TenantAggregationHandler struct {
 }
 
 // NewTenantAggregationHandler creates a new tenant aggregation handler
-func NewTenantAggregationHandler(logger logger.Logger) (*TenantAggregationHandler, error) {
+func NewTenantAggregationHandler(logger logger.Logger) (*TenantAggregationHandler, *infra_error.AppError) {
 	aggregation, err := aggregation.NewBaseAggregationHandler[authv1.Tenant](
 		model_mongo.AuthDB,
 		model_mongo.TenantsCollection,

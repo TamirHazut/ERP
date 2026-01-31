@@ -5,7 +5,7 @@ import (
 	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
 )
 
-func ValidateTokenMetaData(tm *authv1_cache.TokenMetadata) error {
+func ValidateTokenMetaData(tm *authv1_cache.TokenMetadata) *infra_error.AppError {
 	missingFields := []string{}
 	if tm.TenantId == "" {
 		missingFields = append(missingFields, "TenantId")

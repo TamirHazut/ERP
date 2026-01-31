@@ -59,9 +59,10 @@ func (a *AuthService) Logout(ctx context.Context, req *authv1.LogoutRequest) (*a
 
 	tenantID := identifier.GetTenantId()
 	userID := identifier.GetUserId()
-	tokens := req.GetTokens()
+	token := req.GetTokens().GetToken()
+	refreshToken := req.GetTokens().GetRefreshToken()
 
-	message, err := a.authAPI.Logout(tenantID, userID, tokens.GetToken(), tokens.GetRefreshToken(), userID)
+	message, err := a.authAPI.Logout(tenantID, userID, token, refreshToken, userID)
 	if err != nil {
 		a.logger.Error("failed to logout", "tenantID", tenantID, "userID", userID, "error", err.Error())
 	} else {
@@ -74,7 +75,8 @@ func (a *AuthService) Logout(ctx context.Context, req *authv1.LogoutRequest) (*a
 }
 
 func (a *AuthService) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRequest) (*authv1.VerifyTokenResponse, error) {
-	err := a.authAPI.VerifyToken(req.GetToken())
+	token := req.GetToken()
+	err := a.authAPI.VerifyToken(token)
 	if err != nil {
 		a.logger.Error("failed to verify token", "error", err)
 		return nil, infra_error.ToGRPCError(err)

@@ -5,7 +5,7 @@ import (
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 )
 
-func ValidatePermission(p *authv1.Permission, createOperation bool) error {
+func ValidatePermission(p *authv1.Permission, createOperation bool) *infra_error.AppError {
 	missingFields := []string{}
 	if !createOperation {
 		if p.Id == "" {

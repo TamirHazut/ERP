@@ -44,7 +44,7 @@ type GRPCServer struct {
 	logger logger.Logger
 }
 
-func NewGRPCServer(config *Config, logger logger.Logger) (*GRPCServer, error) {
+func NewGRPCServer(config *Config, logger logger.Logger) (*GRPCServer, *infra_error.AppError) {
 	// Build server options
 	opts, err := buildServerOptions(config, logger)
 	if err != nil {
@@ -78,7 +78,7 @@ func (s *GRPCServer) RegisterService(desc *grpc.ServiceDesc, impl interface{}) {
 	s.logger.Info("registered gRPC service", "service", desc.ServiceName)
 }
 
-func (s *GRPCServer) ListenAndServe(quit <-chan struct{}) error {
+func (s *GRPCServer) ListenAndServe(quit <-chan struct{}) *infra_error.AppError {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.config.Port))
 	if err != nil {
 		err := infra_error.Internal(infra_error.InternalGRPCError, err)
@@ -110,7 +110,7 @@ func (s *GRPCServer) ListenAndServe(quit <-chan struct{}) error {
 	return nil
 }
 
-func buildServerOptions(config *Config, logger logger.Logger) ([]grpc.ServerOption, error) {
+func buildServerOptions(config *Config, logger logger.Logger) ([]grpc.ServerOption, *infra_error.AppError) {
 	var opts []grpc.ServerOption
 
 	// Add interceptors (from your interceptor package)
@@ -152,7 +152,7 @@ func buildServerOptions(config *Config, logger logger.Logger) ([]grpc.ServerOpti
 	return opts, nil
 }
 
-func buildTLSOptions(certs *shared.Certs) ([]grpc.ServerOption, error) {
+func buildTLSOptions(certs *shared.Certs) ([]grpc.ServerOption, *infra_error.AppError) {
 	if certs == nil || !certs.IsValidCerts() {
 		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("invalid or missing certificates"))
 	}

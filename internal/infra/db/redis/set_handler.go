@@ -10,10 +10,10 @@ import (
 
 //go:generate mockgen -destination=mock/mock_set_handler.go -package=mock erp.localhost/internal/infra/db/redis SetHandler
 type SetHandler interface {
-	Add(tenantID string, key string, member string, opts ...map[string]any) error
-	Remove(tenantID string, key string, member string) error
-	Members(tenantID string, key string) ([]string, error)
-	Clear(tenantID string, key string) error
+	Add(tenantID string, key string, member string, opts ...map[string]any) *infra_error.AppError
+	Remove(tenantID string, key string, member string) *infra_error.AppError
+	Members(tenantID string, key string) ([]string, *infra_error.AppError)
+	Clear(tenantID string, key string) *infra_error.AppError
 }
 
 type BaseSetHandler struct {
@@ -28,7 +28,7 @@ func NewBaseSetHandler(redisHandler RedisHandler, logger logger.Logger) *BaseSet
 	}
 }
 
-func (h *BaseSetHandler) Add(tenantID string, key string, member string, opts ...map[string]any) error {
+func (h *BaseSetHandler) Add(tenantID string, key string, member string, opts ...map[string]any) *infra_error.AppError {
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
 	err := h.redisHandler.SAdd(formattedKey, member)
 	if err != nil {
@@ -56,7 +56,7 @@ func (h *BaseSetHandler) Add(tenantID string, key string, member string, opts ..
 	return nil
 }
 
-func (h *BaseSetHandler) Remove(tenantID string, key string, member string) error {
+func (h *BaseSetHandler) Remove(tenantID string, key string, member string) *infra_error.AppError {
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
 	err := h.redisHandler.SRem(formattedKey, member)
 	if err != nil {
@@ -67,7 +67,7 @@ func (h *BaseSetHandler) Remove(tenantID string, key string, member string) erro
 	return nil
 }
 
-func (h *BaseSetHandler) Members(tenantID string, key string) ([]string, error) {
+func (h *BaseSetHandler) Members(tenantID string, key string) ([]string, *infra_error.AppError) {
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
 	members, err := h.redisHandler.SMembers(formattedKey)
 	if err != nil {
@@ -77,7 +77,7 @@ func (h *BaseSetHandler) Members(tenantID string, key string) ([]string, error) 
 	return members, nil
 }
 
-func (h *BaseSetHandler) Clear(tenantID string, key string) error {
+func (h *BaseSetHandler) Clear(tenantID string, key string) *infra_error.AppError {
 	formattedKey := fmt.Sprintf("%s:%s", tenantID, key)
 	err := h.redisHandler.Clear(formattedKey)
 	if err != nil {

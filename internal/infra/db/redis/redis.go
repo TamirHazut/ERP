@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -15,11 +16,11 @@ import (
 
 //go:generate mockgen -destination=mock/mock_redis_handler.go -package=mock erp.localhost/internal/infra/db/redis RedisHandler
 type RedisHandler interface {
-	SAdd(key string, members ...any) error
-	SRem(key string, members ...any) error
-	SMembers(key string) ([]string, error)
-	Expire(key string, ttl int, unit time.Duration) error
-	Clear(key string) error
+	SAdd(key string, members ...any) *infra_error.AppError
+	SRem(key string, members ...any) *infra_error.AppError
+	SMembers(key string) ([]string, *infra_error.AppError)
+	Expire(key string, ttl int, unit time.Duration) *infra_error.AppError
+	Clear(key string) *infra_error.AppError
 }
 
 var (
@@ -32,39 +33,39 @@ type BaseRedisHandler struct {
 	keyPrefix model_redis.KeyPrefix
 }
 
-func NewBaseRedisHandler(keyPrefix model_redis.KeyPrefix, logger logger.Logger) (*BaseRedisHandler, error) {
+func NewBaseRedisHandler(keyPrefix model_redis.KeyPrefix, logger logger.Logger) (*BaseRedisHandler, *infra_error.AppError) {
 	redisHandler := &BaseRedisHandler{
 		logger:    logger,
 		keyPrefix: keyPrefix,
 	}
 	if err := redisHandler.init(); err != nil {
 		redisHandler.logger.Error("Failed to initialize Redis", "error", err)
-		return nil, err
+		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	return redisHandler, nil
 }
 
-func (r *BaseRedisHandler) init() error {
+func (r *BaseRedisHandler) init() *infra_error.AppError {
 	uri := "redis://:supersecretredis@localhost:6379"
 	options, err := redis.ParseURL(uri)
 	if err != nil {
-		return err
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
 	client := redis.NewClient(options)
 	if err := client.Ping(redisContext).Err(); err != nil {
-		return err
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	r.client = client
 
 	return nil
 }
 
-func (r *BaseRedisHandler) Close() error {
-	return r.client.Close()
+func (r *BaseRedisHandler) Close() *infra_error.AppError {
+	return infra_error.Internal(infra_error.InternalDatabaseError, r.client.Close())
 }
 
-func (r *BaseRedisHandler) Create(key string, value any, opts ...map[string]any) (string, error) {
+func (r *BaseRedisHandler) Create(key string, value any, opts ...map[string]any) (string, *infra_error.AppError) {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
 
 	exists, err := r.client.Exists(redisContext, key).Result()
@@ -81,8 +82,8 @@ func (r *BaseRedisHandler) Create(key string, value any, opts ...map[string]any)
 	}
 
 	result := r.client.Set(redisContext, formattedKey, valueBytes, 0)
-	if result.Err() != nil {
-		return "", result.Err()
+	if err := result.Err(); err != nil {
+		return "", infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	// Handle TTL if provided
 	if len(opts) > 0 {
@@ -93,11 +94,14 @@ func (r *BaseRedisHandler) Create(key string, value any, opts ...map[string]any)
 	return result.Val(), nil
 }
 
-func (r *BaseRedisHandler) FindOne(key string, filter map[string]any, result any) error {
+func (r *BaseRedisHandler) FindOne(key string, filter map[string]any, result any) *infra_error.AppError {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
 	value, err := r.client.Get(redisContext, formattedKey).Bytes()
+	if err == redis.Nil {
+		return infra_error.NotFound(infra_error.NotFoundItem, key, filter)
+	}
 	if err != nil {
-		return err
+		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	switch v := result.(type) {
 	case *string:
@@ -105,45 +109,27 @@ func (r *BaseRedisHandler) FindOne(key string, filter map[string]any, result any
 	default:
 		err = json.Unmarshal(value, result)
 		if err != nil {
-			return err
+			return infra_error.Internal(infra_error.InternalUnexpectedError, err)
 		}
 	}
 	return nil
 }
 
-func (r *BaseRedisHandler) FindAll(key string, filter map[string]any, result any) error {
-	formattedKey := fmt.Sprintf("%s:%s*", r.keyPrefix, key)
-
+func (r *BaseRedisHandler) FindAll(key string, filter map[string]any, result any) *infra_error.AppError {
 	resultVal := reflect.ValueOf(result)
 
 	// Enforce *[]*T
 	if resultVal.Kind() != reflect.Ptr ||
 		resultVal.Elem().Kind() != reflect.Slice ||
 		resultVal.Elem().Type().Elem().Kind() != reflect.Ptr {
-		return fmt.Errorf("result must be a pointer to a slice of pointers (e.g. *[]*T)")
+		return infra_error.Validation(infra_error.ValidationInvalidType).WithError(errors.New("result must be a pointer to a slice of pointers (e.g. *[]*T)"))
 	}
 
-	// 1️⃣ SCAN keys
-	var cursor uint64
-	keys := make([]string, 0)
-
-	for {
-		batch, nextCursor, err := r.client.Scan(
-			redisContext,
-			cursor,
-			formattedKey,
-			100,
-		).Result()
-		if err != nil {
-			return err
-		}
-
-		keys = append(keys, batch...)
-
-		cursor = nextCursor
-		if cursor == 0 {
-			break
-		}
+	// 1️⃣ SCAN keys using dedicated Scan method
+	pattern := fmt.Sprintf("%s*", key) // Pattern relative to keyPrefix
+	keys, err := r.Scan(pattern, 100)
+	if err != nil {
+		return err // Already wrapped with infra_error by Scan method
 	}
 
 	// No keys found → return empty slice
@@ -152,9 +138,9 @@ func (r *BaseRedisHandler) FindAll(key string, filter map[string]any, result any
 	}
 
 	// 2️⃣ MGET values
-	vals, err := r.client.MGet(redisContext, keys...).Result()
-	if err != nil {
-		return err
+	vals, getErr := r.client.MGet(redisContext, keys...).Result()
+	if getErr != nil {
+		return infra_error.Internal(infra_error.InternalDatabaseError, getErr)
 	}
 
 	sliceVal := resultVal.Elem()
@@ -178,7 +164,7 @@ func (r *BaseRedisHandler) FindAll(key string, filter map[string]any, result any
 
 		newElem := reflect.New(elemType) // *T
 		if err := json.Unmarshal(data, newElem.Interface()); err != nil {
-			return err
+			return infra_error.Internal(infra_error.InternalUnexpectedError, err)
 		}
 
 		sliceVal.Set(reflect.Append(sliceVal, newElem))
@@ -187,7 +173,7 @@ func (r *BaseRedisHandler) FindAll(key string, filter map[string]any, result any
 	return nil
 }
 
-func (r *BaseRedisHandler) Update(key string, filter map[string]any, value any, opts ...map[string]any) error {
+func (r *BaseRedisHandler) Update(key string, filter map[string]any, value any, opts ...map[string]any) *infra_error.AppError {
 	_, err := r.Create(key, value)
 	if err != nil {
 		return err
@@ -195,39 +181,40 @@ func (r *BaseRedisHandler) Update(key string, filter map[string]any, value any, 
 	return nil
 }
 
-func (r *BaseRedisHandler) Delete(key string, filter map[string]any) error {
+func (r *BaseRedisHandler) Delete(key string, filter map[string]any) *infra_error.AppError {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
-	return r.client.Del(redisContext, formattedKey).Err()
+	return infra_error.Internal(infra_error.InternalDatabaseError, r.client.Del(redisContext, formattedKey).Err())
 }
 
-func (r *BaseRedisHandler) SAdd(key string, members ...any) error {
+func (r *BaseRedisHandler) SAdd(key string, members ...any) *infra_error.AppError {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
-	return r.client.SAdd(redisContext, formattedKey, members...).Err()
+	return infra_error.Internal(infra_error.InternalDatabaseError, r.client.SAdd(redisContext, formattedKey, members...).Err())
 }
 
-func (r *BaseRedisHandler) SRem(key string, members ...any) error {
+func (r *BaseRedisHandler) SRem(key string, members ...any) *infra_error.AppError {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
-	return r.client.SRem(redisContext, formattedKey, members...).Err()
+	return infra_error.Internal(infra_error.InternalDatabaseError, r.client.SRem(redisContext, formattedKey, members...).Err())
 }
 
-func (r *BaseRedisHandler) Expire(key string, ttl int, unit time.Duration) error {
+func (r *BaseRedisHandler) Expire(key string, ttl int, unit time.Duration) *infra_error.AppError {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
-	return r.client.Expire(redisContext, formattedKey, time.Duration(ttl)*unit).Err()
+	return infra_error.Internal(infra_error.InternalDatabaseError, r.client.Expire(redisContext, formattedKey, time.Duration(ttl)*unit).Err())
 }
 
-func (r *BaseRedisHandler) SMembers(key string) ([]string, error) {
+func (r *BaseRedisHandler) SMembers(key string) ([]string, *infra_error.AppError) {
 	formattedKey := fmt.Sprintf("%s:%s", r.keyPrefix, key)
-	return r.client.SMembers(redisContext, formattedKey).Result()
+	res, err := r.client.SMembers(redisContext, formattedKey).Result()
+	return res, infra_error.Internal(infra_error.InternalDatabaseError, err)
 }
 
-func (r *BaseRedisHandler) Clear(key string) error {
+func (r *BaseRedisHandler) Clear(key string) *infra_error.AppError {
 	return r.Delete(key, nil)
 }
 
 // Scan scans for keys matching a pattern
 // Returns keys in batches to avoid blocking Redis
 // Pattern should include the key prefix (e.g., "tokens:tenant-123:*")
-func (r *BaseRedisHandler) Scan(pattern string, batchSize int64) ([]string, error) {
+func (r *BaseRedisHandler) Scan(pattern string, batchSize int64) ([]string, *infra_error.AppError) {
 	var allKeys []string
 	var cursor uint64 = 0
 
@@ -237,7 +224,7 @@ func (r *BaseRedisHandler) Scan(pattern string, batchSize int64) ([]string, erro
 	for {
 		keys, nextCursor, err := r.client.Scan(redisContext, cursor, fullPattern, batchSize).Result()
 		if err != nil {
-			r.logger.Error("Failed to scan Redis keys", "error", err, "pattern", fullPattern)
+			// r.logger.Error("Failed to scan Redis keys", "error", err, "pattern", fullPattern)
 			return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 		}
 
@@ -256,7 +243,7 @@ func (r *BaseRedisHandler) Scan(pattern string, batchSize int64) ([]string, erro
 
 // DeleteByPattern deletes all keys matching a pattern
 // Uses SCAN to find keys and pipeline for efficient deletion
-func (r *BaseRedisHandler) DeleteByPattern(pattern string) (int, error) {
+func (r *BaseRedisHandler) DeleteByPattern(pattern string) (int, *infra_error.AppError) {
 	keys, err := r.Scan(pattern, 100)
 	if err != nil {
 		return 0, err
@@ -273,10 +260,10 @@ func (r *BaseRedisHandler) DeleteByPattern(pattern string) (int, error) {
 		pipe.Del(redisContext, key)
 	}
 
-	_, err = pipe.Exec(redisContext)
-	if err != nil {
-		r.logger.Error("Failed to delete keys by pattern", "error", err, "pattern", pattern, "keys_count", len(keys))
-		return 0, infra_error.Internal(infra_error.InternalDatabaseError, err)
+	_, excErr := pipe.Exec(redisContext)
+	if excErr != nil {
+		// r.logger.Error("Failed to delete keys by pattern", "error", err, "pattern", pattern, "keys_count", len(keys))
+		return 0, infra_error.Internal(infra_error.InternalDatabaseError, excErr)
 	}
 
 	r.logger.Info("Keys deleted by pattern", "pattern", pattern, "keys_deleted", len(keys))

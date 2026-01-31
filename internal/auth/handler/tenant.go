@@ -20,7 +20,7 @@ type TenantHandler struct {
 	logger      logger.Logger
 }
 
-func NewTenantHandler(logger logger.Logger) (*TenantHandler, error) {
+func NewTenantHandler(logger logger.Logger) (*TenantHandler, *infra_error.AppError) {
 	collection, err := collection_auth.NewTenantCollection(logger)
 	if err != nil {
 		logger.Error("failed to create user collection handler", "error", err)
@@ -38,7 +38,7 @@ func NewTenantHandler(logger logger.Logger) (*TenantHandler, error) {
 	}, nil
 }
 
-func (t TenantHandler) CreateTenant(tenant *authv1.Tenant) (string, error) {
+func (t TenantHandler) CreateTenant(tenant *authv1.Tenant) (string, *infra_error.AppError) {
 	if err := validator_auth.ValidateTenant(tenant, true); err != nil {
 		return "", err
 	}
@@ -49,7 +49,7 @@ func (t TenantHandler) CreateTenant(tenant *authv1.Tenant) (string, error) {
 	return t.collection.Create(tenant)
 }
 
-func (t TenantHandler) GetTenantByID(tenantID string) (*authv1.Tenant, error) {
+func (t TenantHandler) GetTenantByID(tenantID string) (*authv1.Tenant, *infra_error.AppError) {
 	if tenantID == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId")
 	}
@@ -60,7 +60,7 @@ func (t TenantHandler) GetTenantByID(tenantID string) (*authv1.Tenant, error) {
 	return t.findTenantByFilter(filter)
 }
 
-func (t TenantHandler) GetTenantByName(name string) (*authv1.Tenant, error) {
+func (t TenantHandler) GetTenantByName(name string) (*authv1.Tenant, *infra_error.AppError) {
 	if name == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId")
 	}
@@ -71,12 +71,12 @@ func (t TenantHandler) GetTenantByName(name string) (*authv1.Tenant, error) {
 	return t.findTenantByFilter(filter)
 }
 
-func (t TenantHandler) GetTenants() ([]*authv1.Tenant, error) {
+func (t TenantHandler) GetTenants() ([]*authv1.Tenant, *infra_error.AppError) {
 	t.logger.Debug("Getting all tenants")
 	return t.findTenantsByFilter(nil)
 }
 
-func (t TenantHandler) GetTenantsByStatus(status string) ([]*authv1.Tenant, error) {
+func (t TenantHandler) GetTenantsByStatus(status string) ([]*authv1.Tenant, *infra_error.AppError) {
 	if status == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "status")
 	}
@@ -87,7 +87,7 @@ func (t TenantHandler) GetTenantsByStatus(status string) ([]*authv1.Tenant, erro
 	return t.findTenantsByFilter(filter)
 }
 
-func (t TenantHandler) UpdateTenant(tenant *authv1.Tenant) error {
+func (t TenantHandler) UpdateTenant(tenant *authv1.Tenant) *infra_error.AppError {
 	if err := validator_auth.ValidateTenant(tenant, false); err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (t TenantHandler) UpdateTenant(tenant *authv1.Tenant) error {
 	return t.collection.Update(filter, tenant)
 }
 
-func (t TenantHandler) DeleteTenant(tenantID string) error {
+func (t TenantHandler) DeleteTenant(tenantID string) *infra_error.AppError {
 	if tenantID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId")
 	}
@@ -120,7 +120,7 @@ func (t TenantHandler) DeleteTenant(tenantID string) error {
 	return t.collection.Delete(filter)
 }
 
-func (t TenantHandler) findTenantByFilter(filter map[string]any) (*authv1.Tenant, error) {
+func (t TenantHandler) findTenantByFilter(filter map[string]any) (*authv1.Tenant, *infra_error.AppError) {
 	if len(filter) == 0 {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "filter")
 	}
@@ -130,7 +130,7 @@ func (t TenantHandler) findTenantByFilter(filter map[string]any) (*authv1.Tenant
 	}
 	return tenant, nil
 }
-func (t TenantHandler) findTenantsByFilter(filter map[string]any) ([]*authv1.Tenant, error) {
+func (t TenantHandler) findTenantsByFilter(filter map[string]any) ([]*authv1.Tenant, *infra_error.AppError) {
 	tenants, err := t.collection.FindAll(filter)
 	if err != nil {
 		return nil, err

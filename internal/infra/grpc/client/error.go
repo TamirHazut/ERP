@@ -9,14 +9,14 @@ import (
 )
 
 // mapGRPCError converts gRPC errors to domain errors
-func mapGRPCError(err error) error {
+func mapGRPCError(err error) *infra_error.AppError {
 	if err == nil {
 		return nil
 	}
 
 	st, ok := status.FromError(err)
 	if !ok {
-		return err
+		return infra_error.Internal(infra_error.InternalGRPCError, err)
 	}
 
 	switch st.Code() {

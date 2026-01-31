@@ -10,7 +10,7 @@ const (
 	minEntropyBits = 60.0
 )
 
-func HashPassword(password string) (string, error) {
+func HashPassword(password string) (string, *infra_error.AppError) {
 	err := passwordvalidator.Validate(password, minEntropyBits)
 	if err != nil {
 		return "", infra_error.Validation(infra_error.ValidationPasswordTooWeak)
@@ -22,7 +22,7 @@ func VerifyHash(obj, hash string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(obj)) == nil
 }
 
-func Hash(obj string) (string, error) {
+func Hash(obj string) (string, *infra_error.AppError) {
 	hashedObj, err := bcrypt.GenerateFromPassword([]byte(obj), bcrypt.DefaultCost)
 	if err != nil {
 		return "", infra_error.Internal(infra_error.InternalUnexpectedError, err)

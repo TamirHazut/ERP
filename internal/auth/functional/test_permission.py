@@ -14,6 +14,7 @@ sys.path.insert(0, infra_functional_path)
 sys.path.insert(0, os.path.join(infra_functional_path, 'proto'))
 
 from grpc_client import GrpcClient
+from bson import ObjectId
 from config import TestConfig
 from auth.v1 import rbac_pb2, rbac_pb2_grpc, permission_pb2
 from infra.v1 import infra_pb2
@@ -324,7 +325,7 @@ class TestPermissionManagement:
             with MongoDBClient(database) as mongo:
                 filter = {
                     "tenant_id": self.tenant_id,
-                    "_id": permission_id, 
+                    "_id": ObjectId(permission_id), 
                 }
                 result = mongo.find_one("permissions", filter)
                 assert not result

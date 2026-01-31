@@ -16,9 +16,8 @@ coverage.html
 *.swp
 *.swo
 
-
-*.exe
-*.env
+*.exe*
+*.env*
 *.log*
 
 *.md

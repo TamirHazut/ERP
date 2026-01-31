@@ -22,7 +22,7 @@ type RoleHandler struct {
 	logger      logger.Logger
 }
 
-func NewRoleHandler(logger logger.Logger) (*RoleHandler, error) {
+func NewRoleHandler(logger logger.Logger) (*RoleHandler, *infra_error.AppError) {
 	collection, err := collection_auth.NewRoleCollection(logger)
 	if err != nil {
 		logger.Error("failed to create user collection handler", "error", err)
@@ -40,7 +40,7 @@ func NewRoleHandler(logger logger.Logger) (*RoleHandler, error) {
 	}, nil
 }
 
-func (r *RoleHandler) CreateRole(role *authv1.Role) (string, error) {
+func (r *RoleHandler) CreateRole(role *authv1.Role) (string, *infra_error.AppError) {
 	if err := validator_auth.ValidateRole(role, true); err != nil {
 		return "", err
 	}
@@ -51,7 +51,7 @@ func (r *RoleHandler) CreateRole(role *authv1.Role) (string, error) {
 	return r.collection.Create(role)
 }
 
-func (r *RoleHandler) GetRoleByID(tenantID, roleID string) (*authv1.Role, error) {
+func (r *RoleHandler) GetRoleByID(tenantID, roleID string) (*authv1.Role, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"_id":       roleID,
@@ -60,7 +60,7 @@ func (r *RoleHandler) GetRoleByID(tenantID, roleID string) (*authv1.Role, error)
 	return r.findRoleByFilter(filter)
 }
 
-func (r *RoleHandler) GetRoleByName(tenantID, name string) (*authv1.Role, error) {
+func (r *RoleHandler) GetRoleByName(tenantID, name string) (*authv1.Role, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"name":      name,
@@ -69,7 +69,7 @@ func (r *RoleHandler) GetRoleByName(tenantID, name string) (*authv1.Role, error)
 	return r.findRoleByFilter(filter)
 }
 
-func (r *RoleHandler) GetRolesByTenantID(tenantID string) ([]*authv1.Role, error) {
+func (r *RoleHandler) GetRolesByTenantID(tenantID string) ([]*authv1.Role, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
@@ -77,7 +77,7 @@ func (r *RoleHandler) GetRolesByTenantID(tenantID string) ([]*authv1.Role, error
 	return r.findRolesByFilter(filter)
 }
 
-func (r *RoleHandler) GetRolesByPermissionsIDs(tenantID string, permissionsIDs []string) ([]*authv1.Role, error) {
+func (r *RoleHandler) GetRolesByPermissionsIDs(tenantID string, permissionsIDs []string) ([]*authv1.Role, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 		"permissions": map[string]any{
@@ -88,7 +88,7 @@ func (r *RoleHandler) GetRolesByPermissionsIDs(tenantID string, permissionsIDs [
 	return r.findRolesByFilter(filter)
 }
 
-func (r *RoleHandler) UpdateRole(role *authv1.Role) error {
+func (r *RoleHandler) UpdateRole(role *authv1.Role) *infra_error.AppError {
 	if err := validator_auth.ValidateRole(role, false); err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (r *RoleHandler) UpdateRole(role *authv1.Role) error {
 	return r.collection.Update(filter, role)
 }
 
-func (r *RoleHandler) DeleteRole(tenantID, roleID string) error {
+func (r *RoleHandler) DeleteRole(tenantID, roleID string) *infra_error.AppError {
 	if tenantID == "" || roleID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId", "RoleId")
 	}
@@ -120,7 +120,7 @@ func (r *RoleHandler) DeleteRole(tenantID, roleID string) error {
 	return r.collection.Delete(filter)
 }
 
-func (r *RoleHandler) DeleteTenantRoles(tenantID string) error {
+func (r *RoleHandler) DeleteTenantRoles(tenantID string) *infra_error.AppError {
 	if tenantID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId", "RoleId")
 	}
@@ -131,7 +131,7 @@ func (r *RoleHandler) DeleteTenantRoles(tenantID string) error {
 	return r.collection.Delete(filter)
 }
 
-func (r *RoleHandler) findRoleByFilter(filter map[string]any) (*authv1.Role, error) {
+func (r *RoleHandler) findRoleByFilter(filter map[string]any) (*authv1.Role, *infra_error.AppError) {
 	if tenant_id, ok := filter["tenant_id"]; !ok || tenant_id == nil {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}
@@ -142,7 +142,7 @@ func (r *RoleHandler) findRoleByFilter(filter map[string]any) (*authv1.Role, err
 	return role, nil
 }
 
-func (r *RoleHandler) findRolesByFilter(filter map[string]any) ([]*authv1.Role, error) {
+func (r *RoleHandler) findRolesByFilter(filter map[string]any) ([]*authv1.Role, *infra_error.AppError) {
 	if tenant_id, ok := filter["tenant_id"]; !ok || tenant_id == nil {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}
@@ -163,7 +163,7 @@ func (r *RoleHandler) GetRolesByIDsAggregation(
 	tenantID string,
 	roleIDs []string,
 	fields []string,
-) ([]*authv1.Role, error) {
+) ([]*authv1.Role, *infra_error.AppError) {
 	if r.aggregation == nil {
 		r.logger.Warn("aggregation handler not initialized, falling back to sequential queries")
 		roles := make([]*authv1.Role, 0, len(roleIDs))
@@ -186,7 +186,7 @@ func (r *RoleHandler) GetRolesByIDsAggregation(
 func (r *RoleHandler) GetUserRolesAggregation(
 	tenantID, userID string,
 	fields []string,
-) ([]*authv1.Role, error) {
+) ([]*authv1.Role, *infra_error.AppError) {
 	roleAggregation, ok := r.aggregation.(*aggregation_auth.RoleAggregationHandler)
 	if !ok {
 		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("missmatched types"))

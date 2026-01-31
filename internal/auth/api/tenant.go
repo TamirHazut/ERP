@@ -30,7 +30,7 @@ type TenantAPI struct {
 	userAPI       *UserAPI
 }
 
-func NewTenantAPI(authAPI *AuthAPI, rbacAPI *RBACAPI, userAPI *UserAPI, logger logger.Logger) (*TenantAPI, error) {
+func NewTenantAPI(authAPI *AuthAPI, rbacAPI *RBACAPI, userAPI *UserAPI, logger logger.Logger) (*TenantAPI, *infra_error.AppError) {
 	tenantHandler, err := handler.NewTenantHandler(logger)
 	if err != nil {
 		logger.Error("failed to create new user handler", "error", err)
@@ -45,7 +45,7 @@ func NewTenantAPI(authAPI *AuthAPI, rbacAPI *RBACAPI, userAPI *UserAPI, logger l
 	}, nil
 }
 
-func (t *TenantAPI) CreateTenant(tenantID, userID string, newTenant *authv1.Tenant) (string, error) {
+func (t *TenantAPI) CreateTenant(tenantID, userID string, newTenant *authv1.Tenant) (string, *infra_error.AppError) {
 	// Step 1: validate input
 	if tenantID == "" || userID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id"))
@@ -100,7 +100,7 @@ func (t *TenantAPI) CreateTenant(tenantID, userID string, newTenant *authv1.Tena
 	return newTenantID, nil
 }
 
-func (t *TenantAPI) GetTenant(tenantID, userID, targetTenantID, targetTenantName string) (*authv1.Tenant, error) {
+func (t *TenantAPI) GetTenant(tenantID, userID, targetTenantID, targetTenantName string) (*authv1.Tenant, *infra_error.AppError) {
 
 	if tenantID == "" || userID == "" || (targetTenantID == "" && targetTenantName == "") {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, target_tenant_id, target_tenant_name"))
@@ -121,7 +121,7 @@ func (t *TenantAPI) GetTenant(tenantID, userID, targetTenantID, targetTenantName
 	}
 }
 
-func (t *TenantAPI) ListTenants(tenantID, userID, status string) ([]*authv1.Tenant, error) {
+func (t *TenantAPI) ListTenants(tenantID, userID, status string) ([]*authv1.Tenant, *infra_error.AppError) {
 	// Step 1: validate input
 	if tenantID == "" || userID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id"))
@@ -144,7 +144,7 @@ func (t *TenantAPI) ListTenants(tenantID, userID, status string) ([]*authv1.Tena
 
 }
 
-func (t *TenantAPI) UpdateTenant(tenantID, userID string, tenant *authv1.Tenant) error {
+func (t *TenantAPI) UpdateTenant(tenantID, userID string, tenant *authv1.Tenant) *infra_error.AppError {
 	// Step 1: validate input
 	if tenantID == "" || userID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id"))
@@ -175,7 +175,7 @@ func (t *TenantAPI) UpdateTenant(tenantID, userID string, tenant *authv1.Tenant)
 	return t.tenantHandler.UpdateTenant(tenant)
 }
 
-func (t *TenantAPI) DeleteTenant(tenantID, userID, targetTenantID string) error {
+func (t *TenantAPI) DeleteTenant(tenantID, userID, targetTenantID string) *infra_error.AppError {
 	// Step 1: validate input
 	if tenantID == "" || userID == "" || targetTenantID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, target_tenant_id"))
@@ -237,7 +237,7 @@ func (t *TenantAPI) DeleteTenant(tenantID, userID, targetTenantID string) error 
 /* Helper functions */
 
 // checkPermission verifies if a user has the required permission
-func (t *TenantAPI) checkPermission(tenantID, userID, resource, action string) error {
+func (t *TenantAPI) checkPermission(tenantID, userID, resource, action string) *infra_error.AppError {
 	// Create permission string using helper
 	permString, err := model_auth.CreatePermissionString(resource, action)
 	if err != nil {
@@ -263,7 +263,7 @@ func (t *TenantAPI) checkPermission(tenantID, userID, resource, action string) e
 /* Seeding functions */
 
 // SeedDefaults creates default permission, role, and admin user for a new tenant
-func (t *TenantAPI) seedDefaults(tenantID, adminEmail, createdBy string) (*TenantDefaults, error) {
+func (t *TenantAPI) seedDefaults(tenantID, adminEmail, createdBy string) (*TenantDefaults, *infra_error.AppError) {
 	t.logger.Info("Seeding defaults for new tenant", "tenant_id", tenantID)
 
 	defaults := &TenantDefaults{}
@@ -271,7 +271,7 @@ func (t *TenantAPI) seedDefaults(tenantID, adminEmail, createdBy string) (*Tenan
 	// Step 1: Create "*:*" permission
 	permissionID, err := t.createWildcardPermission(tenantID, createdBy)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create wildcard permission: %w", err)
+		return nil, err
 	}
 	defaults.PermissionID = permissionID
 	t.logger.Info("Wildcard permission created", "tenant_id", tenantID, "permission_id", permissionID)
@@ -279,7 +279,7 @@ func (t *TenantAPI) seedDefaults(tenantID, adminEmail, createdBy string) (*Tenan
 	// Step 2: Create TenantAdmin role
 	roleID, err := t.createTenantAdminRole(tenantID, permissionID, createdBy)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create TenantAdmin role: %w", err)
+		return nil, err
 	}
 	defaults.RoleId = roleID
 	t.logger.Info("TenantAdmin role created", "tenant_id", tenantID, "role_id", roleID)
@@ -287,7 +287,7 @@ func (t *TenantAPI) seedDefaults(tenantID, adminEmail, createdBy string) (*Tenan
 	// Step 3: Create initial admin user in Core
 	userID, err := t.createAdminUser(tenantID, db.TenantAdminUser, db.TenantAdminPassword, roleID, createdBy)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create admin user: %w", err)
+		return nil, err
 	}
 	defaults.UserId = userID
 	t.logger.Info("Admin user created", "tenant_id", tenantID, "user_id", userID, "email", adminEmail)
@@ -296,7 +296,7 @@ func (t *TenantAPI) seedDefaults(tenantID, adminEmail, createdBy string) (*Tenan
 	return defaults, nil
 }
 
-func (t *TenantAPI) createWildcardPermission(tenantID, createdBy string) (string, error) {
+func (t *TenantAPI) createWildcardPermission(tenantID, createdBy string) (string, *infra_error.AppError) {
 
 	permission := &authv1.Permission{
 		TenantId:         tenantID,
@@ -313,7 +313,7 @@ func (t *TenantAPI) createWildcardPermission(tenantID, createdBy string) (string
 	return t.rbacAPI.Permissions.CreatePermission(tenantID, createdBy, permission, tenantID)
 }
 
-func (t *TenantAPI) createTenantAdminRole(tenantID, permissionID, createdBy string) (string, error) {
+func (t *TenantAPI) createTenantAdminRole(tenantID, permissionID, createdBy string) (string, *infra_error.AppError) {
 	role := &authv1.Role{
 		TenantId:    tenantID,
 		Name:        model_auth.RoleTenantAdmin,
@@ -327,7 +327,7 @@ func (t *TenantAPI) createTenantAdminRole(tenantID, permissionID, createdBy stri
 	return t.rbacAPI.Roles.CreateRole(tenantID, createdBy, role, tenantID)
 }
 
-func (t *TenantAPI) createAdminUser(tenantID, username, plainPassword, roleID, createdBy string) (string, error) {
+func (t *TenantAPI) createAdminUser(tenantID, username, plainPassword, roleID, createdBy string) (string, *infra_error.AppError) {
 	// Hash password
 	hashedPassword, err := hash.HashPassword(plainPassword)
 	if err != nil {
@@ -360,7 +360,7 @@ func (t *TenantAPI) createAdminUser(tenantID, username, plainPassword, roleID, c
 }
 
 // RollbackDefaults deletes all seeded defaults (used when tenant creation fails)
-func (t *TenantAPI) RollbackDefaults(ctx context.Context, tenantID string, defaults *TenantDefaults) error {
+func (t *TenantAPI) RollbackDefaults(ctx context.Context, tenantID string, defaults *TenantDefaults) *infra_error.AppError {
 	t.logger.Warn("Rolling back tenant defaults", "tenant_id", tenantID)
 
 	var rollbackErrors []error
@@ -387,7 +387,7 @@ func (t *TenantAPI) RollbackDefaults(ctx context.Context, tenantID string, defau
 	}
 
 	if len(rollbackErrors) > 0 {
-		return fmt.Errorf("rollback partially failed: %v", rollbackErrors)
+		return infra_error.Internal(infra_error.InternalUnexpectedError, fmt.Errorf("rollback partially failed: %v", rollbackErrors))
 	}
 
 	t.logger.Info("Tenant defaults rolled back successfully", "tenant_id", tenantID)

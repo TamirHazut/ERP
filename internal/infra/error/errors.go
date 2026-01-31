@@ -73,6 +73,9 @@ func New(def ErrorDef) *AppError {
 
 // Wrap creates a new AppError wrapping an existing error
 func Wrap(def ErrorDef, err error) *AppError {
+	if err == nil {
+		return nil
+	}
 	return &AppError{
 		Code:     def.Code,
 		Message:  def.Message,

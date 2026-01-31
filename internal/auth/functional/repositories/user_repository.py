@@ -4,6 +4,8 @@ Direct MongoDB operations for test data setup/teardown.
 """
 import sys
 import os
+
+from bson import ObjectId
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../infra/functional'))
 
 from db.mongo_client import MongoDBClient
@@ -31,7 +33,7 @@ class UserRepository:
 
     def find_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Find user by ID."""
-        return self.mongo.find_one(self.COLLECTION, {"_id": user_id})
+        return self.mongo.find_one(self.COLLECTION, {"_id": ObjectId(user_id)})
 
     def delete_by_email(self, tenant_id: str, email: str) -> bool:
         """Delete user by email."""

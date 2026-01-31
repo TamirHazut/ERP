@@ -3,6 +3,7 @@ package api
 import (
 	"erp.localhost/internal/auth/handler"
 	"erp.localhost/internal/auth/rbac"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 )
 
@@ -45,27 +46,27 @@ func NewVerificationAPI(
 }
 
 // GetUserPermissions retrieves all permissions for a user
-func (va *VerificationAPI) GetUserPermissionsIDs(tenantID, userID string) (map[string]bool, error) {
+func (va *VerificationAPI) GetUserPermissionsIDs(tenantID, userID string) (map[string]bool, *infra_error.AppError) {
 	return va.verificationManager.GetUserPermissionsIDs(tenantID, userID)
 }
 
 // GetUserPermissions retrieves all permissions for a user
-func (va *VerificationAPI) GetUserPermissions(tenantID, userID string) (map[string]bool, error) {
+func (va *VerificationAPI) GetUserPermissions(tenantID, userID string) (map[string]bool, *infra_error.AppError) {
 	return va.verificationManager.GetUserPermissions(tenantID, userID)
 }
 
 // GetUserRoles retrieves all role IDs for a user
-func (va *VerificationAPI) GetUserRoles(tenantID, userID string) ([]string, error) {
+func (va *VerificationAPI) GetUserRoles(tenantID, userID string) ([]string, *infra_error.AppError) {
 	return va.verificationManager.GetUserRoles(tenantID, userID)
 }
 
 // CheckPermissions checks if a user has specific permissions
-func (va *VerificationAPI) CheckPermissions(tenantID, userID string, permissions []string) (map[string]bool, error) {
+func (va *VerificationAPI) CheckPermissions(tenantID, userID string, permissions []string) (map[string]bool, *infra_error.AppError) {
 	return va.verificationManager.CheckPermissions(tenantID, userID, permissions)
 }
 
 // HasPermission checks if a user has a specific permission (with cross-tenant support)
-func (va *VerificationAPI) HasPermission(tenantID, userID, permission string, targetTenantID string) error {
+func (va *VerificationAPI) HasPermission(tenantID, userID, permission string, targetTenantID string) *infra_error.AppError {
 	return va.verificationManager.HasPermission(tenantID, userID, permission, targetTenantID)
 }
 

@@ -5,7 +5,7 @@ import (
 	infrav1 "erp.localhost/internal/infra/model/infra/v1"
 )
 
-func ValidateUserIdentifier(identifier *infrav1.UserIdentifier) error {
+func ValidateUserIdentifier(identifier *infrav1.UserIdentifier) *infra_error.AppError {
 	if identifier == nil {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "identifier")
 	}

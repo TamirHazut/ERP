@@ -10,8 +10,6 @@ import (
 	model_auth "erp.localhost/internal/infra/model/auth"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -22,7 +20,7 @@ type AuthAPI struct {
 	tokenManager *TokenAPI
 }
 
-func NewAuthAPI(rbacAPI *RBACAPI, userAPI *UserAPI, logger logger.Logger) (*AuthAPI, error) {
+func NewAuthAPI(rbacAPI *RBACAPI, userAPI *UserAPI, logger logger.Logger) (*AuthAPI, *infra_error.AppError) {
 
 	tokenManager, err := NewTokenAPI(logger)
 	if err != nil {
@@ -37,7 +35,7 @@ func NewAuthAPI(rbacAPI *RBACAPI, userAPI *UserAPI, logger logger.Logger) (*Auth
 	}, nil
 }
 
-func (a *AuthAPI) Login(tenantID, email, username, password string) (*NewTokenResponse, error) {
+func (a *AuthAPI) Login(tenantID, email, username, password string) (*NewTokenResponse, *infra_error.AppError) {
 	if tenantID == "" || password == "" || (email == "" && username == "") {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, email/username, password"))
 		a.logger.Error("failed to login", "error", err)
@@ -55,7 +53,7 @@ func (a *AuthAPI) Login(tenantID, email, username, password string) (*NewTokenRe
 	user, err := a.userAPI.getUser(tenantID, email, filterType)
 	if err != nil {
 		a.logger.Error("failed to find user", "error", err)
-		return nil, err
+		return nil, infra_error.Auth(infra_error.AuthInvalidCredentials)
 	}
 
 	tokens, err := a.Authenticate(user, password)
@@ -72,15 +70,18 @@ func (a *AuthAPI) Login(tenantID, email, username, password string) (*NewTokenRe
 	return tokens, err
 }
 
-func (a *AuthAPI) Logout(tenantID, userID, accessToken, refreshToken, revokedBy string) (string, error) {
+func (a *AuthAPI) Logout(tenantID, userID, accessToken, refreshToken, revokedBy string) (string, *infra_error.AppError) {
 	err := a.RevokeTokens(tenantID, userID, accessToken, refreshToken, revokedBy)
 	if err != nil {
+		if err.Category == infra_error.CategoryNotFound {
+			err = infra_error.Auth(infra_error.AuthSessionExpired)
+		}
 		return "logout failed", err
 	}
-	return "logout successful", err
+	return "logout successful", nil
 }
 
-func (a *AuthAPI) Authenticate(user *authv1.User, password string) (*NewTokenResponse, error) {
+func (a *AuthAPI) Authenticate(user *authv1.User, password string) (*NewTokenResponse, *infra_error.AppError) {
 	if password == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, user_password, user_hash"))
 		a.logger.Error("Failed to authenticate user", "error", err)
@@ -91,19 +92,23 @@ func (a *AuthAPI) Authenticate(user *authv1.User, password string) (*NewTokenRes
 		return nil, infra_error.Auth(infra_error.AuthInvalidCredentials)
 	}
 
+	if user.Status != authv1.UserStatus_USER_STATUS_ACTIVE {
+		return nil, infra_error.Auth(infra_error.AuthAccountDisabled)
+	}
+
 	// Generate tokens
 	return a.generateAndStoreTokens(user)
 }
 
-func (a *AuthAPI) VerifyToken(token string) error {
+func (a *AuthAPI) VerifyToken(token string) *infra_error.AppError {
 	if token == "" {
-		return status.Error(codes.InvalidArgument, infra_error.Validation(infra_error.ValidationRequiredFields, "access_token").Error())
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "token")
 	}
 	_, err := a.tokenManager.VerifyAccessToken(token)
 	return err
 }
 
-func (a *AuthAPI) RefreshToken(tenantID, userID, token string) (*NewTokenResponse, error) {
+func (a *AuthAPI) RefreshToken(tenantID, userID, token string) (*NewTokenResponse, *infra_error.AppError) {
 	if tenantID == "" || userID == "" || token == "" {
 		return nil, infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, refresh_token"))
 	}
@@ -143,7 +148,7 @@ func (a *AuthAPI) RefreshToken(tenantID, userID, token string) (*NewTokenRespons
 	return newTokenResponse, nil
 }
 
-func (a *AuthAPI) RevokeTokens(tenantID, userID, accessToken, refreshToken, revokedBy string) error {
+func (a *AuthAPI) RevokeTokens(tenantID, userID, accessToken, refreshToken, revokedBy string) *infra_error.AppError {
 	if tenantID == "" || userID == "" || accessToken == "" || refreshToken == "" || revokedBy == "" {
 		return infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, access_token, refresh_token, revoked_by"))
 	}
@@ -163,7 +168,7 @@ func (a *AuthAPI) RevokeTokens(tenantID, userID, accessToken, refreshToken, revo
 	return nil
 }
 
-func (a *AuthAPI) RevokeAllTenantTokens(tenantID, revokedBy, targetTenantID string) (int, int, error) {
+func (a *AuthAPI) RevokeAllTenantTokens(tenantID, revokedBy, targetTenantID string) (int, int, *infra_error.AppError) {
 	if tenantID == "" || revokedBy == "" || targetTenantID == "" {
 		return 0, 0, infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, target_tenant_id"))
 	}
@@ -184,7 +189,7 @@ func (a *AuthAPI) RevokeAllTenantTokens(tenantID, revokedBy, targetTenantID stri
 	return a.tokenManager.RevokeAllTenantTokens(targetTenantID, revokedBy)
 }
 
-func (a *AuthAPI) generateAccessToken(user *authv1.User) (string, *authv1_cache.TokenMetadata, error) {
+func (a *AuthAPI) generateAccessToken(user *authv1.User) (string, *authv1_cache.TokenMetadata, *infra_error.AppError) {
 	// Generate access token
 	userRoles := make([]string, len(user.GetRoles()))
 	for i, role := range user.GetRoles() {
@@ -198,7 +203,7 @@ func (a *AuthAPI) generateAccessToken(user *authv1.User) (string, *authv1_cache.
 		Roles:    userRoles,
 	})
 	if err != nil {
-		return "", nil, status.Error(codes.Internal, err.Error())
+		return "", nil, err
 	}
 
 	accessTokenMetadata := &authv1_cache.TokenMetadata{
@@ -218,7 +223,7 @@ func (a *AuthAPI) generateAccessToken(user *authv1.User) (string, *authv1_cache.
 	return accessToken, accessTokenMetadata, nil
 }
 
-func (a *AuthAPI) generateRefreshToken(tenantID string, userID string) (string, *authv1_cache.RefreshToken, error) {
+func (a *AuthAPI) generateRefreshToken(tenantID string, userID string) (string, *authv1_cache.RefreshToken, *infra_error.AppError) {
 	issuedAt := time.Now()
 	// Generate refresh token
 	tokenString, refreshToken, err := a.tokenManager.GenerateRefreshToken(GenerateRefreshTokenInput{
@@ -227,12 +232,12 @@ func (a *AuthAPI) generateRefreshToken(tenantID string, userID string) (string, 
 		CreatedAt: issuedAt,
 	})
 	if err != nil {
-		return "", nil, status.Error(codes.Internal, err.Error())
+		return "", nil, err
 	}
 	return tokenString, refreshToken, nil
 }
 
-func (a *AuthAPI) generateAndStoreTokens(user *authv1.User) (*NewTokenResponse, error) {
+func (a *AuthAPI) generateAndStoreTokens(user *authv1.User) (*NewTokenResponse, *infra_error.AppError) {
 	accessToken, accessTokenMetadata, err := a.generateAccessToken(user)
 	if err != nil {
 		return nil, err

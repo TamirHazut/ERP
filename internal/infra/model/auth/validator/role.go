@@ -5,7 +5,7 @@ import (
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 )
 
-func ValidateRole(r *authv1.Role, createOperation bool) error {
+func ValidateRole(r *authv1.Role, createOperation bool) *infra_error.AppError {
 	missingFields := []string{}
 	if !createOperation {
 		if r.Id == "" {

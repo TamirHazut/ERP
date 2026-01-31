@@ -15,7 +15,7 @@ var (
 	// Authentication errors
 	AuthInvalidCredentials = ErrorDef{
 		Code:     "AUTH_INVALID_CREDENTIALS",
-		Message:  "Invalid email or password",
+		Message:  "Invalid account identifier or password",
 		Category: CategoryAuth,
 	}
 	AuthTokenExpired = ErrorDef{
@@ -159,6 +159,11 @@ var (
 // ============================================================================
 
 var (
+	NotFoundItem = ErrorDef{
+		Code:     "NOT_FOUND_ITEM",
+		Message:  "Item not found",
+		Category: CategoryNotFound,
+	}
 	NotFoundUser = ErrorDef{
 		Code:     "NOT_FOUND_USER",
 		Message:  "User not found",
@@ -212,6 +217,16 @@ var (
 	NotFoundResource = ErrorDef{
 		Code:     "NOT_FOUND_RESOURCE",
 		Message:  "Resource not found",
+		Category: CategoryNotFound,
+	}
+	NotFoundToken = ErrorDef{
+		Code:     "NOT_FOUND_TOKEN",
+		Message:  "Token not found",
+		Category: CategoryNotFound,
+	}
+	NotFoundRefreshToken = ErrorDef{
+		Code:     "NOT_FOUND_REFRESH_TOKEN",
+		Message:  "Refresh token not found",
 		Category: CategoryNotFound,
 	}
 )

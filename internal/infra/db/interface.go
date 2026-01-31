@@ -1,12 +1,16 @@
 package db
 
+import (
+	infra_error "erp.localhost/internal/infra/error"
+)
+
 //go:generate mockgen -destination=mock/mock_db_handler.go -package=mock erp.localhost/internal/infra/db DBHandler
 
 type DBHandler interface {
-	Close() error
-	Create(db string, data any, opts ...map[string]any) (string, error)
-	FindOne(db string, filter map[string]any, result any) error
-	FindAll(db string, filter map[string]any, result any) error
-	Update(db string, filter map[string]any, data any, opts ...map[string]any) error
-	Delete(db string, filter map[string]any) error
+	Close() *infra_error.AppError
+	Create(db string, data any, opts ...map[string]any) (string, *infra_error.AppError)
+	FindOne(db string, filter map[string]any, result any) *infra_error.AppError
+	FindAll(db string, filter map[string]any, result any) *infra_error.AppError
+	Update(db string, filter map[string]any, data any, opts ...map[string]any) *infra_error.AppError
+	Delete(db string, filter map[string]any) *infra_error.AppError
 }

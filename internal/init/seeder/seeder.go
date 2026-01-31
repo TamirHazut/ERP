@@ -29,7 +29,7 @@ type Seeder struct {
 	systemKeyHandler *redis.SystemKeyHandler
 }
 
-func NewSeeder(logger logger.Logger) (*Seeder, error) {
+func NewSeeder(logger logger.Logger) (*Seeder, *infra_error.AppError) {
 	th, err := collection_auth.NewTenantCollection(logger)
 	if err != nil {
 		logger.Fatal("failed to create tenant collection", "error", err)
@@ -65,39 +65,39 @@ func NewSeeder(logger logger.Logger) (*Seeder, error) {
 	}, nil
 }
 
-func (s *Seeder) SeedSystemData() error {
+func (s *Seeder) SeedSystemData() *infra_error.AppError {
 	s.logger.Info("Seeding system data")
 
 	// Step 0: Create indexes BEFORE seeding data
 	if err := s.SeedIndexes(); err != nil {
-		return fmt.Errorf("failed to seed indexes: %w", err)
+		return err
 	}
 
 	// Step 1: Create system tenant
 	systemTenantID, err := s.seedSystemTenant()
 	if err != nil {
-		return fmt.Errorf("failed to seed system tenant: %w", err)
+		return err
 	}
 	s.logger.Info("System tenant seeded")
 
 	// Step 2: Create system permission
 	permissionID, err := s.seedSystemPermission(systemTenantID)
 	if err != nil {
-		return fmt.Errorf("failed to seed system permission: %w", err)
+		return err
 	}
 	s.logger.Info("System permission seeded")
 
 	// Step 3: Create system role
 	roleID, err := s.seedSystemRole(systemTenantID, permissionID)
 	if err != nil {
-		return fmt.Errorf("failed to seed system role: %w", err)
+		return err
 	}
 	s.logger.Info("System role seeded")
 
 	// Step 4: Create system admin user
 	_, err = s.seedSystemAdminUser(systemTenantID, roleID)
 	if err != nil {
-		return fmt.Errorf("failed to seed system admin user: %w", err)
+		return err
 	}
 	s.logger.Info("System admin user seeded")
 
@@ -105,7 +105,7 @@ func (s *Seeder) SeedSystemData() error {
 }
 
 // SeedIndexes ensures all indexes are created for system collections
-func (s *Seeder) SeedIndexes() error {
+func (s *Seeder) SeedIndexes() *infra_error.AppError {
 	s.logger.Info("Creating indexes for system collections")
 
 	// Define collection-index mappings
@@ -160,7 +160,7 @@ func (s *Seeder) SeedIndexes() error {
 	return nil
 }
 
-func (s *Seeder) seedSystemTenant() (string, error) {
+func (s *Seeder) seedSystemTenant() (string, *infra_error.AppError) {
 	s.logger.Debug("Checking for existing system tenant")
 	// Check if system tenant already exists
 	filter := map[string]any{"name": db.SystemTenant}
@@ -187,7 +187,7 @@ func (s *Seeder) seedSystemTenant() (string, error) {
 	return tenantID, s.systemKeyHandler.Set("tenant", &tenantID)
 }
 
-func (s *Seeder) seedSystemPermission(systemTenantID string) (string, error) {
+func (s *Seeder) seedSystemPermission(systemTenantID string) (string, *infra_error.AppError) {
 	s.logger.Debug("Checking for existing system permission")
 
 	// Check if permission already exists
@@ -224,7 +224,7 @@ func (s *Seeder) seedSystemPermission(systemTenantID string) (string, error) {
 	return permissionID, s.systemKeyHandler.Set("permission", &permissionID)
 }
 
-func (s *Seeder) seedSystemRole(systemTenantID, systemPermissionID string) (string, error) {
+func (s *Seeder) seedSystemRole(systemTenantID, systemPermissionID string) (string, *infra_error.AppError) {
 	s.logger.Debug("Checking for existing system role")
 
 	// Check if role already exists
@@ -258,7 +258,7 @@ func (s *Seeder) seedSystemRole(systemTenantID, systemPermissionID string) (stri
 	return roleID, s.systemKeyHandler.Set("role", &roleID)
 }
 
-func (s *Seeder) seedSystemAdminUser(systemTenantID, systemRoleID string) (string, error) {
+func (s *Seeder) seedSystemAdminUser(systemTenantID, systemRoleID string) (string, *infra_error.AppError) {
 	s.logger.Debug("Checking for existing system admin user")
 
 	// Check if user already exists

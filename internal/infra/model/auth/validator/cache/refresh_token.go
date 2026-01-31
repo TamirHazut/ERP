@@ -1,4 +1,4 @@
-package validator
+package cache
 
 import (
 	"time"
@@ -7,7 +7,7 @@ import (
 	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
 )
 
-func ValidateRefreshToken(r *authv1_cache.RefreshToken) error {
+func ValidateRefreshToken(r *authv1_cache.RefreshToken) *infra_error.AppError {
 	missingFields := []string{}
 	if r.TokenHash == "" {
 		missingFields = append(missingFields, "Token")

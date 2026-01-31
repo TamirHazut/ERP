@@ -12,6 +12,7 @@ package mock
 import (
 	reflect "reflect"
 
+	error "erp.localhost/internal/infra/error"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -40,14 +41,14 @@ func (m *MockSetHandler) EXPECT() *MockSetHandlerMockRecorder {
 }
 
 // Add mocks base method.
-func (m *MockSetHandler) Add(tenantID, key, member string, opts ...map[string]any) error {
+func (m *MockSetHandler) Add(tenantID, key, member string, opts ...map[string]any) *error.AppError {
 	m.ctrl.T.Helper()
 	varargs := []any{tenantID, key, member}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Add", varargs...)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -59,10 +60,10 @@ func (mr *MockSetHandlerMockRecorder) Add(tenantID, key, member any, opts ...any
 }
 
 // Clear mocks base method.
-func (m *MockSetHandler) Clear(tenantID, key string) error {
+func (m *MockSetHandler) Clear(tenantID, key string) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clear", tenantID, key)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
@@ -73,11 +74,11 @@ func (mr *MockSetHandlerMockRecorder) Clear(tenantID, key any) *gomock.Call {
 }
 
 // Members mocks base method.
-func (m *MockSetHandler) Members(tenantID, key string) ([]string, error) {
+func (m *MockSetHandler) Members(tenantID, key string) ([]string, *error.AppError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Members", tenantID, key)
 	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(*error.AppError)
 	return ret0, ret1
 }
 
@@ -88,10 +89,10 @@ func (mr *MockSetHandlerMockRecorder) Members(tenantID, key any) *gomock.Call {
 }
 
 // Remove mocks base method.
-func (m *MockSetHandler) Remove(tenantID, key, member string) error {
+func (m *MockSetHandler) Remove(tenantID, key, member string) *error.AppError {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Remove", tenantID, key, member)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 

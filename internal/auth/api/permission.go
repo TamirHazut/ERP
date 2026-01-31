@@ -3,6 +3,7 @@ package api
 import (
 	"erp.localhost/internal/auth/handler"
 	"erp.localhost/internal/auth/rbac"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
@@ -29,7 +30,7 @@ func NewPermissionAPI(
 }
 
 // CreatePermission creates a new permission with authorization check
-func (pa *PermissionAPI) CreatePermission(tenantID, requestorUserID string, permission *authv1.Permission, targetTenantID string) (string, error) {
+func (pa *PermissionAPI) CreatePermission(tenantID, requestorUserID string, permission *authv1.Permission, targetTenantID string) (string, *infra_error.AppError) {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionCreate)
 	if err != nil {
 		return "", err
@@ -44,7 +45,7 @@ func (pa *PermissionAPI) CreatePermission(tenantID, requestorUserID string, perm
 }
 
 // UpdatePermission updates an existing permission with authorization check
-func (pa *PermissionAPI) UpdatePermission(tenantID, requestorUserID string, permission *authv1.Permission, targetTenantID string) error {
+func (pa *PermissionAPI) UpdatePermission(tenantID, requestorUserID string, permission *authv1.Permission, targetTenantID string) *infra_error.AppError {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionUpdate)
 	if err != nil {
 		return err
@@ -59,7 +60,7 @@ func (pa *PermissionAPI) UpdatePermission(tenantID, requestorUserID string, perm
 }
 
 // GetPermissionByID retrieves a permission by ID with authorization check
-func (pa *PermissionAPI) GetPermissionByID(tenantID, requestorUserID, permissionID string, targetTenantID string) (*authv1.Permission, error) {
+func (pa *PermissionAPI) GetPermissionByID(tenantID, requestorUserID, permissionID string, targetTenantID string) (*authv1.Permission, *infra_error.AppError) {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionRead)
 	if err != nil {
 		return nil, err
@@ -74,7 +75,7 @@ func (pa *PermissionAPI) GetPermissionByID(tenantID, requestorUserID, permission
 }
 
 // ListPermissions retrieves all permissions for a tenant with authorization check
-func (pa *PermissionAPI) ListPermissions(tenantID, requestorUserID string, targetTenantID string) ([]*authv1.Permission, error) {
+func (pa *PermissionAPI) ListPermissions(tenantID, requestorUserID string, targetTenantID string) ([]*authv1.Permission, *infra_error.AppError) {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionRead)
 	if err != nil {
 		return nil, err
@@ -89,7 +90,7 @@ func (pa *PermissionAPI) ListPermissions(tenantID, requestorUserID string, targe
 }
 
 // DeletePermission deletes a permission with authorization check
-func (pa *PermissionAPI) DeletePermission(tenantID, requestorUserID, permissionID string, targetTenantID string) error {
+func (pa *PermissionAPI) DeletePermission(tenantID, requestorUserID, permissionID string, targetTenantID string) *infra_error.AppError {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionDelete)
 	if err != nil {
 		return err
@@ -104,7 +105,7 @@ func (pa *PermissionAPI) DeletePermission(tenantID, requestorUserID, permissionI
 }
 
 // DeletePermission deletes a permission with authorization check
-func (pa *PermissionAPI) DeleteTenantPermissions(tenantID, requestorUserID, targetTenantID string) error {
+func (pa *PermissionAPI) DeleteTenantPermissions(tenantID, requestorUserID, targetTenantID string) *infra_error.AppError {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionDelete)
 	if err != nil {
 		return err

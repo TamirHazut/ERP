@@ -19,7 +19,7 @@ var (
 	phoneRegex = regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
 )
 
-func ValidateUser(u *authv1.User, createOperation bool) error {
+func ValidateUser(u *authv1.User, createOperation bool) *infra_error.AppError {
 	missingFields := []string{}
 	if !createOperation {
 		if u.Id == "" {
@@ -56,7 +56,7 @@ func ValidateUser(u *authv1.User, createOperation bool) error {
 	return nil
 }
 
-func ValidateUserRole(u *authv1.UserRole) error {
+func ValidateUserRole(u *authv1.UserRole) *infra_error.AppError {
 	missingFields := []string{}
 
 	if u.RoleId == "" {
@@ -76,7 +76,7 @@ func ValidateUserRole(u *authv1.UserRole) error {
 	return nil
 }
 
-func ValidateUserProfile(profile *authv1.UserProfile) error {
+func ValidateUserProfile(profile *authv1.UserProfile) *infra_error.AppError {
 	if profile == nil {
 		return nil // Profile is optional
 	}
@@ -106,7 +106,7 @@ func ValidateUserProfile(profile *authv1.UserProfile) error {
 	return nil
 }
 
-func ValidateUserPreferences(preferences *authv1.UserPreferences) error {
+func ValidateUserPreferences(preferences *authv1.UserPreferences) *infra_error.AppError {
 	if preferences == nil {
 		return nil // Preferences are optional
 	}

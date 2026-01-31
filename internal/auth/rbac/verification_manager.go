@@ -25,7 +25,7 @@ func NewVerificationManager(
 	permissionHandler *handler.PermissionHandler,
 	tenantHandler *handler.TenantHandler,
 	logger logger.Logger,
-) (*VerificationManager, error) {
+) (*VerificationManager, *infra_error.AppError) {
 	systemHandler, err := redis.NewSystemKeyHandler(logger)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func NewVerificationManager(
 }
 
 // GetUserPermissionsIDs retrieves all the users permissions in a map with the format <id> -> <has permission (true/false)>
-func (vm *VerificationManager) GetUserPermissionsIDs(tenantID, userID string) (map[string]bool, error) {
+func (vm *VerificationManager) GetUserPermissionsIDs(tenantID, userID string) (map[string]bool, *infra_error.AppError) {
 	// 1. Get user from UserCollection
 	user, err := vm.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {
@@ -100,7 +100,7 @@ func (vm *VerificationManager) GetUserPermissionsIDs(tenantID, userID string) (m
 
 // Returns permission strings (for RBAC checks like "users:read")
 // OPTIMIZED: Uses MongoDB aggregation to replace 70+ queries with 1-2 queries
-func (vm *VerificationManager) GetUserPermissions(tenantID, userID string) (map[string]bool, error) {
+func (vm *VerificationManager) GetUserPermissions(tenantID, userID string) (map[string]bool, *infra_error.AppError) {
 	// OPTIMIZATION: Check admin status using aggregation (1 query instead of N)
 	roles, err := vm.roleHandler.GetUserRolesAggregation(tenantID, userID, []string{"name"})
 	if err != nil {
@@ -160,7 +160,7 @@ func (vm *VerificationManager) GetUserPermissions(tenantID, userID string) (map[
 }
 
 // getUserPermissionsLegacy is the original implementation kept as fallback
-func (vm *VerificationManager) getUserPermissionsLegacy(tenantID, userID string) (map[string]bool, error) {
+func (vm *VerificationManager) getUserPermissionsLegacy(tenantID, userID string) (map[string]bool, *infra_error.AppError) {
 	user, err := vm.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {
 		return nil, err
@@ -283,7 +283,7 @@ func (vm *VerificationManager) getAllPermissions() map[string]bool {
 }
 
 // GetUserRoles returns all role IDs assigned to a user
-func (vm *VerificationManager) GetUserRoles(tenantID, userID string) ([]string, error) {
+func (vm *VerificationManager) GetUserRoles(tenantID, userID string) ([]string, *infra_error.AppError) {
 	// Get user from UserCollection
 	user, err := vm.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {
@@ -301,7 +301,7 @@ func (vm *VerificationManager) GetUserRoles(tenantID, userID string) ([]string, 
 }
 
 // CheckPermissions with system tenant and tenant admin logic
-func (vm *VerificationManager) CheckPermissions(tenantID, userID string, permissions []string) (map[string]bool, error) {
+func (vm *VerificationManager) CheckPermissions(tenantID, userID string, permissions []string) (map[string]bool, *infra_error.AppError) {
 	// 1. Get user
 	user, err := vm.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {
@@ -337,7 +337,7 @@ func (vm *VerificationManager) CheckPermissions(tenantID, userID string, permiss
 }
 
 // HasPermission with cross-tenant check for system tenant users
-func (vm *VerificationManager) HasPermission(tenantID, userID, permission string, targetTenantID string) error {
+func (vm *VerificationManager) HasPermission(tenantID, userID, permission string, targetTenantID string) *infra_error.AppError {
 	// 1. Get user
 	user, err := vm.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {

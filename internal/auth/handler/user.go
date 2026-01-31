@@ -20,7 +20,7 @@ type UserHandler struct {
 	logger      logger.Logger
 }
 
-func NewUserHandler(logger logger.Logger) (*UserHandler, error) {
+func NewUserHandler(logger logger.Logger) (*UserHandler, *infra_error.AppError) {
 	collection, err := collection_auth.NewUserCollection(logger)
 	if err != nil {
 		logger.Error("failed to create user collection handler", "error", err)
@@ -38,7 +38,7 @@ func NewUserHandler(logger logger.Logger) (*UserHandler, error) {
 	}, nil
 }
 
-func (u *UserHandler) CreateUser(user *authv1.User) (string, error) {
+func (u *UserHandler) CreateUser(user *authv1.User) (string, *infra_error.AppError) {
 	if err := validator_auth.ValidateUser(user, true); err != nil {
 		return "", err
 	}
@@ -54,7 +54,7 @@ func (u *UserHandler) CreateUser(user *authv1.User) (string, error) {
 	return u.collection.Create(user)
 }
 
-func (u *UserHandler) GetUserByID(tenantID, userID string) (*authv1.User, error) {
+func (u *UserHandler) GetUserByID(tenantID, userID string) (*authv1.User, *infra_error.AppError) {
 	if userID == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "userID")
 	}
@@ -66,7 +66,7 @@ func (u *UserHandler) GetUserByID(tenantID, userID string) (*authv1.User, error)
 	return u.findUserByFilter(filter)
 }
 
-func (u *UserHandler) GetUserByEmail(tenantID, email string) (*authv1.User, error) {
+func (u *UserHandler) GetUserByEmail(tenantID, email string) (*authv1.User, *infra_error.AppError) {
 	if email == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "email")
 	}
@@ -78,7 +78,7 @@ func (u *UserHandler) GetUserByEmail(tenantID, email string) (*authv1.User, erro
 	return u.findUserByFilter(filter)
 }
 
-func (u *UserHandler) GetUserByUsername(tenantID, username string) (*authv1.User, error) {
+func (u *UserHandler) GetUserByUsername(tenantID, username string) (*authv1.User, *infra_error.AppError) {
 	if username == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "username")
 	}
@@ -90,7 +90,7 @@ func (u *UserHandler) GetUserByUsername(tenantID, username string) (*authv1.User
 	return u.findUserByFilter(filter)
 }
 
-func (u *UserHandler) GetUsersByTenantID(tenantID string) ([]*authv1.User, error) {
+func (u *UserHandler) GetUsersByTenantID(tenantID string) ([]*authv1.User, *infra_error.AppError) {
 	filter := map[string]any{
 		"tenant_id": tenantID,
 	}
@@ -98,7 +98,7 @@ func (u *UserHandler) GetUsersByTenantID(tenantID string) ([]*authv1.User, error
 	return u.findUsersByFilter(filter)
 }
 
-func (u *UserHandler) GetUsersByRoleID(tenantID, roleID string) ([]*authv1.User, error) {
+func (u *UserHandler) GetUsersByRoleID(tenantID, roleID string) ([]*authv1.User, *infra_error.AppError) {
 	if roleID == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "roleID")
 	}
@@ -110,7 +110,7 @@ func (u *UserHandler) GetUsersByRoleID(tenantID, roleID string) ([]*authv1.User,
 	return u.findUsersByFilter(filter)
 }
 
-func (u *UserHandler) UpdateUser(user *authv1.User) error {
+func (u *UserHandler) UpdateUser(user *authv1.User) *infra_error.AppError {
 	if err := validator_auth.ValidateUser(user, false); err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (u *UserHandler) UpdateUser(user *authv1.User) error {
 	return u.collection.Update(filter, user)
 }
 
-func (u *UserHandler) DeleteUser(tenantID, userID string) error {
+func (u *UserHandler) DeleteUser(tenantID, userID string) *infra_error.AppError {
 	if tenantID == "" || userID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId", "UserId")
 	}
@@ -137,7 +137,7 @@ func (u *UserHandler) DeleteUser(tenantID, userID string) error {
 	return u.collection.Delete(filter)
 }
 
-func (u *UserHandler) DeleteTenantUsers(tenantID string) error {
+func (u *UserHandler) DeleteTenantUsers(tenantID string) *infra_error.AppError {
 	if tenantID == "" {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId", "UserId")
 	}
@@ -148,7 +148,7 @@ func (u *UserHandler) DeleteTenantUsers(tenantID string) error {
 	return u.collection.Delete(filter)
 }
 
-func (u *UserHandler) findUserByFilter(filter map[string]any) (*authv1.User, error) {
+func (u *UserHandler) findUserByFilter(filter map[string]any) (*authv1.User, *infra_error.AppError) {
 	if _, ok := filter["tenant_id"]; !ok {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}
@@ -159,7 +159,7 @@ func (u *UserHandler) findUserByFilter(filter map[string]any) (*authv1.User, err
 	return user, nil
 }
 
-func (u *UserHandler) findUsersByFilter(filter map[string]any) ([]*authv1.User, error) {
+func (u *UserHandler) findUsersByFilter(filter map[string]any) ([]*authv1.User, *infra_error.AppError) {
 	if _, ok := filter["tenant_id"]; !ok {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "tenant_id")
 	}
