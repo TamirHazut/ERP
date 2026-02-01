@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -21,7 +22,7 @@ type TokenHandler[T any] interface {
 	// Validate checks if the token is valid (exists, not revoked, not expired)
 	Validate(tenantID string, userID string) (*T, *infra_error.AppError)
 	// Revoke revokes the single token for a user
-	Revoke(tenantID string, userID string, revokedBy string) *infra_error.AppError
+	Revoke(tenantID string, userID string) *infra_error.AppError
 	// // RevokeAll revokes all the tokens that are related to a pattern
 	// RevokeAll(pattern string, revokedBy string) error
 	// ScanKeys finds all the keys that are related to a tenant
@@ -98,12 +99,10 @@ func (h *AccessTokenHandler) Validate(tenantID string, userID string) (*authv1_c
 	key := fmt.Sprintf("%s:%s", tenantID, userID)
 	metadata, err := h.handler.GetOne(key)
 	if err != nil {
+		if err.Category == infra_error.CategoryNotFound {
+			return nil, infra_error.Auth(infra_error.AuthTokenRevoked)
+		}
 		return nil, err
-	}
-
-	// Check if revoked
-	if metadata.Revoked {
-		return nil, infra_error.Auth(infra_error.AuthTokenRevoked)
 	}
 
 	// Check if expired
@@ -115,7 +114,10 @@ func (h *AccessTokenHandler) Validate(tenantID string, userID string) (*authv1_c
 }
 
 // Revoke revokes the single access token for a user
-func (h *AccessTokenHandler) Revoke(tenantID string, userID string, revokedBy string) *infra_error.AppError {
+func (h *AccessTokenHandler) Revoke(tenantID string, userID string) *infra_error.AppError {
+	if tenantID == "" || userID == "" {
+		return infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("tenantID and userID are required"))
+	}
 	metadata, err := h.GetOne(tenantID, userID)
 	if err != nil || metadata == nil {
 		// No token to revoke
@@ -123,18 +125,13 @@ func (h *AccessTokenHandler) Revoke(tenantID string, userID string, revokedBy st
 		return nil
 	}
 
-	// metadata.Revoked = true
-	// metadata.RevokedAt = timestamppb.Now()
-	// metadata.RevokedBy = revokedBy
-
-	// err = h.keyHandler.Update(tenantID, userID, metadata)
 	err = h.Delete(tenantID, userID)
 	if err != nil {
 		h.logger.Error("Failed to revoke access token", "error", err, "tenantID", tenantID, "userID", userID)
 		return err
 	}
 
-	h.logger.Debug("Access token revoked", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy)
+	h.logger.Debug("Access token revoked", "tenantID", tenantID, "userID", userID)
 	return nil
 }
 
@@ -169,6 +166,9 @@ func (h *AccessTokenHandler) ScanKeys(tenantID string) ([]string, *infra_error.A
 // DeleteByPattern deletes all access tokens for a tenant
 // Returns the number of tokens deleted
 func (h *AccessTokenHandler) DeleteByPattern(tenantID string, pattern string) (int, *infra_error.AppError) {
+	if tenantID == "" {
+		return 0, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("tenantID are required"))
+	}
 	// Pattern: all user IDs in this tenant (tenantID:*)
 	newPattern := fmt.Sprintf("%s:%s", tenantID, pattern)
 	count, err := h.handler.DeleteByPattern(newPattern)

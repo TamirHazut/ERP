@@ -85,17 +85,17 @@ func (mr *MockTokenHandlerMockRecorder[T]) GetOne(tenantID, userID any) *gomock.
 }
 
 // Revoke mocks base method.
-func (m *MockTokenHandler[T]) Revoke(tenantID, userID, revokedBy string) *error.AppError {
+func (m *MockTokenHandler[T]) Revoke(tenantID, userID string) *error.AppError {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Revoke", tenantID, userID, revokedBy)
+	ret := m.ctrl.Call(m, "Revoke", tenantID, userID)
 	ret0, _ := ret[0].(*error.AppError)
 	return ret0
 }
 
 // Revoke indicates an expected call of Revoke.
-func (mr *MockTokenHandlerMockRecorder[T]) Revoke(tenantID, userID, revokedBy any) *gomock.Call {
+func (mr *MockTokenHandlerMockRecorder[T]) Revoke(tenantID, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Revoke", reflect.TypeOf((*MockTokenHandler[T])(nil).Revoke), tenantID, userID, revokedBy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Revoke", reflect.TypeOf((*MockTokenHandler[T])(nil).Revoke), tenantID, userID)
 }
 
 // ScanKeys mocks base method.

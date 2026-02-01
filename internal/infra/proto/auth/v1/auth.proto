@@ -21,7 +21,6 @@ message LoginRequest {
 
 message LogoutRequest {
     infra.v1.UserIdentifier identifier = 1;
-    Tokens tokens = 2;
 }
 
 message LogoutResponse {
@@ -29,19 +28,14 @@ message LogoutResponse {
 }
 
 // Tokens
-message Tokens {
+message Token {
     string token = 1;
-    string refresh_token = 2;
+    int64 expires_at = 2;
 }
 
-message ExpiresIn {
-    int64 token = 1;
-    int64 refresh_token = 2;
-}
-
-message TokensResponse {
-    Tokens tokens = 1;
-    ExpiresIn expires_in = 2;
+message Tokens {
+    Token token = 1;
+    Token refresh_token = 2;
 }
 
 message VerifyTokenRequest {
@@ -59,8 +53,6 @@ message RefreshTokenRequest {
 
 message RevokeTokenRequest {
     infra.v1.UserIdentifier identifier = 1;
-    string revoked_by = 2;
-    Tokens tokens = 3;
 }
 
 message RevokeTokenResponse {
@@ -81,12 +73,12 @@ message RevokeAllTenantTokensResponse {
 
 service AuthService {
     // Authentication - Login + Logout
-    rpc Login(LoginRequest) returns (TokensResponse);
+    rpc Login(LoginRequest) returns (Tokens);
     rpc Logout(LogoutRequest) returns (LogoutResponse);
 
     // Access + Refresh Tokens
     rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
-    rpc RefreshToken(RefreshTokenRequest) returns (TokensResponse);
+    rpc RefreshToken(RefreshTokenRequest) returns (Tokens);
     rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
 
     // Tenant-level token management

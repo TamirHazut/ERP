@@ -116,12 +116,16 @@ func TestWrap(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := Wrap(tc.def, tc.wrappedErr)
-			require.NotNil(t, err)
-			assert.Equal(t, tc.def.Code, err.Code)
-			assert.Equal(t, tc.def.Message, err.Message)
-			assert.Equal(t, tc.wrappedErr, err.Err)
-			if tc.wrappedErr != nil {
-				assert.Contains(t, err.Error(), tc.wantContains)
+			if tc.wrappedErr == nil {
+				require.Nil(t, err)
+			} else {
+				require.NotNil(t, err)
+				assert.Equal(t, tc.def.Code, err.Code)
+				assert.Equal(t, tc.def.Message, err.Message)
+				assert.Equal(t, tc.wrappedErr, err.Err)
+				if tc.wrappedErr != nil {
+					assert.Contains(t, err.Error(), tc.wantContains)
+				}
 			}
 		})
 	}
@@ -456,9 +460,13 @@ func TestInternal(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := Internal(tc.def, tc.wrappedErr)
-			require.NotNil(t, err)
-			assert.Equal(t, CategoryInternal, err.Category)
-			assert.Equal(t, tc.wrappedErr, err.Err)
+			if tc.wrappedErr == nil {
+				require.Nil(t, err)
+			} else {
+				require.NotNil(t, err)
+				assert.Equal(t, CategoryInternal, err.Category)
+				assert.Equal(t, tc.wrappedErr, err.Err)
+			}
 		})
 	}
 }

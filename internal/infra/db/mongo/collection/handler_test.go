@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	mock_db "erp.localhost/internal/infra/db/mock"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	"erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,7 @@ func TestCollection_Create(t *testing.T) {
 		data        *TestModel
 		returnID    string
 		returnError error
+		errCategory infra_error.ErrorCategory
 	}{
 		{
 			name:        "successful create",
@@ -39,7 +41,8 @@ func TestCollection_Create(t *testing.T) {
 			collection:  "test_collection",
 			data:        &TestModel{Name: "test"},
 			returnID:    "",
-			returnError: errors.New("database connection failed"),
+			returnError: infra_error.Internal(infra_error.InternalDatabaseError, errors.New("database connection failed")),
+			errCategory: infra_error.CategoryInternal,
 		},
 	}
 
@@ -58,9 +61,10 @@ func TestCollection_Create(t *testing.T) {
 
 			id, err := collectionHanlder.Create(tc.data)
 			if tc.returnError != nil {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 				assert.Equal(t, tc.returnID, id)
 			}
 		})
@@ -76,6 +80,7 @@ func TestCollection_FindOne(t *testing.T) {
 		filter      map[string]any
 		returnModel TestModel
 		returnError error
+		errCategory infra_error.ErrorCategory
 	}{
 		{
 			name:        "successful find one",
@@ -88,14 +93,16 @@ func TestCollection_FindOne(t *testing.T) {
 			name:        "find one with error - missing collection",
 			filter:      map[string]any{"name": "test"},
 			returnModel: TestModel{},
-			returnError: errors.New("find one failed"),
+			returnError: infra_error.Internal(infra_error.InternalDatabaseError, errors.New("find one failed")),
+			errCategory: infra_error.CategoryInternal,
 		},
 		{
 			name:        "find one with error - item not found",
 			collection:  "test_collection",
 			filter:      map[string]any{"name": "test"},
 			returnModel: TestModel{},
-			returnError: errors.New("no result found"),
+			returnError: infra_error.NotFound(infra_error.NotFoundToken, "", ""),
+			errCategory: infra_error.CategoryNotFound,
 		},
 	}
 	for _, tc := range testCases {
@@ -121,9 +128,10 @@ func TestCollection_FindOne(t *testing.T) {
 			}
 			result, err := collectionHanlder.FindOne(tc.filter)
 			if tc.returnError != nil {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 				assert.Equal(t, tc.returnModel, *result)
 			}
 		})
@@ -137,6 +145,7 @@ func TestCollection_FindAll(t *testing.T) {
 		filter         map[string]any
 		returnModels   []any
 		returnError    error
+		errCategory    infra_error.ErrorCategory
 		expectedResult []*TestModel
 	}{
 		{
@@ -166,7 +175,8 @@ func TestCollection_FindAll(t *testing.T) {
 			collection:   "test_collection",
 			filter:       map[string]any{"name": "test"},
 			returnModels: []any{},
-			returnError:  errors.New("database query failed"),
+			returnError:  infra_error.Internal(infra_error.InternalDatabaseError, errors.New("database query failed")),
+			errCategory:  infra_error.CategoryInternal,
 		},
 	}
 
@@ -196,9 +206,10 @@ func TestCollection_FindAll(t *testing.T) {
 			}
 			results, err := collectionHanlder.FindAll(tc.filter)
 			if tc.returnError != nil {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 				assert.Equal(t, tc.expectedResult, results)
 			}
 		})
@@ -213,6 +224,7 @@ func TestCollection_Update(t *testing.T) {
 		item              *TestModel
 		expectedItem      bson.M
 		returnError       error
+		errCategory       infra_error.ErrorCategory
 		expectedCallTimes int
 	}{
 		{
@@ -230,8 +242,9 @@ func TestCollection_Update(t *testing.T) {
 			filter:            nil,
 			item:              &TestModel{ID: "1", Name: "updated"},
 			expectedItem:      bson.M{"name": "updated"},
-			returnError:       errors.New("filter is required and cannot be nil"),
-			expectedCallTimes: 0,
+			returnError:       infra_error.Validation(infra_error.ValidationRequiredFields),
+			errCategory:       infra_error.CategoryValidation,
+			expectedCallTimes: 1,
 		},
 		{
 			name:              "update with database error",
@@ -239,7 +252,8 @@ func TestCollection_Update(t *testing.T) {
 			filter:            map[string]any{"_id": "1"},
 			item:              &TestModel{ID: "1", Name: "updated"},
 			expectedItem:      bson.M{"name": "updated"},
-			returnError:       errors.New("update failed"),
+			returnError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("update failed")),
+			errCategory:       infra_error.CategoryInternal,
 			expectedCallTimes: 1,
 		},
 	}
@@ -258,9 +272,10 @@ func TestCollection_Update(t *testing.T) {
 			}
 			err := collectionHanlder.Update(tc.filter, tc.item)
 			if tc.returnError != nil {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}
@@ -272,6 +287,7 @@ func TestCollection_Delete(t *testing.T) {
 		collection        string
 		filter            map[string]any
 		returnError       error
+		errCategory       infra_error.ErrorCategory
 		expectedCallTimes int
 	}{
 		{
@@ -285,14 +301,16 @@ func TestCollection_Delete(t *testing.T) {
 			name:              "delete with nil filter",
 			collection:        "test_collection",
 			filter:            nil,
-			returnError:       errors.New("filter is required and cannot be nil"),
-			expectedCallTimes: 0,
+			returnError:       infra_error.Validation(infra_error.ValidationRequiredFields),
+			errCategory:       infra_error.CategoryValidation,
+			expectedCallTimes: 1,
 		},
 		{
 			name:              "delete with database error",
 			collection:        "test_collection",
 			filter:            map[string]any{"_id": "1"},
-			returnError:       errors.New("delete failed"),
+			returnError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("delete failed")),
+			errCategory:       infra_error.CategoryInternal,
 			expectedCallTimes: 1,
 		},
 	}
@@ -311,9 +329,10 @@ func TestCollection_Delete(t *testing.T) {
 			}
 			err := collectionHanlder.Delete(tc.filter)
 			if tc.returnError != nil {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}

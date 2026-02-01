@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"time"
 
 	infra_error "erp.localhost/internal/infra/error"
 	// authv1 "erp.localhost/internal/infra/model/auth/v1"
@@ -13,13 +12,6 @@ import (
 	"erp.localhost/internal/infra/logging/logger"
 )
 
-type TokensResponse struct {
-	Token              string
-	TokenExpiry        time.Time
-	RefreshToken       string
-	RefreshTokenExpiry time.Time
-}
-
 type RevokeResponse struct {
 	Revoked              bool
 	AccessTokensRevoked  int32
@@ -28,12 +20,12 @@ type RevokeResponse struct {
 
 type AuthClient interface {
 	// Authentication - Login + Logout
-	Login(ctx context.Context, tenantID, email, username, password string) (*TokensResponse, *infra_error.AppError)
-	Logout(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (string, *infra_error.AppError)
+	Login(ctx context.Context, tenantID, email, username, password string) (*authv1.Tokens, *infra_error.AppError)
+	Logout(ctx context.Context, tenantID, userID string) (string, *infra_error.AppError)
 	// Access + Refresh Tokens
 	VerifyToken(ctx context.Context, accessToken string) (bool, *infra_error.AppError)
-	RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, *infra_error.AppError)
-	RevokeToken(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (bool, *infra_error.AppError)
+	RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*authv1.Tokens, *infra_error.AppError)
+	RevokeToken(ctx context.Context, tenantID, userID string) (bool, *infra_error.AppError)
 	// Tenant-level token management
 	RevokeAllTenantTokens(ctx context.Context, tenantID, userID, targetTenantID string) (*RevokeResponse, *infra_error.AppError)
 
@@ -60,7 +52,7 @@ func NewAuthGRPCClient(ctx context.Context, config *Config, logger logger.Logger
 	}, nil
 }
 
-func (a *authClient) Login(ctx context.Context, tenantID, email, username, password string) (*TokensResponse, *infra_error.AppError) {
+func (a *authClient) Login(ctx context.Context, tenantID, email, username, password string) (*authv1.Tokens, *infra_error.AppError) {
 	req := &authv1.LoginRequest{
 		TenantId: tenantID,
 		Password: password,
@@ -77,26 +69,14 @@ func (a *authClient) Login(ctx context.Context, tenantID, email, username, passw
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "Email", "Username")
 	}
 	res, err := a.stub.Login(ctx, req)
-	if err != nil {
-		return nil, mapGRPCError(err)
-	}
-	return &TokensResponse{
-		Token:              res.GetTokens().GetToken(),
-		TokenExpiry:        time.Unix(res.GetExpiresIn().GetToken(), 0),
-		RefreshToken:       res.GetTokens().GetRefreshToken(),
-		RefreshTokenExpiry: time.Unix(res.GetExpiresIn().GetRefreshToken(), 0),
-	}, nil
+	return res, mapGRPCError(err)
 }
 
-func (a *authClient) Logout(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (string, *infra_error.AppError) {
+func (a *authClient) Logout(ctx context.Context, tenantID, userID string) (string, *infra_error.AppError) {
 	req := &authv1.LogoutRequest{
 		Identifier: &infrav1.UserIdentifier{
 			TenantId: tenantID,
 			UserId:   userID,
-		},
-		Tokens: &authv1.Tokens{
-			Token:        accessToken,
-			RefreshToken: refreshToken,
 		},
 	}
 	res, err := a.stub.Logout(ctx, req)
@@ -117,7 +97,7 @@ func (a *authClient) VerifyToken(ctx context.Context, accessToken string) (bool,
 	return res.GetValid(), nil
 }
 
-func (a *authClient) RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*TokensResponse, *infra_error.AppError) {
+func (a *authClient) RefreshToken(ctx context.Context, tenantID, userID, refreshToken string) (*authv1.Tokens, *infra_error.AppError) {
 	req := &authv1.RefreshTokenRequest{
 		Identifier: &infrav1.UserIdentifier{
 			TenantId: tenantID,
@@ -126,26 +106,14 @@ func (a *authClient) RefreshToken(ctx context.Context, tenantID, userID, refresh
 		RefreshToken: refreshToken,
 	}
 	res, err := a.stub.RefreshToken(ctx, req)
-	if err != nil {
-		return nil, mapGRPCError(err)
-	}
-	return &TokensResponse{
-		Token:              res.GetTokens().GetToken(),
-		TokenExpiry:        time.Unix(res.GetExpiresIn().GetToken(), 0),
-		RefreshToken:       res.GetTokens().GetRefreshToken(),
-		RefreshTokenExpiry: time.Unix(res.GetExpiresIn().GetRefreshToken(), 0),
-	}, nil
+	return res, mapGRPCError(err)
 }
 
-func (a *authClient) RevokeToken(ctx context.Context, tenantID, userID, accessToken, refreshToken string) (bool, *infra_error.AppError) {
+func (a *authClient) RevokeToken(ctx context.Context, tenantID, userID string) (bool, *infra_error.AppError) {
 	req := &authv1.RevokeTokenRequest{
 		Identifier: &infrav1.UserIdentifier{
 			TenantId: tenantID,
 			UserId:   userID,
-		},
-		Tokens: &authv1.Tokens{
-			Token:        accessToken,
-			RefreshToken: refreshToken,
 		},
 	}
 	res, err := a.stub.RevokeToken(ctx, req)

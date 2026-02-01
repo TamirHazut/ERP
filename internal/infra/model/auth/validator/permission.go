@@ -6,6 +6,9 @@ import (
 )
 
 func ValidatePermission(p *authv1.Permission, createOperation bool) *infra_error.AppError {
+	if p == nil {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "permission")
+	}
 	missingFields := []string{}
 	if !createOperation {
 		if p.Id == "" {

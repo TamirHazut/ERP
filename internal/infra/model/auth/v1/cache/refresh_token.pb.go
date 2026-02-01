@@ -33,9 +33,7 @@ type RefreshToken struct {
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at"`
 	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
 	IpAddress     string                 `protobuf:"bytes,7,opt,name=ip_address,json=ipAddress,proto3" json:"user_agent"`
-	Revoked       bool                   `protobuf:"varint,9,opt,name=revoked,proto3" json:"revoked"`
-	RevokedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=revoked_at,json=revokedAt,proto3" json:"revoked_at,omitempty"`
-	RevokedBy     string                 `protobuf:"bytes,11,opt,name=revoked_by,json=revokedBy,proto3" json:"revoked_by,omitempty"`
+	RevokedBy     string                 `protobuf:"bytes,8,opt,name=revoked_by,json=revokedBy,proto3" json:"revoked_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -119,20 +117,6 @@ func (x *RefreshToken) GetIpAddress() string {
 	return ""
 }
 
-func (x *RefreshToken) GetRevoked() bool {
-	if x != nil {
-		return x.Revoked
-	}
-	return false
-}
-
-func (x *RefreshToken) GetRevokedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.RevokedAt
-	}
-	return nil
-}
-
 func (x *RefreshToken) GetRevokedBy() string {
 	if x != nil {
 		return x.RevokedBy
@@ -144,7 +128,7 @@ var File_auth_v1_cache_refresh_token_proto protoreflect.FileDescriptor
 
 const file_auth_v1_cache_refresh_token_proto_rawDesc = "" +
 	"\n" +
-	"!auth/v1/cache/refresh_token.proto\x12\rauth.v1.cache\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\"\xb3\x05\n" +
+	"!auth/v1/cache/refresh_token.proto\x12\rauth.v1.cache\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\"\xa7\x04\n" +
 	"\fRefreshToken\x12,\n" +
 	"\auser_id\x18\x01 \x01(\tB\x13\x9a\x84\x9e\x03\x0ejson:\"user_id\"R\x06userId\x122\n" +
 	"\ttenant_id\x18\x02 \x01(\tB\x15\x9a\x84\x9e\x03\x10json:\"tenant_id\"R\btenantId\x125\n" +
@@ -157,13 +141,9 @@ const file_auth_v1_cache_refresh_token_proto_rawDesc = "" +
 	"\flast_used_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampB\"\x9a\x84\x9e\x03\x1djson:\"last_used_at,omitempty\"R\n" +
 	"lastUsedAt\x125\n" +
 	"\n" +
-	"ip_address\x18\a \x01(\tB\x16\x9a\x84\x9e\x03\x11json:\"user_agent\"R\tipAddress\x12-\n" +
-	"\arevoked\x18\t \x01(\bB\x13\x9a\x84\x9e\x03\x0ejson:\"revoked\"R\arevoked\x12[\n" +
+	"ip_address\x18\a \x01(\tB\x16\x9a\x84\x9e\x03\x11json:\"user_agent\"R\tipAddress\x12?\n" +
 	"\n" +
-	"revoked_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampB \x9a\x84\x9e\x03\x1bjson:\"revoked_at,omitempty\"R\trevokedAt\x12?\n" +
-	"\n" +
-	"revoked_by\x18\v \x01(\tB \x9a\x84\x9e\x03\x1bjson:\"revoked_by,omitempty\"R\trevokedByB<Z:erp.localhost/internal/infra/model/auth/v1/cache;authcacheb\x06proto3"
+	"revoked_by\x18\b \x01(\tB \x9a\x84\x9e\x03\x1bjson:\"revoked_by,omitempty\"R\trevokedByB<Z:erp.localhost/internal/infra/model/auth/v1/cache;authcacheb\x06proto3"
 
 var (
 	file_auth_v1_cache_refresh_token_proto_rawDescOnce sync.Once
@@ -186,12 +166,11 @@ var file_auth_v1_cache_refresh_token_proto_depIdxs = []int32{
 	1, // 0: auth.v1.cache.RefreshToken.expires_at:type_name -> google.protobuf.Timestamp
 	1, // 1: auth.v1.cache.RefreshToken.created_at:type_name -> google.protobuf.Timestamp
 	1, // 2: auth.v1.cache.RefreshToken.last_used_at:type_name -> google.protobuf.Timestamp
-	1, // 3: auth.v1.cache.RefreshToken.revoked_at:type_name -> google.protobuf.Timestamp
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_auth_v1_cache_refresh_token_proto_init() }

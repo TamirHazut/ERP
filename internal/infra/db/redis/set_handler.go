@@ -43,11 +43,7 @@ func (h *BaseSetHandler) Add(tenantID string, key string, member string, opts ..
 					h.logger.Error("Failed to parse unit", "error", err, "tenantID", tenantID, "key", key, "member", member)
 					return infra_error.Internal(infra_error.InternalInvalidArgument, err)
 				}
-				err = h.redisHandler.Expire(formattedKey, ttl.(int), unit)
-				if err != nil {
-					h.logger.Error("Failed to set TTL on set", "error", err, "tenantID", tenantID, "key", key, "member", member)
-					return infra_error.Internal(infra_error.InternalInvalidArgument, err)
-				}
+				return h.redisHandler.Expire(formattedKey, ttl.(int), unit)
 			}
 
 		}

@@ -31,12 +31,9 @@ type TokenMetadata struct {
 	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id"`
 	IssuedAt      *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at"`
 	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at"`
-	Revoked       bool                   `protobuf:"varint,6,opt,name=revoked,proto3" json:"revoked"`
-	RevokedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=revoked_at,json=revokedAt,proto3" json:"revoked_at,omitempty"`
-	RevokedBy     string                 `protobuf:"bytes,8,opt,name=revoked_by,json=revokedBy,proto3" json:"revoked_by,omitempty"`
-	IpAddress     string                 `protobuf:"bytes,9,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address"`
-	UserAgent     string                 `protobuf:"bytes,10,opt,name=user_agent,json=userAgent,proto3" json:"user_agent"`
-	Scopes        []string               `protobuf:"bytes,11,rep,name=scopes,proto3" json:"scopes,omitempty"`
+	IpAddress     string                 `protobuf:"bytes,6,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address"`
+	UserAgent     string                 `protobuf:"bytes,7,opt,name=user_agent,json=userAgent,proto3" json:"user_agent"`
+	Scopes        []string               `protobuf:"bytes,8,rep,name=scopes,proto3" json:"scopes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -106,27 +103,6 @@ func (x *TokenMetadata) GetExpiresAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *TokenMetadata) GetRevoked() bool {
-	if x != nil {
-		return x.Revoked
-	}
-	return false
-}
-
-func (x *TokenMetadata) GetRevokedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.RevokedAt
-	}
-	return nil
-}
-
-func (x *TokenMetadata) GetRevokedBy() string {
-	if x != nil {
-		return x.RevokedBy
-	}
-	return ""
-}
-
 func (x *TokenMetadata) GetIpAddress() string {
 	if x != nil {
 		return x.IpAddress
@@ -152,7 +128,7 @@ var File_auth_v1_cache_token_proto protoreflect.FileDescriptor
 
 const file_auth_v1_cache_token_proto_rawDesc = "" +
 	"\n" +
-	"\x19auth/v1/cache/token.proto\x12\rauth.v1.cache\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\"\xa8\x05\n" +
+	"\x19auth/v1/cache/token.proto\x12\rauth.v1.cache\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\"\xdb\x03\n" +
 	"\rTokenMetadata\x12!\n" +
 	"\x03jti\x18\x01 \x01(\tB\x0f\x9a\x84\x9e\x03\n" +
 	"json:\"jti\"R\x03jti\x12,\n" +
@@ -160,18 +136,12 @@ const file_auth_v1_cache_token_proto_rawDesc = "" +
 	"\ttenant_id\x18\x03 \x01(\tB\x15\x9a\x84\x9e\x03\x10json:\"tenant_id\"R\btenantId\x12N\n" +
 	"\tissued_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampB\x15\x9a\x84\x9e\x03\x10json:\"issued_at\"R\bissuedAt\x12Q\n" +
 	"\n" +
-	"expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampB\x16\x9a\x84\x9e\x03\x11json:\"expires_at\"R\texpiresAt\x12-\n" +
-	"\arevoked\x18\x06 \x01(\bB\x13\x9a\x84\x9e\x03\x0ejson:\"revoked\"R\arevoked\x12[\n" +
+	"expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampB\x16\x9a\x84\x9e\x03\x11json:\"expires_at\"R\texpiresAt\x125\n" +
 	"\n" +
-	"revoked_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB \x9a\x84\x9e\x03\x1bjson:\"revoked_at,omitempty\"R\trevokedAt\x12?\n" +
+	"ip_address\x18\x06 \x01(\tB\x16\x9a\x84\x9e\x03\x11json:\"ip_address\"R\tipAddress\x125\n" +
 	"\n" +
-	"revoked_by\x18\b \x01(\tB \x9a\x84\x9e\x03\x1bjson:\"revoked_by,omitempty\"R\trevokedBy\x125\n" +
-	"\n" +
-	"ip_address\x18\t \x01(\tB\x16\x9a\x84\x9e\x03\x11json:\"ip_address\"R\tipAddress\x125\n" +
-	"\n" +
-	"user_agent\x18\n" +
-	" \x01(\tB\x16\x9a\x84\x9e\x03\x11json:\"user_agent\"R\tuserAgent\x124\n" +
-	"\x06scopes\x18\v \x03(\tB\x1c\x9a\x84\x9e\x03\x17json:\"scopes,omitempty\"R\x06scopesB<Z:erp.localhost/internal/infra/model/auth/v1/cache;authcacheb\x06proto3"
+	"user_agent\x18\a \x01(\tB\x16\x9a\x84\x9e\x03\x11json:\"user_agent\"R\tuserAgent\x124\n" +
+	"\x06scopes\x18\b \x03(\tB\x1c\x9a\x84\x9e\x03\x17json:\"scopes,omitempty\"R\x06scopesB<Z:erp.localhost/internal/infra/model/auth/v1/cache;authcacheb\x06proto3"
 
 var (
 	file_auth_v1_cache_token_proto_rawDescOnce sync.Once
@@ -193,12 +163,11 @@ var file_auth_v1_cache_token_proto_goTypes = []any{
 var file_auth_v1_cache_token_proto_depIdxs = []int32{
 	1, // 0: auth.v1.cache.TokenMetadata.issued_at:type_name -> google.protobuf.Timestamp
 	1, // 1: auth.v1.cache.TokenMetadata.expires_at:type_name -> google.protobuf.Timestamp
-	1, // 2: auth.v1.cache.TokenMetadata.revoked_at:type_name -> google.protobuf.Timestamp
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_auth_v1_cache_token_proto_init() }

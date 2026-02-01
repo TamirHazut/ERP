@@ -6,6 +6,9 @@ import (
 )
 
 func ValidateTokenMetaData(tm *authv1_cache.TokenMetadata) *infra_error.AppError {
+	if tm == nil {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "token")
+	}
 	missingFields := []string{}
 	if tm.TenantId == "" {
 		missingFields = append(missingFields, "TenantId")

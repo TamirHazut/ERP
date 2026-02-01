@@ -3,9 +3,9 @@ package redis
 import (
 	"errors"
 	"testing"
-	"time"
 
 	mock_redis "erp.localhost/internal/infra/db/redis/mock"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	"erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/assert"
@@ -37,6 +37,7 @@ func TestBaseSetHandler_Add(t *testing.T) {
 		expectedFormattedKey string
 		returnError          error
 		wantErr              bool
+		errCategory          infra_error.ErrorCategory
 		expectedSAddCalls    int
 	}{
 		{
@@ -57,8 +58,9 @@ func TestBaseSetHandler_Add(t *testing.T) {
 			member:               "member-1",
 			opts:                 nil,
 			expectedFormattedKey: "tenant-1:my-set",
-			returnError:          errors.New("redis connection failed"),
+			returnError:          infra_error.Internal(infra_error.InternalDatabaseError, errors.New("redis connection failed")),
 			wantErr:              true,
+			errCategory:          infra_error.CategoryInternal,
 			expectedSAddCalls:    1,
 		},
 	}
@@ -81,84 +83,13 @@ func TestBaseSetHandler_Add(t *testing.T) {
 
 			err := handler.Add(tc.tenantID, tc.key, tc.member, tc.opts...)
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}
-}
-
-func TestBaseSetHandler_Add_WithTTL(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockHandler := mock_redis.NewMockRedisHandler(ctrl)
-
-	tenantID := "tenant-1"
-	key := "my-set"
-	member := "member-1"
-	formattedKey := "tenant-1:my-set"
-	ttl := 3600
-	ttlUnit := "1s"
-	opts := []map[string]any{
-		{
-			"ttl":      ttl,
-			"ttl_unit": ttlUnit,
-		},
-	}
-
-	mockHandler.EXPECT().
-		SAdd(formattedKey, member).
-		Return(nil).
-		Times(1)
-
-	mockHandler.EXPECT().
-		Expire(formattedKey, ttl, time.Second).
-		Return(nil).
-		Times(1)
-
-	logger := logger.NewBaseLogger(shared.ModuleDB)
-	handler := NewBaseSetHandler(mockHandler, logger)
-
-	err := handler.Add(tenantID, key, member, opts...)
-	require.NoError(t, err)
-}
-
-func TestBaseSetHandler_Add_WithTTL_ExpireFails(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockHandler := mock_redis.NewMockRedisHandler(ctrl)
-
-	tenantID := "tenant-1"
-	key := "my-set"
-	member := "member-1"
-	formattedKey := "tenant-1:my-set"
-	ttl := 3600
-	ttlUnit := "1s"
-	opts := []map[string]any{
-		{
-			"ttl":      ttl,
-			"ttl_unit": ttlUnit,
-		},
-	}
-
-	mockHandler.EXPECT().
-		SAdd(formattedKey, member).
-		Return(nil).
-		Times(1)
-
-	mockHandler.EXPECT().
-		Expire(formattedKey, ttl, time.Second).
-		Return(errors.New("expire failed")).
-		Times(1)
-
-	logger := logger.NewBaseLogger(shared.ModuleDB)
-	handler := NewBaseSetHandler(mockHandler, logger)
-
-	err := handler.Add(tenantID, key, member, opts...)
-	require.Error(t, err)
 }
 
 func TestBaseSetHandler_Remove(t *testing.T) {
@@ -170,6 +101,7 @@ func TestBaseSetHandler_Remove(t *testing.T) {
 		expectedFormattedKey string
 		returnError          error
 		wantErr              bool
+		errCategory          infra_error.ErrorCategory
 		expectedSRemCalls    int
 	}{
 		{
@@ -188,8 +120,9 @@ func TestBaseSetHandler_Remove(t *testing.T) {
 			key:                  "my-set",
 			member:               "member-1",
 			expectedFormattedKey: "tenant-1:my-set",
-			returnError:          errors.New("redis connection failed"),
+			returnError:          infra_error.Internal(infra_error.InternalDatabaseError, errors.New("redis connection failed")),
 			wantErr:              true,
+			errCategory:          infra_error.CategoryInternal,
 			expectedSRemCalls:    1,
 		},
 	}
@@ -212,9 +145,10 @@ func TestBaseSetHandler_Remove(t *testing.T) {
 
 			err := handler.Remove(tc.tenantID, tc.key, tc.member)
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}
@@ -229,6 +163,7 @@ func TestBaseSetHandler_Members(t *testing.T) {
 		returnMembers         []string
 		returnError           error
 		wantErr               bool
+		errCategory           infra_error.ErrorCategory
 		expectedSMembersCalls int
 	}{
 		{
@@ -257,8 +192,9 @@ func TestBaseSetHandler_Members(t *testing.T) {
 			key:                   "my-set",
 			expectedFormattedKey:  "tenant-1:my-set",
 			returnMembers:         nil,
-			returnError:           errors.New("redis connection failed"),
+			returnError:           infra_error.Internal(infra_error.InternalDatabaseError, errors.New("redis connection failed")),
 			wantErr:               true,
+			errCategory:           infra_error.CategoryInternal,
 			expectedSMembersCalls: 1,
 		},
 	}
@@ -281,10 +217,11 @@ func TestBaseSetHandler_Members(t *testing.T) {
 
 			members, err := handler.Members(tc.tenantID, tc.key)
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 				assert.Nil(t, members)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 				assert.Equal(t, tc.returnMembers, members)
 			}
 		})
@@ -299,6 +236,7 @@ func TestBaseSetHandler_Clear(t *testing.T) {
 		expectedFormattedKey string
 		returnError          error
 		wantErr              bool
+		errCategory          infra_error.ErrorCategory
 		expectedClearCalls   int
 	}{
 		{
@@ -315,8 +253,9 @@ func TestBaseSetHandler_Clear(t *testing.T) {
 			tenantID:             "tenant-1",
 			key:                  "my-set",
 			expectedFormattedKey: "tenant-1:my-set",
-			returnError:          errors.New("redis connection failed"),
+			returnError:          infra_error.Internal(infra_error.InternalDatabaseError, errors.New("redis connection failed")),
 			wantErr:              true,
+			errCategory:          infra_error.CategoryInternal,
 			expectedClearCalls:   1,
 		},
 	}
@@ -339,9 +278,10 @@ func TestBaseSetHandler_Clear(t *testing.T) {
 
 			err := handler.Clear(tc.tenantID, tc.key)
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}

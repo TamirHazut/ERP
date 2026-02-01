@@ -25,7 +25,7 @@ func NewAuthService(authAPI *api.AuthAPI, logger logger.Logger) *AuthService {
 	}
 }
 
-func (a *AuthService) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.TokensResponse, error) {
+func (a *AuthService) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.Tokens, error) {
 	tenantID := req.GetTenantId()
 	userPassword := req.GetPassword()
 	email := req.GetEmail()
@@ -34,19 +34,10 @@ func (a *AuthService) Login(ctx context.Context, req *authv1.LoginRequest) (*aut
 	newTokenResponse, err := a.authAPI.Login(tenantID, email, username, userPassword)
 	if err != nil {
 		a.logger.Error("failed to authenticate", "error", err.Error())
-		return nil, infra_error.ToGRPCError(err)
 	}
 
-	return &authv1.TokensResponse{
-		Tokens: &authv1.Tokens{
-			Token:        newTokenResponse.Token,
-			RefreshToken: newTokenResponse.RefreshToken,
-		},
-		ExpiresIn: &authv1.ExpiresIn{
-			Token:        newTokenResponse.TokenExpiresAt,
-			RefreshToken: newTokenResponse.RefreshTokenExpiresAt,
-		},
-	}, nil
+	a.logger.Debug("login successfuly", "tenantID", tenantID, "email", email, "username", username)
+	return newTokenResponse, infra_error.ToGRPCError(err)
 }
 
 func (a *AuthService) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
@@ -59,10 +50,8 @@ func (a *AuthService) Logout(ctx context.Context, req *authv1.LogoutRequest) (*a
 
 	tenantID := identifier.GetTenantId()
 	userID := identifier.GetUserId()
-	token := req.GetTokens().GetToken()
-	refreshToken := req.GetTokens().GetRefreshToken()
 
-	message, err := a.authAPI.Logout(tenantID, userID, token, refreshToken, userID)
+	message, err := a.authAPI.Logout(tenantID, userID)
 	if err != nil {
 		a.logger.Error("failed to logout", "tenantID", tenantID, "userID", userID, "error", err.Error())
 	} else {
@@ -87,7 +76,7 @@ func (a *AuthService) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRe
 	}, nil
 }
 
-func (a *AuthService) RefreshToken(ctx context.Context, req *authv1.RefreshTokenRequest) (*authv1.TokensResponse, error) {
+func (a *AuthService) RefreshToken(ctx context.Context, req *authv1.RefreshTokenRequest) (*authv1.Tokens, error) {
 	// Validate input
 	identifier := req.GetIdentifier()
 	if err := validator_infra.ValidateUserIdentifier(identifier); err != nil {
@@ -102,19 +91,9 @@ func (a *AuthService) RefreshToken(ctx context.Context, req *authv1.RefreshToken
 	newTokenResponse, err := a.authAPI.RefreshToken(tenantID, userID, token)
 	if err != nil {
 		a.logger.Error("failed to refresh token", "tenantID", tenantID, "userID", userID, "error", err)
-		return nil, infra_error.ToGRPCError(err)
 	}
 	a.logger.Debug("tokens refreshed successfuly", "tenantID", tenantID, "userID", userID)
-	return &authv1.TokensResponse{
-		Tokens: &authv1.Tokens{
-			Token:        newTokenResponse.Token,
-			RefreshToken: newTokenResponse.RefreshToken,
-		},
-		ExpiresIn: &authv1.ExpiresIn{
-			Token:        newTokenResponse.TokenExpiresAt,
-			RefreshToken: newTokenResponse.RefreshTokenExpiresAt,
-		},
-	}, nil
+	return newTokenResponse, infra_error.ToGRPCError(err)
 }
 
 func (a *AuthService) RevokeToken(ctx context.Context, req *authv1.RevokeTokenRequest) (*authv1.RevokeTokenResponse, error) {
@@ -127,15 +106,12 @@ func (a *AuthService) RevokeToken(ctx context.Context, req *authv1.RevokeTokenRe
 
 	tenantID := req.GetIdentifier().GetTenantId()
 	userID := req.GetIdentifier().GetUserId()
-	revokedBy := req.GetRevokedBy()
-	token := req.GetTokens().GetToken()
-	refreshToken := req.GetTokens().GetRefreshToken()
 
-	if err := a.authAPI.RevokeTokens(tenantID, userID, token, refreshToken, revokedBy); err != nil {
-		a.logger.Error("failed to revoke token", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy, "error", err)
+	if err := a.authAPI.RevokeTokens(tenantID, userID); err != nil {
+		a.logger.Error("failed to revoke token", "tenantID", tenantID, "userID", userID, "error", err)
 		return nil, infra_error.ToGRPCError(err)
 	}
-	a.logger.Debug("token revoked successfuly", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy)
+	a.logger.Debug("token revoked successfuly", "tenantID", tenantID, "userID", userID)
 	return &authv1.RevokeTokenResponse{
 		Revoked: true,
 	}, nil

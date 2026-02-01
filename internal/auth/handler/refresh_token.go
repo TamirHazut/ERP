@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -74,12 +75,10 @@ func (h *RefreshTokenHandler) GetOne(tenantID string, userID string) (*authv1_ca
 func (h *RefreshTokenHandler) Validate(tenantID string, userID string) (*authv1_cache.RefreshToken, *infra_error.AppError) {
 	token, err := h.GetOne(tenantID, userID)
 	if err != nil {
+		if err.Category == infra_error.CategoryNotFound {
+			return nil, infra_error.Auth(infra_error.AuthTokenRevoked)
+		}
 		return nil, err
-	}
-
-	// Check if revoked
-	if token.Revoked {
-		return nil, infra_error.Auth(infra_error.AuthTokenRevoked)
 	}
 
 	// Check if expired
@@ -91,7 +90,10 @@ func (h *RefreshTokenHandler) Validate(tenantID string, userID string) (*authv1_
 }
 
 // Revoke revokes the single refresh token for a user
-func (h *RefreshTokenHandler) Revoke(tenantID string, userID string, revokedBy string) *infra_error.AppError {
+func (h *RefreshTokenHandler) Revoke(tenantID string, userID string) *infra_error.AppError {
+	if tenantID == "" || userID == "" {
+		return infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("tenantID and userID are required"))
+	}
 	token, err := h.GetOne(tenantID, userID)
 	if err != nil || token == nil {
 		// No token to revoke
@@ -105,7 +107,7 @@ func (h *RefreshTokenHandler) Revoke(tenantID string, userID string, revokedBy s
 		return err
 	}
 
-	h.logger.Debug("Refresh token revoked", "tenantID", tenantID, "userID", userID, "revokedBy", revokedBy)
+	h.logger.Debug("Refresh token revoked", "tenantID", tenantID, "userID", userID)
 	return nil
 }
 
@@ -159,6 +161,9 @@ func (h *RefreshTokenHandler) ScanKeys(tenantID string) ([]string, *infra_error.
 // DeleteByPattern deletes all refresh tokens for a tenant
 // Returns the number of tokens deleted
 func (h *RefreshTokenHandler) DeleteByPattern(tenantID, pattern string) (int, *infra_error.AppError) {
+	if tenantID == "" {
+		return 0, infra_error.Auth(infra_error.AuthTokenInvalid).WithError(errors.New("tenantID are required"))
+	}
 	// Pattern: all user IDs in this tenant (tenantID:*)
 	newPattern := fmt.Sprintf("%s:%s", tenantID, pattern)
 	count, err := h.handler.DeleteByPattern(newPattern)

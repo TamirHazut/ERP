@@ -20,6 +20,9 @@ var (
 )
 
 func ValidateUser(u *authv1.User, createOperation bool) *infra_error.AppError {
+	if u == nil {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "user")
+	}
 	missingFields := []string{}
 	if !createOperation {
 		if u.Id == "" {
@@ -57,6 +60,9 @@ func ValidateUser(u *authv1.User, createOperation bool) *infra_error.AppError {
 }
 
 func ValidateUserRole(u *authv1.UserRole) *infra_error.AppError {
+	if u == nil {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "role")
+	}
 	missingFields := []string{}
 
 	if u.RoleId == "" {

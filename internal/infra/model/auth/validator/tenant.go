@@ -6,6 +6,9 @@ import (
 )
 
 func ValidateTenant(t *authv1.Tenant, createOperation bool) *infra_error.AppError {
+	if t == nil {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "tenant")
+	}
 	missingFields := []string{}
 	if !createOperation {
 		if t.Id == "" {

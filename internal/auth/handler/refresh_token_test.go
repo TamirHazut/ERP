@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mock_redis "erp.localhost/internal/infra/db/redis/mock"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
 	"erp.localhost/internal/infra/model/shared"
@@ -29,8 +30,7 @@ func (m refreshTokenMatcher) Matches(x interface{}) bool {
 	}
 	// Match all fields except LastUsedAt which is set dynamically
 	return token.UserId == m.expected.UserId &&
-		token.TenantId == m.expected.TenantId &&
-		token.Revoked == m.expected.Revoked
+		token.TenantId == m.expected.TenantId
 }
 
 func (m refreshTokenMatcher) String() string {
@@ -52,7 +52,6 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 		TenantId:  "tenant-123",
 		ExpiresAt: timestamppb.New(time.Now().Add(24 * time.Hour)),
 		CreatedAt: timestamppb.Now(),
-		Revoked:   false,
 	}
 
 	testCases := []struct {
@@ -62,6 +61,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 		refreshToken         *authv1_cache.RefreshToken
 		returnSetError       error
 		wantErr              bool
+		errCategory          infra_error.ErrorCategory
 		expectedSetCallTimes int
 	}{
 		{
@@ -85,6 +85,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			},
 			returnSetError:       nil,
 			wantErr:              true,
+			errCategory:          infra_error.CategoryValidation,
 			expectedSetCallTimes: 0,
 		},
 		{
@@ -100,6 +101,7 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			},
 			returnSetError:       nil,
 			wantErr:              true,
+			errCategory:          infra_error.CategoryValidation,
 			expectedSetCallTimes: 0,
 		},
 		{
@@ -107,8 +109,9 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 			tenantID:             "tenant-123",
 			userID:               "user-123",
 			refreshToken:         validToken,
-			returnSetError:       errors.New("database connection failed"),
+			returnSetError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("database connection failed")),
 			wantErr:              true,
+			errCategory:          infra_error.CategoryInternal,
 			expectedSetCallTimes: 1,
 		},
 	}
@@ -131,9 +134,10 @@ func TestRefreshTokenKeyHandler_Store(t *testing.T) {
 
 			err := handler.Store(tc.tenantID, tc.userID, tc.refreshToken)
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}
@@ -146,7 +150,6 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 		TenantId:  "tenant-123",
 		ExpiresAt: timestamppb.New(time.Now().Add(24 * time.Hour)),
 		CreatedAt: timestamppb.Now(),
-		Revoked:   false,
 	}
 
 	testCases := []struct {
@@ -157,6 +160,7 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 		returnError             error
 		wantToken               *authv1_cache.RefreshToken
 		wantErr                 bool
+		errCategory             infra_error.ErrorCategory
 		expectedGetOneCallTimes int
 	}{
 		{
@@ -174,9 +178,10 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
 			returnToken:             nil,
-			returnError:             errors.New("token not found"),
+			returnError:             infra_error.NotFound(infra_error.NotFoundToken, "", ""),
 			wantToken:               nil,
 			wantErr:                 true,
+			errCategory:             infra_error.CategoryNotFound,
 			expectedGetOneCallTimes: 1,
 		},
 		{
@@ -184,9 +189,10 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
 			returnToken:             nil,
-			returnError:             errors.New("database query failed"),
+			returnError:             infra_error.Internal(infra_error.InternalDatabaseError, errors.New("database query failed")),
 			wantToken:               nil,
 			wantErr:                 true,
+			errCategory:             infra_error.CategoryInternal,
 			expectedGetOneCallTimes: 1,
 		},
 	}
@@ -209,10 +215,11 @@ func TestRefreshTokenKeyHandler_GetOne(t *testing.T) {
 
 			result, err := handler.GetOne(tc.tenantID, tc.userID)
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 				assert.Nil(t, result)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 				require.NotNil(t, result)
 				assert.Equal(t, tc.wantToken.TokenHash, result.TokenHash)
 				assert.Equal(t, tc.wantToken.UserId, result.UserId)
@@ -228,7 +235,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 		TenantId:  "tenant-123",
 		ExpiresAt: timestamppb.New(time.Now().Add(24 * time.Hour)),
 		CreatedAt: timestamppb.Now(),
-		Revoked:   false,
 	}
 	expiredToken := authv1_cache.RefreshToken{
 		TokenHash: "refresh-token-123",
@@ -236,15 +242,6 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 		TenantId:  "tenant-123",
 		ExpiresAt: timestamppb.New(time.Now().Add(-24 * time.Hour)), // Expired
 		CreatedAt: timestamppb.New(time.Now().Add(-48 * time.Hour)),
-		Revoked:   false,
-	}
-	revokedToken := authv1_cache.RefreshToken{
-		TokenHash: "refresh-token-123",
-		UserId:    "user-123",
-		TenantId:  "tenant-123",
-		ExpiresAt: timestamppb.New(time.Now().Add(24 * time.Hour)),
-		CreatedAt: timestamppb.Now(),
-		Revoked:   true,
 	}
 
 	testCases := []struct {
@@ -254,6 +251,7 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 		returnToken             *authv1_cache.RefreshToken
 		returnError             error
 		wantErr                 bool
+		errCategory             infra_error.ErrorCategory
 		expectedGetOneCallTimes int
 	}{
 		{
@@ -272,15 +270,17 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			returnToken:             &expiredToken,
 			returnError:             nil,
 			wantErr:                 true,
+			errCategory:             infra_error.CategoryAuth,
 			expectedGetOneCallTimes: 1,
 		},
 		{
 			name:                    "revoked token",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			returnToken:             &revokedToken,
-			returnError:             nil,
+			returnToken:             nil,
+			returnError:             infra_error.NotFound(infra_error.NotFoundToken, "", ""),
 			wantErr:                 true,
+			errCategory:             infra_error.CategoryAuth,
 			expectedGetOneCallTimes: 1,
 		},
 		{
@@ -288,8 +288,9 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
 			returnToken:             nil,
-			returnError:             errors.New("token not found"),
+			returnError:             infra_error.NotFound(infra_error.NotFoundToken, "", ""),
 			wantErr:                 true,
+			errCategory:             infra_error.CategoryAuth,
 			expectedGetOneCallTimes: 1,
 		},
 	}
@@ -312,10 +313,11 @@ func TestRefreshTokenKeyHandler_Validate(t *testing.T) {
 
 			result, err := handler.Validate(tc.tenantID, tc.userID)
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 				assert.Nil(t, result)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 				assert.NotNil(t, result)
 			}
 		})
@@ -329,7 +331,6 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 		TenantId:  "tenant-123",
 		ExpiresAt: timestamppb.New(time.Now().Add(24 * time.Hour)),
 		CreatedAt: timestamppb.Now(),
-		Revoked:   false,
 	}
 
 	testCases := []struct {
@@ -340,6 +341,7 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 		returnGetError          error
 		returnDeleteError       error
 		wantErr                 bool
+		errCategory             infra_error.ErrorCategory
 		expectedGetOneCallTimes int
 		expectedDeleteCallTimes int
 	}{
@@ -359,7 +361,7 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
 			returnGetToken:          nil,
-			returnGetError:          errors.New("token not found"),
+			returnGetError:          infra_error.NotFound(infra_error.NotFoundToken, "", ""),
 			returnDeleteError:       nil,
 			wantErr:                 false,
 			expectedGetOneCallTimes: 1,
@@ -371,8 +373,9 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			userID:                  "user-123",
 			returnGetToken:          &validToken,
 			returnGetError:          nil,
-			returnDeleteError:       errors.New("update failed"),
+			returnDeleteError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("update failed")),
 			wantErr:                 true,
+			errCategory:             infra_error.CategoryInternal,
 			expectedGetOneCallTimes: 1,
 			expectedDeleteCallTimes: 1,
 		},
@@ -393,8 +396,6 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 			}
 			if tc.expectedDeleteCallTimes > 0 {
 				// Create expected token with Revoked=true
-				expectedToken := tc.returnGetToken
-				expectedToken.Revoked = true
 				key := fmt.Sprintf("%s:%s", tc.tenantID, tc.userID)
 				mockHandler.EXPECT().
 					Delete(key).
@@ -404,11 +405,12 @@ func TestRefreshTokenKeyHandler_Revoke(t *testing.T) {
 
 			handler := createNewRefreshTokenHandler(mockHandler)
 
-			err := handler.Revoke(tc.tenantID, tc.userID, "system")
+			err := handler.Revoke(tc.tenantID, tc.userID)
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}
@@ -421,6 +423,7 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 		userID                  string
 		returnDeleteError       error
 		wantErr                 bool
+		errCategory             infra_error.ErrorCategory
 		expectedDeleteCallTimes int
 	}{
 		{
@@ -435,8 +438,9 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 			name:                    "delete with database error",
 			tenantID:                "tenant-123",
 			userID:                  "user-123",
-			returnDeleteError:       errors.New("delete failed"),
+			returnDeleteError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("delete failed")),
 			wantErr:                 true,
+			errCategory:             infra_error.CategoryInternal,
 			expectedDeleteCallTimes: 1,
 		},
 	}
@@ -459,9 +463,10 @@ func TestRefreshTokenKeyHandler_Delete(t *testing.T) {
 
 			err := handler.Delete(tc.tenantID, tc.userID)
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}

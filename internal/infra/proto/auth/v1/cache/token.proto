@@ -18,10 +18,7 @@ message TokenMetadata {
   string tenant_id = 3 [(tagger.tags) = "json:\"tenant_id\""];
   google.protobuf.Timestamp issued_at = 4 [(tagger.tags) = "json:\"issued_at\""];
   google.protobuf.Timestamp expires_at = 5 [(tagger.tags) = "json:\"expires_at\""];
-  bool revoked = 6 [(tagger.tags) = "json:\"revoked\""];
-  google.protobuf.Timestamp revoked_at = 7 [(tagger.tags) = "json:\"revoked_at,omitempty\""];
-  string revoked_by = 8 [(tagger.tags) = "json:\"revoked_by,omitempty\""];
-  string ip_address = 9 [(tagger.tags) = "json:\"ip_address\""];
-  string user_agent = 10 [(tagger.tags) = "json:\"user_agent\""];
-  repeated string scopes = 11 [(tagger.tags) = "json:\"scopes,omitempty\""];
+  string ip_address = 6 [(tagger.tags) = "json:\"ip_address\""];
+  string user_agent = 7 [(tagger.tags) = "json:\"user_agent\""];
+  repeated string scopes = 8 [(tagger.tags) = "json:\"scopes,omitempty\""];
 }

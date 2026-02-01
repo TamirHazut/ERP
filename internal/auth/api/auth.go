@@ -35,7 +35,7 @@ func NewAuthAPI(rbacAPI *RBACAPI, userAPI *UserAPI, logger logger.Logger) (*Auth
 	}, nil
 }
 
-func (a *AuthAPI) Login(tenantID, email, username, password string) (*NewTokenResponse, *infra_error.AppError) {
+func (a *AuthAPI) Login(tenantID, email, username, password string) (*authv1.Tokens, *infra_error.AppError) {
 	if tenantID == "" || password == "" || (email == "" && username == "") {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, email/username, password"))
 		a.logger.Error("failed to login", "error", err)
@@ -70,8 +70,8 @@ func (a *AuthAPI) Login(tenantID, email, username, password string) (*NewTokenRe
 	return tokens, err
 }
 
-func (a *AuthAPI) Logout(tenantID, userID, accessToken, refreshToken, revokedBy string) (string, *infra_error.AppError) {
-	err := a.RevokeTokens(tenantID, userID, accessToken, refreshToken, revokedBy)
+func (a *AuthAPI) Logout(tenantID, userID string) (string, *infra_error.AppError) {
+	err := a.RevokeTokens(tenantID, userID)
 	if err != nil {
 		if err.Category == infra_error.CategoryNotFound {
 			err = infra_error.Auth(infra_error.AuthSessionExpired)
@@ -81,7 +81,7 @@ func (a *AuthAPI) Logout(tenantID, userID, accessToken, refreshToken, revokedBy 
 	return "logout successful", nil
 }
 
-func (a *AuthAPI) Authenticate(user *authv1.User, password string) (*NewTokenResponse, *infra_error.AppError) {
+func (a *AuthAPI) Authenticate(user *authv1.User, password string) (*authv1.Tokens, *infra_error.AppError) {
 	if password == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, user_password, user_hash"))
 		a.logger.Error("Failed to authenticate user", "error", err)
@@ -108,7 +108,7 @@ func (a *AuthAPI) VerifyToken(token string) *infra_error.AppError {
 	return err
 }
 
-func (a *AuthAPI) RefreshToken(tenantID, userID, token string) (*NewTokenResponse, *infra_error.AppError) {
+func (a *AuthAPI) RefreshToken(tenantID, userID, token string) (*authv1.Tokens, *infra_error.AppError) {
 	if tenantID == "" || userID == "" || token == "" {
 		return nil, infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, refresh_token"))
 	}
@@ -123,7 +123,7 @@ func (a *AuthAPI) RefreshToken(tenantID, userID, token string) (*NewTokenRespons
 	// Revoke old access tokens to prevent orphaned tokens
 	// Note: We only revoke access tokens, not refresh tokens, since the refresh token
 	// is still valid and will be revoked explicitly below
-	if err := a.tokenManager.RevokeAllAccessTokens(tenantID, userID, "system"); err != nil {
+	if err := a.tokenManager.RevokeTokens(tenantID, userID); err != nil {
 		a.logger.Warn("Failed to revoke old access tokens before refresh", "error", err, "tenant_id", tenantID, "user_id", userID)
 		// Continue anyway - non-critical failure
 	}
@@ -138,55 +138,45 @@ func (a *AuthAPI) RefreshToken(tenantID, userID, token string) (*NewTokenRespons
 		a.logger.Error("Failed to generate and store tokens", "error", err, "tenant_id", tenantID, "user_id", userID)
 		return nil, err
 	}
-
-	// Revoke the old refresh token after successfully creating new tokens
-	err = a.tokenManager.RevokeRefreshToken(tenantID, userID, token, "system", true)
-	if err != nil {
-		a.logger.Error("Failed to revoke old refresh token", "error", err, "tenant_id", tenantID, "user_id", userID)
-		return nil, err
-	}
 	return newTokenResponse, nil
 }
 
-func (a *AuthAPI) RevokeTokens(tenantID, userID, accessToken, refreshToken, revokedBy string) *infra_error.AppError {
-	if tenantID == "" || userID == "" || accessToken == "" || refreshToken == "" || revokedBy == "" {
-		return infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, access_token, refresh_token, revoked_by"))
+func (a *AuthAPI) RevokeTokens(tenantID, userID string) *infra_error.AppError {
+	if tenantID == "" || userID == "" {
+		return infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id"))
 	}
 
-	if accessToken != "" {
-		err := a.tokenManager.RevokeAccessToken(accessToken, revokedBy)
-		if err != nil {
-			return err
-		}
+	err := a.tokenManager.RevokeAccessToken(tenantID, userID)
+	if err != nil {
+		return err
 	}
-	if refreshToken != "" {
-		err := a.tokenManager.RevokeRefreshToken(tenantID, userID, refreshToken, revokedBy, false)
-		if err != nil {
-			return err
-		}
+
+	err = a.tokenManager.RevokeRefreshToken(tenantID, userID)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func (a *AuthAPI) RevokeAllTenantTokens(tenantID, revokedBy, targetTenantID string) (int, int, *infra_error.AppError) {
-	if tenantID == "" || revokedBy == "" || targetTenantID == "" {
+func (a *AuthAPI) RevokeAllTenantTokens(tenantID, userID, targetTenantID string) (int, int, *infra_error.AppError) {
+	if tenantID == "" || userID == "" || targetTenantID == "" {
 		return 0, 0, infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id, target_tenant_id"))
 	}
 
-	a.logger.Warn("Revoking all tenant tokens", "tenant_id", targetTenantID, "revoked_by", revokedBy)
+	a.logger.Warn("Revoking all tenant tokens", "tenant_id", targetTenantID)
 
 	// This is a critical operation that should require elevated permissions
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeToken, model_auth.PermissionActionDelete)
 	if err != nil {
 		return 0, 0, err
 	}
-	err = a.rbacAPI.Verification.HasPermission(tenantID, revokedBy, permission, targetTenantID)
+	err = a.rbacAPI.Verification.HasPermission(tenantID, userID, permission, targetTenantID)
 	if err != nil {
 		return 0, 0, err
 	}
 
 	// Revoke all tokens for this tenant
-	return a.tokenManager.RevokeAllTenantTokens(targetTenantID, revokedBy)
+	return a.tokenManager.RevokeAllTenantTokens(targetTenantID)
 }
 
 func (a *AuthAPI) generateAccessToken(user *authv1.User) (string, *authv1_cache.TokenMetadata, *infra_error.AppError) {
@@ -212,9 +202,6 @@ func (a *AuthAPI) generateAccessToken(user *authv1.User) (string, *authv1_cache.
 		TenantId:  claims.GetTenantId(),
 		IssuedAt:  claims.GetIssuedAt(),
 		ExpiresAt: claims.GetExpiresAt(),
-		Revoked:   false,
-		RevokedAt: nil,
-		RevokedBy: "",
 		IpAddress: "",
 		UserAgent: "",
 		Scopes:    []string{},
@@ -237,7 +224,7 @@ func (a *AuthAPI) generateRefreshToken(tenantID string, userID string) (string, 
 	return tokenString, refreshToken, nil
 }
 
-func (a *AuthAPI) generateAndStoreTokens(user *authv1.User) (*NewTokenResponse, *infra_error.AppError) {
+func (a *AuthAPI) generateAndStoreTokens(user *authv1.User) (*authv1.Tokens, *infra_error.AppError) {
 	accessToken, accessTokenMetadata, err := a.generateAccessToken(user)
 	if err != nil {
 		return nil, err
@@ -246,19 +233,23 @@ func (a *AuthAPI) generateAndStoreTokens(user *authv1.User) (*NewTokenResponse, 
 	if err != nil {
 		return nil, err
 	}
+	tenantID := user.GetTenantId()
+	userID := user.GetId()
 
 	// Store tokens (single token per user - automatically replaces existing)
-	err = a.tokenManager.StoreTokens(user.GetTenantId(), user.GetId(), accessTokenMetadata, refreshTokenModel)
+	err = a.tokenManager.StoreTokens(tenantID, userID, accessTokenMetadata, refreshTokenModel)
 	if err != nil {
 		return nil, err
 	}
 
-	return &NewTokenResponse{
-		UserId:                user.GetId(),
-		TenantId:              user.GetTenantId(),
-		Token:                 accessToken,
-		TokenExpiresAt:        accessTokenMetadata.ExpiresAt.AsTime().Unix(),
-		RefreshToken:          refreshTokenString,
-		RefreshTokenExpiresAt: refreshTokenModel.ExpiresAt.AsTime().Unix(),
+	return &authv1.Tokens{
+		Token: &authv1.Token{
+			Token:     accessToken,
+			ExpiresAt: accessTokenMetadata.ExpiresAt.AsTime().Unix(),
+		},
+		RefreshToken: &authv1.Token{
+			Token:     refreshTokenString,
+			ExpiresAt: refreshTokenModel.ExpiresAt.AsTime().Unix(),
+		},
 	}, nil
 }

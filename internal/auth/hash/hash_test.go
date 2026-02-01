@@ -3,27 +3,44 @@ package hash
 import (
 	"testing"
 
+	infra_error "erp.localhost/internal/infra/error"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHashPassword(t *testing.T) {
 	testCases := []struct {
-		name     string
-		password string
-		wantErr  bool
+		name        string
+		password    string
+		wantErr     bool
+		errCategory infra_error.ErrorCategory
 	}{
-		{name: "valid strong password", password: "1aAm!&25@*zgTY$pwL", wantErr: false},
-		{name: "valid weak password", password: "password", wantErr: true},
-		{name: "invalidempty password", password: "", wantErr: true},
+		{
+			name:     "valid strong password",
+			password: "1aAm!&25@*zgTY$pwL",
+			wantErr:  false,
+		},
+		{
+			name:        "valid weak password",
+			password:    "password",
+			wantErr:     true,
+			errCategory: infra_error.CategoryValidation,
+		},
+		{
+			name:        "invalid empty password",
+			password:    "",
+			wantErr:     true,
+			errCategory: infra_error.CategoryValidation,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			hash, err := HashPassword(tc.password)
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 				assert.NotEmpty(t, hash)
 				assert.True(t, VerifyHash(tc.password, hash))
 			}

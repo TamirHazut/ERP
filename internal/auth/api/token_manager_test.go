@@ -10,7 +10,6 @@ import (
 	"erp.localhost/internal/infra/logging/logger"
 	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
 	"erp.localhost/internal/infra/model/shared"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -65,7 +64,7 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 				ExpiresAt: timestamppb.New(time.Now().Add(7 * 24 * time.Hour)),
 				CreatedAt: timestamppb.Now(),
 			},
-			accessStoreError:          errors.New("store failed"),
+			accessStoreError:          infra_error.Internal(infra_error.InternalDatabaseError, errors.New("store failed")),
 			refreshStoreError:         nil,
 			wantErr:                   true,
 			expectedAccessStoreCalls:  1,
@@ -85,9 +84,9 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 				ExpiresAt: timestamppb.New(time.Now().Add(7 * 24 * time.Hour)),
 				CreatedAt: timestamppb.Now(),
 			},
-			deleteError:               errors.New("delete failed"),
+			deleteError:               infra_error.Internal(infra_error.InternalDatabaseError, errors.New("delete failed")),
 			accessStoreError:          nil,
-			refreshStoreError:         errors.New("store failed"),
+			refreshStoreError:         infra_error.Internal(infra_error.InternalDatabaseError, errors.New("store failed")),
 			wantErr:                   true,
 			expectedAccessStoreCalls:  1,
 			expectedRefreshStoreCalls: 1,
@@ -135,217 +134,11 @@ func TestTokenManager_StoreTokens(t *testing.T) {
 			)
 
 			if tc.wantErr {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, infra_error.CategoryInternal)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}
 }
-
-func TestTokenManager_ValidateAccessToken(t *testing.T) {
-	testCases := []struct {
-		name                      string
-		tenantID                  string
-		userID                    string
-		returnMetadata            *authv1_cache.TokenMetadata
-		returnError               error
-		wantErr                   bool
-		expectedValidateCallTimes int
-	}{
-		{
-			name:     "valid token",
-			tenantID: "tenant-1",
-			userID:   "user-1",
-			returnMetadata: &authv1_cache.TokenMetadata{
-				TenantId:  "tenant-1",
-				UserId:    "user-1",
-				Revoked:   false,
-				ExpiresAt: timestamppb.New(time.Now().Add(time.Hour)),
-			},
-			returnError:               nil,
-			wantErr:                   false,
-			expectedValidateCallTimes: 1,
-		},
-		{
-			name:                      "invalid token",
-			tenantID:                  "tenant-1",
-			userID:                    "user-1",
-			returnMetadata:            nil,
-			returnError:               infra_error.Auth(infra_error.AuthTokenInvalid),
-			wantErr:                   true,
-			expectedValidateCallTimes: 1,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			mock := mock_token.NewMockTokenHandler[authv1_cache.TokenMetadata](ctrl)
-			if tc.expectedValidateCallTimes > 0 {
-				mock.EXPECT().
-					Validate(tc.tenantID, tc.userID).
-					Return(tc.returnMetadata, tc.returnError).
-					Times(tc.expectedValidateCallTimes)
-			}
-
-			tm := &TokenAPI{
-				accessTokenHandler: mock,
-				logger:             logger.NewBaseLogger(shared.ModuleAuth),
-			}
-
-			metadata, err := tm.ValidateAccessTokenFromRedis(tc.tenantID, tc.userID)
-
-			if tc.wantErr {
-				require.Error(t, err)
-				assert.Nil(t, metadata)
-			} else {
-				require.NoError(t, err)
-				assert.NotNil(t, metadata)
-			}
-		})
-	}
-}
-
-func TestTokenManager_ValidateRefreshToken(t *testing.T) {
-	testCases := []struct {
-		name                      string
-		tenantID                  string
-		userID                    string
-		returnToken               *authv1_cache.RefreshToken
-		returnError               error
-		wantErr                   bool
-		expectedValidateCallTimes int
-	}{
-		{
-			name:     "valid refresh token",
-			tenantID: "tenant-1",
-			userID:   "user-1",
-			returnToken: &authv1_cache.RefreshToken{
-				UserId:    "user-1",
-				TenantId:  "tenant-1",
-				ExpiresAt: timestamppb.New(time.Now().Add(7 * 24 * time.Hour)),
-				Revoked:   false,
-			},
-			returnError:               nil,
-			wantErr:                   false,
-			expectedValidateCallTimes: 1,
-		},
-		{
-			name:                      "invalid refresh token",
-			tenantID:                  "tenant-1",
-			userID:                    "user-1",
-			returnToken:               nil,
-			returnError:               infra_error.Auth(infra_error.AuthTokenInvalid),
-			wantErr:                   true,
-			expectedValidateCallTimes: 1,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			mock := mock_token.NewMockTokenHandler[authv1_cache.RefreshToken](ctrl)
-			if tc.expectedValidateCallTimes > 0 {
-				mock.EXPECT().
-					Validate(tc.tenantID, tc.userID).
-					Return(tc.returnToken, tc.returnError).
-					Times(tc.expectedValidateCallTimes)
-			}
-
-			tm := &TokenAPI{
-				refreshTokenHandler: mock,
-				logger:              logger.NewBaseLogger(shared.ModuleAuth),
-			}
-
-			token, err := tm.ValidateRefreshTokenFromRedis(tc.tenantID, tc.userID)
-
-			if tc.wantErr {
-				require.Error(t, err)
-				assert.Nil(t, token)
-			} else {
-				require.NoError(t, err)
-				assert.NotNil(t, token)
-			}
-		})
-	}
-}
-
-/*func TestTokenManager_RevokeAllTokens(t *testing.T) {
-	testCases := []struct {
-		name                       string
-		tenantID                   string
-		userID                     string
-		revokedBy                  string
-		accessRevokeError          error
-		refreshRevokeError         error
-		wantErr                    bool
-		expectedAccessRevokeCalls  int
-		expectedRefreshRevokeCalls int
-	}{
-		{
-			name:                       "successful revoke all",
-			tenantID:                   "tenant-1",
-			userID:                     "user-1",
-			revokedBy:                  "admin",
-			accessRevokeError:          nil,
-			refreshRevokeError:         nil,
-			wantErr:                    false,
-			expectedAccessRevokeCalls:  1,
-			expectedRefreshRevokeCalls: 1,
-		},
-		{
-			name:                       "refresh token revoke fails",
-			tenantID:                   "tenant-1",
-			userID:                     "user-1",
-			revokedBy:                  "admin",
-			accessRevokeError:          nil,
-			refreshRevokeError:         errors.New("revoke failed"),
-			wantErr:                    true,
-			expectedAccessRevokeCalls:  1,
-			expectedRefreshRevokeCalls: 1,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			accessMock := mock_token.NewMockTokenHandler[authv1_cache.TokenMetadata](ctrl)
-			refreshMock := mock_token.NewMockTokenHandler[authv1_cache.RefreshToken](ctrl)
-
-			if tc.expectedAccessRevokeCalls > 0 {
-				accessMock.EXPECT().
-					RevokeAll(tc.tenantID, tc.userID, tc.revokedBy).
-					Return(tc.accessRevokeError).
-					Times(tc.expectedAccessRevokeCalls)
-			}
-
-			if tc.expectedRefreshRevokeCalls > 0 {
-				refreshMock.EXPECT().
-					RevokeAll(tc.tenantID, tc.userID, tc.revokedBy).
-					Return(tc.refreshRevokeError).
-					Times(tc.expectedRefreshRevokeCalls)
-			}
-
-			tm := &TokenManager{
-				accessTokenHandler:  accessMock,
-				refreshTokenHandler: refreshMock,
-				logger:              logger.NewBaseLogger(shared.ModuleAuth),
-			}
-
-			err := tm.RevokeAllTokens(tc.tenantID, tc.userID, tc.revokedBy)
-
-			if tc.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}*/

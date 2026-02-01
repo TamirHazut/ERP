@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	mock_db "erp.localhost/internal/infra/db/mock"
+	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	"erp.localhost/internal/infra/model/shared"
 	"github.com/stretchr/testify/require"
@@ -34,6 +35,7 @@ func TestKeyHandler_Set(t *testing.T) {
 		value             *TestModel
 		returnID          string
 		returnError       error
+		errCategory       infra_error.ErrorCategory
 		expectedCallTimes int
 	}{
 		{
@@ -51,7 +53,8 @@ func TestKeyHandler_Set(t *testing.T) {
 			key:               "test-key",
 			value:             &TestModel{ID: "1", Name: "test"},
 			returnID:          "",
-			returnError:       errors.New("database connection failed"),
+			returnError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("database connection failed")),
+			errCategory:       infra_error.CategoryInternal,
 			expectedCallTimes: 1,
 		},
 	}
@@ -66,9 +69,10 @@ func TestKeyHandler_Set(t *testing.T) {
 			handler := createNewHandler(mockHandler)
 			err := handler.Set(key, tc.value)
 			if tc.returnError != nil {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}
@@ -83,6 +87,7 @@ func TestKeyHandler_GetOne(t *testing.T) {
 		key               string
 		returnData        TestModel
 		returnError       error
+		errCategory       infra_error.ErrorCategory
 		expectedResult    TestModel
 		expectedCallTimes int
 	}{
@@ -100,7 +105,8 @@ func TestKeyHandler_GetOne(t *testing.T) {
 			tenantID:          "1",
 			key:               "test-key",
 			returnData:        TestModel{},
-			returnError:       errors.New("get one failed"),
+			returnError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("get one failed")),
+			errCategory:       infra_error.CategoryInternal,
 			expectedCallTimes: 1,
 		},
 	}
@@ -125,9 +131,10 @@ func TestKeyHandler_GetOne(t *testing.T) {
 
 			result, err := handler.GetOne(key)
 			if tc.returnError != nil {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 				require.Equal(t, tc.expectedResult, *result)
 			}
 		})
@@ -142,6 +149,7 @@ func TestKeyHandler_GetAll(t *testing.T) {
 		key               string
 		returnData        []any
 		returnError       error
+		errCategory       infra_error.ErrorCategory
 		expectedResult    []*TestModel
 		expectedCallTimes int
 	}{
@@ -174,7 +182,8 @@ func TestKeyHandler_GetAll(t *testing.T) {
 			tenantID:          "1",
 			key:               "test-key",
 			returnData:        []any{},
-			returnError:       errors.New("database query failed"),
+			returnError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("database query failed")),
+			errCategory:       infra_error.CategoryInternal,
 			expectedResult:    []*TestModel{},
 			expectedCallTimes: 1,
 		},
@@ -204,9 +213,10 @@ func TestKeyHandler_GetAll(t *testing.T) {
 
 			result, err := handler.GetAll(key)
 			if tc.returnError != nil {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 				require.Equal(t, tc.expectedResult, result)
 			}
 		})
@@ -220,6 +230,7 @@ func TestKeyHandler_Update(t *testing.T) {
 		key               string
 		value             *TestModel
 		returnError       error
+		errCategory       infra_error.ErrorCategory
 		expectedCallTimes int
 	}{
 		{
@@ -235,7 +246,8 @@ func TestKeyHandler_Update(t *testing.T) {
 			tenantID:          "1",
 			key:               "test-key",
 			value:             &TestModel{ID: "1", Name: "updated"},
-			returnError:       errors.New("update failed"),
+			returnError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("update failed")),
+			errCategory:       infra_error.CategoryInternal,
 			expectedCallTimes: 1,
 		},
 	}
@@ -251,9 +263,10 @@ func TestKeyHandler_Update(t *testing.T) {
 
 			err := handler.Update(key, tc.value)
 			if tc.returnError != nil {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}
@@ -265,6 +278,7 @@ func TestKeyHandler_Delete(t *testing.T) {
 		tenantID          string
 		key               string
 		returnError       error
+		errCategory       infra_error.ErrorCategory
 		expectedCallTimes int
 	}{
 		{
@@ -278,7 +292,8 @@ func TestKeyHandler_Delete(t *testing.T) {
 			name:              "delete with database error",
 			tenantID:          "1",
 			key:               "test-key",
-			returnError:       errors.New("delete failed"),
+			returnError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("delete failed")),
+			errCategory:       infra_error.CategoryInternal,
 			expectedCallTimes: 1,
 		},
 	}
@@ -294,9 +309,10 @@ func TestKeyHandler_Delete(t *testing.T) {
 
 			err := handler.Delete(key)
 			if tc.returnError != nil {
-				require.Error(t, err)
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
 			} else {
-				require.NoError(t, err)
+				require.Nil(t, err)
 			}
 		})
 	}

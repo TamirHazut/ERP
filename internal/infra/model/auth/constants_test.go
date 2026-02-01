@@ -3,6 +3,7 @@ package auth
 import (
 	"testing"
 
+	infra_error "erp.localhost/internal/infra/error"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,6 +14,7 @@ func TestCreatePermissionString(t *testing.T) {
 		action         string
 		expectedResult string
 		wantErr        bool
+		errCategory    infra_error.ErrorCategory
 		expectedErrMsg string
 	}{
 		// Positive cases - valid resource and action combinations
@@ -115,6 +117,7 @@ func TestCreatePermissionString(t *testing.T) {
 			action:         "create",
 			expectedResult: "",
 			wantErr:        true,
+			errCategory:    infra_error.CategoryValidation,
 			expectedErrMsg: "resource",
 		},
 		{
@@ -123,6 +126,7 @@ func TestCreatePermissionString(t *testing.T) {
 			action:         "create",
 			expectedResult: "",
 			wantErr:        true,
+			errCategory:    infra_error.CategoryValidation,
 			expectedErrMsg: "resource",
 		},
 		{
@@ -131,6 +135,7 @@ func TestCreatePermissionString(t *testing.T) {
 			action:         "create",
 			expectedResult: "",
 			wantErr:        true,
+			errCategory:    infra_error.CategoryValidation,
 			expectedErrMsg: "resource",
 		},
 		// Negative cases - invalid action
@@ -140,6 +145,7 @@ func TestCreatePermissionString(t *testing.T) {
 			action:         "",
 			expectedResult: "",
 			wantErr:        true,
+			errCategory:    infra_error.CategoryValidation,
 			expectedErrMsg: "action",
 		},
 		{
@@ -148,6 +154,7 @@ func TestCreatePermissionString(t *testing.T) {
 			action:         "invalid_action",
 			expectedResult: "",
 			wantErr:        true,
+			errCategory:    infra_error.CategoryValidation,
 			expectedErrMsg: "action",
 		},
 		{
@@ -156,6 +163,7 @@ func TestCreatePermissionString(t *testing.T) {
 			action:         "foobar",
 			expectedResult: "",
 			wantErr:        true,
+			errCategory:    infra_error.CategoryValidation,
 			expectedErrMsg: "action",
 		},
 		// Negative cases - both invalid
@@ -165,6 +173,7 @@ func TestCreatePermissionString(t *testing.T) {
 			action:         "",
 			expectedResult: "",
 			wantErr:        true,
+			errCategory:    infra_error.CategoryValidation,
 			expectedErrMsg: "resource",
 		},
 		{
@@ -173,6 +182,7 @@ func TestCreatePermissionString(t *testing.T) {
 			action:         "invalid_action",
 			expectedResult: "",
 			wantErr:        true,
+			errCategory:    infra_error.CategoryValidation,
 			expectedErrMsg: "resource",
 		},
 	}
@@ -181,13 +191,14 @@ func TestCreatePermissionString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := CreatePermissionString(tt.resource, tt.action)
 			if tt.wantErr {
-				assert.Error(t, err)
+				assert.NotNil(t, err)
+				assert.Equal(t, err.Category, tt.errCategory)
 				if tt.expectedErrMsg != "" {
 					assert.Contains(t, err.Error(), tt.expectedErrMsg)
 				}
 				assert.Equal(t, tt.expectedResult, result)
 			} else {
-				assert.NoError(t, err)
+				assert.Nil(t, err)
 				assert.Equal(t, tt.expectedResult, result)
 			}
 		})

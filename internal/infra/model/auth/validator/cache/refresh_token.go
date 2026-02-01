@@ -8,6 +8,9 @@ import (
 )
 
 func ValidateRefreshToken(r *authv1_cache.RefreshToken) *infra_error.AppError {
+	if r == nil {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "token")
+	}
 	missingFields := []string{}
 	if r.TokenHash == "" {
 		missingFields = append(missingFields, "Token")
@@ -31,11 +34,6 @@ func ValidateRefreshToken(r *authv1_cache.RefreshToken) *infra_error.AppError {
 		return infra_error.Auth(infra_error.AuthRefreshTokenExpired)
 	}
 	return nil
-}
-
-// IsValid - Check if refresh token is still valid
-func IsValidRefreshToken(r *authv1_cache.RefreshToken) bool {
-	return !r.Revoked && !IsExpired(r)
 }
 
 // IsExpired - Check if token is expired

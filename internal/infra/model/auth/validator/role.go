@@ -6,6 +6,9 @@ import (
 )
 
 func ValidateRole(r *authv1.Role, createOperation bool) *infra_error.AppError {
+	if r == nil {
+		return infra_error.Validation(infra_error.ValidationInvalidValue, "role")
+	}
 	missingFields := []string{}
 	if !createOperation {
 		if r.Id == "" {

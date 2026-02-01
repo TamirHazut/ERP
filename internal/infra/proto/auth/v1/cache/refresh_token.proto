@@ -20,7 +20,5 @@ message RefreshToken {
   google.protobuf.Timestamp created_at = 5 [(tagger.tags) =  "json:\"created_at\""];
   google.protobuf.Timestamp last_used_at = 6 [(tagger.tags) = "json:\"last_used_at,omitempty\""];
   string ip_address = 7 [(tagger.tags) = "json:\"user_agent\""];
-  bool revoked = 9 [(tagger.tags) = "json:\"revoked\""];
-  google.protobuf.Timestamp revoked_at = 10 [(tagger.tags) = "json:\"revoked_at,omitempty\""];
-  string revoked_by = 11 [(tagger.tags) = "json:\"revoked_by,omitempty\""];
+  string revoked_by = 8 [(tagger.tags) = "json:\"revoked_by,omitempty\""];
 }
