@@ -75,7 +75,7 @@ func Main() {
 		return
 	}
 	rbacAPI := api.NewRBACAPI(roleHanlder, permHandler, verificationManager, logger)
-	userAPI, err := api.NewUserAPI(rbacAPI, logger)
+	userAPI, err := api.NewUserAPI(rbacAPI, roleHanlder, permHandler, logger)
 	authAPI, err := api.NewAuthAPI(rbacAPI, userAPI, logger)
 	tenantAPI, err := api.NewTenantAPI(authAPI, rbacAPI, userAPI, logger)
 

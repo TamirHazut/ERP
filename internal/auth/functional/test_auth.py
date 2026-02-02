@@ -72,15 +72,16 @@ class TestAuthenticationFlows:
 
             logger.info("Step 3: Validating response - checking tokens received")
             # Assert
-            assert response.tokens is not None
-            assert response.tokens.token != ""
+            assert response.token is not None
+            assert response.token.token != ""
 
             logger.info("Step 4: Validating response - checking refresh token received")
-            assert response.tokens.refresh_token != ""
+            assert response.refresh_token is not None
+            assert response.refresh_token.token != ""
 
             logger.info("Step 5: Validating response - checking token expiration times")
-            assert response.expires_in.token > 0
-            assert response.expires_in.refresh_token > 0
+            assert response.token.expires_at > 0
+            assert response.refresh_token.expires_at > 0
 
             logger.info("Step 6: Login test completed successfully")
 
@@ -99,8 +100,6 @@ class TestAuthenticationFlows:
                 password=self.user_password
             )
             login_response = stub.Login(login_request)
-            token = login_response.tokens.token
-            refresh_token = login_response.tokens.refresh_token
 
             logger.info("Step 2: Creating logout request with obtained tokens")
             # Act: Logout
@@ -109,10 +108,6 @@ class TestAuthenticationFlows:
                     tenant_id=self.tenant_id,
                     user_id=self.user_id  # Use real MongoDB ObjectID from setup
                 ),
-                tokens=auth_pb2.Tokens(
-                    token=token,
-                    refresh_token=refresh_token
-                )
             )
 
             logger.info("Step 3: Sending Logout RPC request")
@@ -139,7 +134,7 @@ class TestAuthenticationFlows:
                 password=self.user_password
             )
             login_response = stub.Login(login_request)
-            refresh_token = login_response.tokens.refresh_token
+            refresh_token = login_response.refresh_token.token
 
             logger.info("Step 2: Creating refresh token request")
             # Act: Refresh token
@@ -156,11 +151,18 @@ class TestAuthenticationFlows:
 
             logger.info("Step 4: Validating new tokens received")
             # Assert
-            assert refresh_response.tokens is not None
-            assert refresh_response.tokens.token != ""
-            assert refresh_response.tokens.refresh_token != ""
+            assert refresh_response.token is not None
+            assert refresh_response.token.token != ""
 
-            logger.info("Step 5: Token refresh test completed successfully")
+            logger.info("Step 5: Validating response - checking refresh token received")
+            assert refresh_response.refresh_token is not None
+            assert refresh_response.refresh_token.token != ""
+
+            logger.info("Step 6: Validating response - checking token expiration times")
+            assert refresh_response.token.expires_at > 0
+            assert refresh_response.refresh_token.expires_at > 0
+
+            logger.info("Step 7: Token refresh test completed successfully")
 
     def test_verify_token_success(self):
         """Test token verification flow."""
@@ -177,7 +179,7 @@ class TestAuthenticationFlows:
                 password=self.user_password
             )
             login_response = stub.Login(login_request)
-            access_token = login_response.tokens.token
+            access_token = login_response.token.token
 
             logger.info("Step 2: Creating token verification request")
             # Act: Verify token
@@ -208,8 +210,6 @@ class TestAuthenticationFlows:
                     password=self.user_password
                 )
                 login_response = stub.Login(login_request)
-                access_token = login_response.tokens.token
-                refresh_token = login_response.tokens.refresh_token
 
                 logger.info("Step 2: Act - calling RevokeToken RPC")
                 # Act: Revoke the tokens
@@ -218,11 +218,6 @@ class TestAuthenticationFlows:
                         tenant_id=self.tenant_id,
                         user_id=self.user_id
                     ),
-                    revoked_by=self.user_id,
-                    tokens=auth_pb2.Tokens(
-                        token=access_token,
-                        refresh_token=refresh_token
-                    )
                 )
                 revoke_response = stub.RevokeToken(revoke_request)
 

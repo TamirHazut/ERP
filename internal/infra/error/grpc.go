@@ -22,6 +22,8 @@ var permissionDeniedCodes = map[string]bool{
 	"AUTH_PERMISSION_DENIED":    true,
 	"AUTH_INSUFFICIENT_ROLE":    true,
 	"AUTH_TENANT_ACCESS_DENIED": true,
+	// "AUTH_ACCOUNT_LOCKED":       true,
+	// "AUTH_ACCOUNT_DISABLED":     true,
 }
 
 // ToGRPCError converts an AppError to a gRPC status error

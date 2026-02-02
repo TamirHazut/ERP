@@ -37,6 +37,7 @@ message Tenant {
   google.protobuf.Timestamp updated_at = 11 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
   string created_by = 12 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
   TenantMetadata metadata = 13 [(tagger.tags) = "bson:\"metadata,omitempty\" json:\"metadata,omitempty\""];
+  bool protected = 14 [(tagger.tags) = "bson:\"protected\" json:\"protected\""];
 }
 
 message Subscription {

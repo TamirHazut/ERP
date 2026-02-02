@@ -450,14 +450,14 @@ func (tm *TokenAPI) RevokeAllTenantTokens(tenantID string) (int, int, *infra_err
 	}
 
 	// Delete all access tokens using pattern
-	accessCount, err := accessHandler.DeleteByPattern(tenantID, "")
+	accessCount, err := accessHandler.DeleteByPattern(tenantID, "*")
 	if err != nil {
 		tm.logger.Error("Failed to delete access tokens by pattern", "error", err, "tenantID", tenantID)
 		// Continue with refresh tokens
 	}
 
 	// Delete all refresh tokens using pattern
-	refreshCount, err := refreshHandler.DeleteByPattern(tenantID, "")
+	refreshCount, err := refreshHandler.DeleteByPattern(tenantID, "*")
 	if err != nil {
 		tm.logger.Error("Failed to delete refresh tokens by pattern", "error", err, "tenantID", tenantID)
 		return accessCount, refreshCount, err

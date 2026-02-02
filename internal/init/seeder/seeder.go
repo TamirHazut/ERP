@@ -177,6 +177,7 @@ func (s *Seeder) seedSystemTenant() (string, *infra_error.AppError) {
 		Name:      db.SystemTenant,
 		Status:    authv1.TenantStatus_TENANT_STATUS_ACTIVE,
 		CreatedBy: "System",
+		Protected: true,
 	}
 
 	tenantID, err := s.tenantHandler.Create(tenant)
@@ -214,6 +215,7 @@ func (s *Seeder) seedSystemPermission(systemTenantID string) (string, *infra_err
 		PermissionString: db.TenantAdminPermission,
 		Status:           authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE,
 		IsDangerous:      true,
+		Protected:        true,
 	}
 
 	permissionID, err := s.permissionHandler.Create(permission)
@@ -248,6 +250,7 @@ func (s *Seeder) seedSystemRole(systemTenantID, systemPermissionID string) (stri
 		Permissions: []string{systemPermissionID},
 		Status:      authv1.RoleStatus_ROLE_STATUS_ACTIVE,
 		CreatedBy:   "System",
+		Protected:   true,
 	}
 
 	roleID, err := s.roleHandler.Create(role)
@@ -288,6 +291,7 @@ func (s *Seeder) seedSystemAdminUser(systemTenantID, systemRoleID string) (strin
 		PasswordHash: hash,
 		Status:       authv1.UserStatus_USER_STATUS_ACTIVE,
 		CreatedBy:    "System",
+		Protected:    true,
 		Roles: []*authv1.UserRole{
 			{
 				TenantId:   systemTenantID,

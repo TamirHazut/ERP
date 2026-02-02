@@ -20,7 +20,7 @@ type PermissionAggregationHandler struct {
 func NewPermissionAggregationHandler(logger logger.Logger) (*PermissionAggregationHandler, *infra_error.AppError) {
 	aggregation, err := aggregation.NewBaseAggregationHandler[authv1.Permission](
 		model_mongo.AuthDB,
-		model_mongo.RolesCollection,
+		model_mongo.PermissionsCollection,
 		logger,
 	)
 	if err != nil {
@@ -39,5 +39,15 @@ func (h *PermissionAggregationHandler) GetUserPermissions(
 	fields []string,
 ) ([]*authv1.Permission, *infra_error.AppError) {
 	pipelineStages := pipeline.BuildUserPermissionsPipeline(tenantID, userID)
-	return h.Aggregate(ctx, pipelineStages, fields)
+	return h.AggregateFrom(ctx, string(model_mongo.UsersCollection), pipelineStages, fields)
+}
+
+// GetRoleWithPermissionsAggregation retrieves a role with all its permissions using aggregation
+// This replaces the 1 + N pattern (1 role + N permissions)
+func (h *PermissionAggregationHandler) GetRolePermissionsAggregation(
+	tenantID, roleID string,
+	fields []string,
+) ([]*authv1.Permission, *infra_error.AppError) {
+	pipelineStages := pipeline.BuildRolePermissionsPipeline(tenantID, roleID)
+	return h.AggregateFrom(context.Background(), string(model_mongo.RolesCollection), pipelineStages, fields)
 }

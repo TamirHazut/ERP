@@ -41,6 +41,10 @@ func (pa *PermissionAPI) CreatePermission(tenantID, requestorUserID string, perm
 		return "", err
 	}
 
+	if permission.Protected && !pa.verificationManager.IsSystemTenantUser(tenantID) {
+		permission.Protected = false
+	}
+
 	return pa.permissionHandler.CreatePermission(permission)
 }
 
@@ -90,7 +94,7 @@ func (pa *PermissionAPI) ListPermissions(tenantID, requestorUserID string, targe
 }
 
 // DeletePermission deletes a permission with authorization check
-func (pa *PermissionAPI) DeletePermission(tenantID, requestorUserID, permissionID string, targetTenantID string) *infra_error.AppError {
+func (pa *PermissionAPI) DeletePermission(tenantID, requestorUserID, permissionID, targetTenantID string) *infra_error.AppError {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionDelete)
 	if err != nil {
 		return err
@@ -98,6 +102,10 @@ func (pa *PermissionAPI) DeletePermission(tenantID, requestorUserID, permissionI
 
 	if err := pa.verificationManager.HasPermission(tenantID, requestorUserID, permissionStr, targetTenantID); err != nil {
 		pa.logger.Warn("Permission denied for DeletePermission", "tenant_id", tenantID, "user_id", requestorUserID, "permission", permissionStr)
+		return err
+	}
+
+	if err := pa.checkProtectedPermission(tenantID, requestorUserID, permissionID, targetTenantID); err != nil {
 		return err
 	}
 
@@ -117,4 +125,19 @@ func (pa *PermissionAPI) DeleteTenantPermissions(tenantID, requestorUserID, targ
 	}
 
 	return pa.permissionHandler.DeleteTenantPermissions(targetTenantID)
+}
+
+func (pa *PermissionAPI) checkProtectedPermission(tenantID, requestorUserID, permissionID, targetTenantID string) *infra_error.AppError {
+	permission, err := pa.permissionHandler.GetPermissionByID(targetTenantID, permissionID)
+	if err != nil {
+		return err
+	}
+	if permission.Protected {
+		if !pa.verificationManager.IsSystemTenantUser(tenantID) ||
+			!pa.verificationManager.IsSystemAdminUser(requestorUserID) ||
+			pa.verificationManager.IsSystemPermission(permissionID) {
+			return infra_error.Auth(infra_error.AuthPermissionDenied)
+		}
+	}
+	return nil
 }

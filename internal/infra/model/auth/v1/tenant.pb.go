@@ -97,6 +97,7 @@ type Tenant struct {
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	CreatedBy     string                 `protobuf:"bytes,12,opt,name=created_by,json=createdBy,proto3" json:"created_by" bson:"created_by"`
 	Metadata      *TenantMetadata        `protobuf:"bytes,13,opt,name=metadata,proto3" json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Protected     bool                   `protobuf:"varint,14,opt,name=protected,proto3" json:"protected" bson:"protected"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -220,6 +221,13 @@ func (x *Tenant) GetMetadata() *TenantMetadata {
 		return x.Metadata
 	}
 	return nil
+}
+
+func (x *Tenant) GetProtected() bool {
+	if x != nil {
+		return x.Protected
+	}
+	return false
 }
 
 type Subscription struct {
@@ -1168,7 +1176,7 @@ var File_auth_v1_tenant_proto protoreflect.FileDescriptor
 
 const file_auth_v1_tenant_proto_rawDesc = "" +
 	"\n" +
-	"\x14auth/v1/tenant.proto\x12\aauth.v1\x1a\x14infra/v1/infra.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\x1a\x15core/v1/address.proto\"\xc3\b\n" +
+	"\x14auth/v1/tenant.proto\x12\aauth.v1\x1a\x14infra/v1/infra.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\x1a\x15core/v1/address.proto\"\x89\t\n" +
 	"\x06Tenant\x123\n" +
 	"\x02id\x18\x01 \x01(\tB#\x9a\x84\x9e\x03\x1ebson:\"_id,omitempty\" json:\"id\"R\x02id\x120\n" +
 	"\x04name\x18\x02 \x01(\tB\x1c\x9a\x84\x9e\x03\x17bson:\"name\" json:\"name\"R\x04name\x120\n" +
@@ -1186,7 +1194,8 @@ const file_auth_v1_tenant_proto_rawDesc = "" +
 	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"updated_at\" json:\"updated_at\"R\tupdatedAt\x12G\n" +
 	"\n" +
 	"created_by\x18\f \x01(\tB(\x9a\x84\x9e\x03#bson:\"created_by\" json:\"created_by\"R\tcreatedBy\x12m\n" +
-	"\bmetadata\x18\r \x01(\v2\x17.auth.v1.TenantMetadataB8\x9a\x84\x9e\x033bson:\"metadata,omitempty\" json:\"metadata,omitempty\"R\bmetadata\"\x9b\x03\n" +
+	"\bmetadata\x18\r \x01(\v2\x17.auth.v1.TenantMetadataB8\x9a\x84\x9e\x033bson:\"metadata,omitempty\" json:\"metadata,omitempty\"R\bmetadata\x12D\n" +
+	"\tprotected\x18\x0e \x01(\bB&\x9a\x84\x9e\x03!bson:\"protected\" json:\"protected\"R\tprotected\"\x9b\x03\n" +
 	"\fSubscription\x120\n" +
 	"\x04plan\x18\x01 \x01(\tB\x1c\x9a\x84\x9e\x03\x17bson:\"plan\" json:\"plan\"R\x04plan\x12c\n" +
 	"\n" +

@@ -236,6 +236,11 @@ var (
 // ============================================================================
 
 var (
+	ConflictDuplicateKey = ErrorDef{
+		Code:     "CONFLICT_DUPLICATE_KEY",
+		Message:  "A resource with this identifier already exists",
+		Category: CategoryConflict,
+	}
 	ConflictDuplicateResource = ErrorDef{
 		Code:     "CONFLICT_DUPLICATE_RESOURCE",
 		Message:  "A resource with this identifier already exists",

@@ -101,6 +101,10 @@ func (r *RoleHandler) UpdateRole(role *authv1.Role) *infra_error.AppError {
 	if err != nil {
 		return err
 	}
+	role.Protected = currentRole.Protected
+	if currentRole.Protected {
+		return infra_error.Auth(infra_error.AuthPermissionDenied)
+	}
 	if role.CreatedAt.AsTime().IsZero() || currentRole.CreatedAt.AsTime().After(role.CreatedAt.AsTime()) {
 		role.CreatedAt = currentRole.CreatedAt
 	}

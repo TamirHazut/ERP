@@ -103,6 +103,9 @@ func (m *MongoDBManager) Create(collectionName string, data any, opts ...map[str
 	collection := m.db.Collection(collectionName)
 	result, err := collection.InsertOne(context.Background(), data)
 	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return "", infra_error.Conflict(infra_error.ConflictDuplicateKey)
+		}
 		return "", infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	return result.InsertedID.(primitive.ObjectID).Hex(), nil
@@ -154,6 +157,9 @@ func (m *MongoDBManager) Update(collectionName string, filter map[string]any, da
 	m.convertFilterToMongoTypes(filter)
 	_, err := collection.UpdateOne(context.Background(), filter, bson.M{"$set": data})
 	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return infra_error.Conflict(infra_error.ConflictDuplicateKey)
+		}
 		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 	return nil

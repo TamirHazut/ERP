@@ -119,6 +119,13 @@ func (p *PermissionHandler) UpdatePermission(permission *authv1.Permission) *inf
 	if err != nil {
 		return err
 	}
+	permission.Protected = currentPermission.Protected
+	if currentPermission.Protected {
+		return infra_error.Auth(infra_error.AuthPermissionDenied)
+	}
+	if perm, err := p.GetPermissionsByResourceAndAction(permission.TenantId, permission.Resource, permission.Action); perm != nil && err == nil {
+		return infra_error.Conflict(infra_error.ConflictDuplicateResource)
+	}
 	if permission.CreatedAt.AsTime().IsZero() || currentPermission.CreatedAt.AsTime().After(permission.CreatedAt.AsTime()) {
 		permission.CreatedAt = currentPermission.CreatedAt
 	}

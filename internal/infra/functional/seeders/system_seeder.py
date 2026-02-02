@@ -106,7 +106,8 @@ class SystemSeeder:
             "slug": "test-tenant",
             "status": 1,  # ACTIVE
             "created_at": datetime.now(),
-            "created_by": "System"
+            "created_by": "System",
+            "protected": True
         }
         tenant_id = self.mongo.insert_one("tenants", tenant)
         logger.debug(f"Created tenant: id={tenant_id}, name={TestConfig.DEFAULT_TENANT_NAME}")
@@ -124,7 +125,8 @@ class SystemSeeder:
             "status": 1,  # ACTIVE
             "is_dangerous": True,
             "created_at": datetime.now(),
-            "created_by": "System"
+            "created_by": "System",
+            "protected": True
         }
         permission_id = self.mongo.insert_one("permissions", permission)
         logger.debug(f"Created permission: id={permission_id}, permission_string=*:*")
@@ -140,7 +142,8 @@ class SystemSeeder:
             "status": 1,  # ACTIVE
             "type": 0,  # SYSTEM
             "created_at": datetime.now(),
-            "created_by": "System"
+            "created_by": "System",
+            "protected": True
         }
         role_id = self.mongo.insert_one("roles", role)
         logger.debug(f"Created role: id={role_id}, name=system_admin, permissions=[{permission_id}]")
@@ -168,7 +171,8 @@ class SystemSeeder:
                 "assigned_by": "System"
             }],
             "created_at": datetime.now(),
-            "created_by": "System"
+            "created_by": "System",
+            "protected": True
         }
         user_id = self.mongo.insert_one("users", user)
         logger.debug(f"Created user: id={user_id}, email={TestConfig.DEFAULT_ADMIN_EMAIL}, roles=[{role_id}]")

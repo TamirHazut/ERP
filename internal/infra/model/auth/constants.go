@@ -34,7 +34,7 @@ func IsValidUserStatus(userStatus string) bool {
 /* Tenant */
 // System tenant ID for cross-tenant operations
 const (
-	SystemTenantID = "system"
+	SystemTenantName = "system"
 )
 
 // Tenant statuses
@@ -98,13 +98,13 @@ const (
 	PermissionFormat = "[resource]:[action]"
 )
 
-func IsValidPermissionFormat(permissionFormat string) bool {
-	if permissionFormat == "" {
+func IsValidPermission(permission string) bool {
+	if permission == "" {
 		return false
 	}
-	permissionFormat = strings.ToLower(permissionFormat)
+	permission = strings.ToLower(permission)
 
-	permissionBreakDown := strings.Split(permissionFormat, ":")
+	permissionBreakDown := strings.Split(permission, ":")
 
 	if len(permissionBreakDown) != 2 ||
 		!IsValidResourceType(permissionBreakDown[0]) ||

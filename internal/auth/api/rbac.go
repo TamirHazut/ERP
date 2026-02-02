@@ -22,7 +22,7 @@ func NewRBACAPI(
 	logger logger.Logger,
 ) *RBACAPI {
 	return &RBACAPI{
-		Roles:        NewRoleAPI(roleHandler, verificationManager, logger),
+		Roles:        NewRoleAPI(roleHandler, permissionHandler, verificationManager, logger),
 		Permissions:  NewPermissionAPI(permissionHandler, verificationManager, logger),
 		Verification: NewVerificationAPI(verificationManager, logger),
 	}
@@ -73,4 +73,19 @@ func (va *VerificationAPI) HasPermission(tenantID, userID, permission string, ta
 // IsSystemTenantUser checks if a user belongs to the system tenant
 func (va *VerificationAPI) IsSystemTenantUser(tenantID string) bool {
 	return va.verificationManager.IsSystemTenantUser(tenantID)
+}
+
+// IsSystemTenantUser checks if a user belongs to the system tenant
+func (va *VerificationAPI) IsSystemAdminUser(userID string) bool {
+	return va.verificationManager.IsSystemAdminUser(userID)
+}
+
+// IsSystemTenantUser checks if a user belongs to the system tenant
+func (va *VerificationAPI) IsSystemPermission(permissionID string) bool {
+	return va.verificationManager.IsSystemPermission(permissionID)
+}
+
+// IsSystemTenantUser checks if a user belongs to the system tenant
+func (va *VerificationAPI) IsSystemRole(roleID string) bool {
+	return va.verificationManager.IsSystemRole(roleID)
 }

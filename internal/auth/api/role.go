@@ -1,6 +1,8 @@
 package api
 
 import (
+	"strings"
+
 	"erp.localhost/internal/auth/handler"
 	"erp.localhost/internal/auth/rbac"
 	infra_error "erp.localhost/internal/infra/error"
@@ -12,6 +14,7 @@ import (
 // RoleAPI provides role management with authorization enforcement
 type RoleAPI struct {
 	roleHandler         *handler.RoleHandler
+	permissionHandler   *handler.PermissionHandler
 	verificationManager *rbac.VerificationManager
 	logger              logger.Logger
 }
@@ -19,11 +22,13 @@ type RoleAPI struct {
 // NewRoleAPI creates a new RoleAPI instance
 func NewRoleAPI(
 	roleHandler *handler.RoleHandler,
+	permissionHandler *handler.PermissionHandler,
 	verificationManager *rbac.VerificationManager,
 	logger logger.Logger,
 ) *RoleAPI {
 	return &RoleAPI{
 		roleHandler:         roleHandler,
+		permissionHandler:   permissionHandler,
 		verificationManager: verificationManager,
 		logger:              logger,
 	}
@@ -45,7 +50,17 @@ func (ra *RoleAPI) CreateRole(tenantID, requestorUserID string, role *authv1.Rol
 		return "", err
 	}
 
-	// 2. Call business logic
+	if role.Protected && !ra.verificationManager.IsSystemTenantUser(tenantID) {
+		role.Protected = false
+	}
+
+	// 2. Validate permission IDs exist
+	if err := ra.validatePermissionIDs(role.TenantId, role.Permissions); err != nil {
+		ra.logger.Warn("Invalid permission IDs in role", "tenant_id", role.TenantId, "role_name", role.Name, "error", err)
+		return "", err
+	}
+
+	// 3. Call business logic
 	return ra.roleHandler.CreateRole(role)
 }
 
@@ -58,6 +73,12 @@ func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, role *authv1.Rol
 
 	if err := ra.verificationManager.HasPermission(tenantID, requestorUserID, permission, targetTenantID); err != nil {
 		ra.logger.Warn("Permission denied for UpdateRole", "tenant_id", tenantID, "user_id", requestorUserID, "permission", permission)
+		return err
+	}
+
+	// Validate permission IDs exist
+	if err := ra.validatePermissionIDs(role.TenantId, role.Permissions); err != nil {
+		ra.logger.Warn("Invalid permission IDs in role", "tenant_id", role.TenantId, "role_id", role.Id, "error", err)
 		return err
 	}
 
@@ -106,6 +127,10 @@ func (ra *RoleAPI) DeleteRole(tenantID, requestorUserID, roleID string, targetTe
 		return err
 	}
 
+	if err := ra.checkProtectedRole(tenantID, requestorUserID, roleID); err != nil {
+		return err
+	}
+
 	return ra.roleHandler.DeleteRole(targetTenantID, roleID)
 }
 
@@ -121,4 +146,63 @@ func (ra *RoleAPI) DeleteTenantRoles(tenantID, requestorUserID, targetTenantID s
 	}
 
 	return ra.roleHandler.DeleteTenantRoles(targetTenantID)
+}
+
+func (ra *RoleAPI) checkProtectedRole(tenantID, requestorUserID, roleID string) *infra_error.AppError {
+	role, err := ra.roleHandler.GetRoleByID(tenantID, roleID)
+	if err != nil {
+		return err
+	}
+	if role.Protected {
+		if !ra.verificationManager.IsSystemTenantUser(tenantID) ||
+			!ra.verificationManager.IsSystemAdminUser(requestorUserID) ||
+			ra.verificationManager.IsSystemRole(roleID) {
+			return infra_error.Auth(infra_error.AuthPermissionDenied)
+		}
+	}
+	return nil
+}
+
+// validatePermissionIDs verifies that all permission IDs exist in the database
+// Uses MongoDB aggregation for efficient batch validation (single query instead of N queries)
+func (ra *RoleAPI) validatePermissionIDs(tenantID string, permissionIDs []string) *infra_error.AppError {
+	if len(permissionIDs) == 0 {
+		return nil // Empty permissions allowed
+	}
+
+	// Use aggregation to batch validate (single database query)
+	permissions, err := ra.permissionHandler.GetPermissionsByIDsAggregation(
+		tenantID,
+		permissionIDs,
+		[]string{"_id"}, // Only fetch IDs for efficiency
+	)
+	if err != nil {
+		ra.logger.Error("Failed to validate permission IDs", "tenant_id", tenantID, "error", err)
+		return err
+	}
+
+	// Check if all IDs were found
+	if len(permissions) != len(permissionIDs) {
+		// Find which IDs are missing for detailed error message
+		foundIDs := make(map[string]bool)
+		for _, perm := range permissions {
+			foundIDs[perm.Id] = true
+		}
+
+		missingIDs := []string{}
+		for _, id := range permissionIDs {
+			if !foundIDs[id] {
+				missingIDs = append(missingIDs, id)
+			}
+		}
+
+		ra.logger.Warn("Invalid permission IDs in role", "tenant_id", tenantID, "missing_ids", missingIDs)
+		return infra_error.NotFound(
+			infra_error.NotFoundPermission,
+			model_auth.ResourceTypePermission,
+			strings.Join(missingIDs, ", "),
+		)
+	}
+
+	return nil
 }

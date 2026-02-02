@@ -61,17 +61,8 @@ func (t *TenantAPI) CreateTenant(tenantID, userID string, newTenant *authv1.Tena
 	if err := t.checkPermission(tenantID, userID, model_auth.ResourceTypeTenant, model_auth.PermissionActionCreate); err != nil {
 		return "", err
 	}
-	// Step 3: Check for duplication
-	tenant, err := t.tenantHandler.GetTenantByName(newTenant.Name)
-	if err != nil {
-		t.logger.Error("failed to get temamt for verification", "tenant_id", tenantID, "error", err)
-		return "", err
-	}
-	if tenant != nil {
-		err := infra_error.Validation(infra_error.ConflictDuplicateEmail)
-		t.logger.Error("failed to create new tenant", "tenantID", tenantID, "error", err.Error())
-		return "", err
-	}
+
+	newTenant.Protected = true
 
 	adminEmail := newTenant.GetContact().GetEmail()
 
@@ -108,7 +99,12 @@ func (t *TenantAPI) GetTenant(tenantID, userID, targetTenantID, targetTenantName
 		return nil, err
 	}
 
-	if err := t.checkPermission(tenantID, userID, model_auth.ResourceTypeTenant, model_auth.PermissionActionRead); err != nil {
+	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeTenant, model_auth.PermissionActionRead)
+	if err != nil {
+		return nil, err
+	}
+	if err := t.rbacAPI.Verification.HasPermission(tenantID, userID, permission, targetTenantID); err != nil {
+		t.logger.Warn("Permission denied for GetTenant", "tenant_id", tenantID, "user_id", userID, "permission", permission)
 		return nil, err
 	}
 
@@ -158,18 +154,16 @@ func (t *TenantAPI) UpdateTenant(tenantID, userID string, tenant *authv1.Tenant)
 	}
 
 	// Step 2: Check RBAC permission
-	if err := t.checkPermission(tenantID, userID, model_auth.ResourceTypeTenant, model_auth.PermissionActionUpdate); err != nil {
+	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeTenant, model_auth.PermissionActionUpdate)
+	if err != nil {
+		return err
+	}
+	if err := t.rbacAPI.Verification.HasPermission(tenantID, userID, permission, tenant.GetId()); err != nil {
+		t.logger.Warn("Permission denied for UpdateTenant", "tenant_id", tenantID, "user_id", userID, "permission", permission)
 		return err
 	}
 
 	t.logger.Info("updating tenant", "tenant_id", tenant, "requested_by", userID, "target_tenant_id", tenant.GetId())
-
-	// Step 4: Get existing tenant
-	existingTenant, err := t.tenantHandler.GetTenantByID(tenant.GetId())
-	if err != nil || existingTenant == nil {
-		t.logger.Error("failed to get existing tenant", "tenant_id", tenant.Id, "error", err)
-		return err
-	}
 
 	//TODO: Do diff and validate
 	return t.tenantHandler.UpdateTenant(tenant)
@@ -183,8 +177,23 @@ func (t *TenantAPI) DeleteTenant(tenantID, userID, targetTenantID string) *infra
 		return err
 	}
 
-	// Step 2: Verify tenant exists
-	_, err := t.tenantHandler.GetTenantByID(targetTenantID)
+	// Step 2: Check RBAC permission
+	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeTenant, model_auth.PermissionActionDelete)
+	if err != nil {
+		return err
+	}
+	if err := t.rbacAPI.Verification.HasPermission(tenantID, userID, permission, targetTenantID); err != nil {
+		t.logger.Warn("Permission denied for DeleteTenant", "tenant_id", tenantID, "user_id", userID, "permission", permission)
+		return err
+	}
+
+	// Step 3: Check protected tenant
+	if err := t.checkProtectedTenant(targetTenantID, userID); err != nil {
+		return err
+	}
+
+	// Step 4: Verify tenant exists
+	_, err = t.tenantHandler.GetTenantByID(targetTenantID)
 	if err != nil {
 		t.logger.Error("tenant not found", "target_tenant_id", targetTenantID, "error", err)
 		return err
@@ -251,7 +260,7 @@ func (t *TenantAPI) checkPermission(tenantID, userID, resource, action string) *
 		return err
 	}
 	// Check result
-	if !res[permString] {
+	if res == nil || !res[permString] {
 		t.logger.Warn("permission denied", "user_id", userID, "tenant_id", tenantID, "permission", permString)
 		return infra_error.Auth(infra_error.AuthPermissionDenied)
 	}
@@ -308,6 +317,7 @@ func (t *TenantAPI) createWildcardPermission(tenantID, createdBy string) (string
 		Status:           authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE,
 		CreatedBy:        createdBy,
 		IsDangerous:      true,
+		Protected:        true,
 	}
 
 	return t.rbacAPI.Permissions.CreatePermission(tenantID, createdBy, permission, tenantID)
@@ -391,5 +401,19 @@ func (t *TenantAPI) RollbackDefaults(ctx context.Context, tenantID string, defau
 	}
 
 	t.logger.Info("Tenant defaults rolled back successfully", "tenant_id", tenantID)
+	return nil
+}
+
+func (t *TenantAPI) checkProtectedTenant(tenantID, requestorUserID string) *infra_error.AppError {
+	tenant, err := t.tenantHandler.GetTenantByID(tenantID)
+	if err != nil {
+		return err
+	}
+	if tenant.Protected {
+		if !t.rbacAPI.Verification.IsSystemTenantUser(tenantID) ||
+			!t.rbacAPI.Verification.IsSystemAdminUser(requestorUserID) {
+			return infra_error.Auth(infra_error.AuthPermissionDenied)
+		}
+	}
 	return nil
 }

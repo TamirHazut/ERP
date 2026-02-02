@@ -56,7 +56,7 @@ func (r *BaseCollectionHandler[T]) Create(item *T) (string, *infra_error.AppErro
 	r.logger.Debug("Creating item", "collection", r.collection)
 	id, err := r.dbHandler.Create(r.collection, item)
 	if err != nil {
-		r.logger.Error("failed to create item", "collection", r.collection, "item", "error", err)
+		r.logger.Error("failed to create item", "collection", r.collection, "error", err)
 		return "", err
 	}
 	return id, nil

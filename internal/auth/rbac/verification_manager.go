@@ -134,26 +134,27 @@ func (vm *VerificationManager) GetUserPermissions(tenantID, userID string) (map[
 	// Handle additional and revoked permissions
 	// These are much smaller sets, so individual queries are acceptable
 	user, err := vm.userHandler.GetUserByID(tenantID, userID)
-	if err == nil {
-		// Apply additional permissions
-		for _, permissionID := range user.AdditionalPermissions {
-			perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permissionID)
-			if err != nil {
-				continue
-			}
-			if perm.Status == authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE {
-				userPermissions[perm.PermissionString] = true
-			}
+	if err != nil {
+		return nil, err
+	}
+	// Apply additional permissions
+	for _, permissionID := range user.AdditionalPermissions {
+		perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permissionID)
+		if err != nil {
+			continue
 		}
+		if perm.Status == authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE {
+			userPermissions[perm.PermissionString] = true
+		}
+	}
 
-		// Apply revoked permissions
-		for _, permissionID := range user.RevokedPermissions {
-			perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permissionID)
-			if err != nil {
-				continue
-			}
-			userPermissions[perm.PermissionString] = false
+	// Apply revoked permissions
+	for _, permissionID := range user.RevokedPermissions {
+		perm, err := vm.permissionHandler.GetPermissionByID(tenantID, permissionID)
+		if err != nil {
+			continue
 		}
+		userPermissions[perm.PermissionString] = false
 	}
 
 	return userPermissions, nil
@@ -213,13 +214,37 @@ func (vm *VerificationManager) getUserPermissionsLegacy(tenantID, userID string)
 	return userPermissions, nil
 }
 
-// Check if user belongs to system tenant
+/* System default checks */
 func (vm *VerificationManager) IsSystemTenantUser(tenantID string) bool {
 	systemTenantID, err := vm.systemKeyHandler.GetOne("tenant")
 	if err != nil {
 		return false
 	}
 	return tenantID == *systemTenantID
+}
+
+func (vm *VerificationManager) IsSystemAdminUser(userID string) bool {
+	systemAdminUserID, err := vm.systemKeyHandler.GetOne("user")
+	if err != nil {
+		return false
+	}
+	return userID == *systemAdminUserID
+}
+
+func (vm *VerificationManager) IsSystemPermission(permissionID string) bool {
+	systemPermissionID, err := vm.systemKeyHandler.GetOne("permission")
+	if err != nil {
+		return false
+	}
+	return permissionID == *systemPermissionID
+}
+
+func (vm *VerificationManager) IsSystemRole(roleID string) bool {
+	systemRoleID, err := vm.systemKeyHandler.GetOne("role")
+	if err != nil {
+		return false
+	}
+	return roleID == *systemRoleID
 }
 
 // Check if user has tenant admin role
@@ -300,82 +325,145 @@ func (vm *VerificationManager) GetUserRoles(tenantID, userID string) ([]string, 
 	return roleIDs, nil
 }
 
-// CheckPermissions with system tenant and tenant admin logic
-func (vm *VerificationManager) CheckPermissions(tenantID, userID string, permissions []string) (map[string]bool, *infra_error.AppError) {
-	// 1. Get user
+// checkPermissionsInternal performs the core permission checking logic.
+// This is the single source of truth for all permission checks.
+//
+// Parameters:
+//   - tenantID: The tenant ID of the requesting user
+//   - userID: The user ID making the request
+//   - permissions: List of permissions to check (e.g., "users:read", "roles:write")
+//   - targetTenantID: Optional target tenant for cross-tenant operations. If nil, defaults to tenantID
+//
+// Returns a map of permission → granted status (true/false)
+func (vm *VerificationManager) checkPermissionsInternal(
+	tenantID, userID string,
+	permissions []string,
+	targetTenantID *string,
+) (map[string]bool, *infra_error.AppError) {
+	// Determine effective target tenant
+	effectiveTargetTenant := tenantID
+	if targetTenantID != nil {
+		effectiveTargetTenant = *targetTenantID
+	}
+
+	for _, permission := range permissions {
+		if !model_auth.IsValidPermission(permission) {
+			return nil, infra_error.Validation(infra_error.ValidationInvalidValue)
+		}
+	}
+
+	// 1. Get user from database
 	user, err := vm.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {
 		vm.logger.Error(err.Error())
 		return nil, err
 	}
-	// 2. Check if tenant admin → grant all
-	if vm.isTenantAdmin(user) {
+
+	// User not active has no permissions
+	if user.Status != authv1.UserStatus_USER_STATUS_ACTIVE {
+		return nil, infra_error.Auth(infra_error.AuthAccountDisabled)
+	}
+
+	// 2. If target tenant specified, perform validations
+	if targetTenantID != nil {
+		// Validate target tenant exists
+		if err := vm.VerifyTenant(effectiveTargetTenant); err != nil {
+			return nil, err
+			// result := make(map[string]bool)
+			// for _, perm := range permissions {
+			// 	result[perm] = false
+			// }
+			// return result, nil
+		}
+	}
+
+	// 3. Check if tenant admin for same tenant → grant all
+	if tenantID == effectiveTargetTenant {
+		if vm.isTenantAdmin(user) {
+			result := make(map[string]bool)
+			for _, perm := range permissions {
+				result[perm] = true
+			}
+			return result, nil
+		}
+	}
+
+	// 4. Check if system tenant user (cross-tenant operations)
+	if vm.IsSystemTenantUser(tenantID) && tenantID != effectiveTargetTenant {
+		// System tenant users can operate on all tenants
+		// Check if they have the permission (no tenant restriction)
+		userPermissions, err := vm.GetUserPermissions(tenantID, userID)
+		if err != nil {
+			return nil, err
+		}
+
 		result := make(map[string]bool)
 		for _, perm := range permissions {
-			result[perm] = true
+			// Grant if user has specific permission or admin wildcard
+			result[perm] = userPermissions[perm] || userPermissions[model_auth.PermissionAdminString]
 		}
 		return result, nil
 	}
 
-	// 3. Get user permissions
+	// 5. Regular permission check (same tenant only)
+	if tenantID != effectiveTargetTenant {
+		// Non-system users cannot operate cross-tenant
+		result := make(map[string]bool)
+		for _, perm := range permissions {
+			result[perm] = false
+		}
+		return result, nil
+	}
+
+	// 6. Get user permissions and check each requested permission
 	userPermissions, err := vm.GetUserPermissions(tenantID, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 4. Check each permission
 	result := make(map[string]bool)
 	for _, perm := range permissions {
-		userPerm, ok := userPermissions[perm]
+		granted, ok := userPermissions[perm]
 		if !ok {
-			userPerm = false
+			granted = false
 		}
-		result[perm] = userPerm
+		result[perm] = granted
 	}
 
 	return result, nil
 }
 
-// HasPermission with cross-tenant check for system tenant users
+// CheckPermissions checks if a user has the specified permissions.
+// This method assumes same-tenant operations (targetTenantID = tenantID).
+//
+// Returns a map of permission → granted status (true/false)
+func (vm *VerificationManager) CheckPermissions(tenantID, userID string, permissions []string) (map[string]bool, *infra_error.AppError) {
+	return vm.checkPermissionsInternal(tenantID, userID, permissions, nil)
+}
+
+// HasPermission checks if a user has a single permission for a target tenant.
+// This method supports cross-tenant operations for system tenant users.
+//
+// Returns nil if permission is granted, error if denied.
 func (vm *VerificationManager) HasPermission(tenantID, userID, permission string, targetTenantID string) *infra_error.AppError {
-	// 1. Get user
-	user, err := vm.userHandler.GetUserByID(tenantID, userID)
+	// Call internal method with single permission
+	result, err := vm.checkPermissionsInternal(tenantID, userID, []string{permission}, &targetTenantID)
 	if err != nil {
 		return err
 	}
 
-	// 2. Check if tenant admin (for same tenant operations)
-	if tenantID == targetTenantID && vm.isTenantAdmin(user) {
-		return nil // Tenant admin has all permissions in their tenant
-	}
-
-	// 3. Check if system tenant user (cross-tenant operations)
-	if vm.IsSystemTenantUser(tenantID) {
-		// System tenant users can operate on all tenants
-		// Just check if they have the permission (no tenant restriction)
-		userPermissions, err := vm.GetUserPermissions(tenantID, userID)
-		if err != nil {
-			return err
-		}
-		if userPermissions[permission] || userPermissions[model_auth.PermissionAdminString] {
-			return nil // System user has permission for cross-tenant operation
-		}
+	// Check if permission was granted
+	if !result[permission] {
 		return infra_error.Auth(infra_error.AuthPermissionDenied)
 	}
 
-	// 4. Regular permission check (same tenant only)
-	if tenantID != targetTenantID {
-		return infra_error.Auth(infra_error.AuthPermissionDenied)
-	}
+	return nil
+}
 
-	userPermissions, err := vm.GetUserPermissions(tenantID, userID)
+func (vm *VerificationManager) VerifyTenant(tenantID string) *infra_error.AppError {
+	_, err := vm.tenantHandler.GetTenantByID(tenantID)
 	if err != nil {
-		return err
+		return infra_error.NotFound(infra_error.NotFoundTenant, model_auth.ResourceTypeTenant, tenantID)
 	}
-
-	if !userPermissions[permission] {
-		return infra_error.Auth(infra_error.AuthPermissionDenied)
-	}
-
 	return nil
 }

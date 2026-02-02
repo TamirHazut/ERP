@@ -48,6 +48,7 @@ message User {
   string created_by = 22 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
   google.protobuf.Timestamp last_activity = 23 [(tagger.tags) = "bson:\"last_activity\" json:\"last_activity\""];
   repeated LoginRecord login_history = 24 [(tagger.tags) = "bson:\"login_history,omitempty\" json:\"login_history,omitempty\""];
+  bool protected = 25 [(tagger.tags) = "bson:\"protected\" json:\"protected\""];
 }
 
 message UserProfile {

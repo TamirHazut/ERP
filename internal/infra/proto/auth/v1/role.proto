@@ -41,6 +41,7 @@ message Role {
   google.protobuf.Timestamp created_at = 10 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
   google.protobuf.Timestamp updated_at = 11 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
   string created_by = 12 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
+  bool protected = 13 [(tagger.tags) = "bson:\"protected\" json:\"protected\""];
 }
 
 message RoleMetadata {

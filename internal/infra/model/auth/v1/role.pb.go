@@ -144,6 +144,7 @@ type Role struct {
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	CreatedBy     string                 `protobuf:"bytes,12,opt,name=created_by,json=createdBy,proto3" json:"created_by" bson:"created_by"`
+	Protected     bool                   `protobuf:"varint,13,opt,name=protected,proto3" json:"protected" bson:"protected"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -262,6 +263,13 @@ func (x *Role) GetCreatedBy() string {
 	return ""
 }
 
+func (x *Role) GetProtected() bool {
+	if x != nil {
+		return x.Protected
+	}
+	return false
+}
+
 type RoleMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Priority      int32                  `protobuf:"varint,1,opt,name=priority,proto3" json:"priority" bson:"priority"`
@@ -318,7 +326,7 @@ var File_auth_v1_role_proto protoreflect.FileDescriptor
 
 const file_auth_v1_role_proto_rawDesc = "" +
 	"\n" +
-	"\x12auth/v1/role.proto\x12\aauth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\"\xab\a\n" +
+	"\x12auth/v1/role.proto\x12\aauth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\"\xf1\a\n" +
 	"\x04Role\x123\n" +
 	"\x02id\x18\x01 \x01(\tB#\x9a\x84\x9e\x03\x1ebson:\"_id,omitempty\" json:\"id\"R\x02id\x12C\n" +
 	"\ttenant_id\x18\x02 \x01(\tB&\x9a\x84\x9e\x03!bson:\"tenant_id\" json:\"tenant_id\"R\btenantId\x120\n" +
@@ -336,7 +344,8 @@ const file_auth_v1_role_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"updated_at\" json:\"updated_at\"R\tupdatedAt\x12G\n" +
 	"\n" +
-	"created_by\x18\f \x01(\tB(\x9a\x84\x9e\x03#bson:\"created_by\" json:\"created_by\"R\tcreatedBy\"\xb9\x01\n" +
+	"created_by\x18\f \x01(\tB(\x9a\x84\x9e\x03#bson:\"created_by\" json:\"created_by\"R\tcreatedBy\x12D\n" +
+	"\tprotected\x18\r \x01(\bB&\x9a\x84\x9e\x03!bson:\"protected\" json:\"protected\"R\tprotected\"\xb9\x01\n" +
 	"\fRoleMetadata\x12@\n" +
 	"\bpriority\x18\x01 \x01(\x05B$\x9a\x84\x9e\x03\x1fbson:\"priority\" json:\"priority\"R\bpriority\x12g\n" +
 	"\rinherits_from\x18\x02 \x03(\tBB\x9a\x84\x9e\x03=bson:\"inherits_from,omitempty\" json:\"inherits_from,omitempty\"R\finheritsFrom*g\n" +

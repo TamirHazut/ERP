@@ -127,6 +127,7 @@ def inject_role(mongo_client, tenant_id, name, permissions, **kwargs):
         "type": kwargs.get("type", 2),  # ROLE_TYPE_CUSTOM = 2, ROLE_TYPE_SYSTEM = 1
         "permissions": permissions,
         "status": kwargs.get("status", 1),  # ROLE_STATUS_ACTIVE = 1
+        "protected": kwargs.get("protected", False),
         "created_at": datetime.now(),
         "updated_at": datetime.now(),
         "created_by": kwargs.get("created_by", "system")
@@ -144,7 +145,7 @@ def inject_permission(mongo_client, tenant_id, permission_string, resource, acti
     Args:
         mongo_client: MongoDB client instance
         tenant_id: Tenant ID for the permission
-        permission_string: Permission string (e.g., "users:read")
+        permission_string: Permission string (e.g., "user:read")
         resource: Resource name (e.g., "users")
         action: Action name (e.g., "read")
         **kwargs: Additional fields (display_name, description, status, is_dangerous, created_by, etc.)
@@ -162,6 +163,7 @@ def inject_permission(mongo_client, tenant_id, permission_string, resource, acti
         "action": action,
         "status": kwargs.get("status", 1),  # PERMISSION_STATUS_ACTIVE = 1
         "is_dangerous": kwargs.get("is_dangerous", False),
+        "protected": kwargs.get("protected", False),
         "created_at": datetime.now(),
         "updated_at": datetime.now(),
         "created_by": kwargs.get("created_by", "system")

@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"slices"
+	"strings"
 
 	"erp.localhost/internal/auth/handler"
 	infra_error "erp.localhost/internal/infra/error"
@@ -22,21 +23,30 @@ const (
 )
 
 type UserAPI struct {
-	logger      logger.Logger
-	userHandler *handler.UserHandler
-	rbacAPI     *RBACAPI
+	logger            logger.Logger
+	userHandler       *handler.UserHandler
+	roleHandler       *handler.RoleHandler
+	permissionHandler *handler.PermissionHandler
+	rbacAPI           *RBACAPI
 }
 
-func NewUserAPI(rbacAPI *RBACAPI, logger logger.Logger) (*UserAPI, *infra_error.AppError) {
+func NewUserAPI(
+	rbacAPI *RBACAPI,
+	roleHandler *handler.RoleHandler,
+	permissionHandler *handler.PermissionHandler,
+	logger logger.Logger,
+) (*UserAPI, *infra_error.AppError) {
 	userHander, err := handler.NewUserHandler(logger)
 	if err != nil {
 		logger.Error("failed to create new user handler", "error", err)
 		return nil, err
 	}
 	return &UserAPI{
-		rbacAPI:     rbacAPI,
-		userHandler: userHander,
-		logger:      logger,
+		rbacAPI:           rbacAPI,
+		userHandler:       userHander,
+		roleHandler:       roleHandler,
+		permissionHandler: permissionHandler,
+		logger:            logger,
 	}, nil
 }
 
@@ -57,6 +67,10 @@ func (u *UserAPI) CreateUser(tenantID, userID string, newUser *authv1.User) (str
 		return "", err
 	}
 
+	if newUser.Protected && !u.rbacAPI.Verification.IsSystemTenantUser(tenantID) {
+		newUser.Protected = false
+	}
+
 	user, err := u.getUser(tenantID, newUser.Email, filterTypeEmail)
 	if err != nil {
 		u.logger.Error("failed to get user for verification", "tenant_id", tenantID, "error", err)
@@ -65,6 +79,24 @@ func (u *UserAPI) CreateUser(tenantID, userID string, newUser *authv1.User) (str
 	if user != nil {
 		err := infra_error.Validation(infra_error.ConflictDuplicateEmail)
 		u.logger.Error("failed to create new account", "tenantID", tenantID, "error", err.Error())
+		return "", err
+	}
+
+	// Validate role IDs exist
+	if err := u.validateRoleIDs(newUser.TenantId, newUser.Roles); err != nil {
+		u.logger.Warn("Invalid role IDs in user", "tenant_id", newUser.TenantId, "email", newUser.Email, "error", err)
+		return "", err
+	}
+
+	// Validate additional permission IDs exist
+	if err := u.validatePermissionIDs(newUser.TenantId, newUser.AdditionalPermissions); err != nil {
+		u.logger.Warn("Invalid additional permission IDs in user", "tenant_id", newUser.TenantId, "email", newUser.Email, "error", err)
+		return "", err
+	}
+
+	// Validate revoked permission IDs exist
+	if err := u.validatePermissionIDs(newUser.TenantId, newUser.RevokedPermissions); err != nil {
+		u.logger.Warn("Invalid revoked permission IDs in user", "tenant_id", newUser.TenantId, "email", newUser.Email, "error", err)
 		return "", err
 	}
 
@@ -135,6 +167,25 @@ func (u *UserAPI) UpdateUser(tenantID, userID string, newUserData *authv1.User) 
 		u.logger.Error("failed to update user", "tenant_id", tenantID, "user_id", userID, "error", err)
 		return false, err
 	}
+
+	// Validate role IDs exist
+	if err := u.validateRoleIDs(newUserData.TenantId, newUserData.Roles); err != nil {
+		u.logger.Warn("Invalid role IDs in user", "tenant_id", newUserData.TenantId, "user_id", newUserData.Id, "error", err)
+		return false, err
+	}
+
+	// Validate additional permission IDs exist
+	if err := u.validatePermissionIDs(newUserData.TenantId, newUserData.AdditionalPermissions); err != nil {
+		u.logger.Warn("Invalid additional permission IDs in user", "tenant_id", newUserData.TenantId, "user_id", newUserData.Id, "error", err)
+		return false, err
+	}
+
+	// Validate revoked permission IDs exist
+	if err := u.validatePermissionIDs(newUserData.TenantId, newUserData.RevokedPermissions); err != nil {
+		u.logger.Warn("Invalid revoked permission IDs in user", "tenant_id", newUserData.TenantId, "user_id", newUserData.Id, "error", err)
+		return false, err
+	}
+
 	return u.updateUser(newUserData)
 }
 
@@ -150,10 +201,15 @@ func (u *UserAPI) DeleteUser(tenantID, userID, targetTenantID, accountID string)
 		return err
 	}
 
+	if err := u.checkProtectedUser(tenantID, userID, accountID); err != nil {
+		return err
+	}
+
 	if err := u.userHandler.DeleteUser(targetTenantID, accountID); err != nil {
 		u.logger.Error("failed to delete user", "tenant_id", tenantID, "user_id", userID, "error", err)
 		return err
 	}
+
 	u.logger.Debug("user deleted successfuly", "tenant_id", tenantID, "user_id", userID, "target_tenant_id", targetTenantID)
 	return nil
 }
@@ -174,6 +230,7 @@ func (u *UserAPI) DeleteTenantUsers(tenantID, userID, targetTenantID string) *in
 		u.logger.Error("failed to delete tenant users", "tenant_id", tenantID, "user_id", userID, "error", err)
 		return err
 	}
+
 	u.logger.Debug("tenant users deleted successfuly", "tenant_id", tenantID, "user_id", userID, "target_tenant_id", targetTenantID)
 	return nil
 }
@@ -244,6 +301,115 @@ func (u *UserAPI) validateUserUpdateData(tenantID, userID string, old *authv1.Us
 		if err := u.rbacAPI.Verification.HasPermission(tenantID, userID, permission, new.TenantId); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (u *UserAPI) checkProtectedUser(tenantID, requestorUserID, userID string) *infra_error.AppError {
+	user, err := u.userHandler.GetUserByID(tenantID, userID)
+	if err != nil {
+		return err
+	}
+	if user.Protected {
+		if !u.rbacAPI.Verification.IsSystemTenantUser(tenantID) ||
+			!u.rbacAPI.Verification.IsSystemAdminUser(requestorUserID) ||
+			u.rbacAPI.Verification.IsSystemAdminUser(userID) {
+			return infra_error.Auth(infra_error.AuthPermissionDenied)
+		}
+	}
+	return nil
+}
+
+// validateRoleIDs verifies that all role IDs exist in the database
+// Uses MongoDB aggregation for efficient batch validation (single query instead of N queries)
+func (u *UserAPI) validateRoleIDs(tenantID string, roles []*authv1.UserRole) *infra_error.AppError {
+	if len(roles) == 0 {
+		return nil // Empty roles allowed
+	}
+
+	// Extract role IDs from UserRole objects
+	roleIDs := make([]string, len(roles))
+	for i, role := range roles {
+		roleIDs[i] = role.RoleId
+	}
+
+	// Use aggregation to batch validate (single database query)
+	foundRoles, err := u.roleHandler.GetRolesByIDsAggregation(
+		tenantID,
+		roleIDs,
+		[]string{"_id"}, // Only fetch IDs for efficiency
+	)
+	if err != nil {
+		u.logger.Error("Failed to validate role IDs", "tenant_id", tenantID, "error", err)
+		return err
+	}
+
+	// Check if all IDs were found
+	if len(foundRoles) != len(roleIDs) {
+		// Find which IDs are missing for detailed error message
+		foundIDs := make(map[string]bool)
+		for _, role := range foundRoles {
+			foundIDs[role.Id] = true
+		}
+
+		missingIDs := []string{}
+		for _, id := range roleIDs {
+			if !foundIDs[id] {
+				missingIDs = append(missingIDs, id)
+			}
+		}
+
+		u.logger.Warn("Invalid role IDs in user", "tenant_id", tenantID, "missing_ids", missingIDs)
+		return infra_error.NotFound(
+			infra_error.NotFoundRole,
+			model_auth.ResourceTypeRole,
+			strings.Join(missingIDs, ", "),
+		)
+	}
+
+	return nil
+}
+
+// validatePermissionIDs verifies that all permission IDs exist in the database
+// Uses MongoDB aggregation for efficient batch validation (single query instead of N queries)
+func (u *UserAPI) validatePermissionIDs(tenantID string, permissionIDs []string) *infra_error.AppError {
+	if len(permissionIDs) == 0 {
+		return nil // Empty permissions allowed
+	}
+
+	// Use aggregation to batch validate (single database query)
+	permissions, err := u.permissionHandler.GetPermissionsByIDsAggregation(
+		tenantID,
+		permissionIDs,
+		[]string{"_id"}, // Only fetch IDs for efficiency
+	)
+	if err != nil {
+		u.logger.Error("Failed to validate permission IDs", "tenant_id", tenantID, "error", err)
+		return err
+	}
+
+	// Check if all IDs were found
+	if len(permissions) != len(permissionIDs) {
+		// Find which IDs are missing for detailed error message
+		foundIDs := make(map[string]bool)
+		for _, perm := range permissions {
+			foundIDs[perm.Id] = true
+		}
+
+		missingIDs := []string{}
+		for _, id := range permissionIDs {
+			if !foundIDs[id] {
+				missingIDs = append(missingIDs, id)
+			}
+		}
+
+		u.logger.Warn("Invalid permission IDs in user", "tenant_id", tenantID, "missing_ids", missingIDs)
+		return infra_error.NotFound(
+			infra_error.NotFoundPermission,
+			model_auth.ResourceTypePermission,
+			strings.Join(missingIDs, ", "),
+		)
 	}
 
 	return nil

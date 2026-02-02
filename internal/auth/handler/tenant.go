@@ -99,6 +99,10 @@ func (t TenantHandler) UpdateTenant(tenant *authv1.Tenant) *infra_error.AppError
 	if err != nil {
 		return err
 	}
+	tenant.Protected = currentTenant.Protected
+	if currentTenant.Protected {
+		return infra_error.Auth(infra_error.AuthPermissionDenied)
+	}
 	if tenant.Id != currentTenant.Id ||
 		tenant.Name != currentTenant.Name ||
 		tenant.CreatedAt != currentTenant.CreatedAt ||

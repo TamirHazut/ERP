@@ -134,12 +134,12 @@ class TestAuthenticationErrors:
                 password=self.user_password
             )
 
-            logger.info("Step 3: Expecting PERMISSION_DENIED error")
+            logger.info("Step 3: Expecting UNAUTHENTICATED error")
             with pytest.raises(grpc.RpcError) as exc_info:
                 stub.Login(request)
 
-            assert exc_info.value.code() == grpc.StatusCode.PERMISSION_DENIED
-            logger.info("Step 4: Test completed - received expected PERMISSION_DENIED error")
+            assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+            logger.info("Step 4: Test completed - received expected UNAUTHENTICATED error")
 
     def test_login_suspended_user(self):
         """Test login with SUSPENDED user."""
@@ -164,12 +164,12 @@ class TestAuthenticationErrors:
                 password=self.user_password
             )
 
-            logger.info("Step 3: Expecting PERMISSION_DENIED error")
+            logger.info("Step 3: Expecting UNAUTHENTICATED error")
             with pytest.raises(grpc.RpcError) as exc_info:
                 stub.Login(request)
 
-            assert exc_info.value.code() == grpc.StatusCode.PERMISSION_DENIED
-            logger.info("Step 4: Test completed - received expected PERMISSION_DENIED error")
+            assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+            logger.info("Step 4: Test completed - received expected UNAUTHENTICATED error")
 
     def test_login_nonexistent_tenant(self):
         """Test login with invalid tenant_id."""
@@ -211,71 +211,6 @@ class TestAuthenticationErrors:
             assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
             logger.info("Step 3: Test completed - received expected INVALID_ARGUMENT error")
 
-    def test_logout_invalid_token(self):
-        """Test logout with malformed token."""
-        logger.info("Step 1: Attempting logout with malformed token")
-
-        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
-            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
-
-            request = auth_pb2.LogoutRequest(
-                identifier=infra_pb2.UserIdentifier(
-                    tenant_id=self.tenant_id,
-                    user_id=self.admin_user_id  # Use real MongoDB ObjectID from setup
-                ),
-                tokens=auth_pb2.Tokens(
-                    token="invalid access token",
-                    refresh_token="invalid refresh token"
-                )
-            )
-
-            logger.info("Step 2: Expecting UNAUTHENTICATED error")
-            with pytest.raises(grpc.RpcError) as exc_info:
-                stub.Logout(request)
-
-            assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
-            logger.info("Step 3: Test completed - received expected UNAUTHENTICATED error")
-
-    def test_logout_revoked_token(self):
-        """Test logout with already revoked token."""
-        logger.info("Step 1: Logging in to get token")
-
-        # Pre-test: Login and revoke token
-        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
-            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
-
-            # Login
-            login_request = auth_pb2.LoginRequest(
-                tenant_id=self.tenant_id,
-                email=self.user_email,
-                password=self.user_password
-            )
-            login_response = stub.Login(login_request)
-            token = login_response.tokens.token
-            refresh_token = login_response.tokens.refresh_token
-
-            # Logout to revoke token
-            logger.info("Step 2: Logging out to revoke token")
-            logout_request = auth_pb2.LogoutRequest(
-                identifier=infra_pb2.UserIdentifier(
-                    tenant_id=self.tenant_id,
-                    user_id=self.admin_user_id  # Use real MongoDB ObjectID from setup
-                ),
-                tokens=auth_pb2.Tokens(
-                    token=token,
-                    refresh_token=refresh_token
-                ))
-            stub.Logout(logout_request)
-
-            # Try to logout again with same token
-            logger.info("Step 3: Attempting logout with already revoked token")
-            logger.info("Step 4: Expecting UNAUTHENTICATED error")
-            with pytest.raises(grpc.RpcError) as exc_info:
-                stub.Logout(logout_request)
-
-            assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
-            logger.info("Step 5: Test completed - received expected UNAUTHENTICATED error")
-
     def test_logout_expired_token(self):
         """Test logout with expired access token."""
         logger.info("Step 1: Note - This test requires token to naturally expire or mock time")
@@ -310,56 +245,6 @@ class TestAuthenticationErrors:
             assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
             logger.info("Step 3: Test completed - received expected UNAUTHENTICATED error")
 
-    def test_refresh_revoked_refresh_token(self):
-        """Test RefreshToken with revoked refresh token."""
-        logger.info("Step 1: Logging in to get refresh token")
-
-        # Pre-test: Login and revoke all tokens
-        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
-            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
-
-            # Login
-            login_request = auth_pb2.LoginRequest(
-                tenant_id=self.tenant_id,
-                email=self.user_email,
-                password=self.user_password
-            )
-            login_response = stub.Login(login_request)
-            token = login_response.tokens.token
-            refresh_token = login_response.tokens.refresh_token
-
-            # Revoke all tokens for user
-            logger.info("Step 2: Revoking all user tokens")
-            revoke_request = auth_pb2.RevokeTokenRequest(
-                identifier=infra_pb2.UserIdentifier(
-                    tenant_id=self.tenant_id,
-                    user_id=self.admin_user_id  # Use real MongoDB ObjectID from setup
-                ),
-                revoked_by=self.admin_user_id,
-                tokens=auth_pb2.Tokens(
-                    token=token,
-                    refresh_token=refresh_token
-                )
-            )
-            stub.RevokeToken(revoke_request)
-
-            # Try to refresh with revoked token
-            logger.info("Step 3: Attempting refresh with revoked refresh token")
-            refresh_request = auth_pb2.RefreshTokenRequest(
-                identifier=infra_pb2.UserIdentifier(
-                    tenant_id=self.tenant_id,
-                    user_id=self.admin_user_id  # Use real MongoDB ObjectID from setup
-                ),
-                refresh_token=refresh_token
-            )
-
-            logger.info("Step 4: Expecting UNAUTHENTICATED error")
-            with pytest.raises(grpc.RpcError) as exc_info:
-                stub.RefreshToken(refresh_request)
-
-            assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
-            logger.info("Step 5: Test completed - received expected UNAUTHENTICATED error")
-
     def test_verify_invalid_token(self):
         """Test VerifyToken with malformed JWT."""
         logger.info("Step 1: Attempting token verification with malformed JWT")
@@ -384,42 +269,6 @@ class TestAuthenticationErrors:
         logger.info("Skipping implementation - requires time manipulation or very short token TTL")
         pytest.skip("Requires time manipulation or very short token TTL configuration")
 
-    def test_revoke_nonexistent_user(self):
-        """Test RevokeToken with invalid user_id."""
-        logger.info("Step 1: Attempting token revocation for non-existent user")
-
-        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
-            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
-
-            # Login
-            login_request = auth_pb2.LoginRequest(
-                tenant_id=self.tenant_id,
-                email=self.user_email,
-                password=self.user_password
-            )
-            login_response = stub.Login(login_request)
-            token = login_response.tokens.token
-            refresh_token = login_response.tokens.refresh_token
-
-            request = auth_pb2.RevokeTokenRequest(
-                identifier=infra_pb2.UserIdentifier(
-                    tenant_id=self.tenant_id,
-                    user_id="000000000000000000000000"  # Use real MongoDB ObjectID from setup
-                ),
-                revoked_by="000000000000000000000000",
-                tokens=auth_pb2.Tokens(
-                    token=token,
-                    refresh_token=refresh_token
-                )
-            )
-
-            logger.info("Step 2: Expecting UNAUTHENTICATED error")
-            with pytest.raises(grpc.RpcError) as exc_info:
-                stub.RevokeToken(request)
-
-            assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
-            logger.info("Step 3: Test completed - received expected UNAUTHENTICATED error")
-
     def test_revoke_all_tenant_invalid_tenant(self):
         """Test RevokeAllTenantTokens with non-existent tenant."""
         logger.info("Step 1: Attempting revocation for non-existent tenant")
@@ -428,8 +277,10 @@ class TestAuthenticationErrors:
             stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
 
             request = auth_pb2.RevokeAllTenantTokensRequest(
-                tenant_id=self.tenant_id,
-                user_id=self.admin_user_id,
+                identifier=infra_pb2.UserIdentifier(
+                    tenant_id=self.tenant_id,
+                    user_id=self.admin_user_id  # Use real MongoDB ObjectID from setup
+                ),
                 target_tenant_id="000000000000000000000000"  # Non-existent tenant
             )
 

@@ -114,6 +114,14 @@ func (u *UserHandler) UpdateUser(user *authv1.User) *infra_error.AppError {
 	if err := validator_auth.ValidateUser(user, false); err != nil {
 		return err
 	}
+	currentUser, err := u.GetUserByID(user.TenantId, user.Id)
+	if err != nil {
+		return err
+	}
+	user.Protected = currentUser.Protected
+	if currentUser.Protected {
+		return infra_error.Auth(infra_error.AuthPermissionDenied)
+	}
 	u.logger.Debug("Updating user", "user", user)
 	filter := map[string]any{
 		"tenant_id": user.TenantId,

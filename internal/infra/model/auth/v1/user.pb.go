@@ -108,6 +108,7 @@ type User struct {
 	CreatedBy             string                 `protobuf:"bytes,22,opt,name=created_by,json=createdBy,proto3" json:"created_by" bson:"created_by"`
 	LastActivity          *timestamppb.Timestamp `protobuf:"bytes,23,opt,name=last_activity,json=lastActivity,proto3" json:"last_activity" bson:"last_activity"`
 	LoginHistory          []*LoginRecord         `protobuf:"bytes,24,rep,name=login_history,json=loginHistory,proto3" json:"login_history,omitempty" bson:"login_history,omitempty"`
+	Protected             bool                   `protobuf:"varint,25,opt,name=protected,proto3" json:"protected" bson:"protected"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -308,6 +309,13 @@ func (x *User) GetLoginHistory() []*LoginRecord {
 		return x.LoginHistory
 	}
 	return nil
+}
+
+func (x *User) GetProtected() bool {
+	if x != nil {
+		return x.Protected
+	}
+	return false
 }
 
 type UserProfile struct {
@@ -1154,7 +1162,7 @@ var File_auth_v1_user_proto protoreflect.FileDescriptor
 
 const file_auth_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x12auth/v1/user.proto\x12\aauth.v1\x1a\x14infra/v1/infra.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x13tagger/tagger.proto\"\xe7\x11\n" +
+	"\x12auth/v1/user.proto\x12\aauth.v1\x1a\x14infra/v1/infra.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x13tagger/tagger.proto\"\xad\x12\n" +
 	"\x04User\x123\n" +
 	"\x02id\x18\x01 \x01(\tB#\x9a\x84\x9e\x03\x1ebson:\"_id,omitempty\" json:\"id\"R\x02id\x12C\n" +
 	"\ttenant_id\x18\x02 \x01(\tB&\x9a\x84\x9e\x03!bson:\"tenant_id\" json:\"tenant_id\"R\btenantId\x124\n" +
@@ -1186,7 +1194,8 @@ const file_auth_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"created_by\x18\x16 \x01(\tB(\x9a\x84\x9e\x03#bson:\"created_by\" json:\"created_by\"R\tcreatedBy\x12o\n" +
 	"\rlast_activity\x18\x17 \x01(\v2\x1a.google.protobuf.TimestampB.\x9a\x84\x9e\x03)bson:\"last_activity\" json:\"last_activity\"R\flastActivity\x12}\n" +
-	"\rlogin_history\x18\x18 \x03(\v2\x14.auth.v1.LoginRecordBB\x9a\x84\x9e\x03=bson:\"login_history,omitempty\" json:\"login_history,omitempty\"R\floginHistory\"\xbb\x04\n" +
+	"\rlogin_history\x18\x18 \x03(\v2\x14.auth.v1.LoginRecordBB\x9a\x84\x9e\x03=bson:\"login_history,omitempty\" json:\"login_history,omitempty\"R\floginHistory\x12D\n" +
+	"\tprotected\x18\x19 \x01(\bB&\x9a\x84\x9e\x03!bson:\"protected\" json:\"protected\"R\tprotected\"\xbb\x04\n" +
 	"\vUserProfile\x12G\n" +
 	"\n" +
 	"first_name\x18\x01 \x01(\tB(\x9a\x84\x9e\x03#bson:\"first_name\" json:\"first_name\"R\tfirstName\x12C\n" +

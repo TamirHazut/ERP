@@ -338,7 +338,7 @@ func TestIsValidPermissionFormat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := IsValidPermissionFormat(tt.permissionFormat)
+			result := IsValidPermission(tt.permissionFormat)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

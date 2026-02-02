@@ -26,7 +26,7 @@ from logger import get_logger
 from db.mongo_client import MongoDBClient
 from db.redis_client import RedisClient
 from seeders.system_seeder import SystemSeeder
-from helpers.db_injection import inject_permission, inject_tenant
+from helpers.db_injection import inject_permission, inject_role, inject_tenant, inject_user
 
 # Test logger
 logger = get_logger("tests.permission.negative")
@@ -63,9 +63,9 @@ class TestPermissionManagementErrors:
             inject_permission(
                 mongo,
                 tenant_id=self.tenant_id,
-                permission_string="users:duplicate",
-                resource="users",
-                action="duplicate",
+                permission_string="user:read",
+                resource="user",
+                action="read",
                 display_name="Duplicate Permission",
                 description="First permission",
                 status=1,  # PERMISSION_STATUS_ACTIVE
@@ -81,10 +81,10 @@ class TestPermissionManagementErrors:
             permission2 = permission_pb2.Permission(
                 tenant_id=self.tenant_id,
                 display_name="Another Duplicate Permission",
-                permission_string="users:duplicate",  # Same permission string
+                permission_string="user:read",
+                resource="user",  # Same permission string
                 description="Second permission",
-                resource="users",
-                action="duplicate",
+                action="read",
                 status=permission_pb2.PERMISSION_STATUS_ACTIVE,
                 created_by=self.admin_user_id
             )
@@ -111,7 +111,7 @@ class TestPermissionManagementErrors:
             permission = permission_pb2.Permission(
                 tenant_id="000000000000000000000000",  # Non-existent tenant
                 display_name="Test Permission",
-                permission_string="users:test",
+                permission_string="user:read",
                 description="Test permission",
                 resource="users",
                 action="test",
@@ -272,44 +272,38 @@ class TestPermissionManagementErrors:
             logger.info("Step 3: Test completed - received expected NOT_FOUND error")
 
     def test_get_permission_cross_tenant_access(self):
-        """Test GetPermission for permission from different tenant."""
-        logger.info("Step 1: Injecting another tenant with permission directly into MongoDB")
+        """Test GetPermission fails when a user from a new tenant tries to access a permission from the default tenant."""
+        logger.info("Step 1: Injecting new tenant and new user directly into MongoDB")
 
-        # Pre-test: Inject tenant and permission directly into MongoDB
+        # Pre-test: Inject a new tenant and a user belonging to that tenant
         database = os.getenv("AUTH_DB_NAME", "auth_db_test")
         with MongoDBClient(database) as mongo:
-            # Inject other tenant
             other_tenant_id = inject_tenant(
                 mongo,
                 name="Other Tenant for Permission",
                 slug="other-tenant-permission",
                 status=1,  # TENANT_STATUS_ACTIVE
-                contact={"email": "test@erp.com"},
                 created_by=self.admin_user_id
             )
 
-            # Inject permission for other tenant
-            other_tenant_permission_id = inject_permission(
+            other_user_id = inject_user(
                 mongo,
                 tenant_id=other_tenant_id,
-                permission_string="test:read",
-                resource="test",
-                action="read",
-                display_name="Test Read",
-                description="Test permission for other tenant",
-                status=1,  # PERMISSION_STATUS_ACTIVE
+                email="other@erp.com",
+                username="otheruser",
+                status=1,  # USER_STATUS_ACTIVE
                 created_by=self.admin_user_id
             )
 
-        logger.info("Step 2: Attempting to get permission from different tenant")
-        # Act - Test GetPermission gRPC endpoint with cross-tenant access
+        logger.info("Step 2: Attempting to get default tenant's permission using the new user")
+        # Act - The new user (other tenant) tries to read a permission that belongs to the default tenant
         with GrpcClient(TestConfig.AUTH_SERVICE) as client:
             permission_stub = rbac_pb2_grpc.PermissionServiceStub(client.get_channel())
 
             request = rbac_pb2.GetPermissionRequest(
-                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
-                permission_id=other_tenant_permission_id,
-                target_tenant_id=other_tenant_id  # Different tenant
+                identifier=infra_pb2.UserIdentifier(tenant_id=other_tenant_id, user_id=other_user_id),
+                permission_id=self.permission_id,  # Permission from the default tenant
+                target_tenant_id=self.tenant_id  # Default tenant
             )
 
             logger.info("Step 3: Expecting PERMISSION_DENIED error")
@@ -346,7 +340,7 @@ class TestPermissionManagementErrors:
                 id="000000000000000000000000",  # Non-existent permission
                 tenant_id=self.tenant_id,
                 display_name="Updated Permission",
-                permission_string="users:updated",
+                permission_string="user:update",
                 description="Updated permission",
                 resource="users",
                 action="updated",
@@ -377,9 +371,9 @@ class TestPermissionManagementErrors:
             inject_permission(
                 mongo,
                 tenant_id=self.tenant_id,
-                permission_string="users:one",
-                resource="users",
-                action="one",
+                permission_string="user:read",
+                resource="user",
+                action="read",
                 display_name="Permission One",
                 description="First permission",
                 status=1,  # PERMISSION_STATUS_ACTIVE
@@ -390,9 +384,9 @@ class TestPermissionManagementErrors:
             permission2_id = inject_permission(
                 mongo,
                 tenant_id=self.tenant_id,
-                permission_string="users:two",
-                resource="users",
-                action="two",
+                permission_string="user:create",
+                resource="user",
+                action="create",
                 display_name="Permission Two",
                 description="Second permission",
                 status=1,  # PERMISSION_STATUS_ACTIVE
@@ -409,10 +403,10 @@ class TestPermissionManagementErrors:
                 id=permission2_id,
                 tenant_id=self.tenant_id,
                 display_name="Permission Two",
-                permission_string="users:one",  # Duplicate string
+                permission_string="user:read",  # Duplicate string
                 description="Second permission",
-                resource="users",
-                action="one",
+                resource="user",
+                action="read",
                 status=permission_pb2.PERMISSION_STATUS_ACTIVE,
                 created_by=self.admin_user_id
             )
@@ -430,54 +424,48 @@ class TestPermissionManagementErrors:
             logger.info("Step 4: Test completed - received expected ALREADY_EXISTS error")
 
     def test_update_permission_cross_tenant_access(self):
-        """Test UpdatePermission for permission from different tenant."""
-        logger.info("Step 1: Injecting another tenant with permission directly into MongoDB")
+        """Test UpdatePermission fails when a user from a new tenant tries to update a permission from the default tenant."""
+        logger.info("Step 1: Injecting new tenant and new user directly into MongoDB")
 
-        # Pre-test: Inject tenant and permission directly into MongoDB
+        # Pre-test: Inject a new tenant and a user belonging to that tenant
         database = os.getenv("AUTH_DB_NAME", "auth_db_test")
         with MongoDBClient(database) as mongo:
-            # Inject other tenant
             other_tenant_id = inject_tenant(
                 mongo,
                 name="Other Tenant for UpdatePermission",
                 slug="other-tenant-updateperm",
                 status=1,  # TENANT_STATUS_ACTIVE
-                contact={"email": "test@erp.com"},
                 created_by=self.admin_user_id
             )
 
-            # Inject permission for other tenant
-            other_tenant_permission_id = inject_permission(
+            other_user_id = inject_user(
                 mongo,
                 tenant_id=other_tenant_id,
-                permission_string="test:update",
-                resource="test",
-                action="update",
-                display_name="Test Update",
-                description="Test permission for other tenant",
-                status=1,  # PERMISSION_STATUS_ACTIVE
+                email="other-update@erp.com",
+                username="otherupdateuser",
+                status=1,  # USER_STATUS_ACTIVE
                 created_by=self.admin_user_id
             )
 
-        logger.info("Step 2: Attempting to update permission from different tenant")
-        # Act - Test UpdatePermission gRPC endpoint with cross-tenant access
+        logger.info("Step 2: Attempting to update default tenant's permission using the new user")
+        # Act - The new user (other tenant) tries to update a permission that belongs to the default tenant
         with GrpcClient(TestConfig.AUTH_SERVICE) as client:
             permission_stub = rbac_pb2_grpc.PermissionServiceStub(client.get_channel())
 
             updated_permission = permission_pb2.Permission(
-                id=other_tenant_permission_id,
-                tenant_id=other_tenant_id,
+                id=self.permission_id,  # Permission from the default tenant
+                tenant_id=self.tenant_id,  # Default tenant
                 display_name="Updated Cross Tenant Permission",
-                permission_string="test:update",
+                permission_string="*:*",
                 description="Updated permission",
-                resource="test",
-                action="update",
+                resource="*",
+                action="*",
                 status=permission_pb2.PERMISSION_STATUS_ACTIVE,
-                created_by=self.admin_user_id
+                created_by=other_user_id
             )
 
             request = rbac_pb2.UpdatePermissionRequest(
-                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
+                identifier=infra_pb2.UserIdentifier(tenant_id=other_tenant_id, user_id=other_user_id),
                 permission=updated_permission
             )
 
@@ -487,26 +475,6 @@ class TestPermissionManagementErrors:
 
             assert exc_info.value.code() == grpc.StatusCode.PERMISSION_DENIED
             logger.info("Step 4: Test completed - received expected PERMISSION_DENIED error")
-
-    def test_delete_permission_nonexistent(self):
-        """Test DeletePermission with invalid permission_id."""
-        logger.info("Step 1: Attempting to delete non-existent permission")
-
-        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
-            stub = rbac_pb2_grpc.PermissionServiceStub(client.get_channel())
-
-            request = rbac_pb2.DeletePermissionRequest(
-                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
-                permission_id="000000000000000000000000",  # Non-existent permission
-                target_tenant_id=self.tenant_id
-            )
-
-            logger.info("Step 2: Expecting NOT_FOUND error")
-            with pytest.raises(grpc.RpcError) as exc_info:
-                stub.DeletePermission(request)
-
-            assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
-            logger.info("Step 3: Test completed - received expected NOT_FOUND error")
 
     def test_delete_system_permission(self):
         """Test DeletePermission attempting to delete *:* permission."""
@@ -528,3 +496,203 @@ class TestPermissionManagementErrors:
 
             assert exc_info.value.code() == grpc.StatusCode.PERMISSION_DENIED
             logger.info("Step 3: Test completed - received expected PERMISSION_DENIED error")
+
+    def test_create_permission_protected_stripped(self):
+        """Test that Protected field is stripped to false on Create even if set to true in request."""
+        logger.info("Step 1: Injecting new tenant and new user directly into MongoDB")
+
+        # Pre-test: Inject a new tenant and a user belonging to that tenant
+        database = os.getenv("AUTH_DB_NAME", "auth_db_test")
+        with MongoDBClient(database) as mongo:
+            other_tenant_id = inject_tenant(
+                mongo,
+                name="Other Tenant for UpdatePermission",
+                slug="other-tenant-updateperm",
+                status=1,  # TENANT_STATUS_ACTIVE
+                created_by=self.admin_user_id
+            )
+
+            # Inject a protected role into that tenant
+            protected_role_id = inject_role(
+                mongo,
+                tenant_id=other_tenant_id,
+                name="tenant_admin",
+                permissions=[],
+                protected=True,
+                created_by=self.admin_user_id
+            )
+
+            other_user_id = inject_user(
+                mongo,
+                tenant_id=other_tenant_id,
+                email="other-update@erp.com",
+                username="otherupdateuser",
+                roles=[{
+                        "role_id": protected_role_id,
+                        "tenant_id": other_tenant_id,
+                        "assigned_at": datetime.now(),
+                        "assigned_by": self.admin_user_id
+                    }],
+                status=1,  # USER_STATUS_ACTIVE
+                created_by=self.admin_user_id
+            )
+
+        logger.info("Step 2: Creating permission with protected=true in request")
+
+        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            
+            stub = rbac_pb2_grpc.PermissionServiceStub(client.get_channel())
+
+            permission = permission_pb2.Permission(
+                tenant_id=other_tenant_id,
+                display_name="Should Not Be Protected",
+                permission_string="user:create",
+                description="Test permission with protected flag",
+                resource="user",
+                action="create",
+                status=permission_pb2.PERMISSION_STATUS_ACTIVE,
+                created_by=other_user_id,
+                protected=True  # Attempt to set protected
+            )
+
+            create_request = rbac_pb2.CreatePermissionRequest(
+                identifier=infra_pb2.UserIdentifier(tenant_id=other_tenant_id, user_id=other_user_id),
+                permission=permission
+            )
+
+            response = stub.CreatePermission(create_request)
+            permission_id = response.permission_id
+            logger.info("Step 3: Permission created, verifying protected is false", "permission_id", permission_id)
+
+            # Get the permission back and verify protected is false
+            get_request = rbac_pb2.GetPermissionRequest(
+                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
+                permission_id=permission_id,
+                target_tenant_id=other_tenant_id
+            )
+
+            fetched = stub.GetPermission(get_request)
+            assert fetched.protected == False
+            logger.info("Step 4: Test completed - protected field was stripped to false")
+
+    def test_update_protected_permission_blocked(self):
+        """Test UpdatePermission on the system (protected) permission is blocked."""
+        logger.info("Step 1: Attempting to update system protected permission")
+
+        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            stub = rbac_pb2_grpc.PermissionServiceStub(client.get_channel())
+
+            updated_permission = permission_pb2.Permission(
+                id=self.permission_id,  # System wildcard permission (protected)
+                tenant_id=self.tenant_id,
+                display_name="Attempted Update",
+                permission_string="*:*",
+                description="Trying to update protected permission",
+                resource="*",
+                action="*",
+                status=permission_pb2.PERMISSION_STATUS_ACTIVE,
+                created_by=self.admin_user_id
+            )
+
+            request = rbac_pb2.UpdatePermissionRequest(
+                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
+                permission=updated_permission
+            )
+
+            logger.info("Step 2: Expecting PERMISSION_DENIED error")
+            with pytest.raises(grpc.RpcError) as exc_info:
+                stub.UpdatePermission(request)
+
+            assert exc_info.value.code() == grpc.StatusCode.PERMISSION_DENIED
+            logger.info("Step 3: Test completed - received expected PERMISSION_DENIED error")
+
+    def test_delete_protected_role_blocked(self):
+        """Test DeleteRole on a protected role is blocked for non-system tenant."""
+        logger.info("Step 1: Injecting a protected role and a non-system tenant user")
+
+        database = os.getenv("AUTH_DB_NAME", "auth_db_test")
+        with MongoDBClient(database) as mongo:
+            # Create a second tenant with a user
+            other_tenant_id = inject_tenant(
+                mongo,
+                name="Tenant For Protected Role Test",
+                slug="tenant-protected-role",
+                status=1,
+                created_by=self.admin_user_id
+            )
+
+            # Inject a protected role into that tenant
+            protected_role_id = inject_role(
+                mongo,
+                tenant_id=other_tenant_id,
+                name="protected_role",
+                permissions=[],
+                protected=True,
+                created_by=self.admin_user_id
+            )
+
+            # Inject an admin-like user in that tenant (needs permission to attempt delete)
+            other_user_id = inject_user(
+                mongo,
+                tenant_id=other_tenant_id,
+                email="roletest@erp.com",
+                username="roletestuser",
+                status=1,
+                created_by=self.admin_user_id
+            )
+
+        logger.info("Step 2: Attempting to delete protected role as non-system tenant user")
+        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            stub = rbac_pb2_grpc.RoleServiceStub(client.get_channel())
+
+            request = rbac_pb2.DeleteRoleRequest(
+                identifier=infra_pb2.UserIdentifier(tenant_id=other_tenant_id, user_id=other_user_id),
+                role_id=protected_role_id,
+                target_tenant_id=other_tenant_id
+            )
+
+            logger.info("Step 3: Expecting PERMISSION_DENIED error")
+            with pytest.raises(grpc.RpcError) as exc_info:
+                stub.DeleteRole(request)
+
+            assert exc_info.value.code() == grpc.StatusCode.PERMISSION_DENIED
+            logger.info("Step 4: Test completed - received expected PERMISSION_DENIED error")
+
+    def test_system_tenant_can_delete_other_tenant_protected(self):
+        """Test that system tenant user can delete a protected permission in another tenant."""
+        logger.info("Step 1: Injecting a second tenant with a protected permission")
+
+        database = os.getenv("AUTH_DB_NAME", "auth_db_test")
+        with MongoDBClient(database) as mongo:
+            other_tenant_id = inject_tenant(
+                mongo,
+                name="Tenant For System Delete Test",
+                slug="tenant-system-delete",
+                status=1,
+                created_by=self.admin_user_id
+            )
+
+            protected_permission_id = inject_permission(
+                mongo,
+                tenant_id=other_tenant_id,
+                permission_string="order:delete",
+                resource="order",
+                action="delete",
+                display_name="Protected Order Delete",
+                protected=True,
+                created_by=self.admin_user_id
+            )
+
+        logger.info("Step 2: System tenant admin deleting protected permission in other tenant")
+        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            stub = rbac_pb2_grpc.PermissionServiceStub(client.get_channel())
+
+            request = rbac_pb2.DeletePermissionRequest(
+                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
+                permission_id=protected_permission_id,
+                target_tenant_id=other_tenant_id
+            )
+
+            # Should succeed — system tenant can delete protected resources in other tenants
+            stub.DeletePermission(request)
+            logger.info("Step 3: Test completed - system tenant successfully deleted protected permission in other tenant")

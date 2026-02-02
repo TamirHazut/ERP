@@ -47,12 +47,8 @@ func (vs *VerificationService) CheckPermissions(ctx context.Context, req *authv1
 		req.GetIdentifier().GetUserId(),
 		req.GetPermissions(),
 	)
-	if err != nil {
-		vs.logger.Error("Failed to check permissions", "error", err)
-		return nil, infra_error.ToGRPCError(err)
-	}
 
-	return &authv1.CheckPermissionsResponse{Permissions: permissions}, nil
+	return &authv1.CheckPermissionsResponse{Permissions: permissions}, infra_error.ToGRPCError(err)
 }
 
 // HasPermission checks if a user has a specific permission
@@ -83,7 +79,7 @@ func (vs *VerificationService) HasPermission(ctx context.Context, req *authv1.Ha
 	// 3. Convert error to boolean response
 	hasPermission := err == nil
 
-	return &authv1.HasPermissionResponse{HasPermission: hasPermission}, nil
+	return &authv1.HasPermissionResponse{HasPermission: hasPermission}, infra_error.ToGRPCError(err)
 }
 
 // GetUserPermissions retrieves all permissions for a user

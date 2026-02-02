@@ -37,6 +37,7 @@ message Permission {
   google.protobuf.Timestamp updated_at = 14 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
   string created_by = 15 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];
   PermissionMetadata metadata = 16 [(tagger.tags) = "bson:\"metadata,omitempty\" json:\"metadata,omitempty\""];
+  bool protected = 17 [(tagger.tags) = "bson:\"protected\" json:\"protected\""];
 }
 
 message PermissionMetadata {

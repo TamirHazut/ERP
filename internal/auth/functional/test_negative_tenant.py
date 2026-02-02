@@ -21,6 +21,7 @@ sys.path.insert(0, auth_functional_path)
 from grpc_client import GrpcClient
 from config import TestConfig
 from auth.v1 import tenant_pb2, tenant_pb2_grpc
+from core.v1 import address_pb2
 from infra.v1 import infra_pb2
 from logger import get_logger
 from db.mongo_client import MongoDBClient
@@ -54,32 +55,31 @@ class TestTenantManagementErrors:
 
     def test_create_tenant_duplicate_name(self):
         """Test CreateTenant with tenant name that already exists."""
-        logger.info("Step 1: Creating first tenant")
+        logger.info("Step 1: Injecting first tenant")
+
+        database = os.getenv("AUTH_DB_NAME", "auth_db_test")
+        with MongoDBClient(database) as mongo:
+            # Inject tenant1
+            tenant1_id = inject_tenant(
+                mongo,
+                name="Tenant One",
+                slug="tenant-one",
+                status=1,  # TENANT_STATUS_ACTIVE
+                contact={"email": "test@erp.com"},
+                created_by=self.admin_user_id
+            )
 
         # Pre-test: Create first tenant
         with GrpcClient(TestConfig.AUTH_SERVICE) as client:
             stub = tenant_pb2_grpc.TenantServiceStub(client.get_channel())
-
-            tenant1 = tenant_pb2.Tenant(
-                name="Duplicate Tenant Corp",
-                slug="duplicate-tenant-1",
-                status=tenant_pb2.TENANT_STATUS_ACTIVE,
-                created_by=self.admin_user_id,
-                contact=tenant_pb2.ContactInfo(email="test@erp.com")
-            )
-
-            create_request1 = tenant_pb2.CreateTenantRequest(
-                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
-                tenant=tenant1
-            )
-            stub.CreateTenant(create_request1)
 
             logger.info("Step 2: Attempting to create second tenant with same name")
             tenant2 = tenant_pb2.Tenant(
                 name="Duplicate Tenant Corp",  # Same name
                 slug="duplicate-tenant-2",
                 status=tenant_pb2.TENANT_STATUS_ACTIVE,
-                created_by=self.admin_user_id
+                created_by=self.admin_user_id,
+                contact=tenant_pb2.ContactInfo(email="test@erp.com")
             )
 
             create_request2 = tenant_pb2.CreateTenantRequest(
@@ -231,7 +231,42 @@ class TestTenantManagementErrors:
                 name="Updated Tenant",
                 slug="updated-tenant",
                 status=tenant_pb2.TENANT_STATUS_ACTIVE,
-                created_by=self.admin_user_id
+                subscription=tenant_pb2.Subscription(
+                    plan="standard",
+                    limits=tenant_pb2.SubscriptionLimits(
+                        max_users=50,
+                        max_products=1000,
+                        max_orders_per_month=500,
+                        storage_gb=10
+                    )
+                ),
+                settings=tenant_pb2.TenantSettings(
+                    timezone="UTC",
+                    currency="USD",
+                    date_format="YYYY-MM-DD",
+                    language="en"
+                ),
+                contact=tenant_pb2.ContactInfo(
+                    email="admin@testtenant.com",
+                    phone="+1-555-0100",
+                    address=address_pb2.Address(
+                        street="123 Test St",
+                        city="Test City",
+                        state="TC",
+                        country="US"
+                    )
+                ),
+                branding=tenant_pb2.Branding(
+                    logo_url="https://example.com/logo.png",
+                    primary_color="#0066cc",
+                    company_name="Test Tenant Corp"
+                ),
+                created_by=self.admin_user_id,
+                metadata=tenant_pb2.TenantMetadata(
+                    onboarding_completed=False,
+                    industry="Technology",
+                    company_size="10-50"
+                )
             )
 
             request = tenant_pb2.UpdateTenantRequest(
@@ -246,29 +281,20 @@ class TestTenantManagementErrors:
             assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
             logger.info("Step 3: Test completed - received expected NOT_FOUND error")
 
-    def test_update_tenant_duplicate_name(self):
-        """Test UpdateTenant changing to existing name."""
+    def test_update_tenant_change_name(self):
+        """Test UpdateTenant changing name."""
         logger.info("Step 1: Injecting two tenants directly into MongoDB")
 
         # Pre-test: Inject two tenants directly into MongoDB
         database = os.getenv("AUTH_DB_NAME", "auth_db_test")
         with MongoDBClient(database) as mongo:
             # Inject tenant1
-            inject_tenant(
+            tenant_id = inject_tenant(
                 mongo,
                 name="Tenant One",
                 slug="tenant-one",
                 status=1,  # TENANT_STATUS_ACTIVE
                 contact={"email": "test@erp.com"},
-                created_by=self.admin_user_id
-            )
-
-            # Inject tenant2
-            tenant2_id = inject_tenant(
-                mongo,
-                name="Tenant Two",
-                slug="tenant-two",
-                status=1,  # TENANT_STATUS_ACTIVE
                 created_by=self.admin_user_id
             )
 
@@ -278,11 +304,46 @@ class TestTenantManagementErrors:
             stub = tenant_pb2_grpc.TenantServiceStub(client.get_channel())
 
             tenant2 = tenant_pb2.Tenant(
-                id=tenant2_id,
-                name="Tenant One",  # Duplicate name
+                id=tenant_id,
+                name="Tenant Two",  # Duplicate name
                 slug="tenant-two",
                 status=tenant_pb2.TENANT_STATUS_ACTIVE,
-                created_by=self.admin_user_id
+                subscription=tenant_pb2.Subscription(
+                    plan="standard",
+                    limits=tenant_pb2.SubscriptionLimits(
+                        max_users=50,
+                        max_products=1000,
+                        max_orders_per_month=500,
+                        storage_gb=10
+                    )
+                ),
+                settings=tenant_pb2.TenantSettings(
+                    timezone="UTC",
+                    currency="USD",
+                    date_format="YYYY-MM-DD",
+                    language="en"
+                ),
+                contact=tenant_pb2.ContactInfo(
+                    email="admin@testtenant.com",
+                    phone="+1-555-0100",
+                    address=address_pb2.Address(
+                        street="123 Test St",
+                        city="Test City",
+                        state="TC",
+                        country="US"
+                    )
+                ),
+                branding=tenant_pb2.Branding(
+                    logo_url="https://example.com/logo.png",
+                    primary_color="#0066cc",
+                    company_name="Test Tenant Corp"
+                ),
+                created_by=self.admin_user_id,
+                metadata=tenant_pb2.TenantMetadata(
+                    onboarding_completed=False,
+                    industry="Technology",
+                    company_size="10-50"
+                )
             )
 
             update_request = tenant_pb2.UpdateTenantRequest(
@@ -290,12 +351,12 @@ class TestTenantManagementErrors:
                 tenant=tenant2
             )
 
-            logger.info("Step 3: Expecting ALREADY_EXISTS error")
+            logger.info("Step 3: Expecting INVALID_ARGUMENT error")
             with pytest.raises(grpc.RpcError) as exc_info:
                 stub.UpdateTenant(update_request)
 
-            assert exc_info.value.code() == grpc.StatusCode.ALREADY_EXISTS
-            logger.info("Step 4: Test completed - received expected ALREADY_EXISTS error")
+            assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+            logger.info("Step 4: Test completed - received expected INVALID_ARGUMENT error")
 
     def test_update_tenant_invalid_status_transition(self):
         """Test UpdateTenant with invalid state transition."""

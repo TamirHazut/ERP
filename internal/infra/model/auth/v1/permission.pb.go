@@ -95,6 +95,7 @@ type Permission struct {
 	UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	CreatedBy        string                 `protobuf:"bytes,15,opt,name=created_by,json=createdBy,proto3" json:"created_by" bson:"created_by"`
 	Metadata         *PermissionMetadata    `protobuf:"bytes,16,opt,name=metadata,proto3" json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Protected        bool                   `protobuf:"varint,17,opt,name=protected,proto3" json:"protected" bson:"protected"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -241,6 +242,13 @@ func (x *Permission) GetMetadata() *PermissionMetadata {
 	return nil
 }
 
+func (x *Permission) GetProtected() bool {
+	if x != nil {
+		return x.Protected
+	}
+	return false
+}
+
 type PermissionMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Module        string                 `protobuf:"bytes,1,opt,name=module,proto3" json:"module" bson:"module"`
@@ -297,8 +305,7 @@ var File_auth_v1_permission_proto protoreflect.FileDescriptor
 
 const file_auth_v1_permission_proto_rawDesc = "" +
 	"\n" +
-	"\x18auth/v1/permission.proto\x12\aauth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\"\xbf\n" +
-	"\n" +
+	"\x18auth/v1/permission.proto\x12\aauth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\"\x85\v\n" +
 	"\n" +
 	"Permission\x123\n" +
 	"\x02id\x18\x01 \x01(\tB#\x9a\x84\x9e\x03\x1ebson:\"_id,omitempty\" json:\"id\"R\x02id\x12C\n" +
@@ -320,7 +327,8 @@ const file_auth_v1_permission_proto_rawDesc = "" +
 	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"updated_at\" json:\"updated_at\"R\tupdatedAt\x12G\n" +
 	"\n" +
 	"created_by\x18\x0f \x01(\tB(\x9a\x84\x9e\x03#bson:\"created_by\" json:\"created_by\"R\tcreatedBy\x12q\n" +
-	"\bmetadata\x18\x10 \x01(\v2\x1b.auth.v1.PermissionMetadataB8\x9a\x84\x9e\x033bson:\"metadata,omitempty\" json:\"metadata,omitempty\"R\bmetadata\"\x8f\x01\n" +
+	"\bmetadata\x18\x10 \x01(\v2\x1b.auth.v1.PermissionMetadataB8\x9a\x84\x9e\x033bson:\"metadata,omitempty\" json:\"metadata,omitempty\"R\bmetadata\x12D\n" +
+	"\tprotected\x18\x11 \x01(\bB&\x9a\x84\x9e\x03!bson:\"protected\" json:\"protected\"R\tprotected\"\x8f\x01\n" +
 	"\x12PermissionMetadata\x128\n" +
 	"\x06module\x18\x01 \x01(\tB \x9a\x84\x9e\x03\x1bbson:\"module\" json:\"module\"R\x06module\x12?\n" +
 	"\bui_group\x18\x02 \x01(\tB$\x9a\x84\x9e\x03\x1fbson:\"ui_group\" json:\"ui_group\"R\auiGroup*\x94\x01\n" +

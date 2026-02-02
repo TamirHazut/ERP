@@ -50,6 +50,17 @@ func (h *BaseAggregationHandler[T]) Aggregate(
 	pipeline []bson.M,
 	fields []string,
 ) ([]*T, *infra_error.AppError) {
+	return h.AggregateFrom(ctx, h.collection, pipeline, fields)
+}
+
+// AggregateFrom executes an aggregation pipeline on a specific collection with optional field projection
+// Use this when the pipeline needs to start from a different collection than the handler's default
+func (h *BaseAggregationHandler[T]) AggregateFrom(
+	ctx context.Context,
+	collectionName string,
+	pipeline []bson.M,
+	fields []string,
+) ([]*T, *infra_error.AppError) {
 	// Apply field projection if specified
 	if len(fields) > 0 {
 		projection := bson.M{}
@@ -59,12 +70,12 @@ func (h *BaseAggregationHandler[T]) Aggregate(
 		pipeline = append(pipeline, bson.M{"$project": projection})
 	}
 
-	h.logger.Debug("executing aggregation pipeline", "collection", h.collection, "stages", len(pipeline))
+	h.logger.Debug("executing aggregation pipeline", "collection", collectionName, "stages", len(pipeline))
 
 	// Execute aggregation using dbHandler's Aggregate method
-	cursor, err := h.dbHandler.Aggregate(ctx, h.collection, pipeline)
+	cursor, err := h.dbHandler.Aggregate(ctx, collectionName, pipeline)
 	if err != nil {
-		h.logger.Error("aggregation failed", "error", err, "collection", h.collection)
+		h.logger.Error("aggregation failed", "error", err, "collection", collectionName)
 		return nil, err
 	}
 	defer cursor.Close(ctx)
@@ -72,11 +83,11 @@ func (h *BaseAggregationHandler[T]) Aggregate(
 	// Decode results
 	results := make([]*T, 0)
 	if err := cursor.All(ctx, &results); err != nil {
-		h.logger.Error("failed to decode aggregation results", "error", err, "collection", h.collection)
+		h.logger.Error("failed to decode aggregation results", "error", err, "collection", collectionName)
 		return nil, infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}
 
-	h.logger.Debug("aggregation completed", "collection", h.collection, "results_count", len(results))
+	h.logger.Debug("aggregation completed", "collection", collectionName, "results_count", len(results))
 	return results, nil
 }
 
