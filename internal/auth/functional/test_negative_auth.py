@@ -212,16 +212,74 @@ class TestAuthenticationErrors:
             logger.info("Step 3: Test completed - received expected INVALID_ARGUMENT error")
 
     def test_logout_expired_token(self):
-        """Test logout with expired access token."""
-        logger.info("Step 1: Note - This test requires token to naturally expire or mock time")
-        logger.info("Skipping implementation - requires time manipulation or very short token TTL")
-        pytest.skip("Requires time manipulation or very short token TTL configuration")
+        """Test logout with expired (invalidated) access token."""
+        logger.info("Step 1: Logging in to obtain real tokens")
+
+        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
+            stub.Login(auth_pb2.LoginRequest(
+                tenant_id=self.tenant_id,
+                email=self.user_email,
+                password=self.user_password
+            ))
+
+        logger.info("Step 2: Deleting access token from Redis to simulate expiry")
+        with RedisClient() as redis:
+            token_key = f"token:{self.tenant_id}:{self.admin_user_id}"
+            redis.delete(token_key)
+
+        logger.info("Step 3: Attempting logout — expecting UNAUTHENTICATED")
+        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
+
+            request = auth_pb2.LogoutRequest(
+                identifier=infra_pb2.UserIdentifier(
+                    tenant_id=self.tenant_id,
+                    user_id=self.admin_user_id
+                )
+            )
+
+            with pytest.raises(grpc.RpcError) as exc_info:
+                stub.Logout(request)
+
+            assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+            logger.info("Step 4: Test completed - received expected UNAUTHENTICATED error")
 
     def test_refresh_expired_refresh_token(self):
-        """Test RefreshToken with expired refresh token."""
-        logger.info("Step 1: Note - This test requires refresh token to naturally expire")
-        logger.info("Skipping implementation - requires time manipulation or very short refresh token TTL")
-        pytest.skip("Requires time manipulation or very short refresh token TTL configuration")
+        """Test RefreshToken with expired (invalidated) refresh token."""
+        logger.info("Step 1: Logging in to obtain real tokens")
+
+        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
+            login_response = stub.Login(auth_pb2.LoginRequest(
+                tenant_id=self.tenant_id,
+                email=self.user_email,
+                password=self.user_password
+            ))
+            refresh_token = login_response.refresh_token.token
+
+        logger.info("Step 2: Deleting refresh token from Redis to simulate expiry")
+        with RedisClient() as redis:
+            refresh_key = f"refresh_token:{self.tenant_id}:{self.admin_user_id}"
+            redis.delete(refresh_key)
+
+        logger.info("Step 3: Attempting token refresh — expecting UNAUTHENTICATED")
+        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
+
+            request = auth_pb2.RefreshTokenRequest(
+                identifier=infra_pb2.UserIdentifier(
+                    tenant_id=self.tenant_id,
+                    user_id=self.admin_user_id
+                ),
+                refresh_token=refresh_token
+            )
+
+            with pytest.raises(grpc.RpcError) as exc_info:
+                stub.RefreshToken(request)
+
+            assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+            logger.info("Step 4: Test completed - received expected UNAUTHENTICATED error")
 
     def test_refresh_invalid_refresh_token(self):
         """Test RefreshToken with malformed refresh token."""
@@ -264,10 +322,36 @@ class TestAuthenticationErrors:
             logger.info("Step 3: Test completed - received expected UNAUTHENTICATED error")
 
     def test_verify_expired_token(self):
-        """Test VerifyToken with expired access token."""
-        logger.info("Step 1: Note - This test requires token to naturally expire or mock time")
-        logger.info("Skipping implementation - requires time manipulation or very short token TTL")
-        pytest.skip("Requires time manipulation or very short token TTL configuration")
+        """Test VerifyToken with expired (invalidated) access token."""
+        logger.info("Step 1: Logging in to obtain a real access token")
+
+        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
+            login_response = stub.Login(auth_pb2.LoginRequest(
+                tenant_id=self.tenant_id,
+                email=self.user_email,
+                password=self.user_password
+            ))
+            access_token = login_response.token.token
+
+        logger.info("Step 2: Deleting access token from Redis to simulate expiry")
+        with RedisClient() as redis:
+            token_key = f"token:{self.tenant_id}:{self.admin_user_id}"
+            redis.delete(token_key)
+
+        logger.info("Step 3: Attempting token verification — expecting UNAUTHENTICATED")
+        with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            stub = auth_pb2_grpc.AuthServiceStub(client.get_channel())
+
+            request = auth_pb2.VerifyTokenRequest(
+                token=access_token
+            )
+
+            with pytest.raises(grpc.RpcError) as exc_info:
+                stub.VerifyToken(request)
+
+            assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+            logger.info("Step 4: Test completed - received expected UNAUTHENTICATED error")
 
     def test_revoke_all_tenant_invalid_tenant(self):
         """Test RevokeAllTenantTokens with non-existent tenant."""

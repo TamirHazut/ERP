@@ -190,11 +190,15 @@ class TestRBACVerificationErrors:
             logger.info("Step 3: Test completed - received expected NOT_FOUND error")
 
     def test_check_permissions_cross_tenant_check(self):
-        pytest.skip("Test does not supposed to fail")
-        """Test CheckPermissions for user from different tenant."""
-        logger.info("Step 1: Injecting another tenant with user directly into MongoDB")
+        """Test CheckPermissions for user with no roles returns denied in response map.
 
-        # Pre-test: Inject another tenant and user directly into MongoDB
+        CheckPermissions has no target_tenant_id parameter — it always checks permissions
+        within the caller's own tenant. A user with no roles gets a success response with
+        all requested permissions set to False.
+        """
+        logger.info("Step 1: Injecting another tenant with user (no roles) directly into MongoDB")
+
+        # Pre-test: Inject another tenant and user with no roles directly into MongoDB
         database = os.getenv("AUTH_DB_NAME", "auth_db_test")
         with MongoDBClient(database) as mongo:
             other_tenant_id = inject_tenant(
@@ -216,25 +220,24 @@ class TestRBACVerificationErrors:
                 created_by=self.admin_user_id
             )
 
-        logger.info("Step 2: Attempting CheckPermissions for user from different tenant")
-        # Act - Test CheckPermissions gRPC endpoint with cross-tenant check
+        logger.info("Step 2: Calling CheckPermissions for user with no roles")
         with GrpcClient(TestConfig.AUTH_SERVICE) as client:
             rbac_stub = rbac_pb2_grpc.VerificationServiceStub(client.get_channel())
 
             request = rbac_pb2.CheckPermissionsRequest(
                 identifier=infra_pb2.UserIdentifier(
-                    tenant_id=other_tenant_id,  # Different tenant
+                    tenant_id=other_tenant_id,
                     user_id=other_tenant_user_id
                 ),
                 permissions=["user:read"]
             )
 
-            logger.info("Step 3: Expecting PERMISSION_DENIED error (cross-tenant check not allowed)")
-            with pytest.raises(grpc.RpcError) as exc_info:
-                rbac_stub.CheckPermissions(request)
+            # CheckPermissions returns a permission map, not a gRPC error, for denied permissions
+            response = rbac_stub.CheckPermissions(request)
 
-            assert exc_info.value.code() == grpc.StatusCode.PERMISSION_DENIED
-            logger.info("Step 4: Test completed - received expected PERMISSION_DENIED error")
+            logger.info("Step 3: Verifying permission is denied in response map")
+            assert response.permissions["user:read"] == False
+            logger.info("Step 4: Test completed - user:read correctly reported as denied")
 
     def test_has_permission_nonexistent_user(self):
         """Test HasPermission with invalid user_id."""
@@ -428,20 +431,23 @@ class TestRBACVerificationErrors:
             logger.info("Step 4: Test completed - received expected NOT_FOUND error")
 
     def test_is_system_tenant_user_invalid_user(self):
-        pytest.skip("test does not supposed to raise exception")
-        """Test IsSystemTenantUser with invalid user_id."""
-        logger.info("Step 1: Attempting IsSystemTenantUser for non-existent tenant")
+        """Test IsSystemTenantUser with non-system tenant_id returns false.
+
+        IsSystemTenantUser is a pure boolean comparator: it checks whether the given
+        tenant_id matches the system tenant stored in Redis. It does not look up the
+        tenant in MongoDB, so non-existent tenant IDs simply return false.
+        """
+        logger.info("Step 1: Calling IsSystemTenantUser with non-existent tenant_id")
 
         with GrpcClient(TestConfig.AUTH_SERVICE) as client:
             stub = rbac_pb2_grpc.VerificationServiceStub(client.get_channel())
 
             request = rbac_pb2.IsSystemTenantUserRequest(
-                tenant_id="000000000000000000000000"  # Non-existent tenant
+                tenant_id="000000000000000000000000"  # Non-existent, and not the system tenant
             )
 
-            logger.info("Step 2: Expecting NOT_FOUND error")
-            with pytest.raises(grpc.RpcError) as exc_info:
-                stub.IsSystemTenantUser(request)
+            response = stub.IsSystemTenantUser(request)
 
-            assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
-            logger.info("Step 3: Test completed - received expected NOT_FOUND error")
+            logger.info("Step 2: Verifying non-system tenant is reported as false")
+            assert response.is_system_tenant == False
+            logger.info("Step 3: Test completed - non-system tenant correctly identified")

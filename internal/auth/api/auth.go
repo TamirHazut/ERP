@@ -63,6 +63,11 @@ func (a *AuthAPI) Login(tenantID, email, username, password string) (*authv1.Tok
 }
 
 func (a *AuthAPI) Logout(tenantID, userID string) (string, *infra_error.AppError) {
+	// Verify an active session exists before attempting revocation
+	if _, err := a.tokenManager.accessTokenHandler.GetOne(tenantID, userID); err != nil {
+		return "logout failed", infra_error.Auth(infra_error.AuthSessionExpired)
+	}
+
 	err := a.RevokeTokens(tenantID, userID)
 	if err != nil {
 		if err.Category == infra_error.CategoryNotFound {
