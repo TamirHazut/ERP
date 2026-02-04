@@ -11,6 +11,7 @@ import (
 	model_auth "erp.localhost/internal/infra/model/auth"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 	validator_auth "erp.localhost/internal/infra/model/auth/validator"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // type FilterType int
@@ -140,7 +141,6 @@ func (u *UserAPI) GetUsers(tenantID, userID, targetTenantID, roleID string) ([]*
 	return u.userHandler.GetUsersByTenantID(targetTenantID)
 }
 
-// TODO: finish logic
 func (u *UserAPI) UpdateUser(tenantID, userID string, newUserData *authv1.User) (bool, *infra_error.AppError) {
 	if tenantID == "" || userID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id"))
@@ -195,6 +195,7 @@ func (u *UserAPI) UpdateUser(tenantID, userID string, newUserData *authv1.User) 
 
 	newUserData.CreatedBy = oldUserData.CreatedBy
 	newUserData.CreatedAt = oldUserData.CreatedAt
+	newUserData.UpdatedAt = timestamppb.Now()
 
 	return u.updateUser(newUserData)
 }

@@ -8,6 +8,7 @@ import (
 	model_auth "erp.localhost/internal/infra/model/auth"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 	validator_auth "erp.localhost/internal/infra/model/auth/validator"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // RoleAPI provides role management with authorization enforcement
@@ -62,7 +63,7 @@ func (ra *RoleAPI) CreateRole(tenantID, requestorUserID string, role *authv1.Rol
 }
 
 // UpdateRole updates an existing role with authorization check
-func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, role *authv1.Role, targetTenantID string) *infra_error.AppError {
+func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, newRoleData *authv1.Role, targetTenantID string) *infra_error.AppError {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionUpdate)
 	if err != nil {
 		return err
@@ -74,13 +75,31 @@ func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, role *authv1.Rol
 	}
 
 	// Validate and normalize permission strings
-	if err := validator_auth.ValidatePermissionStrings(role.Permissions); err != nil {
-		ra.logger.Warn("Invalid permission strings in role", "tenant_id", role.TenantId, "role_id", role.Id, "error", err)
+	if err := validator_auth.ValidatePermissionStrings(newRoleData.Permissions); err != nil {
+		ra.logger.Warn("Invalid permission strings in role", "tenant_id", newRoleData.TenantId, "role_id", newRoleData.Id, "error", err)
 		return err
 	}
-	role.Permissions = model_auth.NormalizePermissions(role.Permissions)
+	newRoleData.Permissions = model_auth.NormalizePermissions(newRoleData.Permissions)
 
-	return ra.roleHandler.UpdateRole(role)
+	oldRoleData, err := ra.roleHandler.GetRoleByID(newRoleData.TenantId, newRoleData.Id)
+	if err != nil {
+		ra.logger.Error("failed to update role", "tenant_id", tenantID, "user_id", requestorUserID, "error", err)
+		return err
+	}
+
+	newRoleData.Protected = oldRoleData.Protected
+	newRoleData.CreatedBy = oldRoleData.CreatedBy
+	newRoleData.CreatedAt = oldRoleData.CreatedAt
+	newRoleData.UpdatedAt = timestamppb.Now()
+
+	// Do diff and validate
+	err = ra.validateRoleUpdateData(oldRoleData, newRoleData)
+	if err != nil {
+		ra.logger.Error("failed to update role", "tenant_id", tenantID, "user_id", requestorUserID, "error", err)
+		return err
+	}
+
+	return ra.roleHandler.UpdateRole(newRoleData)
 }
 
 // GetRoleByID retrieves a role by ID with authorization check
@@ -166,5 +185,14 @@ func (ra *RoleAPI) checkProtectedRole(tenantID, requestorUserID, roleID string) 
 			return infra_error.Auth(infra_error.AuthPermissionDenied)
 		}
 	}
+	return nil
+}
+
+func (ra *RoleAPI) validateRoleUpdateData(old, new *authv1.Role) *infra_error.AppError {
+	if old.TenantId != new.TenantId ||
+		new.Name != old.Name {
+		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields)
+	}
+
 	return nil
 }

@@ -164,7 +164,7 @@ func (t *TenantAPI) ListTenants(tenantID, userID, status string) ([]*authv1.Tena
 
 }
 
-func (t *TenantAPI) UpdateTenant(tenantID, userID string, tenant *authv1.Tenant) *infra_error.AppError {
+func (t *TenantAPI) UpdateTenant(tenantID, userID string, newTenantData *authv1.Tenant) *infra_error.AppError {
 	// Step 1: validate input
 	if tenantID == "" || userID == "" {
 		err := infra_error.Validation(infra_error.ValidationInvalidValue).WithError(errors.New("missing one or more: tenant_id, user_id"))
@@ -172,7 +172,7 @@ func (t *TenantAPI) UpdateTenant(tenantID, userID string, tenant *authv1.Tenant)
 		return err
 	}
 
-	if err := validator_auth.ValidateTenant(tenant, false); err != nil {
+	if err := validator_auth.ValidateTenant(newTenantData, false); err != nil {
 		t.logger.Error("failed to update tenant", "error", err)
 		return err
 	}
@@ -182,15 +182,32 @@ func (t *TenantAPI) UpdateTenant(tenantID, userID string, tenant *authv1.Tenant)
 	if err != nil {
 		return err
 	}
-	if err := t.rbacAPI.Verification.HasPermission(tenantID, userID, permission, tenant.GetId()); err != nil {
+	if err := t.rbacAPI.Verification.HasPermission(tenantID, userID, permission, newTenantData.GetId()); err != nil {
 		t.logger.Warn("Permission denied for UpdateTenant", "tenant_id", tenantID, "user_id", userID, "permission", permission)
 		return err
 	}
 
-	t.logger.Info("updating tenant", "tenant_id", tenant, "requested_by", userID, "target_tenant_id", tenant.GetId())
+	t.logger.Info("updating tenant", "tenant_id", newTenantData, "requested_by", userID, "target_tenant_id", newTenantData.GetId())
 
-	//TODO: Do diff and validate
-	return t.tenantHandler.UpdateTenant(tenant)
+	oldTenantData, err := t.tenantHandler.GetTenantByID(newTenantData.Id)
+	if err != nil {
+		t.logger.Error("failed to update tenant", "tenant_id", tenantID, "user_id", userID, "error", err)
+		return err
+	}
+
+	newTenantData.Protected = true // tenant is always protected
+	newTenantData.CreatedBy = oldTenantData.CreatedBy
+	newTenantData.CreatedAt = oldTenantData.CreatedAt
+	newTenantData.UpdatedAt = timestamppb.Now()
+
+	// Do diff and validate
+	err = t.validateTenantUpdateData(oldTenantData, newTenantData)
+	if err != nil {
+		t.logger.Error("failed to update tenant", "tenant_id", tenantID, "user_id", userID, "error", err)
+		return err
+	}
+
+	return t.tenantHandler.UpdateTenant(newTenantData)
 }
 
 func (t *TenantAPI) DeleteTenant(tenantID, userID, targetTenantID string) *infra_error.AppError {
@@ -397,5 +414,14 @@ func (t *TenantAPI) checkProtectedTenant(tenantID, requestorUserID string) *infr
 			return infra_error.Auth(infra_error.AuthPermissionDenied)
 		}
 	}
+	return nil
+}
+
+func (t *TenantAPI) validateTenantUpdateData(old, new *authv1.Tenant) *infra_error.AppError {
+	if new.Name != old.Name ||
+		new.Contact.Email != old.Contact.Email {
+		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields)
+	}
+
 	return nil
 }
