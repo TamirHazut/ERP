@@ -60,7 +60,7 @@ func (u *UserService) GetUser(ctx context.Context, req *authv1.GetUserRequest) (
 	targetTenantID := req.GetTargetTenantId()
 
 	// get user
-	user, err := u.userAPI.GetUser(tenantID, userID, targetTenantID, accountID)
+	user, err := u.userAPI.GetUserByID(tenantID, userID, targetTenantID, accountID)
 	if err != nil {
 		u.logger.Error("failed to get user", "tenant_id", tenantID, "user_id", userID, "error", err)
 		return nil, infra_error.ToGRPCError(err)

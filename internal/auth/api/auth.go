@@ -42,15 +42,7 @@ func (a *AuthAPI) Login(tenantID, email, username, password string) (*authv1.Tok
 		return nil, err
 	}
 
-	var filterType FilterType
-	if email != "" {
-		filterType = filterTypeEmail
-	} else if username != "" {
-		filterType = filterTypeUsername
-	} else {
-		filterType = filterTypeUnsupported
-	}
-	user, err := a.userAPI.getUser(tenantID, email, filterType)
+	user, err := a.userAPI.userHandler.GetUserByEmailOrUsername(tenantID, email, username)
 	if err != nil {
 		a.logger.Error("failed to find user", "error", err)
 		return nil, infra_error.Auth(infra_error.AuthInvalidCredentials)
@@ -88,7 +80,7 @@ func (a *AuthAPI) Authenticate(user *authv1.User, password string) (*authv1.Toke
 		return nil, err
 	}
 
-	if !hash.VerifyHash(password, user.GetPasswordHash()) {
+	if !hash.VerifyHash(password, user.GetPassword()) {
 		return nil, infra_error.Auth(infra_error.AuthInvalidCredentials)
 	}
 
@@ -127,7 +119,7 @@ func (a *AuthAPI) RefreshToken(tenantID, userID, token string) (*authv1.Tokens, 
 		a.logger.Warn("Failed to revoke old access tokens before refresh", "error", err, "tenant_id", tenantID, "user_id", userID)
 		// Continue anyway - non-critical failure
 	}
-	user, err := a.userAPI.getUser(tenantID, userID, filterTypeID)
+	user, err := a.userAPI.userHandler.GetUserByID(tenantID, userID)
 	if err != nil {
 		a.logger.Error("failed to find user", "error", err)
 		return nil, infra_error.Internal(infra_error.InternalUnexpectedError, err)
@@ -166,7 +158,7 @@ func (a *AuthAPI) RevokeAllTenantTokens(tenantID, userID, targetTenantID string)
 	a.logger.Warn("Revoking all tenant tokens", "tenant_id", targetTenantID)
 
 	// This is a critical operation that should require elevated permissions
-	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeToken, model_auth.PermissionActionDelete)
+	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeTenant, model_auth.PermissionActionDelete)
 	if err != nil {
 		return 0, 0, err
 	}

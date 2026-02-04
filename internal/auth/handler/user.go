@@ -1,10 +1,9 @@
 package handler
 
 import (
-	"strings"
-
 	aggregation_auth "erp.localhost/internal/auth/aggregation"
 	collection_auth "erp.localhost/internal/auth/collection"
+	"erp.localhost/internal/auth/hash"
 	aggregation_mongo "erp.localhost/internal/infra/db/mongo/aggregation"
 	collection_mongo "erp.localhost/internal/infra/db/mongo/collection"
 	infra_error "erp.localhost/internal/infra/error"
@@ -42,15 +41,16 @@ func (u *UserHandler) CreateUser(user *authv1.User) (string, *infra_error.AppErr
 	if err := validator_auth.ValidateUser(user, true); err != nil {
 		return "", err
 	}
+
+	u.logger.Debug("Creating user", "user", user)
+	passwordHash, err := hash.Hash(user.Password)
+	if err != nil {
+		return "", err
+	}
+	user.Password = passwordHash
 	user.CreatedAt = timestamppb.Now()
 	user.UpdatedAt = timestamppb.Now()
-	u.logger.Debug("Creating user", "user", user)
-	if user.GetUsername() != "" {
-		user.Username = strings.ToLower(user.Username)
-	}
-	if user.GetEmail() != "" {
-		user.Email = strings.ToLower(user.Email)
-	}
+
 	return u.collection.Create(user)
 }
 
@@ -66,27 +66,18 @@ func (u *UserHandler) GetUserByID(tenantID, userID string) (*authv1.User, *infra
 	return u.findUserByFilter(filter)
 }
 
-func (u *UserHandler) GetUserByEmail(tenantID, email string) (*authv1.User, *infra_error.AppError) {
+func (u *UserHandler) GetUserByEmailOrUsername(tenantID, email, username string) (*authv1.User, *infra_error.AppError) {
 	if email == "" {
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "email")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
-		"email":     strings.ToLower(email),
+		"$or": []map[string]any{
+			{"email": email},
+			{"username": username},
+		},
 	}
 	u.logger.Debug("Getting user by email", "filter", filter)
-	return u.findUserByFilter(filter)
-}
-
-func (u *UserHandler) GetUserByUsername(tenantID, username string) (*authv1.User, *infra_error.AppError) {
-	if username == "" {
-		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "username")
-	}
-	filter := map[string]any{
-		"tenant_id": tenantID,
-		"username":  strings.ToLower(username),
-	}
-	u.logger.Debug("Getting user by username", "filter", filter)
 	return u.findUserByFilter(filter)
 }
 
@@ -104,10 +95,27 @@ func (u *UserHandler) GetUsersByRoleID(tenantID, roleID string) ([]*authv1.User,
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,
-		"role_id":   roleID,
+		"roles": map[string]any{
+			"$elemMatch": map[string]any{
+				"tenant_id": tenantID,
+				"role_id":   roleID,
+			},
+		},
 	}
 	u.logger.Debug("Getting users by role id", "filter", filter)
 	return u.findUsersByFilter(filter)
+}
+
+func (u *UserHandler) GetUsersWithRoles(tenantID string) ([]*authv1.User, *infra_error.AppError) {
+	filter := map[string]any{
+		"tenant_id": tenantID,
+		"roles":     map[string]any{"$ne": []any{}},
+	}
+	users, err := u.findUsersByFilter(filter)
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 func (u *UserHandler) UpdateUser(user *authv1.User) *infra_error.AppError {
@@ -128,8 +136,6 @@ func (u *UserHandler) UpdateUser(user *authv1.User) *infra_error.AppError {
 		"_id":       user.Id,
 	}
 	user.UpdatedAt = timestamppb.Now()
-	user.Username = strings.ToLower(user.Username)
-	user.Email = strings.ToLower(user.Email)
 	return u.collection.Update(filter, user)
 }
 

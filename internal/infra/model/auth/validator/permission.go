@@ -24,7 +24,7 @@ func ValidatePermission(p *authv1.Permission, createOperation bool) *infra_error
 	if p.Resource == "" {
 		missingFields = append(missingFields, "Resource")
 	}
-	if p.Status == authv1.PermissionStatus_PERMISSION_STATUS_UNSPECIFIED {
+	if _, ok := authv1.PermissionStatus_name[int32(p.Status)]; !ok || p.Status == authv1.PermissionStatus_PERMISSION_STATUS_UNSPECIFIED {
 		missingFields = append(missingFields, "Status")
 	}
 	if p.Action == "" {
@@ -43,6 +43,17 @@ func ValidatePermission(p *authv1.Permission, createOperation bool) *infra_error
 		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
 	return ValidatePermissionString(p.PermissionString, p.Resource, p.Action)
+}
+
+// ValidatePermissionStrings validates a slice of permission strings against the permission registry.
+// Returns a validation error containing the first invalid permission string encountered.
+func ValidatePermissionStrings(permissions []string) *infra_error.AppError {
+	for _, p := range permissions {
+		if !model_auth.IsValidPermissionString(p) {
+			return infra_error.Validation(infra_error.ValidationInvalidValue, "permission", p)
+		}
+	}
+	return nil
 }
 
 func ValidatePermissionString(permissionString, resourceType, action string) *infra_error.AppError {

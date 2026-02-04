@@ -8,7 +8,7 @@ import "google/protobuf/timestamp.proto";
 import "tagger/tagger.proto";
 
 // =============================================================================
-// MongoDB Models (for database persistence)
+// Permission — code-defined registry entry
 // =============================================================================
 
 // Permission status enum
@@ -19,7 +19,8 @@ enum PermissionStatus {
   PERMISSION_STATUS_SUSPENDED = 3;
 }
 
-// Permission model for MongoDB auth_db.permissions collection
+// Permission represents a single entry in the code-defined permission registry.
+// Permissions are never persisted; this message is the Get/List response shape.
 message Permission {
   string id = 1 [(tagger.tags) = "bson:\"_id,omitempty\" json:\"id\""];
   string tenant_id = 2 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
@@ -31,8 +32,6 @@ message Permission {
   string category = 8 [(tagger.tags) = "bson:\"category\" json:\"category\""];
   PermissionStatus status = 9 [(tagger.tags) = "bson:\"status\" json:\"status\""];
   bool is_dangerous = 10 [(tagger.tags) = "bson:\"is_dangerous\" json:\"is_dangerous\""];
-  bool requires_approval = 11 [(tagger.tags) = "bson:\"requires_approval\" json:\"requires_approval\""];
-  repeated string dependencies = 12 [(tagger.tags) = "bson:\"dependencies,omitempty\" json:\"dependencies,omitempty\""];
   google.protobuf.Timestamp created_at = 13 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
   google.protobuf.Timestamp updated_at = 14 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
   string created_by = 15 [(tagger.tags) = "bson:\"created_by\" json:\"created_by\""];

@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"strings"
-
 	aggregation_auth "erp.localhost/internal/auth/aggregation"
 	collection_auth "erp.localhost/internal/auth/collection"
 	aggregation_mongo "erp.localhost/internal/infra/db/mongo/aggregation"
@@ -45,7 +43,6 @@ func (t TenantHandler) CreateTenant(tenant *authv1.Tenant) (string, *infra_error
 	tenant.CreatedAt = timestamppb.Now()
 	tenant.UpdatedAt = timestamppb.Now()
 	t.logger.Debug("Creating tenant", "tenant", tenant)
-	tenant.Name = strings.ToLower(tenant.Name)
 	return t.collection.Create(tenant)
 }
 
@@ -65,7 +62,7 @@ func (t TenantHandler) GetTenantByName(name string) (*authv1.Tenant, *infra_erro
 		return nil, infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId")
 	}
 	filter := map[string]any{
-		"name": strings.ToLower(name),
+		"name": name,
 	}
 	t.logger.Debug("Getting tenant by id", "filter", filter)
 	return t.findTenantByFilter(filter)
@@ -87,30 +84,30 @@ func (t TenantHandler) GetTenantsByStatus(status string) ([]*authv1.Tenant, *inf
 	return t.findTenantsByFilter(filter)
 }
 
-func (t TenantHandler) UpdateTenant(tenant *authv1.Tenant) *infra_error.AppError {
-	if err := validator_auth.ValidateTenant(tenant, false); err != nil {
+func (t TenantHandler) UpdateTenant(newTenant *authv1.Tenant) *infra_error.AppError {
+	if err := validator_auth.ValidateTenant(newTenant, false); err != nil {
 		return err
 	}
 	filter := map[string]any{
-		"_id": tenant.Id,
+		"_id": newTenant.Id,
 	}
-	t.logger.Debug("Updating tenant", "tenant", tenant)
-	currentTenant, err := t.GetTenantByID(tenant.Id)
+	t.logger.Debug("Updating tenant", "tenant", newTenant)
+	oldTenant, err := t.GetTenantByID(newTenant.Id)
 	if err != nil {
 		return err
 	}
-	tenant.Protected = currentTenant.Protected
-	if currentTenant.Protected {
+	newTenant.Protected = oldTenant.Protected
+	if oldTenant.Protected {
 		return infra_error.Auth(infra_error.AuthPermissionDenied)
 	}
-	if tenant.Id != currentTenant.Id ||
-		tenant.Name != currentTenant.Name ||
-		tenant.CreatedAt != currentTenant.CreatedAt ||
-		tenant.CreatedBy != currentTenant.CreatedBy {
+	if newTenant.Id != oldTenant.Id ||
+		newTenant.Name != oldTenant.Name {
 		return infra_error.Validation(infra_error.ValidationTryToChangeRestrictedFields)
 	}
-	tenant.UpdatedAt = timestamppb.Now()
-	return t.collection.Update(filter, tenant)
+	newTenant.CreatedAt = oldTenant.CreatedAt
+	newTenant.CreatedBy = oldTenant.CreatedBy
+	newTenant.UpdatedAt = timestamppb.Now()
+	return t.collection.Update(filter, newTenant)
 }
 
 func (t TenantHandler) DeleteTenant(tenantID string) *infra_error.AppError {

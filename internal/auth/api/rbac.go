@@ -17,13 +17,12 @@ type RBACAPI struct {
 // NewRBACAPI creates a new RBACAPI instance with all sub-APIs
 func NewRBACAPI(
 	roleHandler *handler.RoleHandler,
-	permissionHandler *handler.PermissionHandler,
 	verificationManager *rbac.VerificationManager,
 	logger logger.Logger,
 ) *RBACAPI {
 	return &RBACAPI{
-		Roles:        NewRoleAPI(roleHandler, permissionHandler, verificationManager, logger),
-		Permissions:  NewPermissionAPI(permissionHandler, verificationManager, logger),
+		Roles:        NewRoleAPI(roleHandler, verificationManager, logger),
+		Permissions:  NewPermissionAPI(verificationManager, logger),
 		Verification: NewVerificationAPI(verificationManager, logger),
 	}
 }
@@ -43,11 +42,6 @@ func NewVerificationAPI(
 		verificationManager: verificationManager,
 		logger:              logger,
 	}
-}
-
-// GetUserPermissions retrieves all permissions for a user
-func (va *VerificationAPI) GetUserPermissionsIDs(tenantID, userID string) (map[string]bool, *infra_error.AppError) {
-	return va.verificationManager.GetUserPermissionsIDs(tenantID, userID)
 }
 
 // GetUserPermissions retrieves all permissions for a user
@@ -75,17 +69,12 @@ func (va *VerificationAPI) IsSystemTenantUser(tenantID string) bool {
 	return va.verificationManager.IsSystemTenantUser(tenantID)
 }
 
-// IsSystemTenantUser checks if a user belongs to the system tenant
+// IsSystemAdminUser checks if the user is the system admin
 func (va *VerificationAPI) IsSystemAdminUser(userID string) bool {
 	return va.verificationManager.IsSystemAdminUser(userID)
 }
 
-// IsSystemTenantUser checks if a user belongs to the system tenant
-func (va *VerificationAPI) IsSystemPermission(permissionID string) bool {
-	return va.verificationManager.IsSystemPermission(permissionID)
-}
-
-// IsSystemTenantUser checks if a user belongs to the system tenant
+// IsSystemRole checks if the role is the system role
 func (va *VerificationAPI) IsSystemRole(roleID string) bool {
 	return va.verificationManager.IsSystemRole(roleID)
 }

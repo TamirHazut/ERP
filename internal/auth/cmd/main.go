@@ -64,18 +64,13 @@ func Main() {
 		logger.Error(infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to create role manager")).Error())
 		return
 	}
-	permHandler := createPermissionHandler(logger)
-	if permHandler == nil {
-		logger.Error(infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to create permission manager")).Error())
-		return
-	}
 	verificationManager := createVerificationManager(logger)
 	if verificationManager == nil {
 		logger.Error(infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to create verification manager")).Error())
 		return
 	}
-	rbacAPI := api.NewRBACAPI(roleHanlder, permHandler, verificationManager, logger)
-	userAPI, err := api.NewUserAPI(rbacAPI, roleHanlder, permHandler, logger)
+	rbacAPI := api.NewRBACAPI(roleHanlder, verificationManager, logger)
+	userAPI, err := api.NewUserAPI(rbacAPI, roleHanlder, logger)
 	authAPI, err := api.NewAuthAPI(rbacAPI, userAPI, logger)
 	tenantAPI, err := api.NewTenantAPI(authAPI, rbacAPI, userAPI, logger)
 
@@ -132,13 +127,6 @@ func createRoleHandler(logger logger.Logger) *handler.RoleHandler {
 	return hanlder
 }
 
-func createPermissionHandler(logger logger.Logger) *handler.PermissionHandler {
-	hanlder, err := handler.NewPermissionHandler(logger)
-	if err != nil {
-		logger.Fatal("failed to init role handler", "error", err)
-	}
-	return hanlder
-}
 func createUserManager(logger logger.Logger) *handler.UserHandler {
 	hanlder, err := handler.NewUserHandler(logger)
 	if err != nil {
@@ -157,13 +145,12 @@ func createTenantManager(logger logger.Logger) *handler.TenantHandler {
 func createVerificationManager(logger logger.Logger) *rbac.VerificationManager {
 	uh := createUserManager(logger)
 	rh := createRoleHandler(logger)
-	ph := createPermissionHandler(logger)
 	th := createTenantManager(logger)
 
-	if rh == nil || ph == nil || uh == nil || th == nil {
+	if rh == nil || uh == nil || th == nil {
 		return nil
 	}
-	vm, err := rbac.NewVerificationManager(uh, rh, ph, th, logger)
+	vm, err := rbac.NewVerificationManager(uh, rh, th, logger)
 	if err != nil {
 		logger.Fatal("failed to create verification manager", "error", err)
 		return nil

@@ -1,20 +1,18 @@
 package api
 
 import (
-	"strings"
-
 	"erp.localhost/internal/auth/handler"
 	"erp.localhost/internal/auth/rbac"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	validator_auth "erp.localhost/internal/infra/model/auth/validator"
 )
 
 // RoleAPI provides role management with authorization enforcement
 type RoleAPI struct {
 	roleHandler         *handler.RoleHandler
-	permissionHandler   *handler.PermissionHandler
 	verificationManager *rbac.VerificationManager
 	logger              logger.Logger
 }
@@ -22,13 +20,11 @@ type RoleAPI struct {
 // NewRoleAPI creates a new RoleAPI instance
 func NewRoleAPI(
 	roleHandler *handler.RoleHandler,
-	permissionHandler *handler.PermissionHandler,
 	verificationManager *rbac.VerificationManager,
 	logger logger.Logger,
 ) *RoleAPI {
 	return &RoleAPI{
 		roleHandler:         roleHandler,
-		permissionHandler:   permissionHandler,
 		verificationManager: verificationManager,
 		logger:              logger,
 	}
@@ -54,11 +50,12 @@ func (ra *RoleAPI) CreateRole(tenantID, requestorUserID string, role *authv1.Rol
 		role.Protected = false
 	}
 
-	// 2. Validate permission IDs exist
-	if err := ra.validatePermissionIDs(role.TenantId, role.Permissions); err != nil {
-		ra.logger.Warn("Invalid permission IDs in role", "tenant_id", role.TenantId, "role_name", role.Name, "error", err)
+	// 2. Validate and normalize permission strings
+	if err := validator_auth.ValidatePermissionStrings(role.Permissions); err != nil {
+		ra.logger.Warn("Invalid permission strings in role", "tenant_id", role.TenantId, "role_name", role.Name, "error", err)
 		return "", err
 	}
+	role.Permissions = model_auth.NormalizePermissions(role.Permissions)
 
 	// 3. Call business logic
 	return ra.roleHandler.CreateRole(role)
@@ -76,11 +73,12 @@ func (ra *RoleAPI) UpdateRole(tenantID, requestorUserID string, role *authv1.Rol
 		return err
 	}
 
-	// Validate permission IDs exist
-	if err := ra.validatePermissionIDs(role.TenantId, role.Permissions); err != nil {
-		ra.logger.Warn("Invalid permission IDs in role", "tenant_id", role.TenantId, "role_id", role.Id, "error", err)
+	// Validate and normalize permission strings
+	if err := validator_auth.ValidatePermissionStrings(role.Permissions); err != nil {
+		ra.logger.Warn("Invalid permission strings in role", "tenant_id", role.TenantId, "role_id", role.Id, "error", err)
 		return err
 	}
+	role.Permissions = model_auth.NormalizePermissions(role.Permissions)
 
 	return ra.roleHandler.UpdateRole(role)
 }
@@ -116,7 +114,7 @@ func (ra *RoleAPI) ListRoles(tenantID, requestorUserID string, targetTenantID st
 }
 
 // DeleteRole deletes a role with authorization check
-func (ra *RoleAPI) DeleteRole(tenantID, requestorUserID, roleID string, targetTenantID string) *infra_error.AppError {
+func (ra *RoleAPI) DeleteRole(tenantID, requestorUserID, roleID, targetTenantID string) *infra_error.AppError {
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeRole, model_auth.PermissionActionDelete)
 	if err != nil {
 		return err
@@ -131,6 +129,10 @@ func (ra *RoleAPI) DeleteRole(tenantID, requestorUserID, roleID string, targetTe
 		return err
 	}
 
+	if err := ra.verificationManager.VerifyRoleNotAssigned(targetTenantID, roleID); err != nil {
+		return err
+	}
+
 	return ra.roleHandler.DeleteRole(targetTenantID, roleID)
 }
 
@@ -142,6 +144,10 @@ func (ra *RoleAPI) DeleteTenantRoles(tenantID, requestorUserID, targetTenantID s
 
 	if err := ra.verificationManager.HasPermission(tenantID, requestorUserID, permission, targetTenantID); err != nil {
 		ra.logger.Warn("Permission denied for DeleteRole", "tenant_id", tenantID, "user_id", requestorUserID, "permission", permission)
+		return err
+	}
+
+	if err := ra.verificationManager.VerifyRolesNotAssigned(targetTenantID); err != nil {
 		return err
 	}
 
@@ -160,49 +166,5 @@ func (ra *RoleAPI) checkProtectedRole(tenantID, requestorUserID, roleID string) 
 			return infra_error.Auth(infra_error.AuthPermissionDenied)
 		}
 	}
-	return nil
-}
-
-// validatePermissionIDs verifies that all permission IDs exist in the database
-// Uses MongoDB aggregation for efficient batch validation (single query instead of N queries)
-func (ra *RoleAPI) validatePermissionIDs(tenantID string, permissionIDs []string) *infra_error.AppError {
-	if len(permissionIDs) == 0 {
-		return nil // Empty permissions allowed
-	}
-
-	// Use aggregation to batch validate (single database query)
-	permissions, err := ra.permissionHandler.GetPermissionsByIDsAggregation(
-		tenantID,
-		permissionIDs,
-		[]string{"_id"}, // Only fetch IDs for efficiency
-	)
-	if err != nil {
-		ra.logger.Error("Failed to validate permission IDs", "tenant_id", tenantID, "error", err)
-		return err
-	}
-
-	// Check if all IDs were found
-	if len(permissions) != len(permissionIDs) {
-		// Find which IDs are missing for detailed error message
-		foundIDs := make(map[string]bool)
-		for _, perm := range permissions {
-			foundIDs[perm.Id] = true
-		}
-
-		missingIDs := []string{}
-		for _, id := range permissionIDs {
-			if !foundIDs[id] {
-				missingIDs = append(missingIDs, id)
-			}
-		}
-
-		ra.logger.Warn("Invalid permission IDs in role", "tenant_id", tenantID, "missing_ids", missingIDs)
-		return infra_error.NotFound(
-			infra_error.NotFoundPermission,
-			model_auth.ResourceTypePermission,
-			strings.Join(missingIDs, ", "),
-		)
-	}
-
 	return nil
 }

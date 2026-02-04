@@ -28,7 +28,7 @@ def inject_user(mongo_client, tenant_id, email, username, status=1, roles=None, 
         "tenant_id": tenant_id,
         "email": email,
         "username": username,
-        "password_hash": kwargs.get("password_hash", "hashed_password_default"),
+        "password": kwargs.get("password", "hashed_password_default"),
         "profile": kwargs.get("profile", {
             "first_name": username.capitalize(),
             "last_name": "User",
@@ -113,7 +113,7 @@ def inject_role(mongo_client, tenant_id, name, permissions, **kwargs):
         mongo_client: MongoDB client instance
         tenant_id: Tenant ID for the role
         name: Role name
-        permissions: List of permission IDs
+        permissions: List of permission strings (e.g. ["*:*", "user:read"])
         **kwargs: Additional fields (description, type, status, created_by, etc.)
 
     Returns:
@@ -176,14 +176,13 @@ def inject_permission(mongo_client, tenant_id, permission_string, resource, acti
 
 def inject_tenant_with_defaults(mongo_client, name, slug, admin_user_id, **kwargs):
     """
-    Inject tenant with automatic seeding of defaults (permission, role, user).
+    Inject tenant with automatic seeding of defaults (role, user).
 
     This mimics what CreateTenant gRPC does automatically:
-    1. Creates wildcard permission (*:*)
-    2. Creates TenantAdmin role
-    3. Creates admin user for tenant
+    1. Creates TenantAdmin role with permission string "*:*"
+    2. Creates admin user for tenant
 
-    Use this when tests expect the full tenant setup with defaults.
+    Permissions are code-defined in the registry — no permission documents are written.
 
     Args:
         mongo_client: MongoDB client instance
@@ -193,23 +192,14 @@ def inject_tenant_with_defaults(mongo_client, name, slug, admin_user_id, **kwarg
         **kwargs: Additional fields passed to inject_tenant
 
     Returns:
-        dict: Dictionary with tenant_id, permission_id, role_id, user_id
+        dict: Dictionary with tenant_id, role_id, user_id
     """
     # Inject tenant
     tenant_id = inject_tenant(mongo_client, name, slug, **kwargs)
 
-    # Inject wildcard permission
-    perm_id = inject_permission(
-        mongo_client, tenant_id, "*:*", "*", "*",
-        display_name="Full Access",
-        description="Grants full access to all resources",
-        is_dangerous=True,
-        created_by=admin_user_id
-    )
-
-    # Inject TenantAdmin role
+    # Inject TenantAdmin role with wildcard permission string
     role_id = inject_role(
-        mongo_client, tenant_id, "TenantAdmin", [perm_id],
+        mongo_client, tenant_id, "TenantAdmin", ["*:*"],
         description="Tenant administrator with full access",
         type=1,  # ROLE_TYPE_SYSTEM
         created_by=admin_user_id
@@ -218,7 +208,7 @@ def inject_tenant_with_defaults(mongo_client, name, slug, admin_user_id, **kwarg
     # Inject admin user
     user_id = inject_user(
         mongo_client, tenant_id, f"admin@{slug}.com", "admin",
-        password_hash="hashed_password_admin",
+        password="vK9!xQp#2A@ZLr8",
         profile={
             "first_name": "Admin",
             "last_name": "User",
@@ -235,7 +225,6 @@ def inject_tenant_with_defaults(mongo_client, name, slug, admin_user_id, **kwarg
 
     return {
         "tenant_id": tenant_id,
-        "permission_id": perm_id,
         "role_id": role_id,
         "user_id": user_id
     }

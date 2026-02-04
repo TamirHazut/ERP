@@ -35,11 +35,7 @@ func NewRoleAggregationHandler(logger logger.Logger) (*RoleAggregationHandler, *
 
 // GetUserRoles retrieves all roles for a user using aggregation
 // This replaces the N query pattern (1 query per role)
-func (h *RoleAggregationHandler) GetUserRoles(
-	ctx context.Context,
-	tenantID, userID string,
-	fields []string,
-) ([]*authv1.Role, *infra_error.AppError) {
+func (h *RoleAggregationHandler) GetUserRoles(ctx context.Context, tenantID, userID string, fields []string) ([]*authv1.Role, *infra_error.AppError) {
 	pipelineStages := pipeline.BuildUserRolesPipeline(tenantID, userID)
 	return h.AggregateFrom(ctx, string(model_mongo.UsersCollection), pipelineStages, fields)
 }

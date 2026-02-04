@@ -107,6 +107,11 @@ var (
 		Message:  "Invalid email address",
 		Category: CategoryValidation,
 	}
+	ValidationInvalidUsername = ErrorDef{
+		Code:     "VALIDATION_INVALID_USERNAME",
+		Message:  "Invalid username",
+		Category: CategoryValidation,
+	}
 	ValidationInvalidPhone = ErrorDef{
 		Code:     "VALIDATION_INVALID_PHONE",
 		Message:  "Invalid phone number",

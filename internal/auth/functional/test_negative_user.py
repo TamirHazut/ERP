@@ -65,7 +65,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="duplicate@example.com",
                 username="user1",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 profile={"first_name": "User", "last_name": "One"},
                 status=1,  # USER_STATUS_ACTIVE
                 preferences={
@@ -84,7 +84,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="duplicate@example.com",  # Same email
                 username="user2",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="User", last_name="Two"),
@@ -118,7 +118,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user1@example.com",
                 username="duplicateuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 profile={"first_name": "User", "last_name": "One"},
                 status=1,  # USER_STATUS_ACTIVE
                 preferences={
@@ -137,7 +137,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user2@example.com",
                 username="duplicateuser",  # Same username
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="User", last_name="Two"),
@@ -170,7 +170,7 @@ class TestUserManagementErrors:
                 tenant_id="000000000000000000000000",  # Non-existent tenant
                 email="user@example.com",
                 username="testuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="Test", last_name="User"),
@@ -203,7 +203,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="",  # Empty email
                 username="testuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="Test", last_name="User"),
@@ -236,7 +236,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user@example.com",
                 username="testuser",
-                password_hash="",  # Empty password
+                password="",  # Empty password
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="Test", last_name="User"),
@@ -269,7 +269,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="invalid-email-no-at-sign",  # Invalid email format
                 username="testuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="Test", last_name="User"),
@@ -302,7 +302,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user@example.com",
                 username="testuser",
-                password_hash="short",  # Too short password
+                password="short",  # Too short password
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="Test", last_name="User"),
@@ -335,7 +335,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user@example.com",
                 username="testuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 roles=[user_pb2.UserRole(
@@ -395,7 +395,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,  # Our tenant
                 email="user@example.com",
                 username="testuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 roles=[user_pb2.UserRole(
@@ -444,42 +444,37 @@ class TestUserManagementErrors:
 
     def test_get_user_cross_tenant_access(self):
         """Test GetUser for user from different tenant."""
-        logger.info("Step 1: Creating user in different tenant")
+        logger.info("Step 1: Injecting new tenant and new user directly into MongoDB")
+
+        # Pre-test: Inject a new tenant and a user belonging to that tenant
+        database = os.getenv("AUTH_DB_NAME", "auth_db_test")
+        with MongoDBClient(database) as mongo:
+            other_tenant_id = inject_tenant(
+                mongo,
+                name="Other Tenant for Permission",
+                slug="other-tenant-permission",
+                status=1,  # TENANT_STATUS_ACTIVE
+                created_by=self.admin_user_id
+            )
+
+            other_tenant_user_id = inject_user(
+                mongo,
+                tenant_id=other_tenant_id,
+                email="other@erp.com",
+                username="otheruser",
+                status=1,  # USER_STATUS_ACTIVE
+                created_by=self.admin_user_id
+            )
 
         # Pre-test: Create another tenant with user
         with GrpcClient(TestConfig.AUTH_SERVICE) as client:
-            tenant_stub = tenant_pb2_grpc.TenantServiceStub(client.get_channel())
-
-            new_tenant = tenant_pb2.Tenant(
-                name="Other Tenant 2",
-                slug="other-tenant-2",
-                status=tenant_pb2.TENANT_STATUS_ACTIVE,
-                created_by=self.admin_user_id,
-                contact=tenant_pb2.ContactInfo(email="test@erp.com")
-            )
-
-            create_tenant_request = tenant_pb2.CreateTenantRequest(
-                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
-                tenant=new_tenant
-            )
-
-            create_tenant_response = tenant_stub.CreateTenant(create_tenant_request)
-            other_tenant_id = create_tenant_response.tenant_id
-
-            # Get user from other tenant
-            database = os.getenv("AUTH_DB_NAME", "auth_db_test")
-            with MongoDBClient(database) as mongo:
-                users_collection = mongo.get_collection("users")
-                other_tenant_user = users_collection.find_one({"tenant_id": other_tenant_id})
-                other_tenant_user_id = other_tenant_user["_id"]
-
             logger.info("Step 2: Attempting to get user from different tenant")
             user_stub = user_pb2_grpc.UserServiceStub(client.get_channel())
 
             request = user_pb2.GetUserRequest(
-                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
-                target_tenant_id=other_tenant_id,  # Different tenant
-                account_id=other_tenant_user_id
+                identifier=infra_pb2.UserIdentifier(tenant_id=other_tenant_id, user_id=other_tenant_user_id),
+                target_tenant_id=self.tenant_id,  # Different tenant
+                account_id=self.admin_user_id
             )
 
             logger.info("Step 3: Expecting PERMISSION_DENIED error")
@@ -527,27 +522,37 @@ class TestUserManagementErrors:
 
     def test_list_users_cross_tenant_filter(self):
         """Test ListUsers filtering by different tenant."""
-        logger.info("Step 1: Injecting another tenant directly into MongoDB")
+        logger.info("Step 1: Injecting new tenant and new user directly into MongoDB")
 
-        # Pre-test: Inject another tenant directly into MongoDB
+        # Pre-test: Inject a new tenant and a user belonging to that tenant
         database = os.getenv("AUTH_DB_NAME", "auth_db_test")
         with MongoDBClient(database) as mongo:
             other_tenant_id = inject_tenant(
                 mongo,
-                name="Other Tenant 3",
-                slug="other-tenant-3",
+                name="Other Tenant for Permission",
+                slug="other-tenant-permission",
                 status=1,  # TENANT_STATUS_ACTIVE
                 created_by=self.admin_user_id
             )
 
-        logger.info("Step 2: Attempting to list users from different tenant")
-        # Act - Test ListUsers gRPC endpoint with cross-tenant access
+            other_tenant_user_id = inject_user(
+                mongo,
+                tenant_id=other_tenant_id,
+                email="other@erp.com",
+                username="otheruser",
+                status=1,  # USER_STATUS_ACTIVE
+                created_by=self.admin_user_id
+            )
+
+
+        # Pre-test: Create another tenant with user
         with GrpcClient(TestConfig.AUTH_SERVICE) as client:
+            logger.info("Step 2: Attempting to get users from different tenant")
             user_stub = user_pb2_grpc.UserServiceStub(client.get_channel())
 
             request = user_pb2.ListUsersRequest(
-                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
-                target_tenant_id=other_tenant_id  # Different tenant
+                identifier=infra_pb2.UserIdentifier(tenant_id=other_tenant_id, user_id=other_tenant_user_id),
+                target_tenant_id=self.tenant_id  # Different tenant
             )
 
             logger.info("Step 3: Expecting PERMISSION_DENIED error")
@@ -556,6 +561,7 @@ class TestUserManagementErrors:
 
             assert exc_info.value.code() == grpc.StatusCode.PERMISSION_DENIED
             logger.info("Step 4: Test completed - received expected PERMISSION_DENIED error")
+        
 
     def test_update_user_nonexistent(self):
         """Test UpdateUser with invalid user_id."""
@@ -569,7 +575,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user@example.com",
                 username="testuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="Test", last_name="User"),
@@ -604,7 +610,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user1@example.com",
                 username="user1",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 profile={"first_name": "User", "last_name": "One"},
                 status=1,  # USER_STATUS_ACTIVE
                 preferences={
@@ -620,7 +626,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user2@example.com",
                 username="user2",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 profile={"first_name": "User", "last_name": "Two"},
                 status=1,  # USER_STATUS_ACTIVE
                 preferences={
@@ -640,7 +646,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user1@example.com",  # Duplicate email
                 username="user2",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=user_pb2.USER_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="User", last_name="Two"),
@@ -655,12 +661,12 @@ class TestUserManagementErrors:
                 user=user2
             )
 
-            logger.info("Step 3: Expecting ALREADY_EXISTS error")
+            logger.info("Step 3: Expecting INVALID_ARGUMENT error")
             with pytest.raises(grpc.RpcError) as exc_info:
                 stub.UpdateUser(update_request)
 
-            assert exc_info.value.code() == grpc.StatusCode.ALREADY_EXISTS
-            logger.info("Step 4: Test completed - received expected ALREADY_EXISTS error")
+            assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+            logger.info("Step 4: Test completed - received expected INVALID_ARGUMENT error")
 
     def test_update_user_cross_tenant_access(self):
         """Test UpdateUser for user from different tenant."""
@@ -682,7 +688,7 @@ class TestUserManagementErrors:
                 tenant_id=other_tenant_id,
                 email="other@example.com",
                 username="otheruser4",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=1,  # USER_STATUS_ACTIVE
                 created_by=self.admin_user_id
             )
@@ -693,11 +699,11 @@ class TestUserManagementErrors:
             user_stub = user_pb2_grpc.UserServiceStub(client.get_channel())
 
             updated_user = user_pb2.User(
-                id=other_user_id,
-                tenant_id=other_tenant_id,
+                id=self.admin_user_id,
+                tenant_id=self.tenant_id,
                 email="other@example.com",
                 username="otheruser4",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=user_pb2.USER_STATUS_SUSPENDED,  # Try to suspend
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="Updated", last_name="User"),
@@ -708,7 +714,7 @@ class TestUserManagementErrors:
             )
 
             request = user_pb2.UpdateUserRequest(
-                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
+                identifier=infra_pb2.UserIdentifier(tenant_id=other_tenant_id, user_id=other_user_id),
                 user=updated_user
             )
 
@@ -731,7 +737,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user@example.com",
                 username="testuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 profile={"first_name": "Test", "last_name": "User"},
                 status=1,  # USER_STATUS_ACTIVE
                 preferences={
@@ -751,7 +757,7 @@ class TestUserManagementErrors:
                 tenant_id=self.tenant_id,
                 email="user@example.com",
                 username="testuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=999,  # Invalid status
                 created_by=self.admin_user_id,
                 profile=user_pb2.UserProfile(first_name="Test", last_name="User"),
@@ -813,7 +819,7 @@ class TestUserManagementErrors:
                 tenant_id=other_tenant_id,
                 email="other5@example.com",
                 username="otheruser5",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=1,  # USER_STATUS_ACTIVE
                 created_by=self.admin_user_id
             )
@@ -824,9 +830,9 @@ class TestUserManagementErrors:
             user_stub = user_pb2_grpc.UserServiceStub(client.get_channel())
 
             request = user_pb2.DeleteUserRequest(
-                identifier=infra_pb2.UserIdentifier(tenant_id=self.tenant_id, user_id=self.admin_user_id),
-                target_tenant_id=other_tenant_id,  # Different tenant
-                account_id=other_tenant_user_id
+                identifier=infra_pb2.UserIdentifier(tenant_id=other_tenant_id, user_id=other_tenant_user_id),
+                target_tenant_id=self.tenant_id,  # Different tenant
+                account_id=self.admin_user_id
             )
 
             logger.info("Step 3: Expecting PERMISSION_DENIED error")

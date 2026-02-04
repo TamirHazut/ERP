@@ -44,7 +44,6 @@ class TestRoleManagement:
             self.tenant_id = system_data["tenant_id"]
             self.user_id = system_data["user_id"]
             self.role_id = system_data["role_id"]
-            self.permission_id = system_data["permission_id"]
 
         self.user_email = TestConfig.DEFAULT_ADMIN_EMAIL
         self.user_password = TestConfig.DEFAULT_ADMIN_PASSWORD
@@ -62,7 +61,7 @@ class TestRoleManagement:
                 tenant_id=self.tenant_id,
                 name="test_manager",
                 description="Test manager role",
-                permissions=[self.permission_id],  # Empty permissions for now
+                permissions=["*:*"],  # Empty permissions for now
                 status=role_pb2.ROLE_STATUS_ACTIVE,
                 type=role_pb2.ROLE_TYPE_CUSTOM,
                 created_by=self.user_id
@@ -98,7 +97,7 @@ class TestRoleManagement:
                 tenant_id=self.tenant_id,
                 name="test_role",
                 description="Test description",
-                permissions=[self.permission_id],
+                permissions=["*:*"],
                 status=role_pb2.ROLE_STATUS_ACTIVE,
                 type=role_pb2.ROLE_TYPE_CUSTOM,
                 created_by=self.user_id
@@ -121,7 +120,7 @@ class TestRoleManagement:
                 tenant_id=self.tenant_id,
                 name="test_role",
                 description="Updated description",
-                permissions=[self.permission_id],
+                permissions=["*:*"],
                 status=role_pb2.ROLE_STATUS_ACTIVE,
                 type=role_pb2.ROLE_TYPE_CUSTOM,
                 created_by=self.user_id
@@ -168,7 +167,7 @@ class TestRoleManagement:
                 tenant_id=self.tenant_id,
                 name="test_role",
                 description="Test description",
-                permissions=[self.permission_id],
+                permissions=["*:*"],
                 status=role_pb2.ROLE_STATUS_ACTIVE,
                 type=role_pb2.ROLE_TYPE_CUSTOM,
                 created_by=self.user_id
@@ -220,7 +219,7 @@ class TestRoleManagement:
                     tenant_id=self.tenant_id,
                     name=name,
                     description=f"Description for {name}",
-                    permissions=[self.permission_id],
+                    permissions=["*:*"],
                     status=role_pb2.ROLE_STATUS_ACTIVE,
                     type=role_pb2.ROLE_TYPE_CUSTOM,
                 created_by=self.user_id
@@ -270,7 +269,7 @@ class TestRoleManagement:
                 tenant_id=self.tenant_id,
                 name="test_role_to_delete",
                 description="This role will be deleted",
-                permissions=[self.permission_id],
+                permissions=["*:*"],
                 status=role_pb2.ROLE_STATUS_ACTIVE,
                 type=role_pb2.ROLE_TYPE_CUSTOM,
                 created_by=self.user_id

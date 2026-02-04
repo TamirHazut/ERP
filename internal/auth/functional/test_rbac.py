@@ -46,7 +46,6 @@ class TestRBACVerification:
             self.tenant_id = system_data["tenant_id"]
             self.user_id = system_data["user_id"]
             self.role_id = system_data["role_id"]
-            self.permission_id = system_data["permission_id"]
 
         self.user_email = TestConfig.DEFAULT_ADMIN_EMAIL
         self.user_password = TestConfig.DEFAULT_ADMIN_PASSWORD
@@ -65,15 +64,14 @@ class TestRBACVerification:
                     tenant_id=self.tenant_id,
                     user_id=self.user_id
                 ),
-                permissions=["products:read", "products:write", "orders:read"]
+                permissions=["user:*", "*:read"]
             )
             check_response = stub.CheckPermissions(check_request)
 
             logger.info("Step 3: Assert - validating all permissions are granted")
             # Assert: Admin with *:* has all permissions
-            assert check_response.permissions["products:read"] is True
-            assert check_response.permissions["products:write"] is True
-            assert check_response.permissions["orders:read"] is True
+            assert check_response.permissions["user:*"] is True
+            assert check_response.permissions["*:read"] is True
             logger.info("All permissions granted (admin has *:* permission)")
 
             logger.info("Step 4: CheckPermissions test completed successfully")
@@ -92,7 +90,7 @@ class TestRBACVerification:
                     tenant_id=self.tenant_id,
                     user_id=self.user_id
                 ),
-                permission="products:read",
+                permission="user:read",
                 target_tenant_id=self.tenant_id
             )
             has_response = stub.HasPermission(has_request)

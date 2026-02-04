@@ -1,7 +1,8 @@
 package api
 
 import (
-	"erp.localhost/internal/auth/handler"
+	"strings"
+
 	"erp.localhost/internal/auth/rbac"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
@@ -9,61 +10,24 @@ import (
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 )
 
-// PermissionAPI provides permission management with authorization enforcement
+// PermissionAPI provides permission read operations backed by the code-defined registry.
 type PermissionAPI struct {
-	permissionHandler   *handler.PermissionHandler
 	verificationManager *rbac.VerificationManager
 	logger              logger.Logger
 }
 
 // NewPermissionAPI creates a new PermissionAPI instance
 func NewPermissionAPI(
-	permissionHandler *handler.PermissionHandler,
 	verificationManager *rbac.VerificationManager,
 	logger logger.Logger,
 ) *PermissionAPI {
 	return &PermissionAPI{
-		permissionHandler:   permissionHandler,
 		verificationManager: verificationManager,
 		logger:              logger,
 	}
 }
 
-// CreatePermission creates a new permission with authorization check
-func (pa *PermissionAPI) CreatePermission(tenantID, requestorUserID string, permission *authv1.Permission, targetTenantID string) (string, *infra_error.AppError) {
-	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionCreate)
-	if err != nil {
-		return "", err
-	}
-
-	if err := pa.verificationManager.HasPermission(tenantID, requestorUserID, permissionStr, targetTenantID); err != nil {
-		pa.logger.Warn("Permission denied for CreatePermission", "tenant_id", tenantID, "user_id", requestorUserID, "permission", permissionStr)
-		return "", err
-	}
-
-	if permission.Protected && !pa.verificationManager.IsSystemTenantUser(tenantID) {
-		permission.Protected = false
-	}
-
-	return pa.permissionHandler.CreatePermission(permission)
-}
-
-// UpdatePermission updates an existing permission with authorization check
-func (pa *PermissionAPI) UpdatePermission(tenantID, requestorUserID string, permission *authv1.Permission, targetTenantID string) *infra_error.AppError {
-	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionUpdate)
-	if err != nil {
-		return err
-	}
-
-	if err := pa.verificationManager.HasPermission(tenantID, requestorUserID, permissionStr, targetTenantID); err != nil {
-		pa.logger.Warn("Permission denied for UpdatePermission", "tenant_id", tenantID, "user_id", requestorUserID, "permission", permissionStr)
-		return err
-	}
-
-	return pa.permissionHandler.UpdatePermission(permission)
-}
-
-// GetPermissionByID retrieves a permission by ID with authorization check
+// GetPermissionByID retrieves a single permission from the registry by its permission string.
 func (pa *PermissionAPI) GetPermissionByID(tenantID, requestorUserID, permissionID string, targetTenantID string) (*authv1.Permission, *infra_error.AppError) {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionRead)
 	if err != nil {
@@ -75,10 +39,21 @@ func (pa *PermissionAPI) GetPermissionByID(tenantID, requestorUserID, permission
 		return nil, err
 	}
 
-	return pa.permissionHandler.GetPermissionByID(targetTenantID, permissionID)
+	if !model_auth.IsValidPermissionString(permissionID) {
+		return nil, infra_error.NotFound(infra_error.NotFoundPermission, model_auth.ResourceTypePermission, permissionID)
+	}
+
+	// Find the definition to populate Resource/Action fields
+	for _, def := range model_auth.GetAllPermissions() {
+		if def.String == strings.ToLower(permissionID) {
+			return defToProto(def, targetTenantID), nil
+		}
+	}
+
+	return nil, infra_error.NotFound(infra_error.NotFoundPermission, model_auth.ResourceTypePermission, permissionID)
 }
 
-// ListPermissions retrieves all permissions for a tenant with authorization check
+// ListPermissions retrieves all active permissions from the registry.
 func (pa *PermissionAPI) ListPermissions(tenantID, requestorUserID string, targetTenantID string) ([]*authv1.Permission, *infra_error.AppError) {
 	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionRead)
 	if err != nil {
@@ -90,54 +65,36 @@ func (pa *PermissionAPI) ListPermissions(tenantID, requestorUserID string, targe
 		return nil, err
 	}
 
-	return pa.permissionHandler.GetPermissionsByTenantID(targetTenantID)
+	// Config service not yet built — pass all flags enabled (no gating in effect)
+	defs := model_auth.GetActivePermissions(map[string]bool{})
+
+	permissions := make([]*authv1.Permission, 0, len(defs))
+	for _, def := range defs {
+		permissions = append(permissions, defToProto(def, targetTenantID))
+	}
+
+	return permissions, nil
 }
 
-// DeletePermission deletes a permission with authorization check
-func (pa *PermissionAPI) DeletePermission(tenantID, requestorUserID, permissionID, targetTenantID string) *infra_error.AppError {
-	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionDelete)
-	if err != nil {
-		return err
+// defToProto converts a registry PermissionDef into an authv1.Permission proto.
+func defToProto(def model_auth.PermissionDef, tenantID string) *authv1.Permission {
+	return &authv1.Permission{
+		Id:               def.String,
+		TenantId:         tenantID,
+		Resource:         def.Resource,
+		Action:           def.Action,
+		PermissionString: def.String,
+		DisplayName:      titleCase(def.Resource) + " " + titleCase(def.Action),
+		Status:           authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE,
+		IsDangerous:      def.String == model_auth.PermissionAdminString,
+		Protected:        true,
 	}
-
-	if err := pa.verificationManager.HasPermission(tenantID, requestorUserID, permissionStr, targetTenantID); err != nil {
-		pa.logger.Warn("Permission denied for DeletePermission", "tenant_id", tenantID, "user_id", requestorUserID, "permission", permissionStr)
-		return err
-	}
-
-	if err := pa.checkProtectedPermission(tenantID, requestorUserID, permissionID, targetTenantID); err != nil {
-		return err
-	}
-
-	return pa.permissionHandler.DeletePermission(targetTenantID, permissionID)
 }
 
-// DeletePermission deletes a permission with authorization check
-func (pa *PermissionAPI) DeleteTenantPermissions(tenantID, requestorUserID, targetTenantID string) *infra_error.AppError {
-	permissionStr, err := model_auth.CreatePermissionString(model_auth.ResourceTypePermission, model_auth.PermissionActionDelete)
-	if err != nil {
-		return err
+// titleCase capitalises the first letter of s.
+func titleCase(s string) string {
+	if s == "" {
+		return s
 	}
-
-	if err := pa.verificationManager.HasPermission(tenantID, requestorUserID, permissionStr, targetTenantID); err != nil {
-		pa.logger.Warn("Permission denied for DeleteTenantPermissions", "tenant_id", tenantID, "user_id", requestorUserID, "permission", permissionStr)
-		return err
-	}
-
-	return pa.permissionHandler.DeleteTenantPermissions(targetTenantID)
-}
-
-func (pa *PermissionAPI) checkProtectedPermission(tenantID, requestorUserID, permissionID, targetTenantID string) *infra_error.AppError {
-	permission, err := pa.permissionHandler.GetPermissionByID(targetTenantID, permissionID)
-	if err != nil {
-		return err
-	}
-	if permission.Protected {
-		if !pa.verificationManager.IsSystemTenantUser(tenantID) ||
-			!pa.verificationManager.IsSystemAdminUser(requestorUserID) ||
-			pa.verificationManager.IsSystemPermission(permissionID) {
-			return infra_error.Auth(infra_error.AuthPermissionDenied)
-		}
-	}
-	return nil
+	return strings.ToUpper(s[:1]) + s[1:]
 }

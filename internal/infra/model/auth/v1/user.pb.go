@@ -88,7 +88,7 @@ type User struct {
 	TenantId              string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
 	Email                 string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email" bson:"email"`
 	Username              string                 `protobuf:"bytes,4,opt,name=username,proto3" json:"username" bson:"username"`
-	PasswordHash          string                 `protobuf:"bytes,5,opt,name=password_hash,json=passwordHash,proto3" json:"-" bson:"password_hash"`
+	Password              string                 `protobuf:"bytes,5,opt,name=password,proto3" json:"-" bson:"password"`
 	Profile               *UserProfile           `protobuf:"bytes,6,opt,name=profile,proto3" json:"profile" bson:"profile"`
 	Roles                 []*UserRole            `protobuf:"bytes,7,rep,name=roles,proto3" json:"roles" bson:"roles"`
 	AdditionalPermissions []string               `protobuf:"bytes,8,rep,name=additional_permissions,json=additionalPermissions,proto3" json:"additional_permissions,omitempty" bson:"additional_permissions,omitempty"`
@@ -171,9 +171,9 @@ func (x *User) GetUsername() string {
 	return ""
 }
 
-func (x *User) GetPasswordHash() string {
+func (x *User) GetPassword() string {
 	if x != nil {
-		return x.PasswordHash
+		return x.Password
 	}
 	return ""
 }
@@ -1162,13 +1162,13 @@ var File_auth_v1_user_proto protoreflect.FileDescriptor
 
 const file_auth_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x12auth/v1/user.proto\x12\aauth.v1\x1a\x14infra/v1/infra.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x13tagger/tagger.proto\"\xad\x12\n" +
+	"\x12auth/v1/user.proto\x12\aauth.v1\x1a\x14infra/v1/infra.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x13tagger/tagger.proto\"\x9f\x12\n" +
 	"\x04User\x123\n" +
 	"\x02id\x18\x01 \x01(\tB#\x9a\x84\x9e\x03\x1ebson:\"_id,omitempty\" json:\"id\"R\x02id\x12C\n" +
 	"\ttenant_id\x18\x02 \x01(\tB&\x9a\x84\x9e\x03!bson:\"tenant_id\" json:\"tenant_id\"R\btenantId\x124\n" +
 	"\x05email\x18\x03 \x01(\tB\x1e\x9a\x84\x9e\x03\x19bson:\"email\" json:\"email\"R\x05email\x12@\n" +
-	"\busername\x18\x04 \x01(\tB$\x9a\x84\x9e\x03\x1fbson:\"username\" json:\"username\"R\busername\x12G\n" +
-	"\rpassword_hash\x18\x05 \x01(\tB\"\x9a\x84\x9e\x03\x1dbson:\"password_hash\" json:\"-\"R\fpasswordHash\x12R\n" +
+	"\busername\x18\x04 \x01(\tB$\x9a\x84\x9e\x03\x1fbson:\"username\" json:\"username\"R\busername\x129\n" +
+	"\bpassword\x18\x05 \x01(\tB\x1d\x9a\x84\x9e\x03\x18bson:\"password\" json:\"-\"R\bpassword\x12R\n" +
 	"\aprofile\x18\x06 \x01(\v2\x14.auth.v1.UserProfileB\"\x9a\x84\x9e\x03\x1dbson:\"profile\" json:\"profile\"R\aprofile\x12G\n" +
 	"\x05roles\x18\a \x03(\v2\x11.auth.v1.UserRoleB\x1e\x9a\x84\x9e\x03\x19bson:\"roles\" json:\"roles\"R\x05roles\x12\x8b\x01\n" +
 	"\x16additional_permissions\x18\b \x03(\tBT\x9a\x84\x9e\x03Obson:\"additional_permissions,omitempty\" json:\"additional_permissions,omitempty\"R\x15additionalPermissions\x12\x7f\n" +

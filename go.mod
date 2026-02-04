@@ -3,13 +3,13 @@ module erp.localhost
 go 1.25.0
 
 require (
+	github.com/ccojocar/zxcvbn-go v1.0.4
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/rs/zerolog v1.34.0
 	github.com/srikrsna/protoc-gen-gotag v1.0.2
 	github.com/stretchr/testify v1.11.1
-	github.com/wagslane/go-password-validator v0.3.0
 	go.mongodb.org/mongo-driver v1.17.6
 	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.44.0

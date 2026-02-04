@@ -28,7 +28,7 @@ message User {
   string tenant_id = 2 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
   string email = 3 [(tagger.tags) = "bson:\"email\" json:\"email\""];
   string username = 4 [(tagger.tags) = "bson:\"username\" json:\"username\""];
-  string password_hash = 5 [(tagger.tags) = "bson:\"password_hash\" json:\"-\""];
+  string password = 5 [(tagger.tags) = "bson:\"password\" json:\"-\""];
   UserProfile profile = 6 [(tagger.tags) = "bson:\"profile\" json:\"profile\""];
   repeated UserRole roles = 7 [(tagger.tags) = "bson:\"roles\" json:\"roles\""];
   repeated string additional_permissions = 8 [(tagger.tags) = "bson:\"additional_permissions,omitempty\" json:\"additional_permissions,omitempty\""];

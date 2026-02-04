@@ -21,7 +21,7 @@ func ValidateTenant(t *authv1.Tenant, createOperation bool) *infra_error.AppErro
 	if t.CreatedBy == "" {
 		missingFields = append(missingFields, "CreatedBy")
 	}
-	if t.Status == authv1.TenantStatus_TENANT_STATUS_UNSPECIFIED {
+	if _, ok := authv1.TenantStatus_name[int32(t.Status)]; !ok || t.Status == authv1.TenantStatus_TENANT_STATUS_UNSPECIFIED {
 		missingFields = append(missingFields, "Status")
 	}
 	if t.GetContact().GetEmail() == "" {

@@ -70,20 +70,6 @@ message DeleteRoleRequest {
 }
 
 // Permission Service Messages
-message CreatePermissionRequest {
-    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
-    auth.v1.Permission permission = 2;           // Permission data to create
-}
-
-message CreatePermissionResponse {
-    string permission_id = 1;
-}
-
-message UpdatePermissionRequest {
-    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
-    auth.v1.Permission permission = 2;           // Permission data to update
-}
-
 message GetPermissionRequest {
     infra.v1.UserIdentifier identifier = 1;        // Requestor identity
     string permission_id = 2;                      // Permission ID to retrieve
@@ -99,12 +85,6 @@ message ListPermissionsRequest {
 message ListPermissionsResponse {
     repeated auth.v1.Permission permissions = 1;
     infra.v1.PaginationResponse pagination = 2;
-}
-
-message DeletePermissionRequest {
-    infra.v1.UserIdentifier identifier = 1;        // Requestor identity
-    string permission_id = 2;                      // Permission ID to delete
-    string target_tenant_id = 3;                   // Target tenant (for cross-tenant operations)
 }
 
 // Verification Service Messages
@@ -164,13 +144,10 @@ service RoleService {
     rpc DeleteRole(DeleteRoleRequest) returns (infra.v1.Response);
 }
 
-// PermissionService provides permission management operations
+// PermissionService provides permission read operations backed by the code-defined registry
 service PermissionService {
-    rpc CreatePermission(CreatePermissionRequest) returns (CreatePermissionResponse);
-    rpc UpdatePermission(UpdatePermissionRequest) returns (infra.v1.Response);
     rpc GetPermission(GetPermissionRequest) returns (auth.v1.Permission);
     rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse);
-    rpc DeletePermission(DeletePermissionRequest) returns (infra.v1.Response);
 }
 
 // VerificationService provides permission and role verification operations

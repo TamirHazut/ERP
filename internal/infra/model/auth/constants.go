@@ -209,7 +209,6 @@ func IsValidResourceType(resourceType string) bool {
 		ResourceTypeCustomer:   true,
 		ResourceTypeConfig:     true,
 		ResourceTypeTenant:     true,
-		ResourceTypeToken:      true,
 	}
 
 	return validResourceTypes[resourceType]

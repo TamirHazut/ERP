@@ -6,6 +6,7 @@ import (
 
 	infra_error "erp.localhost/internal/infra/error"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	"github.com/ccojocar/zxcvbn-go"
 )
 
 var (
@@ -32,16 +33,19 @@ func ValidateUser(u *authv1.User, createOperation bool) *infra_error.AppError {
 	if u.TenantId == "" {
 		missingFields = append(missingFields, "TenantId")
 	}
-	if (u.Email == "" || !IsValidEmail(u.Email)) && (u.Username == "" || !IsValidUsername(u.Username)) {
-		missingFields = append(missingFields, "Email or Username")
+	if u.Email == "" {
+		missingFields = append(missingFields, "Email")
 	}
-	if u.PasswordHash == "" {
-		missingFields = append(missingFields, "PasswordHash")
+	if u.Username == "" {
+		missingFields = append(missingFields, "Username")
+	}
+	if u.Password == "" {
+		missingFields = append(missingFields, "Password")
 	}
 	if u.CreatedBy == "" {
 		missingFields = append(missingFields, "CreatedBy")
 	}
-	if u.Status == authv1.UserStatus_USER_STATUS_UNSPECIFIED {
+	if _, ok := authv1.UserStatus_name[int32(u.Status)]; !ok || u.Status == authv1.UserStatus_USER_STATUS_UNSPECIFIED {
 		missingFields = append(missingFields, "Status")
 	}
 	if len(u.Roles) > 0 {
@@ -54,6 +58,16 @@ func ValidateUser(u *authv1.User, createOperation bool) *infra_error.AppError {
 	}
 	if len(missingFields) > 0 {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
+	}
+
+	if !IsValidEmail(u.Email) {
+		return infra_error.Validation(infra_error.ValidationInvalidEmail)
+	}
+	if !IsValidUsername(u.Username) {
+		return infra_error.Validation(infra_error.ValidationInvalidUsername)
+	}
+	if !IsStrongPassword(u.Password) {
+		return infra_error.Validation(infra_error.ValidationPasswordTooWeak)
 	}
 
 	return nil
@@ -163,4 +177,9 @@ func IsValidPhone(phone string) bool {
 	}
 	phone = strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(phone, " ", ""), "-", ""))
 	return phoneRegex.MatchString(phone)
+}
+
+func IsStrongPassword(pw string) bool {
+	result := zxcvbn.PasswordStrength(pw, nil)
+	return result.Score >= 3
 }

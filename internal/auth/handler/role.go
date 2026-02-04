@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"errors"
-	"strings"
 
 	aggregation_auth "erp.localhost/internal/auth/aggregation"
 	collection_auth "erp.localhost/internal/auth/collection"
@@ -47,7 +46,6 @@ func (r *RoleHandler) CreateRole(role *authv1.Role) (string, *infra_error.AppErr
 	role.CreatedAt = timestamppb.Now()
 	role.UpdatedAt = timestamppb.Now()
 	r.logger.Debug("Creating role", "role", role)
-	role.Name = strings.ToLower(role.Name)
 	return r.collection.Create(role)
 }
 
@@ -126,7 +124,7 @@ func (r *RoleHandler) DeleteRole(tenantID, roleID string) *infra_error.AppError 
 
 func (r *RoleHandler) DeleteTenantRoles(tenantID string) *infra_error.AppError {
 	if tenantID == "" {
-		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId", "RoleId")
+		return infra_error.Validation(infra_error.ValidationRequiredFields, "TenantId")
 	}
 	filter := map[string]any{
 		"tenant_id": tenantID,

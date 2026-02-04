@@ -21,7 +21,7 @@ func ValidateRole(r *authv1.Role, createOperation bool) *infra_error.AppError {
 	if r.Name == "" {
 		missingFields = append(missingFields, "Name")
 	}
-	if r.Status == authv1.RoleStatus_ROLE_STATUS_UNSPECIFIED {
+	if _, ok := authv1.RoleStatus_name[int32(r.Status)]; !ok || r.Status == authv1.RoleStatus_ROLE_STATUS_UNSPECIFIED {
 		missingFields = append(missingFields, "Status")
 	}
 	if r.CreatedBy == "" {
@@ -33,5 +33,5 @@ func ValidateRole(r *authv1.Role, createOperation bool) *infra_error.AppError {
 	if len(missingFields) > 0 {
 		return infra_error.Validation(infra_error.ValidationRequiredFields, missingFields...)
 	}
-	return nil
+	return ValidatePermissionStrings(r.Permissions)
 }

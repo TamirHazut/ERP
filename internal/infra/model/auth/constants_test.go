@@ -82,11 +82,13 @@ func TestCreatePermissionString(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			name:           "valid token:read permission",
+			name:           "invalid token:read permission - token is not a resource type",
 			resource:       "token",
 			action:         "read",
-			expectedResult: "token:read",
-			wantErr:        false,
+			expectedResult: "",
+			wantErr:        true,
+			errCategory:    infra_error.CategoryValidation,
+			expectedErrMsg: "resource",
 		},
 		// Mixed case should be normalized to lowercase
 		{
@@ -258,9 +260,9 @@ func TestIsValidPermissionFormat(t *testing.T) {
 			expected:         true,
 		},
 		{
-			name:             "valid token:update",
+			name:             "invalid token:update - token is not a resource type",
 			permissionFormat: "token:update",
-			expected:         true,
+			expected:         false,
 		},
 		// Mixed case should be normalized to lowercase
 		{

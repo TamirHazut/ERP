@@ -76,7 +76,8 @@ func (PermissionStatus) EnumDescriptor() ([]byte, []int) {
 	return file_auth_v1_permission_proto_rawDescGZIP(), []int{0}
 }
 
-// Permission model for MongoDB auth_db.permissions collection
+// Permission represents a single entry in the code-defined permission registry.
+// Permissions are never persisted; this message is the Get/List response shape.
 type Permission struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id,omitempty"`
@@ -89,8 +90,6 @@ type Permission struct {
 	Category         string                 `protobuf:"bytes,8,opt,name=category,proto3" json:"category" bson:"category"`
 	Status           PermissionStatus       `protobuf:"varint,9,opt,name=status,proto3,enum=auth.v1.PermissionStatus" json:"status" bson:"status"`
 	IsDangerous      bool                   `protobuf:"varint,10,opt,name=is_dangerous,json=isDangerous,proto3" json:"is_dangerous" bson:"is_dangerous"`
-	RequiresApproval bool                   `protobuf:"varint,11,opt,name=requires_approval,json=requiresApproval,proto3" json:"requires_approval" bson:"requires_approval"`
-	Dependencies     []string               `protobuf:"bytes,12,rep,name=dependencies,proto3" json:"dependencies,omitempty" bson:"dependencies,omitempty"`
 	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
 	UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	CreatedBy        string                 `protobuf:"bytes,15,opt,name=created_by,json=createdBy,proto3" json:"created_by" bson:"created_by"`
@@ -200,20 +199,6 @@ func (x *Permission) GetIsDangerous() bool {
 	return false
 }
 
-func (x *Permission) GetRequiresApproval() bool {
-	if x != nil {
-		return x.RequiresApproval
-	}
-	return false
-}
-
-func (x *Permission) GetDependencies() []string {
-	if x != nil {
-		return x.Dependencies
-	}
-	return nil
-}
-
 func (x *Permission) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
@@ -305,7 +290,7 @@ var File_auth_v1_permission_proto protoreflect.FileDescriptor
 
 const file_auth_v1_permission_proto_rawDesc = "" +
 	"\n" +
-	"\x18auth/v1/permission.proto\x12\aauth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\"\x85\v\n" +
+	"\x18auth/v1/permission.proto\x12\aauth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\"\xba\t\n" +
 	"\n" +
 	"Permission\x123\n" +
 	"\x02id\x18\x01 \x01(\tB#\x9a\x84\x9e\x03\x1ebson:\"_id,omitempty\" json:\"id\"R\x02id\x12C\n" +
@@ -319,8 +304,6 @@ const file_auth_v1_permission_proto_rawDesc = "" +
 	"\x06status\x18\t \x01(\x0e2\x19.auth.v1.PermissionStatusB \x9a\x84\x9e\x03\x1bbson:\"status\" json:\"status\"R\x06status\x12O\n" +
 	"\fis_dangerous\x18\n" +
 	" \x01(\bB,\x9a\x84\x9e\x03'bson:\"is_dangerous\" json:\"is_dangerous\"R\visDangerous\x12c\n" +
-	"\x11requires_approval\x18\v \x01(\bB6\x9a\x84\x9e\x031bson:\"requires_approval\" json:\"requires_approval\"R\x10requiresApproval\x12d\n" +
-	"\fdependencies\x18\f \x03(\tB@\x9a\x84\x9e\x03;bson:\"dependencies,omitempty\" json:\"dependencies,omitempty\"R\fdependencies\x12c\n" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"created_at\" json:\"created_at\"R\tcreatedAt\x12c\n" +
 	"\n" +

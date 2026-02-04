@@ -52,7 +52,6 @@ class TestUserManagement:
             self.tenant_id = system_data["tenant_id"]
             self.admin_user_id = system_data["user_id"]
             self.role_id = system_data["role_id"]
-            self.permission_id = system_data["permission_id"]
 
     def test_create_user_success(self):
         """Test successful user creation."""
@@ -67,7 +66,7 @@ class TestUserManagement:
                 tenant_id=self.tenant_id,
                 email="testuser@example.com",
                 username="testuser",
-                password_hash="hashed_password_123",  # In real scenario, this would be hashed
+                password="vK9!xQp#2A@ZLr8",  # In real scenario, this would be hashed
                 profile=user_pb2.UserProfile(
                     first_name="Test",
                     last_name="User",
@@ -134,7 +133,7 @@ class TestUserManagement:
                 tenant_id=self.tenant_id,
                 email="getuser@example.com",
                 username="getuser",
-                password_hash="hashed_password_123",
+                password="vK9!xQp#2A@ZLr8",
                 profile={
                     "first_name": "Get",
                     "last_name": "User",
@@ -191,7 +190,7 @@ class TestUserManagement:
                     tenant_id=self.tenant_id,
                     email=f"listuser{i}@example.com",
                     username=f"listuser{i}",
-                    password_hash="hashed_password_123",
+                    password="vK9!xQp#2A@ZLr8",
                     profile={
                         "first_name": f"List{i}",
                         "last_name": "User",
@@ -246,7 +245,7 @@ class TestUserManagement:
                 tenant_id=self.tenant_id,
                 email="updateuser@example.com",
                 username="updateuser",
-                password_hash="hashed_password_123",
+                password="vK9!xQp#2A@ZLr8",
                 profile={
                     "first_name": "Update",
                     "last_name": "User",
@@ -272,7 +271,7 @@ class TestUserManagement:
                 tenant_id=self.tenant_id,
                 email="updateuser@example.com",
                 username="updateuser",
-                password_hash="hashed_password_123",
+                password="vK9!xQp#2A@ZLr8",
                 profile=user_pb2.UserProfile(
                     first_name="Updated",
                     last_name="User",
@@ -339,7 +338,7 @@ class TestUserManagement:
                 tenant_id=self.tenant_id,
                 email="deleteuser@example.com",
                 username="deleteuser",
-                password_hash="hashed_password_123",
+                password="vK9!xQp#2A@ZLr8",
                 profile={
                     "first_name": "Delete",
                     "last_name": "User",
@@ -374,15 +373,13 @@ class TestUserManagement:
             logger.info("Step 3: Validating delete response")
             assert delete_response.deleted is True
 
-            logger.info("Step 4: Verifying user status changed in MongoDB")
-            # Post-test verification - check user status in MongoDB
+            logger.info("Step 4: Verifying user deleted from MongoDB")
+            # Post-test verification - check user deleted from MongoDB
             with MongoDBClient(database) as mongo:
                 users_collection = mongo.get_collection("users")
                 user_doc = users_collection.find_one({"_id": ObjectId(created_user_id)})
 
-                # User should still exist but with INACTIVE or SUSPENDED status
-                # (implementation may vary - check if status is not ACTIVE)
-                assert user_doc is not None
-                assert user_doc["status"] != user_pb2.USER_STATUS_ACTIVE
+                # User should be deleted
+                assert user_doc is None
 
             logger.info("Step 5: DeleteUser test completed successfully")

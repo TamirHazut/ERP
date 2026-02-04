@@ -17,9 +17,8 @@ import (
 )
 
 type TenantDefaults struct {
-	PermissionID string // ID of "*:*" permission
-	RoleId       string // ID of TenantAdmin role
-	UserId       string // ID of initial admin user
+	RoleId string // ID of TenantAdmin role
+	UserId string // ID of initial admin user
 }
 
 type TenantAPI struct {
@@ -57,7 +56,13 @@ func (t *TenantAPI) CreateTenant(tenantID, userID string, newTenant *authv1.Tena
 		return "", err
 	}
 
-	// Step 2: Check RBAC permission
+	// Step 2: Only system tenant users may create tenants
+	if !t.rbacAPI.Verification.IsSystemTenantUser(tenantID) {
+		t.logger.Warn("CreateTenant denied: requestor is not from system tenant", "tenant_id", tenantID, "user_id", userID)
+		return "", infra_error.Auth(infra_error.AuthPermissionDenied)
+	}
+
+	// Step 3: Check RBAC permission
 	if err := t.checkPermission(tenantID, userID, model_auth.ResourceTypeTenant, model_auth.PermissionActionCreate); err != nil {
 		return "", err
 	}
@@ -74,8 +79,8 @@ func (t *TenantAPI) CreateTenant(tenantID, userID string, newTenant *authv1.Tena
 	}
 	t.logger.Info("tenant created in database", "tenant_id", tenantID)
 
-	// Step 5: Seed defaults (permission, role, admin user)
-	defaults, err := t.seedDefaults(tenantID, adminEmail, userID)
+	// Step 5: Seed defaults (role, admin user)
+	defaults, err := t.seedDefaults(newTenantID, adminEmail, userID)
 	if err != nil {
 		t.logger.Error("failed to seed tenant defaults", "tenant_id", tenantID, "error", err)
 
@@ -86,7 +91,7 @@ func (t *TenantAPI) CreateTenant(tenantID, userID string, newTenant *authv1.Tena
 
 		return "", err
 	}
-	t.logger.Info("tenant defaults seeded", "tenant_id", tenantID, "permission_id", defaults.PermissionID, "role_id", defaults.RoleId, "user_id", defaults.UserId)
+	t.logger.Info("tenant defaults seeded", "tenant_id", tenantID, "role_id", defaults.RoleId, "user_id", defaults.UserId)
 
 	return newTenantID, nil
 }
@@ -99,6 +104,19 @@ func (t *TenantAPI) GetTenant(tenantID, userID, targetTenantID, targetTenantName
 		return nil, err
 	}
 
+	// Resolve target tenant: if only name was provided, look up the ID first
+	// so that the permission check below always has a valid target tenant ID.
+	var tenant *authv1.Tenant
+	if targetTenantID == "" {
+		t.logger.Debug("resolving tenant by name", "name", targetTenantName)
+		var err *infra_error.AppError
+		tenant, err = t.tenantHandler.GetTenantByName(targetTenantName)
+		if err != nil {
+			return nil, err
+		}
+		targetTenantID = tenant.Id
+	}
+
 	permission, err := model_auth.CreatePermissionString(model_auth.ResourceTypeTenant, model_auth.PermissionActionRead)
 	if err != nil {
 		return nil, err
@@ -108,13 +126,13 @@ func (t *TenantAPI) GetTenant(tenantID, userID, targetTenantID, targetTenantName
 		return nil, err
 	}
 
-	if targetTenantID != "" {
-		t.logger.Debug("getting tenant by id", "tenant_id", targetTenantID)
-		return t.tenantHandler.GetTenantByID(targetTenantID)
-	} else {
-		t.logger.Debug("getting tenant by name", "name", targetTenantName)
-		return t.tenantHandler.GetTenantByName(targetTenantName)
+	// If we already fetched the tenant by name above, return it directly
+	if tenant != nil {
+		return tenant, nil
 	}
+
+	t.logger.Debug("getting tenant by id", "tenant_id", targetTenantID)
+	return t.tenantHandler.GetTenantByID(targetTenantID)
 }
 
 func (t *TenantAPI) ListTenants(tenantID, userID, status string) ([]*authv1.Tenant, *infra_error.AppError) {
@@ -125,7 +143,13 @@ func (t *TenantAPI) ListTenants(tenantID, userID, status string) ([]*authv1.Tena
 		return nil, err
 	}
 
-	// Step 2: Check RBAC permission
+	// Step 2: Only system tenant users may list tenants
+	if !t.rbacAPI.Verification.IsSystemTenantUser(tenantID) {
+		t.logger.Warn("ListTenants denied: requestor is not from system tenant", "tenant_id", tenantID, "user_id", userID)
+		return nil, infra_error.Auth(infra_error.AuthPermissionDenied)
+	}
+
+	// Step 3: Check RBAC permission
 	if err := t.checkPermission(tenantID, userID, model_auth.ResourceTypeTenant, model_auth.PermissionActionRead); err != nil {
 		return nil, err
 	}
@@ -228,17 +252,7 @@ func (t *TenantAPI) DeleteTenant(tenantID, userID, targetTenantID string) *infra
 		t.logger.Info("deleted all roles for tenant", "target_tenant_id", targetTenantID)
 	}
 
-	// STEP 6: Delete ALL permissions for this tenant (bulk operation)
-	// This deletes all permission documents with matching tenant_id in one operation
-	t.logger.Info("deleting all permissions for tenant", "target_tenant_id", targetTenantID)
-	if err := t.rbacAPI.Permissions.DeleteTenantPermissions(tenantID, userID, targetTenantID); err != nil {
-		t.logger.Error("failed to delete permissions for tenant", "target_tenant_id", targetTenantID, "error", err)
-		// Continue with deletion even if this fails
-	} else {
-		t.logger.Info("deleted all permissions for tenant", "target_tenant_id", targetTenantID)
-	}
-
-	// STEP 7 Delete the tenant itself
+	// STEP 6: Delete the tenant itself
 	t.logger.Info("deleting tenant", "target_tenant_id", targetTenantID)
 	return t.tenantHandler.DeleteTenant(targetTenantID)
 }
@@ -277,16 +291,8 @@ func (t *TenantAPI) seedDefaults(tenantID, adminEmail, createdBy string) (*Tenan
 
 	defaults := &TenantDefaults{}
 
-	// Step 1: Create "*:*" permission
-	permissionID, err := t.createWildcardPermission(tenantID, createdBy)
-	if err != nil {
-		return nil, err
-	}
-	defaults.PermissionID = permissionID
-	t.logger.Info("Wildcard permission created", "tenant_id", tenantID, "permission_id", permissionID)
-
-	// Step 2: Create TenantAdmin role
-	roleID, err := t.createTenantAdminRole(tenantID, permissionID, createdBy)
+	// Step 1: Create TenantAdmin role with "*:*" permission string
+	roleID, err := t.createTenantAdminRole(tenantID, model_auth.PermissionAdminString, createdBy)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +300,7 @@ func (t *TenantAPI) seedDefaults(tenantID, adminEmail, createdBy string) (*Tenan
 	t.logger.Info("TenantAdmin role created", "tenant_id", tenantID, "role_id", roleID)
 
 	// Step 3: Create initial admin user in Core
-	userID, err := t.createAdminUser(tenantID, db.TenantAdminUser, db.TenantAdminPassword, roleID, createdBy)
+	userID, err := t.createAdminUser(tenantID, adminEmail, db.TenantAdminUser, db.TenantAdminPassword, roleID, createdBy)
 	if err != nil {
 		return nil, err
 	}
@@ -303,24 +309,6 @@ func (t *TenantAPI) seedDefaults(tenantID, adminEmail, createdBy string) (*Tenan
 
 	t.logger.Info("Tenant defaults seeded successfully", "tenant_id", tenantID)
 	return defaults, nil
-}
-
-func (t *TenantAPI) createWildcardPermission(tenantID, createdBy string) (string, *infra_error.AppError) {
-
-	permission := &authv1.Permission{
-		TenantId:         tenantID,
-		DisplayName:      "Full Access",
-		PermissionString: model_auth.PermissionAdminString,
-		Description:      "Grants full access to all resources and actions",
-		Resource:         model_auth.ResourceTypeAll,     // "*"
-		Action:           model_auth.PermissionActionAll, // "*"
-		Status:           authv1.PermissionStatus_PERMISSION_STATUS_ACTIVE,
-		CreatedBy:        createdBy,
-		IsDangerous:      true,
-		Protected:        true,
-	}
-
-	return t.rbacAPI.Permissions.CreatePermission(tenantID, createdBy, permission, tenantID)
 }
 
 func (t *TenantAPI) createTenantAdminRole(tenantID, permissionID, createdBy string) (string, *infra_error.AppError) {
@@ -334,22 +322,23 @@ func (t *TenantAPI) createTenantAdminRole(tenantID, permissionID, createdBy stri
 		CreatedBy:   createdBy,
 	}
 
-	return t.rbacAPI.Roles.CreateRole(tenantID, createdBy, role, tenantID)
+	return t.rbacAPI.Roles.roleHandler.CreateRole(role)
 }
 
-func (t *TenantAPI) createAdminUser(tenantID, username, plainPassword, roleID, createdBy string) (string, *infra_error.AppError) {
+func (t *TenantAPI) createAdminUser(tenantID, email, username, plainPassword, roleID, createdBy string) (string, *infra_error.AppError) {
 	// Hash password
-	hashedPassword, err := hash.HashPassword(plainPassword)
+	hashedPassword, err := hash.Hash(plainPassword)
 	if err != nil {
 		return "", err
 	}
 
 	user := &authv1.User{
-		TenantId:     tenantID,
-		Username:     username,
-		PasswordHash: hashedPassword,
-		Status:       authv1.UserStatus_USER_STATUS_ACTIVE,
-		CreatedBy:    createdBy,
+		TenantId:  tenantID,
+		Email:     email,
+		Username:  username,
+		Password:  hashedPassword,
+		Status:    authv1.UserStatus_USER_STATUS_ACTIVE,
+		CreatedBy: createdBy,
 		Roles: []*authv1.UserRole{
 			{
 				TenantId:   tenantID,
@@ -386,13 +375,6 @@ func (t *TenantAPI) RollbackDefaults(ctx context.Context, tenantID string, defau
 	if defaults.RoleId != "" {
 		if err := t.rbacAPI.Roles.DeleteRole(tenantID, defaults.UserId, defaults.RoleId, tenantID); err != nil {
 			rollbackErrors = append(rollbackErrors, fmt.Errorf("failed to delete role via gRPC: %w", err))
-		}
-	}
-
-	// Delete permission (via Auth gRPC)
-	if defaults.PermissionID != "" {
-		if err := t.rbacAPI.Permissions.DeletePermission(tenantID, defaults.UserId, defaults.PermissionID, tenantID); err != nil {
-			rollbackErrors = append(rollbackErrors, fmt.Errorf("failed to delete permission via gRPC: %w", err))
 		}
 	}
 

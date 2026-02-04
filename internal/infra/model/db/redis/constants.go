@@ -10,10 +10,10 @@ const (
 
 	// Token keys
 	RedisKeySystem         = "system"
-	RedisKeyToken          = "tokens"         // tokens:{tenant_id}:{user_id}
-	RedisKeyRefreshToken   = "refresh_tokens" // refresh_tokens:{tenant_id}:{user_id}
-	RedisKeyRevokedToken   = "revoked_tokens" // revoked_tokens:{tenant_id}:{user_id}
-	RedisKeyBlacklistToken = "blacklist"      // blacklist:{tenant_id}:{user_id}
+	RedisKeyToken          = "token"         // token:{tenant_id}:{user_id}
+	RedisKeyRefreshToken   = "refresh_token" // refresh_token:{tenant_id}:{user_id}
+	RedisKeyRevokedToken   = "revoked_token" // revoked_token:{tenant_id}:{user_id}
+	RedisKeyBlacklistToken = "blacklist"     // blacklist:{tenant_id}:{user_id}
 
 	RedisKeyUserAccessTokens  = "user_access_tokens"  // user_access_tokens:{tenant_id}:{user_id} -> set of token_ids
 	RedisKeyUserRefreshTokens = "user_refresh_tokens" // user_refresh_tokens:{tenant_id}:{user_id} -> set of token_ids

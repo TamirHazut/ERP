@@ -14,6 +14,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
+func init() {
+	// Strip the full filesystem path down to the base filename only.
+	// This avoids leaking the server's directory layout in log output
+	// (relevant if logs are shipped to external collectors or exposed).
+	zerolog.CallerMarshalFunc = func(_ uintptr, file string, line int) string {
+		return fmt.Sprintf("%s:%d", filepath.Base(file), line)
+	}
+
+	// Default CallerSkipFrameCount is 2 (zerolog internals).
+	// Add 2 for the BaseLogger wrapper: public method (e.g. Error) → log().
+	zerolog.CallerSkipFrameCount = 4
+}
+
 //go:generate mockgen -destination=mock/mock_logger.go -package=mock erp.localhost/internal/infra/logging/logger Logger
 
 type Logger interface {
@@ -206,6 +219,7 @@ func NewBaseLogger(module shared.Module, opts ...map[string]string) *BaseLogger 
 	baseLogger := zerolog.New(writer).
 		With().
 		Timestamp().
+		Caller().
 		Str("module", string(module)).
 		Logger()
 
@@ -242,6 +256,13 @@ func (f *pipeFormatter) Write(p []byte) (n int, err error) {
 		delete(logData, zerolog.LevelFieldName)
 	}
 	buf.WriteString(" | ")
+
+	// Extract and format caller (source file)
+	if caller, ok := logData[zerolog.CallerFieldName]; ok {
+		buf.WriteString(fmt.Sprintf("%v", caller))
+		delete(logData, zerolog.CallerFieldName)
+		buf.WriteString(" | ")
+	}
 
 	// Extract and format module
 	if module, ok := logData["module"]; ok {

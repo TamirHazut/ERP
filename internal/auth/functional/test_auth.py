@@ -46,7 +46,6 @@ class TestAuthenticationFlows:
             self.tenant_id = system_data["tenant_id"]
             self.user_id = system_data["user_id"]
             self.role_id = system_data["role_id"]
-            self.permission_id = system_data["permission_id"]
 
         # Use default credentials from config
         self.user_email = TestConfig.DEFAULT_ADMIN_EMAIL
@@ -264,7 +263,7 @@ class TestAuthenticationFlows:
                     "tenant_id": self.tenant_id,
                     "email": f"testuser{i}@test.com",
                     "username": f"testuser{i}",
-                    "password_hash": password_hash,
+                    "password": password_hash,
                     "status": 1,  # ACTIVE
                     "email_verified": True,
                     "roles": [{

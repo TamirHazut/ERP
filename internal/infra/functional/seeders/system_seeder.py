@@ -1,6 +1,7 @@
 """
 System data seeder for functional tests.
-Seeds minimum required data (tenant, admin user, roles, permissions).
+Seeds minimum required data (tenant, admin user, roles).
+Permissions are code-defined in the registry — no DB documents needed.
 """
 from datetime import datetime, UTC
 from typing import Dict, Any
@@ -50,12 +51,6 @@ class SystemSeeder:
         self.mongo.create_index("roles", [("tenant_id", 1), ("permissions", 1)], name="idx_tenant_permissions")
         logger.debug("Created indexes for roles collection")
 
-        # Permissions indexes
-        self.mongo.create_index("permissions", [("tenant_id", 1), ("permission_string", 1)], unique=True, name="idx_tenant_permission_unique")
-        self.mongo.create_index("permissions", [("tenant_id", 1), ("resource", 1)], name="idx_tenant_resource")
-        self.mongo.create_index("permissions", [("tenant_id", 1), ("resource", 1), ("action", 1)], name="idx_tenant_resource_action")
-        logger.debug("Created indexes for permissions collection")
-
         logger.info("All indexes created successfully")
 
     def seed_all(self) -> Dict[str, str]:
@@ -71,21 +66,17 @@ class SystemSeeder:
         # Create tenant
         tenant_id = self.seed_tenant()
 
-        # Create system permission
-        permission_id = self.seed_permission(tenant_id)
-
-        # Create system role
-        role_id = self.seed_role(tenant_id, permission_id)
+        # Create system role with wildcard permission string
+        role_id = self.seed_role(tenant_id, "*:*")
 
         # Create admin user
         user_id = self.seed_admin_user(tenant_id, role_id)
 
-        logger.info(f"System seeding completed: tenant_id={tenant_id}, role_id={role_id}, permission_id={permission_id}, user_id={user_id}")
+        logger.info(f"System seeding completed: tenant_id={tenant_id}, role_id={role_id}, user_id={user_id}")
 
         if self.redis:
             try:
                 self.redis.set("system:tenant", tenant_id)
-                self.redis.set("system:permission", permission_id)
                 self.redis.set("system:role", role_id)
                 self.redis.set("system:user", user_id)
                 logger.info(f"System IDs written to Redis")
@@ -94,7 +85,6 @@ class SystemSeeder:
 
         return {
             "tenant_id": tenant_id,
-            "permission_id": permission_id,
             "role_id": role_id,
             "user_id": user_id,
         }
@@ -113,32 +103,13 @@ class SystemSeeder:
         logger.debug(f"Created tenant: id={tenant_id}, name={TestConfig.DEFAULT_TENANT_NAME}")
         return tenant_id
 
-    def seed_permission(self, tenant_id: str) -> str:
-        """Seed system admin permission."""
-        permission = {
-            "tenant_id": tenant_id,
-            "resource": "*",
-            "action": "*",
-            "permission_string": "*:*",
-            "display_name": "System Controller",
-            "description": "Full system access",
-            "status": 1,  # ACTIVE
-            "is_dangerous": True,
-            "created_at": datetime.now(),
-            "created_by": "System",
-            "protected": True
-        }
-        permission_id = self.mongo.insert_one("permissions", permission)
-        logger.debug(f"Created permission: id={permission_id}, permission_string=*:*")
-        return permission_id
-
-    def seed_role(self, tenant_id: str, permission_id: str) -> str:
-        """Seed system admin role."""
+    def seed_role(self, tenant_id: str, permission_string: str) -> str:
+        """Seed system admin role with the given permission string (e.g. '*:*')."""
         role = {
             "tenant_id": tenant_id,
             "name": "system_admin",
             "description": "System administrator role",
-            "permissions": [permission_id],
+            "permissions": [permission_string],
             "status": 1,  # ACTIVE
             "type": 0,  # SYSTEM
             "created_at": datetime.now(),
@@ -146,7 +117,7 @@ class SystemSeeder:
             "protected": True
         }
         role_id = self.mongo.insert_one("roles", role)
-        logger.debug(f"Created role: id={role_id}, name=system_admin, permissions=[{permission_id}]")
+        logger.debug(f"Created role: id={role_id}, name=system_admin, permissions=[{permission_string}]")
         return role_id
 
     def seed_admin_user(self, tenant_id: str, role_id: str) -> str:
@@ -161,7 +132,7 @@ class SystemSeeder:
             "tenant_id": tenant_id,
             "email": TestConfig.DEFAULT_ADMIN_EMAIL,
             "username": TestConfig.DEFAULT_ADMIN_USERNAME,
-            "password_hash": password_hash,
+            "password": password_hash,
             "status": 1,  # ACTIVE
             "email_verified": True,
             "roles": [{

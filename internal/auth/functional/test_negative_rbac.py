@@ -51,7 +51,6 @@ class TestRBACVerificationErrors:
 
             self.tenant_id = system_data["tenant_id"]
             self.admin_user_id = system_data["user_id"]
-            self.permission_id = system_data["permission_id"]
 
     def test_check_permissions_nonexistent_user(self):
         """Test CheckPermissions with invalid user_id."""
@@ -212,7 +211,7 @@ class TestRBACVerificationErrors:
                 tenant_id=other_tenant_id,
                 email="otherrbac@example.com",
                 username="otherrbacuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=1,  # USER_STATUS_ACTIVE
                 created_by=self.admin_user_id
             )
@@ -304,7 +303,7 @@ class TestRBACVerificationErrors:
                 tenant_id=other_tenant_id,
                 email="otherhasperm@example.com",
                 username="otherhaspermuser",
-                password_hash="hashed_password",
+                password="vK9!xQp#2A@ZLr8",
                 status=1,  # USER_STATUS_ACTIVE
                 created_by=self.admin_user_id
             )

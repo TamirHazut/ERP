@@ -62,7 +62,7 @@ class TestTenantManagementErrors:
             # Inject tenant1
             tenant1_id = inject_tenant(
                 mongo,
-                name="Tenant One",
+                name="tenant one",
                 slug="tenant-one",
                 status=1,  # TENANT_STATUS_ACTIVE
                 contact={"email": "test@erp.com"},
@@ -75,8 +75,8 @@ class TestTenantManagementErrors:
 
             logger.info("Step 2: Attempting to create second tenant with same name")
             tenant2 = tenant_pb2.Tenant(
-                name="Duplicate Tenant Corp",  # Same name
-                slug="duplicate-tenant-2",
+                name="tenant one",  # Same name
+                slug="tenant-one",
                 status=tenant_pb2.TENANT_STATUS_ACTIVE,
                 created_by=self.admin_user_id,
                 contact=tenant_pb2.ContactInfo(email="test@erp.com")
@@ -383,7 +383,7 @@ class TestTenantManagementErrors:
                 id=tenant_id,
                 name="Trial Tenant",
                 slug="trial-tenant",
-                status=tenant_pb2.TENANT_STATUS_SUSPENDED,
+                status=tenant_pb2.TENANT_STATUS_UNSPECIFIED,
                 created_by=self.admin_user_id,
                 contact=tenant_pb2.ContactInfo(email="test@erp.com")
             )

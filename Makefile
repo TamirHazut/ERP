@@ -77,12 +77,15 @@ define generate_proto
 	fi; \
 	echo "Generating $(1) proto files..."; \
 	for dir in $$SERVICE_DIR $$SERVICE_DIR/cache; do \
-		if [ -d "$$dir" ] && [ "$$(ls $$dir/*.proto 2>/dev/null)" ]; then \
-			mkdir -p $(GENERATED_OUT)/$${dir#$(PROTO_IN)/}; \
-			protoc $(PROTOC_COMMON_FLAGS) $(GO_GEN_FLAGS) \
-				$$dir/*.proto || exit 1; \
-			protoc $(PROTOC_COMMON_FLAGS) $(GO_TAG_FLAGS) \
-				$$dir/*.proto || exit 1; \
+		if [ -d "$$dir" ]; then \
+			PROTO_FILES=$$(find $$dir -maxdepth 1 -name "*.proto" -type f); \
+			if [ -n "$$PROTO_FILES" ]; then \
+				mkdir -p $(GENERATED_OUT)/$${dir#$(PROTO_IN)/}; \
+				protoc $(PROTOC_COMMON_FLAGS) $(GO_GEN_FLAGS) \
+					$$PROTO_FILES || exit 1; \
+				protoc $(PROTOC_COMMON_FLAGS) $(GO_TAG_FLAGS) \
+					$$PROTO_FILES || exit 1; \
+			fi; \
 		fi; \
 	done; \
 	echo "✓ $(1) all files generated and tagged"
@@ -106,28 +109,36 @@ proto-clean: ## Remove all generated proto files
 # Python proto generation directory
 PYTHON_PROTO_OUT := internal/infra/functional/proto
 
-proto-python: ## Generate Python gRPC stubs from proto files
+proto-python: proto-python-clean ## Generate Python gRPC stubs from proto files
 	@echo "Generating Python proto files..."
 	@mkdir -p $(PYTHON_PROTO_OUT)
-	@# Generate for each service
-	@for service in infra auth config core gateway event; do \
-		SERVICE_DIR="$(PROTO_IN)/$$service/v1"; \
-		if [ -d "$$SERVICE_DIR" ]; then \
-			echo "Generating Python stubs for $$service..."; \
-			python -m grpc_tools.protoc \
-				-I=$(PROTO_IN) \
-				-I=$(THIRD_PARTY) \
-				--python_out=$(PYTHON_PROTO_OUT) \
-				--grpc_python_out=$(PYTHON_PROTO_OUT) \
-				$$SERVICE_DIR/*.proto; \
-			if [ -d "$$SERVICE_DIR/cache" ]; then \
-				python -m grpc_tools.protoc \
-					-I=$(PROTO_IN) \
-					-I=$(THIRD_PARTY) \
-					--python_out=$(PYTHON_PROTO_OUT) \
-					--grpc_python_out=$(PYTHON_PROTO_OUT) \
-					$$SERVICE_DIR/cache/*.proto; \
-			fi; \
+	@# Generate third_party stubs (tagger) required by all service protos.
+	@# -I points at THIRD_PARTY so output path resolves to tagger/ (matching the
+	@# "from tagger import tagger_pb2" that protoc emits in service stubs).
+	@echo "Generating third_party stubs..."; \
+	python -m grpc_tools.protoc \
+		-I=$(THIRD_PARTY) \
+		--python_out=$(PYTHON_PROTO_OUT) \
+		--grpc_python_out=$(PYTHON_PROTO_OUT) \
+		$(THIRD_PARTY)/tagger/tagger.proto
+	@# Generate for each module
+	@for module in $(MODULES); do \
+		MODULE_DIR="$(PROTO_IN)/$$module/v1"; \
+		if [ -d "$$MODULE_DIR" ]; then \
+			echo "Generating Python stubs for $$module..."; \
+			for dir in $$MODULE_DIR $$MODULE_DIR/cache; do \
+				if [ -d "$$dir" ]; then \
+					PROTO_FILES=$$(find $$dir -maxdepth 1 -name "*.proto" -type f); \
+					if [ -n "$$PROTO_FILES" ]; then \
+						python -m grpc_tools.protoc \
+							-I=$(PROTO_IN) \
+							-I=$(THIRD_PARTY) \
+							--python_out=$(PYTHON_PROTO_OUT) \
+							--grpc_python_out=$(PYTHON_PROTO_OUT) \
+							$$PROTO_FILES; \
+					fi; \
+				fi; \
+			done; \
 		fi; \
 	done
 	@echo "✓ Python proto files generated in $(PYTHON_PROTO_OUT)"
