@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"time"
 
+	"erp.localhost/internal/infra/env"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_redis "erp.localhost/internal/infra/model/db/redis"
@@ -25,6 +26,7 @@ type RedisHandler interface {
 
 var (
 	redisContext = context.Background()
+	redisURI     = env.GetEnv("REDIS_URI", "")
 )
 
 type BaseRedisHandler struct {
@@ -46,8 +48,10 @@ func NewBaseRedisHandler(keyPrefix model_redis.KeyPrefix, logger logger.Logger) 
 }
 
 func (r *BaseRedisHandler) init() *infra_error.AppError {
-	uri := "redis://:supersecretredis@localhost:6379"
-	options, err := redis.ParseURL(uri)
+	if redisURI == "" {
+		return infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to get redis URI"))
+	}
+	options, err := redis.ParseURL(redisURI)
 	if err != nil {
 		return infra_error.Internal(infra_error.InternalDatabaseError, err)
 	}

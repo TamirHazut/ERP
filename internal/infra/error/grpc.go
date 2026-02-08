@@ -34,7 +34,8 @@ func ToGRPCError(err error) error {
 
 	appErr, ok := err.(*AppError)
 	if !ok {
-		return Internal(InternalUnexpectedError, err)
+		// Wrap plain error as AppError, then convert
+		appErr = Internal(InternalUnexpectedError, err)
 	}
 	if appErr == nil {
 		return nil

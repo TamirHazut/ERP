@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 
+	"erp.localhost/internal/infra/env"
 	"erp.localhost/internal/infra/logging/logger"
 	shared "erp.localhost/internal/infra/model/shared"
 	"erp.localhost/internal/init/seeder"
@@ -13,7 +14,7 @@ func Main() {
 	logger := logger.NewBaseLogger(shared.ModuleInit)
 	defer logger.Close()
 
-	disableInit := getEnv("DISABLE_INIT", "")
+	disableInit := env.GetEnv("DISABLE_INIT", "")
 	if disableInit != "" {
 		logger.Info("ERP System - Init Service disabled")
 		return
@@ -34,12 +35,4 @@ func Main() {
 
 	logger.Info("System data seeded successfully")
 	logger.Info("Init Service - Exiting")
-}
-
-// getEnv gets an environment variable or returns a default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

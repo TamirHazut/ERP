@@ -36,6 +36,7 @@ type Config struct {
 	MaxConnectionAge  time.Duration
 	KeepAliveTime     time.Duration
 	KeepAliveTimeout  time.Duration
+	Metrics           *interceptor.MetricsCollector // Optional metrics collector (nil = no metrics)
 }
 
 type GRPCServer struct {
@@ -53,6 +54,9 @@ func NewGRPCServer(config *Config, logger logger.Logger) (*GRPCServer, *infra_er
 	}
 
 	grpcServer := grpc.NewServer(opts...)
+
+	// Register health check (always enabled)
+	RegisterHealthCheck(grpcServer, logger)
 
 	// Enable reflection if requested
 	if config.EnableReflection {
@@ -113,10 +117,12 @@ func (s *GRPCServer) ListenAndServe(quit <-chan struct{}) *infra_error.AppError 
 func buildServerOptions(config *Config, logger logger.Logger) ([]grpc.ServerOption, *infra_error.AppError) {
 	var opts []grpc.ServerOption
 
-	// Add interceptors (from your interceptor package)
+	// Add interceptors (order: Error → Metrics → Logging)
+	// Error is outermost (wraps everything), then Metrics (timing), then Logging
 	opts = append(opts,
 		grpc.ChainUnaryInterceptor(
-			// Add your interceptors here
+			interceptor.ServerErrorInterceptor(logger),
+			interceptor.ServerMetricsInterceptor(config.Metrics, logger),
 			interceptor.ServerLoggingInterceptor(logger),
 		),
 	)

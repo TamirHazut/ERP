@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"erp.localhost/internal/infra/db/mongo/codec"
+	"erp.localhost/internal/infra/env"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	model_mongo "erp.localhost/internal/infra/model/db/mongo"
@@ -13,6 +14,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+var (
+	mongoURI = env.GetEnv("MONGO_URI", "")
 )
 
 type MongoDBManager struct {
@@ -45,13 +50,15 @@ func (m *MongoDBManager) Close() *infra_error.AppError {
 }
 
 func (m *MongoDBManager) Init() *infra_error.AppError {
-	uri := "mongodb://root:secret@localhost:27017"
+	if mongoURI == "" {
+		return infra_error.Internal(infra_error.InternalUnexpectedError, errors.New("failed to get mongo URI"))
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// Create client options with custom codec registry for timestamppb.Timestamp support
 	clientOpts := options.Client().
-		ApplyURI(uri).
+		ApplyURI(mongoURI).
 		SetRegistry(codec.GetRegistry())
 
 	client, err := mongo.Connect(ctx, clientOpts)

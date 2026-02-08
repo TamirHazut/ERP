@@ -5,13 +5,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
 	"erp.localhost/internal/auth/handler"
 	"erp.localhost/internal/auth/hash"
 	"erp.localhost/internal/auth/token"
+	"erp.localhost/internal/infra/env"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/logging/logger"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
@@ -40,18 +40,10 @@ type TokenConfig struct {
 // LoadTokenConfig loads token configuration from environment variables with defaults
 func LoadTokenConfig() *TokenConfig {
 	return &TokenConfig{
-		SecretKey:            getEnv("JWT_SECRET_KEY", "secret"),
-		TokenDuration:        parseDuration(getEnv("ACCESS_TOKEN_DURATION", "1h"), 1*time.Hour),
-		RefreshTokenDuration: parseDuration(getEnv("REFRESH_TOKEN_DURATION", "168h"), 7*24*time.Hour),
+		SecretKey:            env.GetEnv("JWT_SECRET_KEY", "secret"),
+		TokenDuration:        parseDuration(env.GetEnv("ACCESS_TOKEN_DURATION", "1h"), 1*time.Hour),
+		RefreshTokenDuration: parseDuration(env.GetEnv("REFRESH_TOKEN_DURATION", "168h"), 7*24*time.Hour),
 	}
-}
-
-// getEnv gets an environment variable or returns a default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
 
 // parseDuration parses a duration string or returns a default value

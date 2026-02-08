@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"erp.localhost/internal/infra/env"
 	infra_error "erp.localhost/internal/infra/error"
 	"erp.localhost/internal/infra/model/shared"
 	"github.com/rs/zerolog"
@@ -62,18 +63,18 @@ type BaseLogger struct {
 // getLoggerConfigFromEnv reads logger configuration from environment variables
 func getLoggerConfigFromEnv() LoggerConfig {
 	config := LoggerConfig{
-		LogsDir:        os.Getenv("LOG_FILE_PATH"),
+		LogsDir:        env.GetEnv("LOG_FILE_PATH", "./logs/"),
 		FileMode:       FileModeTruncate,
 		ConsoleEnabled: true,
 	}
 
 	// Parse LOG_FILE_MODE
-	if mode := os.Getenv("LOG_FILE_MODE"); mode == "append" {
+	if mode := env.GetEnv("LOG_FILE_MODE", "append"); mode == "append" {
 		config.FileMode = FileModeAppend
 	}
 
 	// Parse LOG_CONSOLE_ENABLED
-	if console := os.Getenv("LOG_CONSOLE_ENABLED"); console == "false" {
+	if console := env.GetEnv("LOG_CONSOLE_ENABLED", "true"); console == "false" {
 		config.ConsoleEnabled = false
 	}
 

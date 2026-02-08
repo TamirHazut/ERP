@@ -527,7 +527,7 @@ mockHandler.EXPECT().
 ---
 
 #### 2. Generic gRPC Infrastructure (Priority 1.5 - NEW) 🔧
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 **Why Now:** Services need to communicate via gRPC (Auth ↔ Core, Core ↔ Config, etc.). Building generic infrastructure avoids duplication and establishes consistent patterns.
 
@@ -539,10 +539,10 @@ mockHandler.EXPECT().
 - Proto definitions (from Pre-Phase)
 
 **What to Build:**
-- [-] Generic gRPC server infrastructure (`internal/infra/grpc/server/`)
+- [x] Generic gRPC server infrastructure (`internal/infra/grpc/server/`)
   - [x] Server initialization utilities
   - [x] Graceful shutdown handling
-  - [ ] Health check endpoints
+  - [x] Health check endpoints
   - [x] Server configuration struct
   - [x] Interceptor registration helpers
 - [x] Generic gRPC client infrastructure (`internal/infra/grpc/client/`)
@@ -550,19 +550,19 @@ mockHandler.EXPECT().
   - [x] Connection pooling utilities (basic - advanced features deferred)
   - [x] Client configuration struct
   - [x] Interceptor registration helpers
-- [-] Shared middleware/interceptors (`internal/infra/grpc/interceptors/`)
+- [x] Shared middleware/interceptors (`internal/infra/grpc/interceptors/`)
   - [x] Logging interceptor (request/response logging)
-  - [ ] Error handling interceptor (standardized error conversion)
-  - [ ] Authentication interceptor (JWT validation for service-to-service calls)
-  - [ ] Metrics interceptor (basic request metrics)
+  - [x] Error handling interceptor (standardized error conversion)
+  - [x] ~~Authentication interceptor~~ - Not needed: service-to-service identity is mTLS, user context flows via proto UserIdentifier fields, authorization via Auth.CheckPermissions
+  - [x] Metrics interceptor (basic request metrics)
 - [x] Error handling utilities
   - [x] Standard gRPC status code mapping
   - [x] Error conversion helpers
   - [x] Integration with `internal/infra/errors/` package
-- [ ] Documentation
-  - [ ] Usage examples for server setup
-  - [ ] Usage examples for client usage
-  - [ ] Interceptor configuration guide
+- [x] Documentation
+  - [x] Usage examples for server setup
+  - [x] Usage examples for client usage
+  - [x] Interceptor configuration guide
 
 **Future Enhancements (Deferred):**
 - [ ] Advanced connection pooling strategies

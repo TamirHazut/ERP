@@ -30,6 +30,7 @@ type Config struct {
 	Insecure       bool
 	ConnectTimeout time.Duration
 	RequestTimeout time.Duration
+	Metrics        *interceptor.MetricsCollector // Optional metrics collector (nil = no metrics)
 }
 
 type GRPCClient struct {
@@ -78,8 +79,8 @@ func (c *GRPCClient) Close() *infra_error.AppError {
 func buildDialOptions(config *Config, logger logger.Logger) ([]grpc.DialOption, *infra_error.AppError) {
 	opts := []grpc.DialOption{
 		grpc.WithChainUnaryInterceptor(
+			interceptor.ClientMetricsInterceptor(config.Metrics, logger),
 			interceptor.ClientLoggingInterceptor(logger),
-			// Add more interceptors as needed
 		),
 	}
 

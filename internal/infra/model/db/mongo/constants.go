@@ -1,15 +1,15 @@
 package mongo
 
-import "os"
+import "erp.localhost/internal/infra/env"
 
 type DBName string
 type Collection string
 
 var (
-	AuthDB   DBName = DBName(getEnvFromOS("AUTH_DB_NAME", "auth_db"))
-	ConfigDB DBName = DBName(getEnvFromOS("CONFIG_DB_NAME", "config_db"))
-	CoreDB   DBName = DBName(getEnvFromOS("CORE_DB_NAME", "core_db"))
-	EventDB  DBName = DBName(getEnvFromOS("EVENT_DB_NAME", "event_db"))
+	AuthDB   DBName = DBName(env.GetEnv("AUTH_DB_NAME", "auth_db"))
+	ConfigDB DBName = DBName(env.GetEnv("CONFIG_DB_NAME", "config_db"))
+	CoreDB   DBName = DBName(env.GetEnv("CORE_DB_NAME", "core_db"))
+	EventDB  DBName = DBName(env.GetEnv("EVENT_DB_NAME", "event_db"))
 
 	// Auth DB Collections
 	AuditLogsCollection   Collection = "audit_logs"
@@ -69,11 +69,4 @@ func GetDBNameFromCollection(collection string) string {
 
 func GetDBCollections(dbName DBName) []string {
 	return dbToCollection[string(dbName)]
-}
-
-func getEnvFromOS(envName, defaultValue string) string {
-	if env := os.Getenv(envName); env != "" {
-		return env
-	}
-	return defaultValue
 }
