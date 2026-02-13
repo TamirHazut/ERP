@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package event.v1;
+
+option go_package = "erp.localhost/internal/infra/model/event/v1;eventv1";
+
+
+// Event type enum
+enum EventType {
+    EVENT_TYPE_UNSPECIFIED = 0;
+    
+    // ============================================
+    // Auth Domain (1-100)
+    // ============================================
+    
+    // User lifecycle (1-10)
+    EVENT_TYPE_USER_CREATED = 1;
+    EVENT_TYPE_USER_UPDATED = 2;
+    EVENT_TYPE_USER_DELETED = 3;
+    
+    // Authentication (11-20)
+    EVENT_TYPE_LOGIN_SUCCEEDED = 11;
+    EVENT_TYPE_LOGIN_FAILED = 12;
+    EVENT_TYPE_LOGOUT = 13;
+    EVENT_TYPE_TOKEN_REFRESHED = 14;
+    EVENT_TYPE_TOKEN_REVOKED = 15;
+    EVENT_TYPE_TENANT_TOKENS_REVOKED = 16;
+    
+    // RBAC - Roles (21-30)
+    EVENT_TYPE_ROLE_CREATED = 21;
+    EVENT_TYPE_ROLE_UPDATED = 22;
+    EVENT_TYPE_ROLE_DELETED = 23;
+    EVENT_TYPE_ROLE_ASSIGNED = 24;    // User assigned to role
+    EVENT_TYPE_ROLE_REVOKED = 25;     // User removed from role
+    
+    // RBAC - Permissions (31-40)
+    EVENT_TYPE_PERMISSION_CREATED = 31;
+    EVENT_TYPE_PERMISSION_UPDATED = 32;
+    EVENT_TYPE_PERMISSION_DELETED = 33;
+    
+    // Tenant (41-50)
+    EVENT_TYPE_TENANT_CREATED = 41;
+    EVENT_TYPE_TENANT_UPDATED = 42;
+    EVENT_TYPE_TENANT_DELETED = 43;
+    
+    // Reserve 101+ for Core and Config domains
+}

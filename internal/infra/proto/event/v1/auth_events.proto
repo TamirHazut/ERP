@@ -1,0 +1,203 @@
+// events/v1/auth_events.proto
+syntax = "proto3";
+package event.v1;
+
+option go_package = "erp.localhost/internal/infra/model/event/v1;eventv1";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+// ============================================
+// Common Structures
+// ============================================
+
+message Actor {
+    string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+    string role = 2 [(tagger.tags) = "bson:\"role,omitempty\" json:\"role,omitempty\""];
+}
+
+message AuditMetadata {
+    Actor actor = 1 [(tagger.tags) = "bson:\"actor\" json:\"actor\""];
+    google.protobuf.Timestamp occurred_at = 2 [(tagger.tags) = "bson:\"occurred_at\" json:\"occurred_at\""];
+    string request_id = 3 [(tagger.tags) = "bson:\"request_id,omitempty\" json:\"request_id,omitempty\""];
+    string ip_address = 4 [(tagger.tags) = "bson:\"ip_address,omitempty\" json:\"ip_address,omitempty\""];
+}
+
+// ============================================
+// User Events
+// ============================================
+
+message UserCreatedEvent {
+    string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+    string email = 2 [(tagger.tags) = "bson:\"email\" json:\"email\""];
+    string full_name = 3 [(tagger.tags) = "bson:\"full_name\" json:\"full_name\""];
+    repeated string roles = 4 [(tagger.tags) = "bson:\"roles\" json:\"roles\""];  // Role IDs
+    bool is_active = 5 [(tagger.tags) = "bson:\"is_active\" json:\"is_active\""];
+    AuditMetadata metadata = 6 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message UserUpdatedEvent {
+    string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+    
+    // Optional fields - only set if changed
+    optional string email = 2 [(tagger.tags) = "bson:\"email,omitempty\" json:\"email,omitempty\""];
+    optional string full_name = 3 [(tagger.tags) = "bson:\"full_name,omitempty\" json:\"full_name,omitempty\""];
+    optional bool is_active = 4 [(tagger.tags) = "bson:\"is_active,omitempty\" json:\"is_active,omitempty\""];
+    
+    repeated string changed_fields = 5 [(tagger.tags) = "bson:\"changed_fields\" json:\"changed_fields\""];  // ["email", "full_name"]
+    AuditMetadata metadata = 6 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message UserDeletedEvent {
+    string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+    string email = 2 [(tagger.tags) = "bson:\"email\" json:\"email\""];
+    string reason = 3 [(tagger.tags) = "bson:\"reason,omitempty\" json:\"reason,omitempty\""];
+    AuditMetadata metadata = 4 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+// ============================================
+// Authentication Events
+// ============================================
+
+message LoginSucceededEvent {
+    string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+    string email = 2 [(tagger.tags) = "bson:\"email,omitempty\" json:\"email,omitempty\""];
+    string username = 3 [(tagger.tags) = "bson:\"email,omitempty\" json:\"email,omitempty\""];
+    AuditMetadata metadata = 4 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message LoginFailedEvent {
+    string email = 1 [(tagger.tags) = "bson:\"email,omitempty\" json:\"email,omitempty\""];
+    string username = 2 [(tagger.tags) = "bson:\"username,omitempty\" json:\"username,omitempty\""];
+    string reason = 3 [(tagger.tags) = "bson:\"reason\" json:\"reason\""];  // "invalid_password", "user_not_found", etc.
+    int32 attempt_count = 4 [(tagger.tags) = "bson:\"attempt_count,omitempty\" json:\"attempt_count,omitempty\""];
+    AuditMetadata metadata = 5 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message LogoutEvent {
+    string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+    string session_id = 2 [(tagger.tags) = "bson:\"session_id,omitempty\" json:\"session_id,omitempty\""];
+    AuditMetadata metadata = 3 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message TokenRefreshedEvent {
+    string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+    string old_token_id = 2 [(tagger.tags) = "bson:\"old_token_id\" json:\"old_token_id\""];
+    string new_token_id = 3 [(tagger.tags) = "bson:\"new_token_id\" json:\"new_token_id\""];
+    AuditMetadata metadata = 4 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message TokenRevokedEvent {
+    string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+    string token_id = 2 [(tagger.tags) = "bson:\"token_id\" json:\"token_id\""];
+    string reason = 3 [(tagger.tags) = "bson:\"reason,omitempty\" json:\"reason,omitempty\""];
+    AuditMetadata metadata = 4 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message TenantTokensRevokedEvent {
+    string tenant_id = 1 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+    int32 token_count = 2 [(tagger.tags) = "bson:\"token_count\" json:\"token_count\""];
+    string reason = 3 [(tagger.tags) = "bson:\"reason,omitempty\" json:\"reason,omitempty\""];
+    AuditMetadata metadata = 4 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+// ============================================
+// RBAC - Role Events
+// ============================================
+
+message RoleCreatedEvent {
+    string role_id = 1 [(tagger.tags) = "bson:\"role_id\" json:\"role_id\""];
+    string role_name = 2 [(tagger.tags) = "bson:\"role_name\" json:\"role_name\""];
+    string description = 3 [(tagger.tags) = "bson:\"description,omitempty\" json:\"description,omitempty\""];
+    repeated string permissions = 4 [(tagger.tags) = "bson:\"permissions\" json:\"permissions\""];  // Permission IDs
+    AuditMetadata metadata = 5 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message RoleUpdatedEvent {
+    string role_id = 1 [(tagger.tags) = "bson:\"role_id\" json:\"role_id\""];
+    
+    // Optional fields - only set if changed
+    optional string role_name = 2 [(tagger.tags) = "bson:\"role_name,omitempty\" json:\"role_name,omitempty\""];
+    optional string description = 3 [(tagger.tags) = "bson:\"description,omitempty\" json:\"description,omitempty\""];
+    
+    repeated string added_permissions = 4 [(tagger.tags) = "bson:\"added_permissions\" json:\"added_permissions\""];
+    repeated string removed_permissions = 5 [(tagger.tags) = "bson:\"removed_permissions\" json:\"removed_permissions\""];
+    repeated string changed_fields = 6 [(tagger.tags) = "bson:\"changed_fields\" json:\"changed_fields\""];
+    AuditMetadata metadata = 7 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message RoleDeletedEvent {
+    string role_id = 1 [(tagger.tags) = "bson:\"role_id\" json:\"role_id\""];
+    string role_name = 2 [(tagger.tags) = "bson:\"role_name\" json:\"role_name\""];
+    int32 affected_users = 3 [(tagger.tags) = "bson:\"affected_users\" json:\"affected_users\""];  // How many users had this role
+    AuditMetadata metadata = 4 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message RoleAssignedEvent {
+    string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+    string role_id = 2 [(tagger.tags) = "bson:\"role_id\" json:\"role_id\""];
+    string role_name = 3 [(tagger.tags) = "bson:\"role_name\" json:\"role_name\""];
+    repeated string permissions = 4 [(tagger.tags) = "bson:\"permissions\" json:\"permissions\""];  // Permissions granted via this role
+    AuditMetadata metadata = 5 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message RoleRevokedEvent {
+    string user_id = 1 [(tagger.tags) = "bson:\"user_id\" json:\"user_id\""];
+    string role_id = 2 [(tagger.tags) = "bson:\"role_id\" json:\"role_id\""];
+    string role_name = 3 [(tagger.tags) = "bson:\"role_name\" json:\"role_name\""];
+    string reason = 4 [(tagger.tags) = "bson:\"reason,omitempty\" json:\"reason,omitempty\""];
+    AuditMetadata metadata = 5 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+// ============================================
+// RBAC - Permission Events (if you add CRUD)
+// ============================================
+
+message PermissionCreatedEvent {
+    string permission_id = 1 [(tagger.tags) = "bson:\"permission_id\" json:\"permission_id\""];
+    string permission_name = 2 [(tagger.tags) = "bson:\"permission_name\" json:\"permission_name\""];
+    string resource = 3 [(tagger.tags) = "bson:\"resource\" json:\"resource\""];
+    string action = 4 [(tagger.tags) = "bson:\"action\" json:\"action\""];
+    AuditMetadata metadata = 5 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message PermissionUpdatedEvent {
+    string permission_id = 1 [(tagger.tags) = "bson:\"permission_id\" json:\"permission_id\""];
+    repeated string changed_fields = 2 [(tagger.tags) = "bson:\"changed_fields\" json:\"changed_fields\""];
+    AuditMetadata metadata = 3 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message PermissionDeletedEvent {
+    string permission_id = 1 [(tagger.tags) = "bson:\"permission_id\" json:\"permission_id\""];
+    string permission_name = 2 [(tagger.tags) = "bson:\"permission_name\" json:\"permission_name\""];
+    AuditMetadata metadata = 3 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+// ============================================
+// Tenant Events
+// ============================================
+
+message TenantCreatedEvent {
+    string tenant_id = 1 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+    string tenant_name = 2 [(tagger.tags) = "bson:\"tenant_name\" json:\"tenant_name\""];
+    string admin_user_id = 3 [(tagger.tags) = "bson:\"admin_user_id\" json:\"admin_user_id\""];  // First admin user
+    string admin_email = 4 [(tagger.tags) = "bson:\"admin_email\" json:\"admin_email\""];
+    AuditMetadata metadata = 5 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message TenantUpdatedEvent {
+    string tenant_id = 1 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+    
+    optional string tenant_name = 2 [(tagger.tags) = "bson:\"tenant_name,omitempty\" json:\"tenant_name,omitempty\""];
+    
+    repeated string changed_fields = 3 [(tagger.tags) = "bson:\"changed_fields\" json:\"changed_fields\""];
+    AuditMetadata metadata = 4 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}
+
+message TenantDeletedEvent {
+    string tenant_id = 1 [(tagger.tags) = "bson:\"tenant_id\" json:\"tenant_id\""];
+    string tenant_name = 2 [(tagger.tags) = "bson:\"tenant_name\" json:\"tenant_name\""];
+    int32 user_count = 3 [(tagger.tags) = "bson:\"user_count\" json:\"user_count\""];  // How many users affected
+    string reason = 4 [(tagger.tags) = "bson:\"reason,omitempty\" json:\"reason,omitempty\""];
+    AuditMetadata metadata = 5 [(tagger.tags) = "bson:\"metadata\" json:\"metadata\""];
+}

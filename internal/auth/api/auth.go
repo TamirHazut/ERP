@@ -6,10 +6,13 @@ import (
 
 	"erp.localhost/internal/auth/hash"
 	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/event/producer"
 	"erp.localhost/internal/infra/logging/logger"
 	model_auth "erp.localhost/internal/infra/model/auth"
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
 	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
+	"erp.localhost/internal/infra/model/event"
+	eventv1 "erp.localhost/internal/infra/model/event/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -58,6 +61,22 @@ func (a *AuthAPI) Login(tenantID, email, username, password string) (*authv1.Tok
 	})
 	if updateErr := a.userAPI.userHandler.UpdateUser(user); updateErr != nil {
 		a.logger.Error("failed to update user login history", "error", updateErr)
+	}
+
+	// Fire LOGIN_SUCCEEDED event
+	succeededEvent := &eventv1.LoginSucceededEvent{
+		UserId:   user.Id,
+		Email:    user.Email,
+		Username: user.Username,
+		Metadata: &eventv1.AuditMetadata{
+			Actor: &eventv1.Actor{
+				UserId: user.Id,
+			},
+			OccurredAt: timestamppb.Now(),
+		},
+	}
+	if err := producer.Send(event.AuthUserLogin, tenantID, eventv1.EventType_EVENT_TYPE_LOGIN_SUCCEEDED, succeededEvent); err != nil {
+		a.logger.Error("failed to send event", "error", err)
 	}
 	return tokens, err
 }

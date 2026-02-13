@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	infra_error "erp.localhost/internal/infra/error"
 )
@@ -12,7 +13,7 @@ import (
 // getEnv gets an environment variable or returns a default value
 func GetEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
-		return value
+		return strings.TrimSpace(value)
 	}
 	return defaultValue
 }
@@ -22,6 +23,38 @@ func GetEnvAsInt(key string, defaultValue int) int {
 	value := GetEnv(key, "")
 	if valInt, err := strconv.Atoi(value); err == nil {
 		return valInt
+	}
+	return defaultValue
+}
+
+func GetEnvAsFloat(key string, defaultValue float64) float64 {
+	value := GetEnv(key, "")
+	if valFloat, err := strconv.ParseFloat(value, 64); err == nil {
+		return valFloat
+	}
+	return defaultValue
+}
+
+func GetEnvAsBool(key string, defaultValue bool) bool {
+	if value := GetEnv(key, ""); value != "" {
+		if boolVal, err := strconv.ParseBool(value); err == nil {
+			return boolVal
+		}
+	}
+	return defaultValue
+}
+
+func GetEnvAsDuration(key string, defaultValue int) time.Duration {
+	value := GetEnv(key, "")
+	if valInt, err := strconv.Atoi(value); err == nil {
+		return time.Duration(valInt)
+	}
+	return time.Duration(defaultValue)
+}
+
+func GetEnvAsSlice(key, delim string, defaultValue []string) []string {
+	if value := GetEnv(key, ""); value != "" {
+		return strings.Split(value, delim)
 	}
 	return defaultValue
 }

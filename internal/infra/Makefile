@@ -1,6 +1,6 @@
 # infra Service Makefile
 
-.PHONY: build test test-coverage lint clean help mocks mocks-clean
+.PHONY: build test test-coverage lint clean help mocks mocks-clean generate-topics
 
 # Service configuration
 SERVICE_NAME := infra
@@ -91,3 +91,11 @@ certs-clean: ## Remove all certificates (CA and service certificates)
 		$(MAKE) -C internal/$$service certs-clean; \
 	done
 	@echo "✓ All certificates removed"
+
+
+generate-topics:
+	python ./resources/scripts/topics_generator.py \
+		--input ./resources/topics.yaml \
+		--go ./model/event/topics.go \
+		--py ./model/event/topics.py \
+		--js ./model/event/topics.js

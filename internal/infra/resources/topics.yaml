@@ -1,0 +1,27 @@
+# Shared source of truth
+topics:
+  auth:
+    permission:
+      - created
+      - updated
+      - deleted
+    role:
+      - created
+      - updated
+      - deleted
+      - assigned
+      - revoked
+    tenant:
+      - created
+      - updated
+      - deleted
+      - tokens_revoked
+    token:
+      - refreshed
+      - revoked
+    user:
+      - created
+      - updated
+      - deleted
+      - login
+      - logout

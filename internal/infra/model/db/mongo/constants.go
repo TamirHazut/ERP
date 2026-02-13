@@ -12,7 +12,6 @@ var (
 	EventDB  DBName = DBName(env.GetEnv("EVENT_DB_NAME", "event_db"))
 
 	// Auth DB Collections
-	AuditLogsCollection   Collection = "audit_logs"
 	PermissionsCollection Collection = "permissions"
 	RolesCollection       Collection = "roles"
 	TenantsCollection     Collection = "tenants"
@@ -32,16 +31,19 @@ var (
 	ProductsCollection   Collection = "products"
 	VendorsCollection    Collection = "vendors"
 	WarehouseCollection  Collection = "warehouses"
+
+	// Event DB Collections
+	DlqCollection Collection = "dlq"
 )
 
 var (
 	dbToCollection = map[string][]string{
-		string(AuthDB):   {string(AuditLogsCollection), string(PermissionsCollection), string(RolesCollection), string(TenantsCollection), string(UsersCollection)},
+		string(AuthDB):   {string(PermissionsCollection), string(RolesCollection), string(TenantsCollection), string(UsersCollection)},
 		string(ConfigDB): {string(ServiceConfigCollection), string(FeatureFlagsCollection), string(EnvironmentCollection)},
 		string(CoreDB):   {string(CategoriesCollection), string(CustomerCollection), string(InventoryCollection), string(OrderItemsCollection), string(OrdersCollection), string(ProductsCollection), string(VendorsCollection), string(WarehouseCollection)},
+		string(EventDB):  {string(DlqCollection)},
 	}
 	collectionToDB = map[string]string{
-		string(AuditLogsCollection):     string(AuthDB),
 		string(PermissionsCollection):   string(AuthDB),
 		string(RolesCollection):         string(AuthDB),
 		string(TenantsCollection):       string(AuthDB),
@@ -57,6 +59,7 @@ var (
 		string(ProductsCollection):      string(CoreDB),
 		string(VendorsCollection):       string(CoreDB),
 		string(WarehouseCollection):     string(CoreDB),
+		string(DlqCollection):           string(EventDB),
 	}
 )
 

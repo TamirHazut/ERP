@@ -26,7 +26,7 @@ type RedisHandler interface {
 
 var (
 	redisContext = context.Background()
-	redisURI     = env.GetEnv("REDIS_URI", "")
+	redisURI     = env.GetEnv("REDIS_URI", "redis://:supersecretredis@localhost:6379")
 )
 
 type BaseRedisHandler struct {

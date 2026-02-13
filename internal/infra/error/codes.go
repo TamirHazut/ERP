@@ -370,6 +370,11 @@ var (
 		Message:  "A gRPC error occurred. Please try again later",
 		Category: CategoryInternal,
 	}
+	InternalKafkaError = ErrorDef{
+		Code:     "INTERNAL_KAFKA_ERROR",
+		Message:  "A kafka error occurred. Please try again later",
+		Category: CategoryInternal,
+	}
 	InternalUnexpectedError = ErrorDef{
 		Code:     "INTERNAL_UNEXPECTED_ERROR",
 		Message:  "An unexpected error occurred. Please try again later",

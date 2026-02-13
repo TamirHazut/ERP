@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	mongoURI = env.GetEnv("MONGO_URI", "")
+	mongoURI = env.GetEnv("MONGO_URI", "mongodb://root:secret@localhost:27017")
 )
 
 type MongoDBManager struct {

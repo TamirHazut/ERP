@@ -13,6 +13,7 @@ import (
 	"erp.localhost/internal/auth/rbac"
 	"erp.localhost/internal/auth/service"
 	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/event/producer"
 	"erp.localhost/internal/infra/grpc/server"
 	grpc_server "erp.localhost/internal/infra/grpc/server"
 	"erp.localhost/internal/infra/logging/logger"
@@ -35,6 +36,18 @@ func Main() {
 
 	// Channel to signal the gRPC server goroutine to stop
 	quit := make(chan struct{})
+
+	cfg := producer.DefaultConfig()
+
+	dlq, err := producer.NewBaseDLQHandler(logger)
+	if err != nil {
+		logger.Error(infra_error.Internal(infra_error.InternalDatabaseError, err).Error())
+		return
+	}
+	if err := producer.Init(cfg, dlq, logger); err != nil {
+		logger.Error(infra_error.Internal(infra_error.InternalUnexpectedError, err).Error())
+		return
+	}
 
 	insecure := false
 	certs := model_shared.NewCerts()
@@ -110,13 +123,19 @@ func Main() {
 	// Wait for OS signal
 	<-stopChan
 
-	logger.Warn("gRPC server shutdown...")
+	logger.Warn("Shutting down...")
+
+	// Shutdown producer (no context needed)
+	if err := producer.Shutdown(); err != nil {
+		logger.Error("Producer shutdown error", "error", err)
+	}
+
 	// Signal the gRPC server to stop
 	close(quit)
 
 	// Wait for the gRPC server goroutine to finish
 	wg.Wait()
-	logger.Warn("gRPC server stopped")
+	logger.Warn("Application stopped")
 }
 
 func createRoleHandler(logger logger.Logger) *handler.RoleHandler {

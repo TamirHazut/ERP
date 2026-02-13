@@ -4,11 +4,15 @@ import (
 	"context"
 
 	"erp.localhost/internal/auth/api"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	infra_error "erp.localhost/internal/infra/error"
+	"erp.localhost/internal/infra/event/producer"
 	"erp.localhost/internal/infra/logging/logger"
 
 	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	"erp.localhost/internal/infra/model/event"
+	eventv1 "erp.localhost/internal/infra/model/event/v1"
 	validator_infra "erp.localhost/internal/infra/model/infra/validator"
 )
 
@@ -34,6 +38,18 @@ func (a *AuthService) Login(ctx context.Context, req *authv1.LoginRequest) (*aut
 	newTokenResponse, err := a.authAPI.Login(tenantID, email, username, userPassword)
 	if err != nil {
 		a.logger.Error("failed to authenticate", "error", err.Error())
+		// Fire LOGIN_FAILED event
+		failedEvent := &eventv1.LoginFailedEvent{
+			Email:    email,
+			Username: username,
+			Reason:   err.Error(),
+			Metadata: &eventv1.AuditMetadata{
+				OccurredAt: timestamppb.Now(),
+			},
+		}
+		if err := producer.Send(event.AuthUserLogin, tenantID, eventv1.EventType_EVENT_TYPE_LOGIN_FAILED, failedEvent); err != nil {
+			a.logger.Error("failed to send event", "error", err)
+		}
 	}
 
 	a.logger.Debug("login successfuly", "tenantID", tenantID, "email", email, "username", username)
