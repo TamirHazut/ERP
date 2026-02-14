@@ -1,12 +1,12 @@
 package collection
 
 import (
-	"erp.localhost/internal/infra/db/mongo/collection"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
-	authv1 "erp.localhost/internal/infra/model/auth/v1"
-	model_mongo "erp.localhost/internal/infra/model/db/mongo"
+	"erp.localhost/infra/db/mongo/collection"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
+	model_auth "erp.localhost/infra/model/auth"
+	authv1 "erp.localhost/infra/model/auth/v1"
+	model_mongo "erp.localhost/infra/model/db/mongo"
 )
 
 type RoleCollection struct {

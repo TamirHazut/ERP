@@ -8,17 +8,17 @@ import (
 	"syscall"
 	"time"
 
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/event/producer"
+	"erp.localhost/infra/grpc/server"
+	grpc_server "erp.localhost/infra/grpc/server"
+	"erp.localhost/infra/logging/logger"
+	authv1 "erp.localhost/infra/model/auth/v1"
+	model_shared "erp.localhost/infra/model/shared"
 	"erp.localhost/internal/auth/api"
 	"erp.localhost/internal/auth/handler"
 	"erp.localhost/internal/auth/rbac"
 	"erp.localhost/internal/auth/service"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/event/producer"
-	"erp.localhost/internal/infra/grpc/server"
-	grpc_server "erp.localhost/internal/infra/grpc/server"
-	"erp.localhost/internal/infra/logging/logger"
-	authv1 "erp.localhost/internal/infra/model/auth/v1"
-	model_shared "erp.localhost/internal/infra/model/shared"
 )
 
 const (

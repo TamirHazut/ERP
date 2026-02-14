@@ -3,15 +3,15 @@ package seeder
 import (
 	"fmt"
 
+	"erp.localhost/infra/db"
+	mongo_db "erp.localhost/infra/db/mongo"
+	"erp.localhost/infra/db/redis"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
+	authv1 "erp.localhost/infra/model/auth/v1"
+	model_mongo "erp.localhost/infra/model/db/mongo"
 	collection_auth "erp.localhost/internal/auth/collection"
 	"erp.localhost/internal/auth/hash"
-	"erp.localhost/internal/infra/db"
-	mongo_db "erp.localhost/internal/infra/db/mongo"
-	"erp.localhost/internal/infra/db/redis"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging/logger"
-	authv1 "erp.localhost/internal/infra/model/auth/v1"
-	model_mongo "erp.localhost/internal/infra/model/db/mongo"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

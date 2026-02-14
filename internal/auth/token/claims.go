@@ -1,7 +1,7 @@
 package token
 
 import (
-	authv1 "erp.localhost/internal/infra/model/auth/v1"
+	authv1 "erp.localhost/infra/model/auth/v1"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"

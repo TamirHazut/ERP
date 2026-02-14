@@ -58,53 +58,18 @@ help: ## Show this help message
 # ============================================================================
 # PROTO GENERATION TARGETS
 # ============================================================================
-MODULE := erp.localhost
-PROTO_OUT := .
-INFRA_BASE := internal/infra
-PROTO_IN := $(INFRA_BASE)/proto
-THIRD_PARTY := $(PROTO_IN)/third_party
-GENERATED_OUT = $(INFRA_BASE)/model
-PROTOC_COMMON_FLAGS := -I=$(PROTO_IN) -I=$(THIRD_PARTY)
-GO_GEN_FLAGS := --go_out=$(PROTO_OUT) --go_opt=module=$(MODULE) \
-                --go-grpc_out=$(PROTO_OUT) --go-grpc_opt=module=$(MODULE)
-GO_TAG_FLAGS := --gotag_out=module=$(MODULE):$(PROTO_OUT)
-
-define generate_proto
-	@SERVICE_DIR="$(PROTO_IN)/$(1)/v1"; \
-	if [ ! -d "$$SERVICE_DIR" ]; then \
-		echo "Warning: Proto directory $$SERVICE_DIR not found"; \
-		exit 0; \
-	fi; \
-	echo "Generating $(1) proto files..."; \
-	for dir in $$SERVICE_DIR $$SERVICE_DIR/cache; do \
-		if [ -d "$$dir" ]; then \
-			PROTO_FILES=$$(find $$dir -maxdepth 1 -name "*.proto" -type f); \
-			if [ -n "$$PROTO_FILES" ]; then \
-				mkdir -p $(GENERATED_OUT)/$${dir#$(PROTO_IN)/}; \
-				protoc $(PROTOC_COMMON_FLAGS) $(GO_GEN_FLAGS) \
-					$$PROTO_FILES || exit 1; \
-				protoc $(PROTOC_COMMON_FLAGS) $(GO_TAG_FLAGS) \
-					$$PROTO_FILES || exit 1; \
-			fi; \
-		fi; \
-	done; \
-	echo "✓ $(1) all files generated and tagged"
-endef
 
 proto: ## Generate all proto files
-	@for module in $(MODULES); do \
-		$(MAKE) proto-$$module; \
-	done
+	@echo "Generating proto files for: infra $(SERVICES) init shared"
+	@$(MAKE) -C internal/infra proto MODULES="infra $(SERVICES) init shared"
 	@echo "✓ All proto files generated successfully"
 
 proto-%:
-	$(call generate_proto,$*)
+	@$(MAKE) -C internal/infra proto MODULES="$*"
 
 
 proto-clean: ## Remove all generated proto files
-	@echo "Cleaning generated proto files..."
-	@find $(GENERATED_OUT) -name "*.pb.go" -type f -delete 2>/dev/null || true
-	@echo "Proto files cleaned"
+	@$(MAKE) -C internal/infra proto-clean
 
 # Python proto generation directory
 PYTHON_PROTO_OUT := internal/infra/functional/proto

@@ -4,8 +4,8 @@ package handler
 // 	"os"
 
 // 	"erp.localhost/internal/config/env"
-// 	"erp.localhost/internal/infra/logging/logger"
-// 	"erp.localhost/internal/infra/model/shared"
+// 	"erp.localhost/infra/logging/logger"
+// 	"erp.localhost/infra/model/shared"
 // )
 
 // // TODO: maybe change this from singleton

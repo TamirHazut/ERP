@@ -4,15 +4,15 @@ import (
 	"errors"
 	"time"
 
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/event/producer"
+	"erp.localhost/infra/logging/logger"
+	model_auth "erp.localhost/infra/model/auth"
+	authv1 "erp.localhost/infra/model/auth/v1"
+	authv1_cache "erp.localhost/infra/model/auth/v1/cache"
+	"erp.localhost/infra/model/event"
+	eventv1 "erp.localhost/infra/model/event/v1"
 	"erp.localhost/internal/auth/hash"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/event/producer"
-	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
-	authv1 "erp.localhost/internal/infra/model/auth/v1"
-	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
-	"erp.localhost/internal/infra/model/event"
-	eventv1 "erp.localhost/internal/infra/model/event/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

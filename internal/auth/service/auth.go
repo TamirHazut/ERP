@@ -6,14 +6,14 @@ import (
 	"erp.localhost/internal/auth/api"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/event/producer"
-	"erp.localhost/internal/infra/logging/logger"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/event/producer"
+	"erp.localhost/infra/logging/logger"
 
-	authv1 "erp.localhost/internal/infra/model/auth/v1"
-	"erp.localhost/internal/infra/model/event"
-	eventv1 "erp.localhost/internal/infra/model/event/v1"
-	validator_infra "erp.localhost/internal/infra/model/infra/validator"
+	authv1 "erp.localhost/infra/model/auth/v1"
+	"erp.localhost/infra/model/event"
+	eventv1 "erp.localhost/infra/model/event/v1"
+	validator_infra "erp.localhost/infra/model/infra/validator"
 )
 
 type AuthService struct {

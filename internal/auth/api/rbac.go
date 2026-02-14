@@ -1,10 +1,10 @@
 package api
 
 import (
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
 	"erp.localhost/internal/auth/handler"
 	"erp.localhost/internal/auth/rbac"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging/logger"
 )
 
 // RBACAPI combines all RBAC APIs for easy initialization

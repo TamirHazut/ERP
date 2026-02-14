@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package core.v1;
 
-option go_package = "erp.localhost/internal/infra/model/core/v1;corev1";
+option go_package = "erp.localhost/infra/model/core/v1;corev1";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";

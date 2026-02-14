@@ -61,9 +61,9 @@ mocks: mocks-clean
 
 .PHONY: mocks-clean
 mocks-clean:
-	@echo "Cleaning generated auth mocks..."
-	@find . -path "*/mocks/mock_*.go" -type f -delete
-	@echo "✅ Auth mocks cleaned"
+	@echo "Cleaning generated infra mocks..."
+	@find . -name "mock_*.go" -type f -delete
+	@echo "✅ Infra mocks cleaned"
 
 # ============================================================================
 # CERTIFICATE GENERATION (mTLS)

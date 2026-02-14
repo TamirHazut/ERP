@@ -1,0 +1,339 @@
+package collection
+
+import (
+	"errors"
+	"testing"
+
+	mock_db "erp.localhost/infra/db/mock"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
+	"erp.localhost/infra/model/shared"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.uber.org/mock/gomock"
+)
+
+// TestModel is a simple test model for collection handler tests
+type TestModel struct {
+	ID   string `bson:"_id,omitempty" json:"id"`
+	Name string `bson:"name" json:"name"`
+}
+
+func TestCollection_Create(t *testing.T) {
+	testCases := []struct {
+		name        string
+		collection  string
+		data        *TestModel
+		returnID    string
+		returnError error
+		errCategory infra_error.ErrorCategory
+	}{
+		{
+			name:        "successful create",
+			collection:  "test_collection",
+			data:        &TestModel{Name: "test"},
+			returnID:    "created-id",
+			returnError: nil,
+		},
+		{
+			name:        "create with database error",
+			collection:  "test_collection",
+			data:        &TestModel{Name: "test"},
+			returnID:    "",
+			returnError: infra_error.Internal(infra_error.InternalDatabaseError, errors.New("database connection failed")),
+			errCategory: infra_error.CategoryInternal,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockHandler := mock_db.NewMockDBHandler(ctrl)
+			mockHandler.EXPECT().Create(tc.collection, tc.data).Return(tc.returnID, tc.returnError)
+
+			collectionHanlder := BaseCollectionHandler[TestModel]{
+				dbHandler:  mockHandler,
+				collection: tc.collection,
+				logger:     logger.NewBaseLogger(shared.ModuleDB),
+			}
+
+			id, err := collectionHanlder.Create(tc.data)
+			if tc.returnError != nil {
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
+			} else {
+				require.Nil(t, err)
+				assert.Equal(t, tc.returnID, id)
+			}
+		})
+	}
+}
+
+func TestCollection_FindOne(t *testing.T) {
+	testModel := TestModel{ID: "1", Name: "test"}
+
+	testCases := []struct {
+		name        string
+		collection  string
+		filter      map[string]any
+		returnModel TestModel
+		returnError error
+		errCategory infra_error.ErrorCategory
+	}{
+		{
+			name:        "successful find one",
+			collection:  "test_collection",
+			filter:      map[string]any{"name": "test"},
+			returnModel: testModel,
+			returnError: nil,
+		},
+		{
+			name:        "find one with error - missing collection",
+			filter:      map[string]any{"name": "test"},
+			returnModel: TestModel{},
+			returnError: infra_error.Internal(infra_error.InternalDatabaseError, errors.New("find one failed")),
+			errCategory: infra_error.CategoryInternal,
+		},
+		{
+			name:        "find one with error - item not found",
+			collection:  "test_collection",
+			filter:      map[string]any{"name": "test"},
+			returnModel: TestModel{},
+			returnError: infra_error.NotFound(infra_error.NotFoundToken, "", ""),
+			errCategory: infra_error.CategoryNotFound,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockHandler := mock_db.NewMockDBHandler(ctrl)
+			model := &TestModel{}
+			mockHandler.EXPECT().
+				FindOne(tc.collection, tc.filter, model).
+				DoAndReturn(func(collection string, filter map[string]any, result any) error {
+					// Cast result to the correct type and set its value
+					if m, ok := result.(*TestModel); ok {
+						*m = tc.returnModel
+					}
+					return tc.returnError
+				})
+
+			collectionHanlder := BaseCollectionHandler[TestModel]{
+				dbHandler:  mockHandler,
+				collection: tc.collection,
+				logger:     logger.NewBaseLogger(shared.ModuleDB),
+			}
+			result, err := collectionHanlder.FindOne(tc.filter)
+			if tc.returnError != nil {
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
+			} else {
+				require.Nil(t, err)
+				assert.Equal(t, tc.returnModel, *result)
+			}
+		})
+	}
+}
+
+func TestCollection_FindAll(t *testing.T) {
+	testCases := []struct {
+		name           string
+		collection     string
+		filter         map[string]any
+		returnModels   []any
+		returnError    error
+		errCategory    infra_error.ErrorCategory
+		expectedResult []*TestModel
+	}{
+		{
+			name:       "successful find with results",
+			collection: "test_collection",
+			filter:     map[string]any{"name": "test"},
+			returnModels: []any{
+				&TestModel{ID: "1", Name: "test1"},
+				&TestModel{ID: "2", Name: "test2"},
+			},
+			returnError: nil,
+			expectedResult: []*TestModel{
+				{ID: "1", Name: "test1"},
+				{ID: "2", Name: "test2"},
+			},
+		},
+		{
+			name:           "successful find with no results",
+			collection:     "test_collection",
+			filter:         map[string]any{"name": "nonexistent"},
+			returnModels:   []any{},
+			returnError:    nil,
+			expectedResult: []*TestModel{},
+		},
+		{
+			name:         "find with database error",
+			collection:   "test_collection",
+			filter:       map[string]any{"name": "test"},
+			returnModels: []any{},
+			returnError:  infra_error.Internal(infra_error.InternalDatabaseError, errors.New("database query failed")),
+			errCategory:  infra_error.CategoryInternal,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockHandler := mock_db.NewMockDBHandler(ctrl)
+
+			models := make([]*TestModel, 0)
+			mockHandler.EXPECT().
+				FindAll(tc.collection, tc.filter, &models).
+				DoAndReturn(func(collection string, filter map[string]any, result any) error {
+					if m, ok := result.(*[]*TestModel); ok {
+						*m = make([]*TestModel, len(tc.returnModels))
+						for i, item := range tc.returnModels {
+							(*m)[i] = item.(*TestModel)
+						}
+					}
+					return tc.returnError
+				})
+
+			collectionHanlder := BaseCollectionHandler[TestModel]{
+				dbHandler:  mockHandler,
+				collection: tc.collection,
+				logger:     logger.NewBaseLogger(shared.ModuleDB),
+			}
+			results, err := collectionHanlder.FindAll(tc.filter)
+			if tc.returnError != nil {
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
+			} else {
+				require.Nil(t, err)
+				assert.Equal(t, tc.expectedResult, results)
+			}
+		})
+	}
+}
+
+func TestCollection_Update(t *testing.T) {
+	testCases := []struct {
+		name              string
+		collection        string
+		filter            map[string]any
+		item              *TestModel
+		expectedItem      bson.M
+		returnError       error
+		errCategory       infra_error.ErrorCategory
+		expectedCallTimes int
+	}{
+		{
+			name:              "successful update",
+			collection:        "test_collection",
+			filter:            map[string]any{"_id": "1"},
+			item:              &TestModel{ID: "1", Name: "updated"},
+			expectedItem:      bson.M{"name": "updated"},
+			returnError:       nil,
+			expectedCallTimes: 1,
+		},
+		{
+			name:              "update with nil filter",
+			collection:        "test_collection",
+			filter:            nil,
+			item:              &TestModel{ID: "1", Name: "updated"},
+			expectedItem:      bson.M{"name": "updated"},
+			returnError:       infra_error.Validation(infra_error.ValidationRequiredFields),
+			errCategory:       infra_error.CategoryValidation,
+			expectedCallTimes: 1,
+		},
+		{
+			name:              "update with database error",
+			collection:        "test_collection",
+			filter:            map[string]any{"_id": "1"},
+			item:              &TestModel{ID: "1", Name: "updated"},
+			expectedItem:      bson.M{"name": "updated"},
+			returnError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("update failed")),
+			errCategory:       infra_error.CategoryInternal,
+			expectedCallTimes: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockHandler := mock_db.NewMockDBHandler(ctrl)
+			mockHandler.EXPECT().Update(tc.collection, tc.filter, tc.expectedItem).Return(tc.returnError).Times(tc.expectedCallTimes)
+
+			collectionHanlder := BaseCollectionHandler[TestModel]{
+				dbHandler:  mockHandler,
+				collection: tc.collection,
+				logger:     logger.NewBaseLogger(shared.ModuleDB),
+			}
+			err := collectionHanlder.Update(tc.filter, tc.item)
+			if tc.returnError != nil {
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
+			} else {
+				require.Nil(t, err)
+			}
+		})
+	}
+}
+
+func TestCollection_Delete(t *testing.T) {
+	testCases := []struct {
+		name              string
+		collection        string
+		filter            map[string]any
+		returnError       error
+		errCategory       infra_error.ErrorCategory
+		expectedCallTimes int
+	}{
+		{
+			name:              "successful delete",
+			collection:        "test_collection",
+			filter:            map[string]any{"_id": "1"},
+			returnError:       nil,
+			expectedCallTimes: 1,
+		},
+		{
+			name:              "delete with nil filter",
+			collection:        "test_collection",
+			filter:            nil,
+			returnError:       infra_error.Validation(infra_error.ValidationRequiredFields),
+			errCategory:       infra_error.CategoryValidation,
+			expectedCallTimes: 1,
+		},
+		{
+			name:              "delete with database error",
+			collection:        "test_collection",
+			filter:            map[string]any{"_id": "1"},
+			returnError:       infra_error.Internal(infra_error.InternalDatabaseError, errors.New("delete failed")),
+			errCategory:       infra_error.CategoryInternal,
+			expectedCallTimes: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockHandler := mock_db.NewMockDBHandler(ctrl)
+			mockHandler.EXPECT().Delete(tc.collection, tc.filter).Return(tc.returnError).Times(tc.expectedCallTimes)
+
+			collectionHanlder := BaseCollectionHandler[TestModel]{
+				dbHandler:  mockHandler,
+				collection: tc.collection,
+				logger:     logger.NewBaseLogger(shared.ModuleDB),
+			}
+			err := collectionHanlder.Delete(tc.filter)
+			if tc.returnError != nil {
+				require.NotNil(t, err)
+				require.Equal(t, err.Category, tc.errCategory)
+			} else {
+				require.Nil(t, err)
+			}
+		})
+	}
+}

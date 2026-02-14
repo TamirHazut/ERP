@@ -3,11 +3,11 @@ package api
 import (
 	"strings"
 
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
+	model_auth "erp.localhost/infra/model/auth"
+	authv1 "erp.localhost/infra/model/auth/v1"
 	"erp.localhost/internal/auth/rbac"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
-	authv1 "erp.localhost/internal/infra/model/auth/v1"
 )
 
 // PermissionAPI provides permission read operations backed by the code-defined registry.

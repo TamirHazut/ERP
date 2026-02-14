@@ -1,12 +1,12 @@
 package token
 
 import (
-	"erp.localhost/internal/infra/db/redis"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging/logger"
-	model_auth "erp.localhost/internal/infra/model/auth"
-	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
-	model_redis "erp.localhost/internal/infra/model/db/redis"
+	"erp.localhost/infra/db/redis"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
+	model_auth "erp.localhost/infra/model/auth"
+	authv1_cache "erp.localhost/infra/model/auth/v1/cache"
+	model_redis "erp.localhost/infra/model/db/redis"
 )
 
 // RefreshTokenKeyHandler handles refresh token operations in Redis

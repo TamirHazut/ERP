@@ -2,7 +2,7 @@
 syntax = "proto3";
 package event.v1;
 
-option go_package = "erp.localhost/internal/infra/model/event/v1;eventv1";
+option go_package = "erp.localhost/infra/model/event/v1;eventv1";
 
 import "google/protobuf/timestamp.proto";
 import "tagger/tagger.proto";

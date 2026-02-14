@@ -5,11 +5,11 @@ import (
 	"os"
 	"time"
 
-	"erp.localhost/internal/infra/env"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/event/producer"
-	"erp.localhost/internal/infra/logging/logger"
-	shared "erp.localhost/internal/infra/model/shared"
+	"erp.localhost/infra/env"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/event/producer"
+	"erp.localhost/infra/logging/logger"
+	shared "erp.localhost/infra/model/shared"
 	event "erp.localhost/internal/init/kafka"
 	"erp.localhost/internal/init/seeder"
 )

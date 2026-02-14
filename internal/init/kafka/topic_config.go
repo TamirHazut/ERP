@@ -1,6 +1,6 @@
 package event
 
-import "erp.localhost/internal/infra/model/event"
+import "erp.localhost/infra/model/event"
 
 // TopicConfig holds configuration for a Kafka topic
 type TopicConfig struct {

@@ -7,12 +7,12 @@ import (
 	"syscall"
 	"time"
 
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/grpc/server"
-	grpc_server "erp.localhost/internal/infra/grpc/server"
-	"erp.localhost/internal/infra/logging/logger"
-	"erp.localhost/internal/infra/model/shared"
-	model_shared "erp.localhost/internal/infra/model/shared"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/grpc/server"
+	grpc_server "erp.localhost/infra/grpc/server"
+	"erp.localhost/infra/logging/logger"
+	"erp.localhost/infra/model/shared"
+	model_shared "erp.localhost/infra/model/shared"
 )
 
 const (

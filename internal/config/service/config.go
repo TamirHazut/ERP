@@ -1,6 +1,6 @@
 package service
 
-import "erp.localhost/internal/infra/model/shared"
+import "erp.localhost/infra/model/shared"
 
 type ConfigService struct {
 	configs map[shared.Module]ConfigService

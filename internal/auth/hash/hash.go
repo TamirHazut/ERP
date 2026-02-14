@@ -1,7 +1,7 @@
 package hash
 
 import (
-	infra_error "erp.localhost/internal/infra/error"
+	infra_error "erp.localhost/infra/error"
 	"golang.org/x/crypto/bcrypt"
 )
 

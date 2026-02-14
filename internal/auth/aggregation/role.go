@@ -3,12 +3,12 @@ package aggregation
 import (
 	"context"
 
-	"erp.localhost/internal/infra/db/mongo/aggregation"
-	"erp.localhost/internal/infra/db/mongo/aggregation/pipeline"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging/logger"
-	authv1 "erp.localhost/internal/infra/model/auth/v1"
-	model_mongo "erp.localhost/internal/infra/model/db/mongo"
+	"erp.localhost/infra/db/mongo/aggregation"
+	"erp.localhost/infra/db/mongo/aggregation/pipeline"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
+	authv1 "erp.localhost/infra/model/auth/v1"
+	model_mongo "erp.localhost/infra/model/db/mongo"
 )
 
 // RoleAggregationHandler handles role-specific aggregations

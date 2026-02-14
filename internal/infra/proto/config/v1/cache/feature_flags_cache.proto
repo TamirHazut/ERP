@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package config.v1.cache;
 
-option go_package = "erp.localhost/internal/infra/model/config/v1/cache;configcache";
+option go_package = "erp.localhost/infra/model/config/v1/cache;configcache";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging/logger"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
 	"github.com/segmentio/kafka-go"
 )
 

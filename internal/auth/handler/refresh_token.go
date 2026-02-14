@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"erp.localhost/infra/db/redis"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
+	authv1_cache "erp.localhost/infra/model/auth/v1/cache"
+	validator_auth_cache "erp.localhost/infra/model/auth/validator/cache"
 	"erp.localhost/internal/auth/token"
-	"erp.localhost/internal/infra/db/redis"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging/logger"
-	authv1_cache "erp.localhost/internal/infra/model/auth/v1/cache"
-	validator_auth_cache "erp.localhost/internal/infra/model/auth/validator/cache"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

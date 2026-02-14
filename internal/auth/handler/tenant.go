@@ -1,14 +1,14 @@
 package handler
 
 import (
+	aggregation_mongo "erp.localhost/infra/db/mongo/aggregation"
+	collection_mongo "erp.localhost/infra/db/mongo/collection"
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
+	authv1 "erp.localhost/infra/model/auth/v1"
+	validator_auth "erp.localhost/infra/model/auth/validator"
 	aggregation_auth "erp.localhost/internal/auth/aggregation"
 	collection_auth "erp.localhost/internal/auth/collection"
-	aggregation_mongo "erp.localhost/internal/infra/db/mongo/aggregation"
-	collection_mongo "erp.localhost/internal/infra/db/mongo/collection"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging/logger"
-	authv1 "erp.localhost/internal/infra/model/auth/v1"
-	validator_auth "erp.localhost/internal/infra/model/auth/validator"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

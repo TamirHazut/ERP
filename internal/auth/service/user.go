@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 
+	infra_error "erp.localhost/infra/error"
+	"erp.localhost/infra/logging/logger"
+	authv1 "erp.localhost/infra/model/auth/v1"
+	validator_infra "erp.localhost/infra/model/infra/validator"
 	"erp.localhost/internal/auth/api"
-	infra_error "erp.localhost/internal/infra/error"
-	"erp.localhost/internal/infra/logging/logger"
-	authv1 "erp.localhost/internal/infra/model/auth/v1"
-	validator_infra "erp.localhost/internal/infra/model/infra/validator"
 )
 
 type UserService struct {
