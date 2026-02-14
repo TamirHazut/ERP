@@ -1,65 +1,72 @@
 # Auth Service Makefile
 
-.PHONY: build run test test-coverage lint clean help certs certs-clean mocks mocks-clean
+.PHONY: help \
+		build run lint test test-coverage clean \
+		certs certs-clean \
+		mocks mocks-clean
 
 # Service configuration
 SERVICE_NAME := auth
 SERVICE_PORT := 5000
-BIN_DIR := ../../bin
-CMD_DIR := ../../cmd/$(SERVICE_NAME)
+BIN_DIR := ./bin
+CMD_DIR := ./cmd
 INTERNAL_DIR := .
 
 help: ## Show this help message
-	@echo "Auth Service - Available targets:"
+	@echo "$(SERVICE_NAME) Service - Available targets:"
 	@echo ""
-	@echo "  make build          - Build auth service"
-	@echo "  make run            - Run auth service (port $(SERVICE_PORT))"
-	@echo "  make test           - Run auth service tests"
-	@echo "  make test-coverage  - Run tests with coverage"
-	@echo "  make lint           - Run linter on auth service"
-	@echo "  make certs          - Generate mTLS certificates for auth service"
-	@echo "  make certs-clean    - Remove auth service certificates"
-	@echo "  make clean          - Clean build artifacts"
+	@echo "  make build          		- Build $(SERVICE_NAME) service"
+	@echo "  make run            		- Run $(SERVICE_NAME) service (port $(SERVICE_PORT))"
+	@echo "  make lint           		- Run linter on $(SERVICE_NAME) service"
+	@echo "  make test           		- Run $(SERVICE_NAME) service tests"
+	@echo "  make test-coverage  		- Run tests with coverage"
+	@echo "  make clean            		- Clean artifacts"
+	@echo "  make certs          		- Generate mTLS certificates for $(SERVICE_NAME) service"
+	@echo "  make certs-clean    		- Remove $(SERVICE_NAME) service certificates"
+	@echo "	 make help			 		- Display this menu"
 	@echo ""
 
 build: ## Build auth service
-	@echo "Building auth service..."
+	@echo "Building $(SERVICE_NAME) service..."
 	@mkdir -p $(BIN_DIR)
 	@go build -o $(BIN_DIR)/$(SERVICE_NAME) $(CMD_DIR)
-	@echo "✓ Auth service built: $(BIN_DIR)/$(SERVICE_NAME)"
+	@echo "✓ $(SERVICE_NAME) service built: $(BIN_DIR)/$(SERVICE_NAME)"
 
 run: ## Run auth service
-	@echo "Starting auth service on port $(SERVICE_PORT)..."
+	@echo "Starting $(SERVICE_NAME) service on port $(SERVICE_PORT)..."
 	@go run $(CMD_DIR)
 
 test: mocks ## Run auth service tests
-	@echo "Running auth service tests..."
+	@echo "Running $(SERVICE_NAME) service tests..."
 	@go test -v -count=1 ./...
-	@echo "✓ Auth tests complete"
+	@echo "✓ $(SERVICE_NAME) tests complete"
 
 test-coverage: mocks ## Run tests with coverage
-	@echo "Running auth service tests with coverage..."
+	@echo "Running $(SERVICE_NAME) service tests with coverage..."
 	@go test -v -coverprofile=$(INTERNAL_DIR)/coverage.out ./...
 	@go tool cover -html=$(INTERNAL_DIR)/coverage.out -o $(INTERNAL_DIR)/coverage.html
 	@echo "✓ Coverage report generated: $(INTERNAL_DIR)/coverage.html"
 
 lint: ## Run linter on auth service
-	@echo "Running linter on auth service..."
+	@echo "Running linter on $(SERVICE_NAME) service..."
 	@golangci-lint run ./...
 	@echo "✓ Linting complete"
 
 clean: ## Clean build artifacts
-	@echo "Cleaning auth service artifacts..."
-	@rm -f $(INTERNAL_DIR)/coverage.out $(INTERNAL_DIR)/coverage.html
+	@echo "Cleaning $(SERVICE_NAME) service artifacts..."
+	@rm -f $(INTERNAL_DIR)/coverage.out $(INTERNAL_DIR)/coverage.html $(BIN_DIR)/*
 	@echo "✓ Clean complete"
 
-.PHONY: mocks
-mocks: mocks-clean
-	@echo "Generating auth mocks..."
-	@go generate ./...
-	@echo "✅ Auth mocks generated successfully"
 
-.PHONY: mocks-clean
+# ============================================================================
+# MOCKS
+# ============================================================================
+
+mocks: mocks-clean
+	@echo "Generating $(SERVICE_NAME) mocks..."
+	@go generate ./...
+	@echo "✅ $(SERVICE_NAME) mocks generated successfully"
+
 mocks-clean:
 	@echo "Cleaning generated infra mocks..."
 	@find . -name "mock_*.go" -type f -delete

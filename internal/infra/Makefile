@@ -1,59 +1,48 @@
-# infra Service Makefile
+# infra Module Makefile
 
-.PHONY: build test test-coverage lint clean help mocks mocks-clean proto proto-clean generate-topics
+.PHONY: help \
+		lint test test-coverage test-clean \
+		certs certs-clean \
+		generate generate-clean
 
-# Service configuration
-SERVICE_NAME := infra
-BIN_DIR := ../../bin
-CMD_DIR := ../../cmd/$(SERVICE_NAME)
+# Module configuration
+MODULE_NAME := infra
 INTERNAL_DIR := .
 
 help: ## Show this help message
-	@echo "Infra Service - Available targets:"
+	@echo "$(MODULE_NAME) - Available targets:"
 	@echo ""
-	@echo "  make build          - Build infra service"
-	@echo "  make test           - Run infra service tests"
-	@echo "  make test-coverage  - Run tests with coverage"
-	@echo "  make lint           - Run linter on infra service"
-	@echo "  make clean          - Clean build artifacts"
+	@echo "  make lint           		- Run linter on $(MODULE_NAME) module"
+	@echo "  make test           		- Run $(MODULE_NAME) module tests"
+	@echo "  make test-coverage  		- Run tests with coverage"
+	@echo "  make test-clean     		- Clean tests artifacts"
+	@echo "	 make certs		 			- Generate all required certificates"
+	@echo "	 make certs-clean		 	- Clean all certificates"
+	@echo "	 make generate		 		- Generate all required files"
+	@echo "	 make generate-clean		- Clean all generated files"
+	@echo "	 make help			 		- Display this menu"
 	@echo ""
 
-build: ## Build infra service
-	@echo "Building infra service..."
-	@mkdir -p $(BIN_DIR)
-	@go build -o $(BIN_DIR)/$(SERVICE_NAME) $(CMD_DIR)
-	@echo "✓ Infra service built: $(BIN_DIR)/$(SERVICE_NAME)"
-
-test: mocks ## Run infra service tests
-	@echo "Running infra service tests..."
+test: generate ## Run infra module tests
+	@echo "Running $(MODULE_NAME) module tests..."
 	@go test -v -count=1 ./...
-	@echo "✓ Infra tests complete"
+	@echo "✓ $(MODULE_NAME) tests complete"
 
-test-coverage: mocks ## Run tests with coverage
-	@echo "Running infra service tests with coverage..."
+test-coverage: generate ## Run tests with coverage
+	@echo "Running $(MODULE_NAME) module tests with coverage..."
 	@go test -v -coverprofile=$(INTERNAL_DIR)/coverage.out ./...
 	@go tool cover -html=$(INTERNAL_DIR)/coverage.out -o $(INTERNAL_DIR)/coverage.html
 	@echo "✓ Coverage report generated: $(INTERNAL_DIR)/coverage.html"
 
-lint: ## Run linter on infra service
-	@echo "Running linter on infra service..."
+lint: ## Run linter on infra module
+	@echo "Running linter on $(MODULE_NAME) module..."
 	@golangci-lint run ./...
 	@echo "✓ Linting complete"
 
-clean: ## Clean build artifacts
-	@echo "Cleaning infra service artifacts..."
+test-clean: ## Clean build artifacts
+	@echo "Cleaning $(MODULE_NAME) module artifacts..."
 	@rm -f $(INTERNAL_DIR)/coverage.out $(INTERNAL_DIR)/coverage.html
 	@echo "✓ Clean complete"
-
-mocks: mocks-clean
-	@echo "Generating infra mocks..."
-	@go generate ./...
-	@echo "✅ Infra mocks generated successfully"
-
-mocks-clean:
-	@echo "Cleaning generated infra mocks..."
-	@find . -name "mock_*.go" -type f -delete
-	@echo "✅ Infra mocks cleaned"
 
 
 # ============================================================================
@@ -84,14 +73,29 @@ certs: certs-clean ## Create CA and certificates for all services
 		echo "✓ CA certificate already exists: $(CA_CERT)"; \
 	fi
 
-certs-clean: ## Remove all certificates (CA and service certificates)
+certs-clean: ## Remove all certificates (CA and module certificates)
 	@echo "Removing all certificates..."
 	@rm -rf resources/certs
-	@for service in $(SERVICES); do \
-		$(MAKE) -C internal/$$service certs-clean; \
-	done
 	@echo "✓ All certificates removed"
 
+
+# ============================================================================
+# MOCKS
+# ============================================================================
+
+mocks:
+	@echo "Generating $(MODULE_NAME) mocks..."
+	@go generate ./...
+	@echo "✅ $(MODULE_NAME) mocks generated successfully"
+
+mocks-clean:
+	@echo "Cleaning generated $(MODULE_NAME) mocks..."
+	@find . -name "mock_*.go" -type f -delete
+	@echo "✅ $(MODULE_NAME) mocks cleaned"
+
+# ============================================================================
+# Kafka
+# ============================================================================
 
 generate-topics:
 	python ./resources/scripts/topics_generator.py \
@@ -100,6 +104,8 @@ generate-topics:
 		--py ./python/model/event/topics.py \
 		--js ./js/model/event/topics.js
 
+generate-topics-clean:
+	rm -rf 
 
 # ============================================================================
 # PROTO
@@ -173,3 +179,11 @@ proto-clean: ## Surgically remove ONLY generated proto files
 	@# Remove JS generated files
 	@find $(GENERATED_JS_OUT) -type f -name "*_pb.js" -delete
 	@echo "✓ Generated files removed. Manual files preserved."
+
+# ============================================================================
+# GENERATED
+# ============================================================================
+
+generate: generate-clean proto generate-topics mocks
+
+generate-clean: proto-clean generate-topics-clean mocks-clean 
