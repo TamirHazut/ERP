@@ -27,8 +27,8 @@ const (
 
 type Actor struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Role          string                 `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
+	Role          string                 `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty" bson:"role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -79,10 +79,10 @@ func (x *Actor) GetRole() string {
 
 type AuditMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Actor         *Actor                 `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor,omitempty"`
-	OccurredAt    *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
-	RequestId     string                 `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	IpAddress     string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
+	Actor         *Actor                 `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor" bson:"actor"`
+	OccurredAt    *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at" bson:"occurred_at"`
+	RequestId     string                 `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty" bson:"request_id,omitempty"`
+	IpAddress     string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty" bson:"ip_address,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,12 +147,12 @@ func (x *AuditMetadata) GetIpAddress() string {
 
 type UserCreatedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	FullName      string                 `protobuf:"bytes,3,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
-	Roles         []string               `protobuf:"bytes,4,rep,name=roles,proto3" json:"roles,omitempty"` // Role IDs
-	IsActive      bool                   `protobuf:"varint,5,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email" bson:"email"`
+	FullName      string                 `protobuf:"bytes,3,opt,name=full_name,json=fullName,proto3" json:"full_name" bson:"full_name"`
+	Roles         []string               `protobuf:"bytes,4,rep,name=roles,proto3" json:"roles" bson:"roles"` // Role IDs
+	IsActive      bool                   `protobuf:"varint,5,opt,name=is_active,json=isActive,proto3" json:"is_active" bson:"is_active"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -231,13 +231,13 @@ func (x *UserCreatedEvent) GetMetadata() *AuditMetadata {
 
 type UserUpdatedEvent struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
-	UserId string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	UserId string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
 	// Optional fields - only set if changed
-	Email         *string        `protobuf:"bytes,2,opt,name=email,proto3,oneof" json:"email,omitempty"`
-	FullName      *string        `protobuf:"bytes,3,opt,name=full_name,json=fullName,proto3,oneof" json:"full_name,omitempty"`
-	IsActive      *bool          `protobuf:"varint,4,opt,name=is_active,json=isActive,proto3,oneof" json:"is_active,omitempty"`
-	ChangedFields []string       `protobuf:"bytes,5,rep,name=changed_fields,json=changedFields,proto3" json:"changed_fields,omitempty"` // ["email", "full_name"]
-	Metadata      *AuditMetadata `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Email         *string        `protobuf:"bytes,2,opt,name=email,proto3,oneof" json:"email,omitempty" bson:"email,omitempty"`
+	FullName      *string        `protobuf:"bytes,3,opt,name=full_name,json=fullName,proto3,oneof" json:"full_name,omitempty" bson:"full_name,omitempty"`
+	IsActive      *bool          `protobuf:"varint,4,opt,name=is_active,json=isActive,proto3,oneof" json:"is_active,omitempty" bson:"is_active,omitempty"`
+	ChangedFields []string       `protobuf:"bytes,5,rep,name=changed_fields,json=changedFields,proto3" json:"changed_fields" bson:"changed_fields"` // ["email", "full_name"]
+	Metadata      *AuditMetadata `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -316,10 +316,10 @@ func (x *UserUpdatedEvent) GetMetadata() *AuditMetadata {
 
 type UserDeletedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email" bson:"email"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty" bson:"reason,omitempty"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -384,10 +384,10 @@ func (x *UserDeletedEvent) GetMetadata() *AuditMetadata {
 
 type LoginSucceededEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty" bson:"email,omitempty"`
+	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"email,omitempty" bson:"email,omitempty"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -452,11 +452,11 @@ func (x *LoginSucceededEvent) GetMetadata() *AuditMetadata {
 
 type LoginFailedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
-	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"` // "invalid_password", "user_not_found", etc.
-	AttemptCount  int32                  `protobuf:"varint,4,opt,name=attempt_count,json=attemptCount,proto3" json:"attempt_count,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty" bson:"email,omitempty"`
+	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty" bson:"username,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason" bson:"reason"` // "invalid_password", "user_not_found", etc.
+	AttemptCount  int32                  `protobuf:"varint,4,opt,name=attempt_count,json=attemptCount,proto3" json:"attempt_count,omitempty" bson:"attempt_count,omitempty"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -528,9 +528,9 @@ func (x *LoginFailedEvent) GetMetadata() *AuditMetadata {
 
 type LogoutEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	SessionId     string                 `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
+	SessionId     string                 `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty" bson:"session_id,omitempty"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -588,10 +588,10 @@ func (x *LogoutEvent) GetMetadata() *AuditMetadata {
 
 type TokenRefreshedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	OldTokenId    string                 `protobuf:"bytes,2,opt,name=old_token_id,json=oldTokenId,proto3" json:"old_token_id,omitempty"`
-	NewTokenId    string                 `protobuf:"bytes,3,opt,name=new_token_id,json=newTokenId,proto3" json:"new_token_id,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
+	OldTokenId    string                 `protobuf:"bytes,2,opt,name=old_token_id,json=oldTokenId,proto3" json:"old_token_id" bson:"old_token_id"`
+	NewTokenId    string                 `protobuf:"bytes,3,opt,name=new_token_id,json=newTokenId,proto3" json:"new_token_id" bson:"new_token_id"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -656,10 +656,10 @@ func (x *TokenRefreshedEvent) GetMetadata() *AuditMetadata {
 
 type TokenRevokedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	TokenId       string                 `protobuf:"bytes,2,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
+	TokenId       string                 `protobuf:"bytes,2,opt,name=token_id,json=tokenId,proto3" json:"token_id" bson:"token_id"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty" bson:"reason,omitempty"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -724,10 +724,10 @@ func (x *TokenRevokedEvent) GetMetadata() *AuditMetadata {
 
 type TenantTokensRevokedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	TokenCount    int32                  `protobuf:"varint,2,opt,name=token_count,json=tokenCount,proto3" json:"token_count,omitempty"`
-	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	TokenCount    int32                  `protobuf:"varint,2,opt,name=token_count,json=tokenCount,proto3" json:"token_count" bson:"token_count"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty" bson:"reason,omitempty"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -792,11 +792,11 @@ func (x *TenantTokensRevokedEvent) GetMetadata() *AuditMetadata {
 
 type RoleCreatedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoleId        string                 `protobuf:"bytes,1,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
-	RoleName      string                 `protobuf:"bytes,2,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Permissions   []string               `protobuf:"bytes,4,rep,name=permissions,proto3" json:"permissions,omitempty"` // Permission IDs
-	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	RoleId        string                 `protobuf:"bytes,1,opt,name=role_id,json=roleId,proto3" json:"role_id" bson:"role_id"`
+	RoleName      string                 `protobuf:"bytes,2,opt,name=role_name,json=roleName,proto3" json:"role_name" bson:"role_name"`
+	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty" bson:"description,omitempty"`
+	Permissions   []string               `protobuf:"bytes,4,rep,name=permissions,proto3" json:"permissions" bson:"permissions"` // Permission IDs
+	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -868,14 +868,14 @@ func (x *RoleCreatedEvent) GetMetadata() *AuditMetadata {
 
 type RoleUpdatedEvent struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
-	RoleId string                 `protobuf:"bytes,1,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
+	RoleId string                 `protobuf:"bytes,1,opt,name=role_id,json=roleId,proto3" json:"role_id" bson:"role_id"`
 	// Optional fields - only set if changed
-	RoleName           *string        `protobuf:"bytes,2,opt,name=role_name,json=roleName,proto3,oneof" json:"role_name,omitempty"`
-	Description        *string        `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	AddedPermissions   []string       `protobuf:"bytes,4,rep,name=added_permissions,json=addedPermissions,proto3" json:"added_permissions,omitempty"`
-	RemovedPermissions []string       `protobuf:"bytes,5,rep,name=removed_permissions,json=removedPermissions,proto3" json:"removed_permissions,omitempty"`
-	ChangedFields      []string       `protobuf:"bytes,6,rep,name=changed_fields,json=changedFields,proto3" json:"changed_fields,omitempty"`
-	Metadata           *AuditMetadata `protobuf:"bytes,7,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	RoleName           *string        `protobuf:"bytes,2,opt,name=role_name,json=roleName,proto3,oneof" json:"role_name,omitempty" bson:"role_name,omitempty"`
+	Description        *string        `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty" bson:"description,omitempty"`
+	AddedPermissions   []string       `protobuf:"bytes,4,rep,name=added_permissions,json=addedPermissions,proto3" json:"added_permissions" bson:"added_permissions"`
+	RemovedPermissions []string       `protobuf:"bytes,5,rep,name=removed_permissions,json=removedPermissions,proto3" json:"removed_permissions" bson:"removed_permissions"`
+	ChangedFields      []string       `protobuf:"bytes,6,rep,name=changed_fields,json=changedFields,proto3" json:"changed_fields" bson:"changed_fields"`
+	Metadata           *AuditMetadata `protobuf:"bytes,7,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -961,10 +961,10 @@ func (x *RoleUpdatedEvent) GetMetadata() *AuditMetadata {
 
 type RoleDeletedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoleId        string                 `protobuf:"bytes,1,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
-	RoleName      string                 `protobuf:"bytes,2,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
-	AffectedUsers int32                  `protobuf:"varint,3,opt,name=affected_users,json=affectedUsers,proto3" json:"affected_users,omitempty"` // How many users had this role
-	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	RoleId        string                 `protobuf:"bytes,1,opt,name=role_id,json=roleId,proto3" json:"role_id" bson:"role_id"`
+	RoleName      string                 `protobuf:"bytes,2,opt,name=role_name,json=roleName,proto3" json:"role_name" bson:"role_name"`
+	AffectedUsers int32                  `protobuf:"varint,3,opt,name=affected_users,json=affectedUsers,proto3" json:"affected_users" bson:"affected_users"` // How many users had this role
+	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1029,11 +1029,11 @@ func (x *RoleDeletedEvent) GetMetadata() *AuditMetadata {
 
 type RoleAssignedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	RoleId        string                 `protobuf:"bytes,2,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
-	RoleName      string                 `protobuf:"bytes,3,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
-	Permissions   []string               `protobuf:"bytes,4,rep,name=permissions,proto3" json:"permissions,omitempty"` // Permissions granted via this role
-	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
+	RoleId        string                 `protobuf:"bytes,2,opt,name=role_id,json=roleId,proto3" json:"role_id" bson:"role_id"`
+	RoleName      string                 `protobuf:"bytes,3,opt,name=role_name,json=roleName,proto3" json:"role_name" bson:"role_name"`
+	Permissions   []string               `protobuf:"bytes,4,rep,name=permissions,proto3" json:"permissions" bson:"permissions"` // Permissions granted via this role
+	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1105,11 +1105,11 @@ func (x *RoleAssignedEvent) GetMetadata() *AuditMetadata {
 
 type RoleRevokedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	RoleId        string                 `protobuf:"bytes,2,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
-	RoleName      string                 `protobuf:"bytes,3,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
-	Reason        string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
+	RoleId        string                 `protobuf:"bytes,2,opt,name=role_id,json=roleId,proto3" json:"role_id" bson:"role_id"`
+	RoleName      string                 `protobuf:"bytes,3,opt,name=role_name,json=roleName,proto3" json:"role_name" bson:"role_name"`
+	Reason        string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty" bson:"reason,omitempty"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1181,11 +1181,11 @@ func (x *RoleRevokedEvent) GetMetadata() *AuditMetadata {
 
 type PermissionCreatedEvent struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	PermissionId   string                 `protobuf:"bytes,1,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
-	PermissionName string                 `protobuf:"bytes,2,opt,name=permission_name,json=permissionName,proto3" json:"permission_name,omitempty"`
-	Resource       string                 `protobuf:"bytes,3,opt,name=resource,proto3" json:"resource,omitempty"`
-	Action         string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"`
-	Metadata       *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	PermissionId   string                 `protobuf:"bytes,1,opt,name=permission_id,json=permissionId,proto3" json:"permission_id" bson:"permission_id"`
+	PermissionName string                 `protobuf:"bytes,2,opt,name=permission_name,json=permissionName,proto3" json:"permission_name" bson:"permission_name"`
+	Resource       string                 `protobuf:"bytes,3,opt,name=resource,proto3" json:"resource" bson:"resource"`
+	Action         string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action" bson:"action"`
+	Metadata       *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1257,9 +1257,9 @@ func (x *PermissionCreatedEvent) GetMetadata() *AuditMetadata {
 
 type PermissionUpdatedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	PermissionId  string                 `protobuf:"bytes,1,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
-	ChangedFields []string               `protobuf:"bytes,2,rep,name=changed_fields,json=changedFields,proto3" json:"changed_fields,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	PermissionId  string                 `protobuf:"bytes,1,opt,name=permission_id,json=permissionId,proto3" json:"permission_id" bson:"permission_id"`
+	ChangedFields []string               `protobuf:"bytes,2,rep,name=changed_fields,json=changedFields,proto3" json:"changed_fields" bson:"changed_fields"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1317,9 +1317,9 @@ func (x *PermissionUpdatedEvent) GetMetadata() *AuditMetadata {
 
 type PermissionDeletedEvent struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	PermissionId   string                 `protobuf:"bytes,1,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
-	PermissionName string                 `protobuf:"bytes,2,opt,name=permission_name,json=permissionName,proto3" json:"permission_name,omitempty"`
-	Metadata       *AuditMetadata         `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	PermissionId   string                 `protobuf:"bytes,1,opt,name=permission_id,json=permissionId,proto3" json:"permission_id" bson:"permission_id"`
+	PermissionName string                 `protobuf:"bytes,2,opt,name=permission_name,json=permissionName,proto3" json:"permission_name" bson:"permission_name"`
+	Metadata       *AuditMetadata         `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1377,11 +1377,11 @@ func (x *PermissionDeletedEvent) GetMetadata() *AuditMetadata {
 
 type TenantCreatedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	TenantName    string                 `protobuf:"bytes,2,opt,name=tenant_name,json=tenantName,proto3" json:"tenant_name,omitempty"`
-	AdminUserId   string                 `protobuf:"bytes,3,opt,name=admin_user_id,json=adminUserId,proto3" json:"admin_user_id,omitempty"` // First admin user
-	AdminEmail    string                 `protobuf:"bytes,4,opt,name=admin_email,json=adminEmail,proto3" json:"admin_email,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	TenantName    string                 `protobuf:"bytes,2,opt,name=tenant_name,json=tenantName,proto3" json:"tenant_name" bson:"tenant_name"`
+	AdminUserId   string                 `protobuf:"bytes,3,opt,name=admin_user_id,json=adminUserId,proto3" json:"admin_user_id" bson:"admin_user_id"` // First admin user
+	AdminEmail    string                 `protobuf:"bytes,4,opt,name=admin_email,json=adminEmail,proto3" json:"admin_email" bson:"admin_email"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1453,10 +1453,10 @@ func (x *TenantCreatedEvent) GetMetadata() *AuditMetadata {
 
 type TenantUpdatedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	TenantName    *string                `protobuf:"bytes,2,opt,name=tenant_name,json=tenantName,proto3,oneof" json:"tenant_name,omitempty"`
-	ChangedFields []string               `protobuf:"bytes,3,rep,name=changed_fields,json=changedFields,proto3" json:"changed_fields,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	TenantName    *string                `protobuf:"bytes,2,opt,name=tenant_name,json=tenantName,proto3,oneof" json:"tenant_name,omitempty" bson:"tenant_name,omitempty"`
+	ChangedFields []string               `protobuf:"bytes,3,rep,name=changed_fields,json=changedFields,proto3" json:"changed_fields" bson:"changed_fields"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1521,11 +1521,11 @@ func (x *TenantUpdatedEvent) GetMetadata() *AuditMetadata {
 
 type TenantDeletedEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	TenantName    string                 `protobuf:"bytes,2,opt,name=tenant_name,json=tenantName,proto3" json:"tenant_name,omitempty"`
-	UserCount     int32                  `protobuf:"varint,3,opt,name=user_count,json=userCount,proto3" json:"user_count,omitempty"` // How many users affected
-	Reason        string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
-	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	TenantName    string                 `protobuf:"bytes,2,opt,name=tenant_name,json=tenantName,proto3" json:"tenant_name" bson:"tenant_name"`
+	UserCount     int32                  `protobuf:"varint,3,opt,name=user_count,json=userCount,proto3" json:"user_count" bson:"user_count"` // How many users affected
+	Reason        string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty" bson:"reason,omitempty"`
+	Metadata      *AuditMetadata         `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata" bson:"metadata"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

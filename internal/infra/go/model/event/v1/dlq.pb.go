@@ -25,17 +25,17 @@ const (
 
 type DlqEntry struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
-	Topic        string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	PartitionKey string                 `protobuf:"bytes,2,opt,name=partition_key,json=partitionKey,proto3" json:"partition_key,omitempty"`
-	Message      *Message               `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Topic        string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic" bson:"topic"`
+	PartitionKey string                 `protobuf:"bytes,2,opt,name=partition_key,json=partitionKey,proto3" json:"partition_key" bson:"partition_key"`
+	Message      *Message               `protobuf:"bytes,3,opt,name=message,proto3" json:"message" bson:"message"`
 	// Retry tracking
-	Retries     int32                  `protobuf:"varint,4,opt,name=retries,proto3" json:"retries,omitempty"`
-	MaxRetries  int32                  `protobuf:"varint,5,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries,omitempty"`
-	NextRetryAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=next_retry_at,json=nextRetryAt,proto3" json:"next_retry_at,omitempty"`
+	Retries     int32                  `protobuf:"varint,4,opt,name=retries,proto3" json:"retries" bson:"retries"`
+	MaxRetries  int32                  `protobuf:"varint,5,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries" bson:"max_retries"`
+	NextRetryAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=next_retry_at,json=nextRetryAt,proto3" json:"next_retry_at" bson:"next_retry_at"`
 	// Metadata
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	LastError     string                 `protobuf:"bytes,9,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
+	LastError     string                 `protobuf:"bytes,9,opt,name=last_error,json=lastError,proto3" json:"last_error" bson:"last_error"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

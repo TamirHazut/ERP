@@ -2,18 +2,14 @@
 Pytest fixtures for Auth service functional tests.
 """
 import pytest
-import sys
-import os
 
-# Add infra functional path to sys.path for imports
-infra_functional_path = os.path.join(os.path.dirname(__file__), '../../infra/functional')
-sys.path.insert(0, infra_functional_path)
-# Add proto path for proto imports
-sys.path.insert(0, os.path.join(infra_functional_path, 'proto'))
+# --- ALL SYS.PATH HACKS REMOVED ---
+# No more os.path.join or sys.path.insert
 
-from db.manager import DatabaseManager
-from config import TestConfig
-from logger import setup_logging, get_log_config_from_env, get_logger
+# Standard imports from your installed 'infra' package
+from infra.functional.db.manager import DatabaseManager
+from infra.functional.config import TestConfig
+from infra.functional.logger import setup_logging, get_log_config_from_env, get_logger
 
 # Module logger
 logger = get_logger("fixtures")

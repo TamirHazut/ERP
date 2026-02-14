@@ -253,25 +253,25 @@ func (OrderItemStatus) EnumDescriptor() ([]byte, []int) {
 // Order model for MongoDB core_db.orders collection
 type Order struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	OrderId         string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	TenantId        string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	OrderNumber     string                 `protobuf:"bytes,4,opt,name=order_number,json=orderNumber,proto3" json:"order_number,omitempty"`
-	OrderType       OrderType              `protobuf:"varint,5,opt,name=order_type,json=orderType,proto3,enum=core.v1.OrderType" json:"order_type,omitempty"`
-	CustomerId      string                 `protobuf:"bytes,6,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
-	VendorId        string                 `protobuf:"bytes,7,opt,name=vendor_id,json=vendorId,proto3" json:"vendor_id,omitempty"`
-	Status          OrderStatus            `protobuf:"varint,8,opt,name=status,proto3,enum=core.v1.OrderStatus" json:"status,omitempty"`
-	Items           []string               `protobuf:"bytes,9,rep,name=items,proto3" json:"items,omitempty"`
-	Totals          *OrderTotals           `protobuf:"bytes,10,opt,name=totals,proto3" json:"totals,omitempty"`
-	ShippingAddress *Address               `protobuf:"bytes,11,opt,name=shipping_address,json=shippingAddress,proto3" json:"shipping_address,omitempty"`
-	BillingAddress  *Address               `protobuf:"bytes,12,opt,name=billing_address,json=billingAddress,proto3" json:"billing_address,omitempty"`
-	Payment         *PaymentInfo           `protobuf:"bytes,13,opt,name=payment,proto3" json:"payment,omitempty"`
-	Fulfillment     *FulfillmentInfo       `protobuf:"bytes,14,opt,name=fulfillment,proto3" json:"fulfillment,omitempty"`
-	Notes           string                 `protobuf:"bytes,15,opt,name=notes,proto3" json:"notes,omitempty"`
-	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	CreatedBy       string                 `protobuf:"bytes,18,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
-	Timeline        []*OrderTimelineEvent  `protobuf:"bytes,19,rep,name=timeline,proto3" json:"timeline,omitempty"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id,omitempty"`
+	OrderId         string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id" bson:"order_id"`
+	TenantId        string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	OrderNumber     string                 `protobuf:"bytes,4,opt,name=order_number,json=orderNumber,proto3" json:"order_number" bson:"order_number"`
+	OrderType       OrderType              `protobuf:"varint,5,opt,name=order_type,json=orderType,proto3,enum=core.v1.OrderType" json:"order_type" bson:"order_type"`
+	CustomerId      string                 `protobuf:"bytes,6,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty" bson:"customer_id,omitempty"`
+	VendorId        string                 `protobuf:"bytes,7,opt,name=vendor_id,json=vendorId,proto3" json:"vendor_id,omitempty" bson:"vendor_id,omitempty"`
+	Status          OrderStatus            `protobuf:"varint,8,opt,name=status,proto3,enum=core.v1.OrderStatus" json:"status" bson:"status"`
+	Items           []string               `protobuf:"bytes,9,rep,name=items,proto3" json:"items" bson:"items"`
+	Totals          *OrderTotals           `protobuf:"bytes,10,opt,name=totals,proto3" json:"totals" bson:"totals"`
+	ShippingAddress *Address               `protobuf:"bytes,11,opt,name=shipping_address,json=shippingAddress,proto3" json:"shipping_address" bson:"shipping_address"`
+	BillingAddress  *Address               `protobuf:"bytes,12,opt,name=billing_address,json=billingAddress,proto3" json:"billing_address" bson:"billing_address"`
+	Payment         *PaymentInfo           `protobuf:"bytes,13,opt,name=payment,proto3" json:"payment" bson:"payment"`
+	Fulfillment     *FulfillmentInfo       `protobuf:"bytes,14,opt,name=fulfillment,proto3" json:"fulfillment,omitempty" bson:"fulfillment,omitempty"`
+	Notes           string                 `protobuf:"bytes,15,opt,name=notes,proto3" json:"notes,omitempty" bson:"notes,omitempty"`
+	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
+	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
+	CreatedBy       string                 `protobuf:"bytes,18,opt,name=created_by,json=createdBy,proto3" json:"created_by" bson:"created_by"`
+	Timeline        []*OrderTimelineEvent  `protobuf:"bytes,19,rep,name=timeline,proto3" json:"timeline,omitempty" bson:"timeline,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -441,12 +441,12 @@ func (x *Order) GetTimeline() []*OrderTimelineEvent {
 
 type OrderTotals struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Subtotal      float64                `protobuf:"fixed64,1,opt,name=subtotal,proto3" json:"subtotal,omitempty"`
-	Tax           float64                `protobuf:"fixed64,2,opt,name=tax,proto3" json:"tax,omitempty"`
-	Shipping      float64                `protobuf:"fixed64,3,opt,name=shipping,proto3" json:"shipping,omitempty"`
-	Discount      float64                `protobuf:"fixed64,4,opt,name=discount,proto3" json:"discount,omitempty"`
-	Total         float64                `protobuf:"fixed64,5,opt,name=total,proto3" json:"total,omitempty"`
-	Currency      string                 `protobuf:"bytes,6,opt,name=currency,proto3" json:"currency,omitempty"`
+	Subtotal      float64                `protobuf:"fixed64,1,opt,name=subtotal,proto3" json:"subtotal" bson:"subtotal"`
+	Tax           float64                `protobuf:"fixed64,2,opt,name=tax,proto3" json:"tax" bson:"tax"`
+	Shipping      float64                `protobuf:"fixed64,3,opt,name=shipping,proto3" json:"shipping" bson:"shipping"`
+	Discount      float64                `protobuf:"fixed64,4,opt,name=discount,proto3" json:"discount" bson:"discount"`
+	Total         float64                `protobuf:"fixed64,5,opt,name=total,proto3" json:"total" bson:"total"`
+	Currency      string                 `protobuf:"bytes,6,opt,name=currency,proto3" json:"currency" bson:"currency"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -525,10 +525,10 @@ func (x *OrderTotals) GetCurrency() string {
 
 type PaymentInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Status        PaymentStatus          `protobuf:"varint,2,opt,name=status,proto3,enum=core.v1.PaymentStatus" json:"status,omitempty"`
-	PaidAt        *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=paid_at,json=paidAt,proto3" json:"paid_at,omitempty"`
-	TransactionId string                 `protobuf:"bytes,4,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id,omitempty"`
+	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method" bson:"method"`
+	Status        PaymentStatus          `protobuf:"varint,2,opt,name=status,proto3,enum=core.v1.PaymentStatus" json:"status" bson:"status"`
+	PaidAt        *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=paid_at,json=paidAt,proto3" json:"paid_at,omitempty" bson:"paid_at,omitempty"`
+	TransactionId string                 `protobuf:"bytes,4,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id,omitempty" bson:"transaction_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -593,11 +593,11 @@ func (x *PaymentInfo) GetTransactionId() string {
 
 type FulfillmentInfo struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	WarehouseId    string                 `protobuf:"bytes,1,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty"`
-	ShippedAt      *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=shipped_at,json=shippedAt,proto3" json:"shipped_at,omitempty"`
-	DeliveredAt    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=delivered_at,json=deliveredAt,proto3" json:"delivered_at,omitempty"`
-	TrackingNumber string                 `protobuf:"bytes,4,opt,name=tracking_number,json=trackingNumber,proto3" json:"tracking_number,omitempty"`
-	Carrier        string                 `protobuf:"bytes,5,opt,name=carrier,proto3" json:"carrier,omitempty"`
+	WarehouseId    string                 `protobuf:"bytes,1,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty" bson:"warehouse_id,omitempty"`
+	ShippedAt      *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=shipped_at,json=shippedAt,proto3" json:"shipped_at,omitempty" bson:"shipped_at,omitempty"`
+	DeliveredAt    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=delivered_at,json=deliveredAt,proto3" json:"delivered_at,omitempty" bson:"delivered_at,omitempty"`
+	TrackingNumber string                 `protobuf:"bytes,4,opt,name=tracking_number,json=trackingNumber,proto3" json:"tracking_number,omitempty" bson:"tracking_number,omitempty"`
+	Carrier        string                 `protobuf:"bytes,5,opt,name=carrier,proto3" json:"carrier,omitempty" bson:"carrier,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -669,10 +669,10 @@ func (x *FulfillmentInfo) GetCarrier() string {
 
 type OrderTimelineEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Notes         string                 `protobuf:"bytes,4,opt,name=notes,proto3" json:"notes,omitempty"`
+	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status" bson:"status"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp" bson:"timestamp"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id"`
+	Notes         string                 `protobuf:"bytes,4,opt,name=notes,proto3" json:"notes,omitempty" bson:"notes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -738,22 +738,22 @@ func (x *OrderTimelineEvent) GetNotes() string {
 // OrderItem model for MongoDB core_db.order_items collection
 type OrderItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ItemId        string                 `protobuf:"bytes,2,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
-	OrderId       string                 `protobuf:"bytes,3,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	ProductId     string                 `protobuf:"bytes,5,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	Sku           string                 `protobuf:"bytes,6,opt,name=sku,proto3" json:"sku,omitempty"`
-	Name          string                 `protobuf:"bytes,7,opt,name=name,proto3" json:"name,omitempty"`
-	Quantity      int32                  `protobuf:"varint,8,opt,name=quantity,proto3" json:"quantity,omitempty"`
-	UnitPrice     float64                `protobuf:"fixed64,9,opt,name=unit_price,json=unitPrice,proto3" json:"unit_price,omitempty"`
-	TaxRate       float64                `protobuf:"fixed64,10,opt,name=tax_rate,json=taxRate,proto3" json:"tax_rate,omitempty"`
-	Discount      float64                `protobuf:"fixed64,11,opt,name=discount,proto3" json:"discount,omitempty"`
-	Subtotal      float64                `protobuf:"fixed64,12,opt,name=subtotal,proto3" json:"subtotal,omitempty"`
-	Tax           float64                `protobuf:"fixed64,13,opt,name=tax,proto3" json:"tax,omitempty"`
-	Total         float64                `protobuf:"fixed64,14,opt,name=total,proto3" json:"total,omitempty"`
-	Status        OrderItemStatus        `protobuf:"varint,15,opt,name=status,proto3,enum=core.v1.OrderItemStatus" json:"status,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id,omitempty"`
+	ItemId        string                 `protobuf:"bytes,2,opt,name=item_id,json=itemId,proto3" json:"item_id" bson:"item_id"`
+	OrderId       string                 `protobuf:"bytes,3,opt,name=order_id,json=orderId,proto3" json:"order_id" bson:"order_id"`
+	TenantId      string                 `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	ProductId     string                 `protobuf:"bytes,5,opt,name=product_id,json=productId,proto3" json:"product_id" bson:"product_id"`
+	Sku           string                 `protobuf:"bytes,6,opt,name=sku,proto3" json:"sku" bson:"sku"`
+	Name          string                 `protobuf:"bytes,7,opt,name=name,proto3" json:"name" bson:"name"`
+	Quantity      int32                  `protobuf:"varint,8,opt,name=quantity,proto3" json:"quantity" bson:"quantity"`
+	UnitPrice     float64                `protobuf:"fixed64,9,opt,name=unit_price,json=unitPrice,proto3" json:"unit_price" bson:"unit_price"`
+	TaxRate       float64                `protobuf:"fixed64,10,opt,name=tax_rate,json=taxRate,proto3" json:"tax_rate" bson:"tax_rate"`
+	Discount      float64                `protobuf:"fixed64,11,opt,name=discount,proto3" json:"discount" bson:"discount"`
+	Subtotal      float64                `protobuf:"fixed64,12,opt,name=subtotal,proto3" json:"subtotal" bson:"subtotal"`
+	Tax           float64                `protobuf:"fixed64,13,opt,name=tax,proto3" json:"tax" bson:"tax"`
+	Total         float64                `protobuf:"fixed64,14,opt,name=total,proto3" json:"total" bson:"total"`
+	Status        OrderItemStatus        `protobuf:"varint,15,opt,name=status,proto3,enum=core.v1.OrderItemStatus" json:"status" bson:"status"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

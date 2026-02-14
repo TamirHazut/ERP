@@ -25,9 +25,9 @@ const (
 // Certs represents certificate paths for mTLS
 type Certs struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CaCert        string                 `protobuf:"bytes,1,opt,name=ca_cert,json=caCert,proto3" json:"ca_cert,omitempty"`
-	Cert          string                 `protobuf:"bytes,2,opt,name=cert,proto3" json:"cert,omitempty"`
-	Key           string                 `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
+	CaCert        string                 `protobuf:"bytes,1,opt,name=ca_cert,json=caCert,proto3" json:"ca_cert" bson:"ca_cert"`
+	Cert          string                 `protobuf:"bytes,2,opt,name=cert,proto3" json:"cert" bson:"cert"`
+	Key           string                 `protobuf:"bytes,3,opt,name=key,proto3" json:"key" bson:"key"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

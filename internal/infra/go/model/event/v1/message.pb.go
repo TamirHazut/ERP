@@ -26,13 +26,13 @@ const (
 
 type Message struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                                         // Message ID (UUID)
-	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`                             // Multi-tenant isolation
-	EntityType    string                 `protobuf:"bytes,3,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`                       // "user", "order", etc.
-	EntityId      string                 `protobuf:"bytes,4,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`                             // "user_123", "order_456"
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`                                           // Event time
-	EventType     EventType              `protobuf:"varint,6,opt,name=event_type,json=eventType,proto3,enum=event.v1.EventType" json:"event_type,omitempty"` // "events.UserCreatedEvent"
-	EventData     *anypb.Any             `protobuf:"bytes,7,opt,name=event_data,json=eventData,proto3" json:"event_data,omitempty"`                          // Polymorphic event data
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"id"`                                                                 // Message ID (UUID)
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`                              // Multi-tenant isolation
+	EntityType    string                 `protobuf:"bytes,3,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty" bson:"entity_type,omitempty"`  // "user", "order", etc.
+	EntityId      string                 `protobuf:"bytes,4,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty" bson:"entity_id,omitempty"`          // "user_123", "order_456"
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp" bson:"timestamp"`                                            // Event time
+	EventType     EventType              `protobuf:"varint,6,opt,name=event_type,json=eventType,proto3,enum=event.v1.EventType" json:"event_type" bson:"event_type"` // "events.UserCreatedEvent"
+	EventData     *anypb.Any             `protobuf:"bytes,7,opt,name=event_data,json=eventData,proto3" json:"event_data" bson:"event_data"`                          // Polymorphic event data
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

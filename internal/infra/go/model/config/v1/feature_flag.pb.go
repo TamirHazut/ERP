@@ -27,16 +27,16 @@ const (
 // Stored in MongoDB config_db.feature_flags collection
 type FeatureFlag struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	FlagId        string                 `protobuf:"bytes,2,opt,name=flag_id,json=flagId,proto3" json:"flag_id,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Key           string                 `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
-	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
-	Enabled       bool                   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	Rollout       *FeatureRollout        `protobuf:"bytes,7,opt,name=rollout,proto3" json:"rollout,omitempty"`
-	Metadata      *FeatureFlagMetadata   `protobuf:"bytes,8,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id,omitempty"`
+	FlagId        string                 `protobuf:"bytes,2,opt,name=flag_id,json=flagId,proto3" json:"flag_id" bson:"flag_id"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name" bson:"name"`
+	Key           string                 `protobuf:"bytes,4,opt,name=key,proto3" json:"key" bson:"key"`
+	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description" bson:"description"`
+	Enabled       bool                   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled" bson:"enabled"`
+	Rollout       *FeatureRollout        `protobuf:"bytes,7,opt,name=rollout,proto3" json:"rollout" bson:"rollout"`
+	Metadata      *FeatureFlagMetadata   `protobuf:"bytes,8,opt,name=metadata,proto3" json:"metadata,omitempty" bson:"metadata,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -143,9 +143,9 @@ func (x *FeatureFlag) GetUpdatedAt() *timestamppb.Timestamp {
 
 type FeatureRollout struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Percentage    int32                  `protobuf:"varint,1,opt,name=percentage,proto3" json:"percentage,omitempty"`
-	TenantIds     []string               `protobuf:"bytes,2,rep,name=tenant_ids,json=tenantIds,proto3" json:"tenant_ids,omitempty"`
-	UserIds       []string               `protobuf:"bytes,3,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	Percentage    int32                  `protobuf:"varint,1,opt,name=percentage,proto3" json:"percentage" bson:"percentage"`
+	TenantIds     []string               `protobuf:"bytes,2,rep,name=tenant_ids,json=tenantIds,proto3" json:"tenant_ids,omitempty" bson:"tenant_ids,omitempty"`
+	UserIds       []string               `protobuf:"bytes,3,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty" bson:"user_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -203,9 +203,9 @@ func (x *FeatureRollout) GetUserIds() []string {
 
 type FeatureFlagMetadata struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
-	Category         string                 `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
-	OwnerTeam        string                 `protobuf:"bytes,2,opt,name=owner_team,json=ownerTeam,proto3" json:"owner_team,omitempty"`
-	DocumentationUrl string                 `protobuf:"bytes,3,opt,name=documentation_url,json=documentationUrl,proto3" json:"documentation_url,omitempty"`
+	Category         string                 `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty" bson:"category,omitempty"`
+	OwnerTeam        string                 `protobuf:"bytes,2,opt,name=owner_team,json=ownerTeam,proto3" json:"owner_team,omitempty" bson:"owner_team,omitempty"`
+	DocumentationUrl string                 `protobuf:"bytes,3,opt,name=documentation_url,json=documentationUrl,proto3" json:"documentation_url,omitempty" bson:"documentation_url,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }

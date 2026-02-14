@@ -30,16 +30,16 @@ const (
 // TTL: 10 minutes
 type FeatureFlagCache struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	FlagKey       string                 `protobuf:"bytes,1,opt,name=flag_key,json=flagKey,proto3" json:"flag_key,omitempty"`
+	FlagKey       string                 `protobuf:"bytes,1,opt,name=flag_key,json=flagKey,proto3" json:"flag_key"`
 	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled"`
 	Value         *structpb.Value        `protobuf:"bytes,4,opt,name=value,proto3" json:"value,omitempty"`
 	Rollout       *RolloutConfig         `protobuf:"bytes,5,opt,name=rollout,proto3" json:"rollout,omitempty"`
 	Targeting     *TargetingRules        `protobuf:"bytes,6,opt,name=targeting,proto3" json:"targeting,omitempty"`
-	Environment   string                 `protobuf:"bytes,7,opt,name=environment,proto3" json:"environment,omitempty"`
-	CachedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	Version       int32                  `protobuf:"varint,10,opt,name=version,proto3" json:"version,omitempty"`
+	Environment   string                 `protobuf:"bytes,7,opt,name=environment,proto3" json:"environment"`
+	CachedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at"`
+	Version       int32                  `protobuf:"varint,10,opt,name=version,proto3" json:"version"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,7 +147,7 @@ func (x *FeatureFlagCache) GetVersion() int32 {
 // RolloutConfig represents percentage-based feature rollout
 type RolloutConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Percentage    int32                  `protobuf:"varint,1,opt,name=percentage,proto3" json:"percentage,omitempty"`
+	Percentage    int32                  `protobuf:"varint,1,opt,name=percentage,proto3" json:"percentage"`
 	Buckets       []string               `protobuf:"bytes,2,rep,name=buckets,proto3" json:"buckets,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -261,9 +261,9 @@ func (x *TargetingRules) GetRules() []*TargetingRule {
 // TargetingRule represents a single targeting rule
 type TargetingRule struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Attribute     string                 `protobuf:"bytes,1,opt,name=attribute,proto3" json:"attribute,omitempty"`
-	Operator      string                 `protobuf:"bytes,2,opt,name=operator,proto3" json:"operator,omitempty"`
-	Value         *structpb.Value        `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
+	Attribute     string                 `protobuf:"bytes,1,opt,name=attribute,proto3" json:"attribute"`
+	Operator      string                 `protobuf:"bytes,2,opt,name=operator,proto3" json:"operator"`
+	Value         *structpb.Value        `protobuf:"bytes,3,opt,name=value,proto3" json:"value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -324,11 +324,11 @@ func (x *TargetingRule) GetValue() *structpb.Value {
 // TTL: 10 minutes
 type TenantFeatureFlagsCache struct {
 	state         protoimpl.MessageState       `protogen:"open.v1"`
-	TenantId      string                       `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Environment   string                       `protobuf:"bytes,2,opt,name=environment,proto3" json:"environment,omitempty"`
-	Flags         map[string]*FeatureFlagCache `protobuf:"bytes,3,rep,name=flags,proto3" json:"flags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CachedAt      *timestamppb.Timestamp       `protobuf:"bytes,4,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp       `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	TenantId      string                       `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id"`
+	Environment   string                       `protobuf:"bytes,2,opt,name=environment,proto3" json:"environment"`
+	Flags         map[string]*FeatureFlagCache `protobuf:"bytes,3,rep,name=flags,proto3" json:"flags" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CachedAt      *timestamppb.Timestamp       `protobuf:"bytes,4,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at"`
+	ExpiresAt     *timestamppb.Timestamp       `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

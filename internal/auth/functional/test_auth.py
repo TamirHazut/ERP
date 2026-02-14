@@ -4,22 +4,16 @@ Tests: Login, Logout, Token Refresh, Token Verification, Token Revocation.
 """
 import pytest
 import grpc
-import sys
 import os
 
-# Add infra functional path to sys.path for imports
-infra_functional_path = os.path.join(os.path.dirname(__file__), '../../infra/functional')
-sys.path.insert(0, infra_functional_path)
-# Add proto path for proto imports
-sys.path.insert(0, os.path.join(infra_functional_path, 'proto'))
 
-from grpc_client import GrpcClient
-from config import TestConfig
-from auth.v1 import auth_pb2, auth_pb2_grpc
-from infra.v1 import infra_pb2
-from logger import get_logger
-from db.mongo_client import MongoDBClient
-from db.redis_client import RedisClient
+from lib.functional.grpc_client import GrpcClient
+from lib.functional.config import TestConfig
+from lib.model.auth.v1 import auth_pb2, auth_pb2_grpc
+from lib.model.infra.v1 import infra_pb2
+from lib.functional.logger import get_logger
+from lib.functional.db.mongo_client import MongoDBClient
+from lib.functional.db.redis_client import RedisClient
 from seeders.system_seeder import SystemSeeder
 
 # Test logger

@@ -79,22 +79,22 @@ func (ProductStatus) EnumDescriptor() ([]byte, []int) {
 // Product model for MongoDB core_db.products collection
 type Product struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ProductId     string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Sku           string                 `protobuf:"bytes,4,opt,name=sku,proto3" json:"sku,omitempty"`
-	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
-	CategoryId    string                 `protobuf:"bytes,7,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	Pricing       *ProductPricing        `protobuf:"bytes,8,opt,name=pricing,proto3" json:"pricing,omitempty"`
-	Inventory     *ProductInventory      `protobuf:"bytes,9,opt,name=inventory,proto3" json:"inventory,omitempty"`
-	Dimensions    *ProductDimensions     `protobuf:"bytes,10,opt,name=dimensions,proto3" json:"dimensions,omitempty"`
-	Images        []string               `protobuf:"bytes,11,rep,name=images,proto3" json:"images,omitempty"`
-	Status        ProductStatus          `protobuf:"varint,12,opt,name=status,proto3,enum=core.v1.ProductStatus" json:"status,omitempty"`
-	Metadata      *ProductMetadata       `protobuf:"bytes,13,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	CreatedBy     string                 `protobuf:"bytes,16,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id,omitempty"`
+	ProductId     string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id" bson:"product_id"`
+	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	Sku           string                 `protobuf:"bytes,4,opt,name=sku,proto3" json:"sku" bson:"sku"`
+	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name" bson:"name"`
+	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description" bson:"description"`
+	CategoryId    string                 `protobuf:"bytes,7,opt,name=category_id,json=categoryId,proto3" json:"category_id" bson:"category_id"`
+	Pricing       *ProductPricing        `protobuf:"bytes,8,opt,name=pricing,proto3" json:"pricing" bson:"pricing"`
+	Inventory     *ProductInventory      `protobuf:"bytes,9,opt,name=inventory,proto3" json:"inventory" bson:"inventory"`
+	Dimensions    *ProductDimensions     `protobuf:"bytes,10,opt,name=dimensions,proto3" json:"dimensions,omitempty" bson:"dimensions,omitempty"`
+	Images        []string               `protobuf:"bytes,11,rep,name=images,proto3" json:"images,omitempty" bson:"images,omitempty"`
+	Status        ProductStatus          `protobuf:"varint,12,opt,name=status,proto3,enum=core.v1.ProductStatus" json:"status" bson:"status"`
+	Metadata      *ProductMetadata       `protobuf:"bytes,13,opt,name=metadata,proto3" json:"metadata,omitempty" bson:"metadata,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
+	CreatedBy     string                 `protobuf:"bytes,16,opt,name=created_by,json=createdBy,proto3" json:"created_by" bson:"created_by"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -243,10 +243,10 @@ func (x *Product) GetCreatedBy() string {
 
 type ProductPricing struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cost          float64                `protobuf:"fixed64,1,opt,name=cost,proto3" json:"cost,omitempty"`
-	Price         float64                `protobuf:"fixed64,2,opt,name=price,proto3" json:"price,omitempty"`
-	Currency      string                 `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
-	TaxRate       float64                `protobuf:"fixed64,4,opt,name=tax_rate,json=taxRate,proto3" json:"tax_rate,omitempty"`
+	Cost          float64                `protobuf:"fixed64,1,opt,name=cost,proto3" json:"cost" bson:"cost"`
+	Price         float64                `protobuf:"fixed64,2,opt,name=price,proto3" json:"price" bson:"price"`
+	Currency      string                 `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency" bson:"currency"`
+	TaxRate       float64                `protobuf:"fixed64,4,opt,name=tax_rate,json=taxRate,proto3" json:"tax_rate" bson:"tax_rate"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -311,12 +311,12 @@ func (x *ProductPricing) GetTaxRate() float64 {
 
 type ProductInventory struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	TrackInventory  bool                   `protobuf:"varint,1,opt,name=track_inventory,json=trackInventory,proto3" json:"track_inventory,omitempty"`
-	Quantity        int32                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`
-	Reserved        int32                  `protobuf:"varint,3,opt,name=reserved,proto3" json:"reserved,omitempty"`
-	Available       int32                  `protobuf:"varint,4,opt,name=available,proto3" json:"available,omitempty"`
-	ReorderPoint    int32                  `protobuf:"varint,5,opt,name=reorder_point,json=reorderPoint,proto3" json:"reorder_point,omitempty"`
-	ReorderQuantity int32                  `protobuf:"varint,6,opt,name=reorder_quantity,json=reorderQuantity,proto3" json:"reorder_quantity,omitempty"`
+	TrackInventory  bool                   `protobuf:"varint,1,opt,name=track_inventory,json=trackInventory,proto3" json:"track_inventory" bson:"track_inventory"`
+	Quantity        int32                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity" bson:"quantity"`
+	Reserved        int32                  `protobuf:"varint,3,opt,name=reserved,proto3" json:"reserved" bson:"reserved"`
+	Available       int32                  `protobuf:"varint,4,opt,name=available,proto3" json:"available" bson:"available"`
+	ReorderPoint    int32                  `protobuf:"varint,5,opt,name=reorder_point,json=reorderPoint,proto3" json:"reorder_point" bson:"reorder_point"`
+	ReorderQuantity int32                  `protobuf:"varint,6,opt,name=reorder_quantity,json=reorderQuantity,proto3" json:"reorder_quantity" bson:"reorder_quantity"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -395,12 +395,12 @@ func (x *ProductInventory) GetReorderQuantity() int32 {
 
 type ProductDimensions struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Weight        float64                `protobuf:"fixed64,1,opt,name=weight,proto3" json:"weight,omitempty"`
-	WeightUnit    string                 `protobuf:"bytes,2,opt,name=weight_unit,json=weightUnit,proto3" json:"weight_unit,omitempty"`
-	Length        float64                `protobuf:"fixed64,3,opt,name=length,proto3" json:"length,omitempty"`
-	Width         float64                `protobuf:"fixed64,4,opt,name=width,proto3" json:"width,omitempty"`
-	Height        float64                `protobuf:"fixed64,5,opt,name=height,proto3" json:"height,omitempty"`
-	DimensionUnit string                 `protobuf:"bytes,6,opt,name=dimension_unit,json=dimensionUnit,proto3" json:"dimension_unit,omitempty"`
+	Weight        float64                `protobuf:"fixed64,1,opt,name=weight,proto3" json:"weight" bson:"weight"`
+	WeightUnit    string                 `protobuf:"bytes,2,opt,name=weight_unit,json=weightUnit,proto3" json:"weight_unit" bson:"weight_unit"`
+	Length        float64                `protobuf:"fixed64,3,opt,name=length,proto3" json:"length" bson:"length"`
+	Width         float64                `protobuf:"fixed64,4,opt,name=width,proto3" json:"width" bson:"width"`
+	Height        float64                `protobuf:"fixed64,5,opt,name=height,proto3" json:"height" bson:"height"`
+	DimensionUnit string                 `protobuf:"bytes,6,opt,name=dimension_unit,json=dimensionUnit,proto3" json:"dimension_unit" bson:"dimension_unit"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -479,10 +479,10 @@ func (x *ProductDimensions) GetDimensionUnit() string {
 
 type ProductMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Barcode       string                 `protobuf:"bytes,1,opt,name=barcode,proto3" json:"barcode,omitempty"`
-	Manufacturer  string                 `protobuf:"bytes,2,opt,name=manufacturer,proto3" json:"manufacturer,omitempty"`
-	Brand         string                 `protobuf:"bytes,3,opt,name=brand,proto3" json:"brand,omitempty"`
-	Tags          []string               `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
+	Barcode       string                 `protobuf:"bytes,1,opt,name=barcode,proto3" json:"barcode,omitempty" bson:"barcode,omitempty"`
+	Manufacturer  string                 `protobuf:"bytes,2,opt,name=manufacturer,proto3" json:"manufacturer,omitempty" bson:"manufacturer,omitempty"`
+	Brand         string                 `protobuf:"bytes,3,opt,name=brand,proto3" json:"brand,omitempty" bson:"brand,omitempty"`
+	Tags          []string               `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty" bson:"tags,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

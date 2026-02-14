@@ -180,23 +180,23 @@ func (CustomerAddressType) EnumDescriptor() ([]byte, []int) {
 // Customer model for MongoDB core_db.customers collection
 type Customer struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	CustomerId     string                 `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
-	TenantId       string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Type           CustomerType           `protobuf:"varint,4,opt,name=type,proto3,enum=core.v1.CustomerType" json:"type,omitempty"`
-	Name           string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
-	Email          string                 `protobuf:"bytes,6,opt,name=email,proto3" json:"email,omitempty"`
-	Phone          string                 `protobuf:"bytes,7,opt,name=phone,proto3" json:"phone,omitempty"`
-	Company        *CompanyInfo           `protobuf:"bytes,8,opt,name=company,proto3" json:"company,omitempty"`
-	Addresses      []*CustomerAddress     `protobuf:"bytes,9,rep,name=addresses,proto3" json:"addresses,omitempty"`
-	PaymentMethods []*PaymentMethod       `protobuf:"bytes,10,rep,name=payment_methods,json=paymentMethods,proto3" json:"payment_methods,omitempty"`
-	CreditLimit    float64                `protobuf:"fixed64,11,opt,name=credit_limit,json=creditLimit,proto3" json:"credit_limit,omitempty"`
-	Status         CustomerStatus         `protobuf:"varint,12,opt,name=status,proto3,enum=core.v1.CustomerStatus" json:"status,omitempty"`
-	LifetimeValue  float64                `protobuf:"fixed64,13,opt,name=lifetime_value,json=lifetimeValue,proto3" json:"lifetime_value,omitempty"`
-	TotalOrders    int32                  `protobuf:"varint,14,opt,name=total_orders,json=totalOrders,proto3" json:"total_orders,omitempty"`
-	LastOrderDate  *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=last_order_date,json=lastOrderDate,proto3" json:"last_order_date,omitempty"`
-	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id,omitempty"`
+	CustomerId     string                 `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3" json:"customer_id" bson:"customer_id"`
+	TenantId       string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	Type           CustomerType           `protobuf:"varint,4,opt,name=type,proto3,enum=core.v1.CustomerType" json:"type" bson:"type"`
+	Name           string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name" bson:"name"`
+	Email          string                 `protobuf:"bytes,6,opt,name=email,proto3" json:"email" bson:"email"`
+	Phone          string                 `protobuf:"bytes,7,opt,name=phone,proto3" json:"phone" bson:"phone"`
+	Company        *CompanyInfo           `protobuf:"bytes,8,opt,name=company,proto3" json:"company,omitempty" bson:"company,omitempty"`
+	Addresses      []*CustomerAddress     `protobuf:"bytes,9,rep,name=addresses,proto3" json:"addresses" bson:"addresses"`
+	PaymentMethods []*PaymentMethod       `protobuf:"bytes,10,rep,name=payment_methods,json=paymentMethods,proto3" json:"payment_methods,omitempty" bson:"payment_methods,omitempty"`
+	CreditLimit    float64                `protobuf:"fixed64,11,opt,name=credit_limit,json=creditLimit,proto3" json:"credit_limit" bson:"credit_limit"`
+	Status         CustomerStatus         `protobuf:"varint,12,opt,name=status,proto3,enum=core.v1.CustomerStatus" json:"status" bson:"status"`
+	LifetimeValue  float64                `protobuf:"fixed64,13,opt,name=lifetime_value,json=lifetimeValue,proto3" json:"lifetime_value" bson:"lifetime_value"`
+	TotalOrders    int32                  `protobuf:"varint,14,opt,name=total_orders,json=totalOrders,proto3" json:"total_orders" bson:"total_orders"`
+	LastOrderDate  *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=last_order_date,json=lastOrderDate,proto3" json:"last_order_date,omitempty" bson:"last_order_date,omitempty"`
+	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
+	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -352,8 +352,8 @@ func (x *Customer) GetUpdatedAt() *timestamppb.Timestamp {
 
 type CompanyInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	TaxId         string                 `protobuf:"bytes,2,opt,name=tax_id,json=taxId,proto3" json:"tax_id,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty" bson:"name,omitempty"`
+	TaxId         string                 `protobuf:"bytes,2,opt,name=tax_id,json=taxId,proto3" json:"tax_id,omitempty" bson:"tax_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -404,14 +404,14 @@ func (x *CompanyInfo) GetTaxId() string {
 
 type CustomerAddress struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	AddressId     string                 `protobuf:"bytes,1,opt,name=address_id,json=addressId,proto3" json:"address_id,omitempty"`
-	Type          CustomerAddressType    `protobuf:"varint,2,opt,name=type,proto3,enum=core.v1.CustomerAddressType" json:"type,omitempty"`
-	IsDefault     bool                   `protobuf:"varint,3,opt,name=is_default,json=isDefault,proto3" json:"is_default,omitempty"`
-	Street        string                 `protobuf:"bytes,4,opt,name=street,proto3" json:"street,omitempty"`
-	City          string                 `protobuf:"bytes,5,opt,name=city,proto3" json:"city,omitempty"`
-	State         string                 `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"`
-	Zip           string                 `protobuf:"bytes,7,opt,name=zip,proto3" json:"zip,omitempty"`
-	Country       string                 `protobuf:"bytes,8,opt,name=country,proto3" json:"country,omitempty"`
+	AddressId     string                 `protobuf:"bytes,1,opt,name=address_id,json=addressId,proto3" json:"address_id" bson:"address_id"`
+	Type          CustomerAddressType    `protobuf:"varint,2,opt,name=type,proto3,enum=core.v1.CustomerAddressType" json:"type" bson:"type"`
+	IsDefault     bool                   `protobuf:"varint,3,opt,name=is_default,json=isDefault,proto3" json:"is_default" bson:"is_default"`
+	Street        string                 `protobuf:"bytes,4,opt,name=street,proto3" json:"street" bson:"street"`
+	City          string                 `protobuf:"bytes,5,opt,name=city,proto3" json:"city" bson:"city"`
+	State         string                 `protobuf:"bytes,6,opt,name=state,proto3" json:"state" bson:"state"`
+	Zip           string                 `protobuf:"bytes,7,opt,name=zip,proto3" json:"zip" bson:"zip"`
+	Country       string                 `protobuf:"bytes,8,opt,name=country,proto3" json:"country" bson:"country"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -504,10 +504,10 @@ func (x *CustomerAddress) GetCountry() string {
 
 type PaymentMethod struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	MethodId      string                 `protobuf:"bytes,1,opt,name=method_id,json=methodId,proto3" json:"method_id,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	IsDefault     bool                   `protobuf:"varint,3,opt,name=is_default,json=isDefault,proto3" json:"is_default,omitempty"`
-	Details       *structpb.Struct       `protobuf:"bytes,4,opt,name=details,proto3" json:"details,omitempty"`
+	MethodId      string                 `protobuf:"bytes,1,opt,name=method_id,json=methodId,proto3" json:"method_id" bson:"method_id"`
+	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type" bson:"type"`
+	IsDefault     bool                   `protobuf:"varint,3,opt,name=is_default,json=isDefault,proto3" json:"is_default" bson:"is_default"`
+	Details       *structpb.Struct       `protobuf:"bytes,4,opt,name=details,proto3" json:"-" bson:"details,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

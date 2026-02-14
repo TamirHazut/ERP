@@ -29,14 +29,14 @@ const (
 // TTL: 30 minutes
 type ServiceConfigCache struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConfigId      string                 `protobuf:"bytes,1,opt,name=config_id,json=configId,proto3" json:"config_id,omitempty"`
-	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Environment   string                 `protobuf:"bytes,3,opt,name=environment,proto3" json:"environment,omitempty"`
+	ConfigId      string                 `protobuf:"bytes,1,opt,name=config_id,json=configId,proto3" json:"config_id"`
+	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name"`
+	Environment   string                 `protobuf:"bytes,3,opt,name=environment,proto3" json:"environment"`
 	TenantId      string                 `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Config        *structpb.Struct       `protobuf:"bytes,5,opt,name=config,proto3" json:"config,omitempty"`
-	Version       int32                  `protobuf:"varint,6,opt,name=version,proto3" json:"version,omitempty"`
-	CachedAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Config        *structpb.Struct       `protobuf:"bytes,5,opt,name=config,proto3" json:"config"`
+	Version       int32                  `protobuf:"varint,6,opt,name=version,proto3" json:"version"`
+	CachedAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -132,11 +132,11 @@ func (x *ServiceConfigCache) GetExpiresAt() *timestamppb.Timestamp {
 // Used for cache invalidation when config changes
 type ConfigVersionCache struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName    string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Environment    string                 `protobuf:"bytes,2,opt,name=environment,proto3" json:"environment,omitempty"`
-	LatestVersion  int32                  `protobuf:"varint,3,opt,name=latest_version,json=latestVersion,proto3" json:"latest_version,omitempty"`
+	ServiceName    string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name"`
+	Environment    string                 `protobuf:"bytes,2,opt,name=environment,proto3" json:"environment"`
+	LatestVersion  int32                  `protobuf:"varint,3,opt,name=latest_version,json=latestVersion,proto3" json:"latest_version"`
 	TenantVersions map[string]int32       `protobuf:"bytes,4,rep,name=tenant_versions,json=tenantVersions,proto3" json:"tenant_versions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }

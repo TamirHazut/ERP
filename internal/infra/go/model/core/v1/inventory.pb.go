@@ -26,21 +26,21 @@ const (
 // Inventory model for MongoDB core_db.inventory collection
 type Inventory struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	InventoryId   string                 `protobuf:"bytes,2,opt,name=inventory_id,json=inventoryId,proto3" json:"inventory_id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	ProductId     string                 `protobuf:"bytes,4,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	WarehouseId   string                 `protobuf:"bytes,5,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty"`
-	Quantity      int32                  `protobuf:"varint,6,opt,name=quantity,proto3" json:"quantity,omitempty"`
-	Reserved      int32                  `protobuf:"varint,7,opt,name=reserved,proto3" json:"reserved,omitempty"`
-	Available     int32                  `protobuf:"varint,8,opt,name=available,proto3" json:"available,omitempty"`
-	Location      *InventoryLocation     `protobuf:"bytes,9,opt,name=location,proto3" json:"location,omitempty"`
-	BatchNumber   string                 `protobuf:"bytes,10,opt,name=batch_number,json=batchNumber,proto3" json:"batch_number,omitempty"`
-	SerialNumbers []string               `protobuf:"bytes,11,rep,name=serial_numbers,json=serialNumbers,proto3" json:"serial_numbers,omitempty"`
-	ExpiryDate    *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=expiry_date,json=expiryDate,proto3" json:"expiry_date,omitempty"`
-	ReceivedDate  *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=received_date,json=receivedDate,proto3" json:"received_date,omitempty"`
-	Cost          float64                `protobuf:"fixed64,14,opt,name=cost,proto3" json:"cost,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id,omitempty"`
+	InventoryId   string                 `protobuf:"bytes,2,opt,name=inventory_id,json=inventoryId,proto3" json:"inventory_id" bson:"inventory_id"`
+	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	ProductId     string                 `protobuf:"bytes,4,opt,name=product_id,json=productId,proto3" json:"product_id" bson:"product_id"`
+	WarehouseId   string                 `protobuf:"bytes,5,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id" bson:"warehouse_id"`
+	Quantity      int32                  `protobuf:"varint,6,opt,name=quantity,proto3" json:"quantity" bson:"quantity"`
+	Reserved      int32                  `protobuf:"varint,7,opt,name=reserved,proto3" json:"reserved" bson:"reserved"`
+	Available     int32                  `protobuf:"varint,8,opt,name=available,proto3" json:"available" bson:"available"`
+	Location      *InventoryLocation     `protobuf:"bytes,9,opt,name=location,proto3" json:"location,omitempty" bson:"location,omitempty"`
+	BatchNumber   string                 `protobuf:"bytes,10,opt,name=batch_number,json=batchNumber,proto3" json:"batch_number,omitempty" bson:"batch_number,omitempty"`
+	SerialNumbers []string               `protobuf:"bytes,11,rep,name=serial_numbers,json=serialNumbers,proto3" json:"serial_numbers,omitempty" bson:"serial_numbers,omitempty"`
+	ExpiryDate    *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=expiry_date,json=expiryDate,proto3" json:"expiry_date,omitempty" bson:"expiry_date,omitempty"`
+	ReceivedDate  *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=received_date,json=receivedDate,proto3" json:"received_date" bson:"received_date"`
+	Cost          float64                `protobuf:"fixed64,14,opt,name=cost,proto3" json:"cost" bson:"cost"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -182,9 +182,9 @@ func (x *Inventory) GetUpdatedAt() *timestamppb.Timestamp {
 
 type InventoryLocation struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Aisle         string                 `protobuf:"bytes,1,opt,name=aisle,proto3" json:"aisle,omitempty"`
-	Shelf         string                 `protobuf:"bytes,2,opt,name=shelf,proto3" json:"shelf,omitempty"`
-	Bin           string                 `protobuf:"bytes,3,opt,name=bin,proto3" json:"bin,omitempty"`
+	Aisle         string                 `protobuf:"bytes,1,opt,name=aisle,proto3" json:"aisle,omitempty" bson:"aisle,omitempty"`
+	Shelf         string                 `protobuf:"bytes,2,opt,name=shelf,proto3" json:"shelf,omitempty" bson:"shelf,omitempty"`
+	Bin           string                 `protobuf:"bytes,3,opt,name=bin,proto3" json:"bin,omitempty" bson:"bin,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

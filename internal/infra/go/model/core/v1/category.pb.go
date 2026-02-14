@@ -76,19 +76,19 @@ func (CategoryStatus) EnumDescriptor() ([]byte, []int) {
 // Category model for MongoDB core_db.categories collection
 type Category struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
-	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	CategoryId       string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	TenantId         string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Name             string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
-	Slug             string                 `protobuf:"bytes,5,opt,name=slug,proto3" json:"slug,omitempty"`
-	Description      string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
-	ParentCategoryId string                 `protobuf:"bytes,7,opt,name=parent_category_id,json=parentCategoryId,proto3" json:"parent_category_id,omitempty"`
-	Level            int32                  `protobuf:"varint,8,opt,name=level,proto3" json:"level,omitempty"`
-	Path             string                 `protobuf:"bytes,9,opt,name=path,proto3" json:"path,omitempty"`
-	ImageUrl         string                 `protobuf:"bytes,10,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
-	Status           CategoryStatus         `protobuf:"varint,11,opt,name=status,proto3,enum=core.v1.CategoryStatus" json:"status,omitempty"`
-	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id,omitempty"`
+	CategoryId       string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id" bson:"category_id"`
+	TenantId         string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	Name             string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name" bson:"name"`
+	Slug             string                 `protobuf:"bytes,5,opt,name=slug,proto3" json:"slug" bson:"slug"`
+	Description      string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description" bson:"description"`
+	ParentCategoryId string                 `protobuf:"bytes,7,opt,name=parent_category_id,json=parentCategoryId,proto3" json:"parent_category_id,omitempty" bson:"parent_category_id,omitempty"`
+	Level            int32                  `protobuf:"varint,8,opt,name=level,proto3" json:"level" bson:"level"`
+	Path             string                 `protobuf:"bytes,9,opt,name=path,proto3" json:"path" bson:"path"`
+	ImageUrl         string                 `protobuf:"bytes,10,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty" bson:"image_url,omitempty"`
+	Status           CategoryStatus         `protobuf:"varint,11,opt,name=status,proto3,enum=core.v1.CategoryStatus" json:"status" bson:"status"`
+	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
+	UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }

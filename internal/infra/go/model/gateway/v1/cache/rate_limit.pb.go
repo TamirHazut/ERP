@@ -29,18 +29,18 @@ const (
 // Also can use: rate_limit_bucket:{bucket_id} (Redis Hash) for more complex scenarios
 type RateLimitBucket struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BucketId      string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	BucketId      string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id"`
 	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	IpAddress     string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
-	Endpoint      string                 `protobuf:"bytes,5,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Method        string                 `protobuf:"bytes,6,opt,name=method,proto3" json:"method,omitempty"`
-	TokensUsed    int32                  `protobuf:"varint,7,opt,name=tokens_used,json=tokensUsed,proto3" json:"tokens_used,omitempty"`
-	TokensLimit   int32                  `protobuf:"varint,8,opt,name=tokens_limit,json=tokensLimit,proto3" json:"tokens_limit,omitempty"`
-	WindowStart   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=window_start,json=windowStart,proto3" json:"window_start,omitempty"`
-	WindowEnd     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=window_end,json=windowEnd,proto3" json:"window_end,omitempty"`
-	ResetAt       *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=reset_at,json=resetAt,proto3" json:"reset_at,omitempty"`
-	Blocked       bool                   `protobuf:"varint,12,opt,name=blocked,proto3" json:"blocked,omitempty"`
+	Endpoint      string                 `protobuf:"bytes,5,opt,name=endpoint,proto3" json:"endpoint"`
+	Method        string                 `protobuf:"bytes,6,opt,name=method,proto3" json:"method"`
+	TokensUsed    int32                  `protobuf:"varint,7,opt,name=tokens_used,json=tokensUsed,proto3" json:"tokens_used"`
+	TokensLimit   int32                  `protobuf:"varint,8,opt,name=tokens_limit,json=tokensLimit,proto3" json:"tokens_limit"`
+	WindowStart   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=window_start,json=windowStart,proto3" json:"window_start"`
+	WindowEnd     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=window_end,json=windowEnd,proto3" json:"window_end"`
+	ResetAt       *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=reset_at,json=resetAt,proto3" json:"reset_at"`
+	Blocked       bool                   `protobuf:"varint,12,opt,name=blocked,proto3" json:"blocked"`
 	BlockedAt     *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=blocked_at,json=blockedAt,proto3" json:"blocked_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -172,17 +172,17 @@ func (x *RateLimitBucket) GetBlockedAt() *timestamppb.Timestamp {
 // Or cached from database: rate_limit_rule_cache:{rule_id}
 type RateLimitRule struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RuleId        string                 `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Endpoint      string                 `protobuf:"bytes,4,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Method        string                 `protobuf:"bytes,5,opt,name=method,proto3" json:"method,omitempty"`
-	Limit         int32                  `protobuf:"varint,6,opt,name=limit,proto3" json:"limit,omitempty"`
-	Window        *durationpb.Duration   `protobuf:"bytes,7,opt,name=window,proto3" json:"window,omitempty"`
-	Scope         string                 `protobuf:"bytes,8,opt,name=scope,proto3" json:"scope,omitempty"`
-	Priority      int32                  `protobuf:"varint,9,opt,name=priority,proto3" json:"priority,omitempty"`
-	Enabled       bool                   `protobuf:"varint,10,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	CachedAt      *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at,omitempty"`
+	RuleId        string                 `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name"`
+	Endpoint      string                 `protobuf:"bytes,4,opt,name=endpoint,proto3" json:"endpoint"`
+	Method        string                 `protobuf:"bytes,5,opt,name=method,proto3" json:"method"`
+	Limit         int32                  `protobuf:"varint,6,opt,name=limit,proto3" json:"limit"`
+	Window        *durationpb.Duration   `protobuf:"bytes,7,opt,name=window,proto3" json:"window"`
+	Scope         string                 `protobuf:"bytes,8,opt,name=scope,proto3" json:"scope"`
+	Priority      int32                  `protobuf:"varint,9,opt,name=priority,proto3" json:"priority"`
+	Enabled       bool                   `protobuf:"varint,10,opt,name=enabled,proto3" json:"enabled"`
+	CachedAt      *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -298,14 +298,14 @@ func (x *RateLimitRule) GetCachedAt() *timestamppb.Timestamp {
 // Stored in: rate_limit_violations:{tenant_id}:{user_id} (Redis Sorted Set, score = timestamp)
 type RateLimitViolation struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ViolationId   string                 `protobuf:"bytes,1,opt,name=violation_id,json=violationId,proto3" json:"violation_id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	ViolationId   string                 `protobuf:"bytes,1,opt,name=violation_id,json=violationId,proto3" json:"violation_id"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id"`
 	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	IpAddress     string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
-	Endpoint      string                 `protobuf:"bytes,5,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Method        string                 `protobuf:"bytes,6,opt,name=method,proto3" json:"method,omitempty"`
-	RuleId        string                 `protobuf:"bytes,7,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	IpAddress     string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address"`
+	Endpoint      string                 `protobuf:"bytes,5,opt,name=endpoint,proto3" json:"endpoint"`
+	Method        string                 `protobuf:"bytes,6,opt,name=method,proto3" json:"method"`
+	RuleId        string                 `protobuf:"bytes,7,opt,name=rule_id,json=ruleId,proto3" json:"rule_id"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=timestamp,proto3" json:"timestamp"`
 	RequestId     string                 `protobuf:"bytes,9,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

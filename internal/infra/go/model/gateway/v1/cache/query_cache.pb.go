@@ -28,16 +28,16 @@ const (
 // Stored in: query_cache:{tenant_id}:{query_hash} (Redis String with JSON-encoded response)
 type GraphQLQueryCache struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	QueryHash     string                 `protobuf:"bytes,1,opt,name=query_hash,json=queryHash,proto3" json:"query_hash,omitempty"`
-	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	QueryHash     string                 `protobuf:"bytes,1,opt,name=query_hash,json=queryHash,proto3" json:"query_hash"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id"`
 	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Query         string                 `protobuf:"bytes,4,opt,name=query,proto3" json:"query,omitempty"`
+	Query         string                 `protobuf:"bytes,4,opt,name=query,proto3" json:"query"`
 	Variables     *structpb.Struct       `protobuf:"bytes,5,opt,name=variables,proto3" json:"variables,omitempty"`
-	Response      *structpb.Value        `protobuf:"bytes,6,opt,name=response,proto3" json:"response,omitempty"`
-	CachedAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	HitCount      int32                  `protobuf:"varint,9,opt,name=hit_count,json=hitCount,proto3" json:"hit_count,omitempty"`
-	LastAccessAt  *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=last_access_at,json=lastAccessAt,proto3" json:"last_access_at,omitempty"`
+	Response      *structpb.Value        `protobuf:"bytes,6,opt,name=response,proto3" json:"response"`
+	CachedAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at"`
+	HitCount      int32                  `protobuf:"varint,9,opt,name=hit_count,json=hitCount,proto3" json:"hit_count"`
+	LastAccessAt  *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=last_access_at,json=lastAccessAt,proto3" json:"last_access_at"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,13 +147,13 @@ func (x *GraphQLQueryCache) GetLastAccessAt() *timestamppb.Timestamp {
 // These are shared across all tenants for common queries
 type PersistedQuery struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	QueryHash     string                 `protobuf:"bytes,1,opt,name=query_hash,json=queryHash,proto3" json:"query_hash,omitempty"`
-	QueryText     string                 `protobuf:"bytes,2,opt,name=query_text,json=queryText,proto3" json:"query_text,omitempty"`
+	QueryHash     string                 `protobuf:"bytes,1,opt,name=query_hash,json=queryHash,proto3" json:"query_hash"`
+	QueryText     string                 `protobuf:"bytes,2,opt,name=query_text,json=queryText,proto3" json:"query_text"`
 	OperationName string                 `protobuf:"bytes,3,opt,name=operation_name,json=operationName,proto3" json:"operation_name,omitempty"`
-	StoredAt      *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=stored_at,json=storedAt,proto3" json:"stored_at,omitempty"`
-	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
-	UseCount      int32                  `protobuf:"varint,6,opt,name=use_count,json=useCount,proto3" json:"use_count,omitempty"`
-	Version       int32                  `protobuf:"varint,7,opt,name=version,proto3" json:"version,omitempty"`
+	StoredAt      *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=stored_at,json=storedAt,proto3" json:"stored_at"`
+	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at"`
+	UseCount      int32                  `protobuf:"varint,6,opt,name=use_count,json=useCount,proto3" json:"use_count"`
+	Version       int32                  `protobuf:"varint,7,opt,name=version,proto3" json:"version"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -242,16 +242,16 @@ func (x *PersistedQuery) GetVersion() int32 {
 // Used for caching expensive field resolvers (e.g., computed fields, external API calls)
 type ResolverCache struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CacheKey      string                 `protobuf:"bytes,1,opt,name=cache_key,json=cacheKey,proto3" json:"cache_key,omitempty"`
-	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	TypeName      string                 `protobuf:"bytes,3,opt,name=type_name,json=typeName,proto3" json:"type_name,omitempty"`
-	FieldName     string                 `protobuf:"bytes,4,opt,name=field_name,json=fieldName,proto3" json:"field_name,omitempty"`
-	ParentId      string                 `protobuf:"bytes,5,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	CacheKey      string                 `protobuf:"bytes,1,opt,name=cache_key,json=cacheKey,proto3" json:"cache_key"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id"`
+	TypeName      string                 `protobuf:"bytes,3,opt,name=type_name,json=typeName,proto3" json:"type_name"`
+	FieldName     string                 `protobuf:"bytes,4,opt,name=field_name,json=fieldName,proto3" json:"field_name"`
+	ParentId      string                 `protobuf:"bytes,5,opt,name=parent_id,json=parentId,proto3" json:"parent_id"`
 	Arguments     *structpb.Struct       `protobuf:"bytes,6,opt,name=arguments,proto3" json:"arguments,omitempty"`
-	Result        *structpb.Value        `protobuf:"bytes,7,opt,name=result,proto3" json:"result,omitempty"`
-	CachedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	Invalidated   bool                   `protobuf:"varint,10,opt,name=invalidated,proto3" json:"invalidated,omitempty"`
+	Result        *structpb.Value        `protobuf:"bytes,7,opt,name=result,proto3" json:"result"`
+	CachedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=cached_at,json=cachedAt,proto3" json:"cached_at"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at"`
+	Invalidated   bool                   `protobuf:"varint,10,opt,name=invalidated,proto3" json:"invalidated"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

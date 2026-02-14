@@ -588,31 +588,31 @@ func (TargetType) EnumDescriptor() ([]byte, []int) {
 type AuditLog struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Identity
-	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	TenantId  string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id"`
+	TenantId  string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty" bson:"tenant_id,omitempty"`
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp" bson:"timestamp"`
 	// Event Classification
-	Category string `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
-	Action   string `protobuf:"bytes,5,opt,name=action,proto3" json:"action,omitempty"`
-	Severity string `protobuf:"bytes,6,opt,name=severity,proto3" json:"severity,omitempty"`
+	Category string `protobuf:"bytes,4,opt,name=category,proto3" json:"category" bson:"category"`
+	Action   string `protobuf:"bytes,5,opt,name=action,proto3" json:"action" bson:"action"`
+	Severity string `protobuf:"bytes,6,opt,name=severity,proto3" json:"severity" bson:"severity"`
 	// Actor (who did it)
-	ActorId   string `protobuf:"bytes,7,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
-	ActorType string `protobuf:"bytes,8,opt,name=actor_type,json=actorType,proto3" json:"actor_type,omitempty"`
-	ActorName string `protobuf:"bytes,9,opt,name=actor_name,json=actorName,proto3" json:"actor_name,omitempty"`
+	ActorId   string `protobuf:"bytes,7,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty" bson:"actor_id,omitempty"`
+	ActorType string `protobuf:"bytes,8,opt,name=actor_type,json=actorType,proto3" json:"actor_type,omitempty" bson:"actor_type,omitempty"`
+	ActorName string `protobuf:"bytes,9,opt,name=actor_name,json=actorName,proto3" json:"actor_name,omitempty" bson:"actor_name,omitempty"`
 	// Target (what was affected)
-	TargetId   string `protobuf:"bytes,10,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
-	TargetType string `protobuf:"bytes,11,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
-	TargetName string `protobuf:"bytes,12,opt,name=target_name,json=targetName,proto3" json:"target_name,omitempty"`
+	TargetId   string `protobuf:"bytes,10,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty" bson:"target_id,omitempty"`
+	TargetType string `protobuf:"bytes,11,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty" bson:"target_type,omitempty"`
+	TargetName string `protobuf:"bytes,12,opt,name=target_name,json=targetName,proto3" json:"target_name,omitempty" bson:"target_name,omitempty"`
 	// Changes (what changed)
-	Changes *Changes `protobuf:"bytes,13,opt,name=changes,proto3" json:"changes,omitempty"`
+	Changes *Changes `protobuf:"bytes,13,opt,name=changes,proto3" json:"changes,omitempty" bson:"changes,omitempty"`
 	// Context
-	Context *AuditContext `protobuf:"bytes,14,opt,name=context,proto3" json:"context,omitempty"`
+	Context *AuditContext `protobuf:"bytes,14,opt,name=context,proto3" json:"context,omitempty" bson:"context,omitempty"`
 	// Result
-	Result  string `protobuf:"bytes,15,opt,name=result,proto3" json:"result,omitempty"`
-	Message string `protobuf:"bytes,16,opt,name=message,proto3" json:"message,omitempty"`
-	Error   string `protobuf:"bytes,17,opt,name=error,proto3" json:"error,omitempty"`
+	Result  string `protobuf:"bytes,15,opt,name=result,proto3" json:"result" bson:"result"`
+	Message string `protobuf:"bytes,16,opt,name=message,proto3" json:"message,omitempty" bson:"message,omitempty"`
+	Error   string `protobuf:"bytes,17,opt,name=error,proto3" json:"error,omitempty" bson:"error,omitempty"`
 	// Flexible metadata for type-specific data
-	Metadata      *structpb.Struct `protobuf:"bytes,18,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Metadata      *structpb.Struct `protobuf:"bytes,18,opt,name=metadata,proto3" json:"metadata,omitempty" bson:"metadata,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -776,13 +776,13 @@ func (x *AuditLog) GetMetadata() *structpb.Struct {
 type Changes struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Field-level changes
-	Fields map[string]*FieldChange `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Fields map[string]*FieldChange `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" bson:"fields,omitempty"`
 	// Collection changes (for arrays)
-	Added   []string `protobuf:"bytes,2,rep,name=added,proto3" json:"added,omitempty"`
-	Removed []string `protobuf:"bytes,3,rep,name=removed,proto3" json:"removed,omitempty"`
+	Added   []string `protobuf:"bytes,2,rep,name=added,proto3" json:"added,omitempty" bson:"added,omitempty"`
+	Removed []string `protobuf:"bytes,3,rep,name=removed,proto3" json:"removed,omitempty" bson:"removed,omitempty"`
 	// State transition
-	StatusFrom    string `protobuf:"bytes,4,opt,name=status_from,json=statusFrom,proto3" json:"status_from,omitempty"`
-	StatusTo      string `protobuf:"bytes,5,opt,name=status_to,json=statusTo,proto3" json:"status_to,omitempty"`
+	StatusFrom    string `protobuf:"bytes,4,opt,name=status_from,json=statusFrom,proto3" json:"status_from,omitempty" bson:"status_from,omitempty"`
+	StatusTo      string `protobuf:"bytes,5,opt,name=status_to,json=statusTo,proto3" json:"status_to,omitempty" bson:"status_to,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -854,8 +854,8 @@ func (x *Changes) GetStatusTo() string {
 
 type FieldChange struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OldValue      *structpb.Value        `protobuf:"bytes,1,opt,name=old_value,json=oldValue,proto3" json:"old_value,omitempty"`
-	NewValue      *structpb.Value        `protobuf:"bytes,2,opt,name=new_value,json=newValue,proto3" json:"new_value,omitempty"`
+	OldValue      *structpb.Value        `protobuf:"bytes,1,opt,name=old_value,json=oldValue,proto3" json:"old_value,omitempty" bson:"old_value,omitempty"`
+	NewValue      *structpb.Value        `protobuf:"bytes,2,opt,name=new_value,json=newValue,proto3" json:"new_value,omitempty" bson:"new_value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -906,13 +906,13 @@ func (x *FieldChange) GetNewValue() *structpb.Value {
 
 type AuditContext struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	IpAddress     string                 `protobuf:"bytes,1,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
-	UserAgent     string                 `protobuf:"bytes,2,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
-	Location      string                 `protobuf:"bytes,3,opt,name=location,proto3" json:"location,omitempty"`
-	SessionId     string                 `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	RequestId     string                 `protobuf:"bytes,5,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	ApiEndpoint   string                 `protobuf:"bytes,6,opt,name=api_endpoint,json=apiEndpoint,proto3" json:"api_endpoint,omitempty"`
-	Extra         *structpb.Struct       `protobuf:"bytes,7,opt,name=extra,proto3" json:"extra,omitempty"`
+	IpAddress     string                 `protobuf:"bytes,1,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty" bson:"ip_address,omitempty"`
+	UserAgent     string                 `protobuf:"bytes,2,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty" bson:"user_agent,omitempty"`
+	Location      string                 `protobuf:"bytes,3,opt,name=location,proto3" json:"location,omitempty" bson:"location,omitempty"`
+	SessionId     string                 `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty" bson:"session_id,omitempty"`
+	RequestId     string                 `protobuf:"bytes,5,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty" bson:"request_id,omitempty"`
+	ApiEndpoint   string                 `protobuf:"bytes,6,opt,name=api_endpoint,json=apiEndpoint,proto3" json:"api_endpoint,omitempty" bson:"api_endpoint,omitempty"`
+	Extra         *structpb.Struct       `protobuf:"bytes,7,opt,name=extra,proto3" json:"extra,omitempty" bson:"extra,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

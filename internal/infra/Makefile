@@ -85,7 +85,7 @@ certs-clean: ## Remove all certificates (CA and module certificates)
 
 mocks:
 	@echo "Generating $(MODULE_NAME) mocks..."
-	@go generate ./...
+	@go generate ./go/...
 	@echo "✅ $(MODULE_NAME) mocks generated successfully"
 
 mocks-clean:
@@ -98,14 +98,14 @@ mocks-clean:
 # ============================================================================
 
 generate-topics:
-	python ./resources/scripts/topics_generator.py \
+	@python ./resources/scripts/topics_generator.py \
 		--input ./resources/topics.yaml \
 		--go ./go/model/event/topics.go \
-		--py ./python/model/event/topics.py \
+		--py ./python/lib/model/event/topics.py \
 		--js ./js/model/event/topics.js
 
 generate-topics-clean:
-	rm -rf 
+	@rm -f ./go/model/event/topics.go ./python/lib/model/event/topics.py ./js/model/event/topics.js
 
 # ============================================================================
 # PROTO
@@ -119,7 +119,7 @@ THIRD_PARTY := $(PROTO_IN)/third_party
 # --- 1. DEFINE OUTPUT DIRECTORIES FIRST ---
 # (Must come before flags that use them)
 GENERATED_GO_OUT     := $(INFRA_BASE)/go
-GENERATED_PYTHON_OUT := $(INFRA_BASE)/python/model
+GENERATED_PYTHON_OUT := $(INFRA_BASE)/python/lib/model
 GENERATED_JS_OUT     := $(INFRA_BASE)/js/model
 
 PROTOC_COMMON_FLAGS := -I=$(PROTO_IN) -I=$(THIRD_PARTY)
@@ -134,12 +134,12 @@ GO_TAG_FLAGS := --gotag_out=module=$(MODULE):$(INFRA_BASE)
 
 # --- 3. THE MACRO ---
 define generate_proto
-    WORD=$$(basename $(1)); \
+    WORD=$(1); \
     SERVICE_DIR="$(PROTO_IN)/$$WORD/v1"; \
     if [ -d "$$SERVICE_DIR" ]; then \
         PROTO_FILES=$$(find $$SERVICE_DIR -maxdepth 2 -name "*.proto" -type f); \
         if [ -n "$$PROTO_FILES" ]; then \
-            echo "--- Generating [$$WORD] ---"; \
+			echo "--- Generating [$$WORD] ---"; \
 			echo "   > Go..."; \
             protoc $(PROTOC_COMMON_FLAGS) $(GO_GEN_FLAGS) $$PROTO_FILES; \
 			\
@@ -150,40 +150,48 @@ define generate_proto
 			\
 			echo "   > Python..."; \
 			cd $(CURDIR); \
-			mkdir -p $(GENERATED_PYTHON_OUT)/$$WORD; \
-            protoc $(PROTOC_COMMON_FLAGS) --python_out=$(GENERATED_PYTHON_OUT)/$$WORD $$PROTO_FILES; \
-            touch $(GENERATED_PYTHON_OUT)/$$WORD/__init__.py; \
+			mkdir -p $(GENERATED_PYTHON_OUT)/$(1); \
+            protoc $(PROTOC_COMMON_FLAGS) --python_out=$(GENERATED_PYTHON_OUT) $$PROTO_FILES; \
 			\
             echo "   > JS..."; \
-            mkdir -p $(GENERATED_JS_OUT)/$$WORD; \
-            protoc $(PROTOC_COMMON_FLAGS) --js_out=import_style=commonjs,binary:$(GENERATED_JS_OUT)/$$WORD $$PROTO_FILES; \
+			mkdir -p $(GENERATED_JS_OUT)/$(1); \
+            protoc $(PROTOC_COMMON_FLAGS) --js_out=import_style=commonjs,binary:$(GENERATED_JS_OUT) $$PROTO_FILES; \
         fi; \
     else \
         echo "Skipping $$WORD: directory $$SERVICE_DIR not found"; \
     fi
 endef
 
+.PHONY: proto
 proto:
-	@if [ -z "$(MODULES)" ]; then echo "Error: No modules specified"; exit 1; fi
-	@$(foreach module,$(MODULES), \
-		$(call generate_proto,$(module)); \
-	)
+	@MODULES=$$(find $(PROTO_IN) -name "*.proto" -type f -exec dirname {} \; | cut -d'/' -f3 | sort -u); \
+	for module in $$MODULES; do \
+		$(call generate_proto,$$module); \
+	done;
+	@find $(GENERATED_PYTHON_OUT) -type d -exec touch '{}/__init__.py' \;
+	@python $(INFRA_BASE)/resources/scripts/fix_proto_imports.py $(GENERATED_PYTHON_OUT)
 	@echo "✓ All proto files generated successfully"
 
 proto-clean: ## Surgically remove ONLY generated proto files
 	@echo "Cleaning generated files safely..."
-	@# Remove Go generated files
-	@find $(GENERATED_GO_OUT)/model -type f \( -name "*.pb.go" -o -name "*_grpc.pb.go" \) -delete
-	@# Remove Python generated files
-	@find $(GENERATED_PYTHON_OUT) -type f -name "*_pb2.py" -delete
-	@# Remove JS generated files
-	@find $(GENERATED_JS_OUT) -type f -name "*_pb.js" -delete
+	@echo "Remove Go generated files"
+	@if [ -d $$GENERATED_GO_OUT/model ]; then find $$GENERATED_GO_OUT/model -type f \( -name "*.pb.go" -o -name "*_grpc.pb.go" \) -delete; fi
+	@echo "Remove Python generated files"
+	@if [ -d $$GENERATED_PYTHON_OUT ]; then find $$GENERATED_PYTHON_OUT -type f -name "*_pb2.py" -delete; fi
+	@echo "Remove JS generated files"
+	@if [ -d $$GENERATED_JS_OUT ]; then find $$GENERATED_JS_OUT -type f -name "*_pb.js" -delete; fi
 	@echo "✓ Generated files removed. Manual files preserved."
 
 # ============================================================================
 # GENERATED
 # ============================================================================
 
-generate: generate-clean proto generate-topics mocks
+generate: generate-clean 
+	@echo "Generating proto files"
+	$(MAKE) proto 
+	@echo "Generating kafka topics"
+	$(MAKE) generate-topics
+	@echo "Generating go mocks"
+	$(MAKE) mocks
 
 generate-clean: proto-clean generate-topics-clean mocks-clean 

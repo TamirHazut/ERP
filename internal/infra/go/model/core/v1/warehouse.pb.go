@@ -79,17 +79,17 @@ func (WarehouseStatus) EnumDescriptor() ([]byte, []int) {
 // Warehouse model for MongoDB core_db.warehouses collection
 type Warehouse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	WarehouseId   string                 `protobuf:"bytes,2,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
-	Code          string                 `protobuf:"bytes,5,opt,name=code,proto3" json:"code,omitempty"`
-	Address       *Address               `protobuf:"bytes,6,opt,name=address,proto3" json:"address,omitempty"`
-	Contact       *WarehouseContact      `protobuf:"bytes,7,opt,name=contact,proto3" json:"contact,omitempty"`
-	Capacity      *WarehouseCapacity     `protobuf:"bytes,8,opt,name=capacity,proto3" json:"capacity,omitempty"`
-	Status        WarehouseStatus        `protobuf:"varint,9,opt,name=status,proto3,enum=core.v1.WarehouseStatus" json:"status,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id,omitempty"`
+	WarehouseId   string                 `protobuf:"bytes,2,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id" bson:"warehouse_id"`
+	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name" bson:"name"`
+	Code          string                 `protobuf:"bytes,5,opt,name=code,proto3" json:"code" bson:"code"`
+	Address       *Address               `protobuf:"bytes,6,opt,name=address,proto3" json:"address" bson:"address"`
+	Contact       *WarehouseContact      `protobuf:"bytes,7,opt,name=contact,proto3" json:"contact" bson:"contact"`
+	Capacity      *WarehouseCapacity     `protobuf:"bytes,8,opt,name=capacity,proto3" json:"capacity" bson:"capacity"`
+	Status        WarehouseStatus        `protobuf:"varint,9,opt,name=status,proto3,enum=core.v1.WarehouseStatus" json:"status" bson:"status"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -203,9 +203,9 @@ func (x *Warehouse) GetUpdatedAt() *timestamppb.Timestamp {
 
 type WarehouseContact struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Manager       string                 `protobuf:"bytes,1,opt,name=manager,proto3" json:"manager,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Phone         string                 `protobuf:"bytes,3,opt,name=phone,proto3" json:"phone,omitempty"`
+	Manager       string                 `protobuf:"bytes,1,opt,name=manager,proto3" json:"manager" bson:"manager"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email" bson:"email"`
+	Phone         string                 `protobuf:"bytes,3,opt,name=phone,proto3" json:"phone" bson:"phone"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -263,9 +263,9 @@ func (x *WarehouseContact) GetPhone() string {
 
 type WarehouseCapacity struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TotalSpace    int32                  `protobuf:"varint,1,opt,name=total_space,json=totalSpace,proto3" json:"total_space,omitempty"`
-	UsedSpace     int32                  `protobuf:"varint,2,opt,name=used_space,json=usedSpace,proto3" json:"used_space,omitempty"`
-	Unit          string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit,omitempty"`
+	TotalSpace    int32                  `protobuf:"varint,1,opt,name=total_space,json=totalSpace,proto3" json:"total_space" bson:"total_space"`
+	UsedSpace     int32                  `protobuf:"varint,2,opt,name=used_space,json=usedSpace,proto3" json:"used_space" bson:"used_space"`
+	Unit          string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit" bson:"unit"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

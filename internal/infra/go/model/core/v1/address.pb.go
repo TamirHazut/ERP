@@ -25,11 +25,11 @@ const (
 // Address is a shared address type used across core models
 type Address struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Street        string                 `protobuf:"bytes,1,opt,name=street,proto3" json:"street,omitempty"`
-	City          string                 `protobuf:"bytes,2,opt,name=city,proto3" json:"city,omitempty"`
-	State         string                 `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
-	Zip           string                 `protobuf:"bytes,4,opt,name=zip,proto3" json:"zip,omitempty"`
-	Country       string                 `protobuf:"bytes,5,opt,name=country,proto3" json:"country,omitempty"`
+	Street        string                 `protobuf:"bytes,1,opt,name=street,proto3" json:"street" bson:"street"`
+	City          string                 `protobuf:"bytes,2,opt,name=city,proto3" json:"city" bson:"city"`
+	State         string                 `protobuf:"bytes,3,opt,name=state,proto3" json:"state" bson:"state"`
+	Zip           string                 `protobuf:"bytes,4,opt,name=zip,proto3" json:"zip" bson:"zip"`
+	Country       string                 `protobuf:"bytes,5,opt,name=country,proto3" json:"country" bson:"country"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

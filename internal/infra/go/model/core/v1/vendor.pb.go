@@ -79,21 +79,21 @@ func (VendorStatus) EnumDescriptor() ([]byte, []int) {
 // Vendor model for MongoDB core_db.vendors collection
 type Vendor struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
-	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	VendorId         string                 `protobuf:"bytes,2,opt,name=vendor_id,json=vendorId,proto3" json:"vendor_id,omitempty"`
-	TenantId         string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Name             string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
-	Code             string                 `protobuf:"bytes,5,opt,name=code,proto3" json:"code,omitempty"`
-	Contact          *VendorContact         `protobuf:"bytes,6,opt,name=contact,proto3" json:"contact,omitempty"`
-	Address          *Address               `protobuf:"bytes,7,opt,name=address,proto3" json:"address,omitempty"`
-	PaymentTerms     *PaymentTerms          `protobuf:"bytes,8,opt,name=payment_terms,json=paymentTerms,proto3" json:"payment_terms,omitempty"`
-	Rating           float64                `protobuf:"fixed64,9,opt,name=rating,proto3" json:"rating,omitempty"`
-	Status           VendorStatus           `protobuf:"varint,10,opt,name=status,proto3,enum=core.v1.VendorStatus" json:"status,omitempty"`
-	ProductsSupplied []string               `protobuf:"bytes,11,rep,name=products_supplied,json=productsSupplied,proto3" json:"products_supplied,omitempty"`
-	Metadata         *VendorMetadata        `protobuf:"bytes,12,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	CreatedBy        string                 `protobuf:"bytes,15,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id,omitempty"`
+	VendorId         string                 `protobuf:"bytes,2,opt,name=vendor_id,json=vendorId,proto3" json:"vendor_id" bson:"vendor_id"`
+	TenantId         string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id" bson:"tenant_id"`
+	Name             string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name" bson:"name"`
+	Code             string                 `protobuf:"bytes,5,opt,name=code,proto3" json:"code" bson:"code"`
+	Contact          *VendorContact         `protobuf:"bytes,6,opt,name=contact,proto3" json:"contact" bson:"contact"`
+	Address          *Address               `protobuf:"bytes,7,opt,name=address,proto3" json:"address" bson:"address"`
+	PaymentTerms     *PaymentTerms          `protobuf:"bytes,8,opt,name=payment_terms,json=paymentTerms,proto3" json:"payment_terms" bson:"payment_terms"`
+	Rating           float64                `protobuf:"fixed64,9,opt,name=rating,proto3" json:"rating" bson:"rating"`
+	Status           VendorStatus           `protobuf:"varint,10,opt,name=status,proto3,enum=core.v1.VendorStatus" json:"status" bson:"status"`
+	ProductsSupplied []string               `protobuf:"bytes,11,rep,name=products_supplied,json=productsSupplied,proto3" json:"products_supplied,omitempty" bson:"products_supplied,omitempty"`
+	Metadata         *VendorMetadata        `protobuf:"bytes,12,opt,name=metadata,proto3" json:"metadata,omitempty" bson:"metadata,omitempty"`
+	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
+	UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
+	CreatedBy        string                 `protobuf:"bytes,15,opt,name=created_by,json=createdBy,proto3" json:"created_by" bson:"created_by"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -235,10 +235,10 @@ func (x *Vendor) GetCreatedBy() string {
 
 type VendorContact struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	Phone         string                 `protobuf:"bytes,2,opt,name=phone,proto3" json:"phone,omitempty"`
-	Website       string                 `protobuf:"bytes,3,opt,name=website,proto3" json:"website,omitempty"`
-	ContactPerson string                 `protobuf:"bytes,4,opt,name=contact_person,json=contactPerson,proto3" json:"contact_person,omitempty"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email" bson:"email"`
+	Phone         string                 `protobuf:"bytes,2,opt,name=phone,proto3" json:"phone" bson:"phone"`
+	Website       string                 `protobuf:"bytes,3,opt,name=website,proto3" json:"website,omitempty" bson:"website,omitempty"`
+	ContactPerson string                 `protobuf:"bytes,4,opt,name=contact_person,json=contactPerson,proto3" json:"contact_person,omitempty" bson:"contact_person,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -303,9 +303,9 @@ func (x *VendorContact) GetContactPerson() string {
 
 type PaymentTerms struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Terms         string                 `protobuf:"bytes,1,opt,name=terms,proto3" json:"terms,omitempty"`
-	CreditLimit   float64                `protobuf:"fixed64,2,opt,name=credit_limit,json=creditLimit,proto3" json:"credit_limit,omitempty"`
-	Currency      string                 `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
+	Terms         string                 `protobuf:"bytes,1,opt,name=terms,proto3" json:"terms" bson:"terms"`
+	CreditLimit   float64                `protobuf:"fixed64,2,opt,name=credit_limit,json=creditLimit,proto3" json:"credit_limit" bson:"credit_limit"`
+	Currency      string                 `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency" bson:"currency"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -363,9 +363,9 @@ func (x *PaymentTerms) GetCurrency() string {
 
 type VendorMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaxId         string                 `protobuf:"bytes,1,opt,name=tax_id,json=taxId,proto3" json:"tax_id,omitempty"`
-	BusinessType  string                 `protobuf:"bytes,2,opt,name=business_type,json=businessType,proto3" json:"business_type,omitempty"`
-	Notes         string                 `protobuf:"bytes,3,opt,name=notes,proto3" json:"notes,omitempty"`
+	TaxId         string                 `protobuf:"bytes,1,opt,name=tax_id,json=taxId,proto3" json:"tax_id,omitempty" bson:"tax_id,omitempty"`
+	BusinessType  string                 `protobuf:"bytes,2,opt,name=business_type,json=businessType,proto3" json:"business_type,omitempty" bson:"business_type,omitempty"`
+	Notes         string                 `protobuf:"bytes,3,opt,name=notes,proto3" json:"notes,omitempty" bson:"notes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
