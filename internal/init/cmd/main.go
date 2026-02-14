@@ -10,8 +10,8 @@ import (
 	"erp.localhost/infra/event/producer"
 	"erp.localhost/infra/logging/logger"
 	shared "erp.localhost/infra/model/shared"
-	event "erp.localhost/internal/init/kafka"
-	"erp.localhost/internal/init/seeder"
+	event "erp.localhost/init/kafka"
+	"erp.localhost/init/seeder"
 )
 
 func Main() {

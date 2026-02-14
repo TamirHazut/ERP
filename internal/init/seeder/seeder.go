@@ -3,6 +3,8 @@ package seeder
 import (
 	"fmt"
 
+	collection_auth "erp.localhost/auth/collection"
+	"erp.localhost/auth/hash"
 	"erp.localhost/infra/db"
 	mongo_db "erp.localhost/infra/db/mongo"
 	"erp.localhost/infra/db/redis"
@@ -10,8 +12,6 @@ import (
 	"erp.localhost/infra/logging/logger"
 	authv1 "erp.localhost/infra/model/auth/v1"
 	model_mongo "erp.localhost/infra/model/db/mongo"
-	collection_auth "erp.localhost/internal/auth/collection"
-	"erp.localhost/internal/auth/hash"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
