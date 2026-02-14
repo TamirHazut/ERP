@@ -8,15 +8,15 @@ import (
 	"strconv"
 	"time"
 
+	"erp.localhost/auth/handler"
+	"erp.localhost/auth/hash"
+	"erp.localhost/auth/token"
 	"erp.localhost/infra/env"
 	infra_error "erp.localhost/infra/error"
 	"erp.localhost/infra/logging/logger"
 	authv1 "erp.localhost/infra/model/auth/v1"
 	authv1_cache "erp.localhost/infra/model/auth/v1/cache"
 	validator_auth_cache "erp.localhost/infra/model/auth/validator/cache"
-	"erp.localhost/internal/auth/handler"
-	"erp.localhost/internal/auth/hash"
-	"erp.localhost/internal/auth/token"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 

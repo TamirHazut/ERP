@@ -8,6 +8,10 @@ import (
 	"syscall"
 	"time"
 
+	"erp.localhost/auth/api"
+	"erp.localhost/auth/handler"
+	"erp.localhost/auth/rbac"
+	"erp.localhost/auth/service"
 	infra_error "erp.localhost/infra/error"
 	"erp.localhost/infra/event/producer"
 	"erp.localhost/infra/grpc/server"
@@ -15,10 +19,6 @@ import (
 	"erp.localhost/infra/logging/logger"
 	authv1 "erp.localhost/infra/model/auth/v1"
 	model_shared "erp.localhost/infra/model/shared"
-	"erp.localhost/internal/auth/api"
-	"erp.localhost/internal/auth/handler"
-	"erp.localhost/internal/auth/rbac"
-	"erp.localhost/internal/auth/service"
 )
 
 const (

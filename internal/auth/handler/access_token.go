@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"erp.localhost/auth/token"
 	"erp.localhost/infra/db/redis"
 	infra_error "erp.localhost/infra/error"
 	"erp.localhost/infra/logging/logger"
 	authv1_cache "erp.localhost/infra/model/auth/v1/cache"
 	validator_auth_cache "erp.localhost/infra/model/auth/validator/cache"
-	"erp.localhost/internal/auth/token"
 )
 
-//go:generate mockgen -destination=mock/mock_token_handler.go -package=mock erp.localhost/internal/auth/handler TokenHandler
+//go:generate mockgen -destination=mock/mock_token_handler.go -package=mock erp.localhost/auth/handler TokenHandler
 type TokenHandler[T any] interface {
 	// Store stores a single token for a user (replaces existing if present)
 	Store(tenantID string, userID string, value *T) *infra_error.AppError

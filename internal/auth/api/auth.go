@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"erp.localhost/auth/hash"
 	infra_error "erp.localhost/infra/error"
 	"erp.localhost/infra/event/producer"
 	"erp.localhost/infra/logging/logger"
@@ -12,7 +13,6 @@ import (
 	authv1_cache "erp.localhost/infra/model/auth/v1/cache"
 	"erp.localhost/infra/model/event"
 	eventv1 "erp.localhost/infra/model/event/v1"
-	"erp.localhost/internal/auth/hash"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

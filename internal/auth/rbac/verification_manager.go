@@ -4,12 +4,12 @@ import (
 	"errors"
 	"strings"
 
+	"erp.localhost/auth/handler"
 	"erp.localhost/infra/db/redis"
 	infra_error "erp.localhost/infra/error"
 	"erp.localhost/infra/logging/logger"
 	model_auth "erp.localhost/infra/model/auth"
 	authv1 "erp.localhost/infra/model/auth/v1"
-	"erp.localhost/internal/auth/handler"
 )
 
 type VerificationManager struct {

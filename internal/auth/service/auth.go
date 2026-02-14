@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"erp.localhost/internal/auth/api"
+	"erp.localhost/auth/api"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	infra_error "erp.localhost/infra/error"

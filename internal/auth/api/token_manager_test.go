@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	mock_token "erp.localhost/auth/handler/mock"
 	infra_error "erp.localhost/infra/error"
 	"erp.localhost/infra/logging/logger"
 	authv1_cache "erp.localhost/infra/model/auth/v1/cache"
 	"erp.localhost/infra/model/shared"
-	mock_token "erp.localhost/internal/auth/handler/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/timestamppb"

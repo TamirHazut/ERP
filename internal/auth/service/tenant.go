@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 
+	"erp.localhost/auth/api"
 	infra_error "erp.localhost/infra/error"
 	"erp.localhost/infra/logging/logger"
 	authv1 "erp.localhost/infra/model/auth/v1"
 	validator_infra "erp.localhost/infra/model/infra/validator"
-	"erp.localhost/internal/auth/api"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

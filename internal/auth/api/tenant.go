@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 
+	"erp.localhost/auth/handler"
+	"erp.localhost/auth/hash"
 	"erp.localhost/infra/db"
 	infra_error "erp.localhost/infra/error"
 	"erp.localhost/infra/logging/logger"
 	model_auth "erp.localhost/infra/model/auth"
 	authv1 "erp.localhost/infra/model/auth/v1"
 	validator_auth "erp.localhost/infra/model/auth/validator"
-	"erp.localhost/internal/auth/handler"
-	"erp.localhost/internal/auth/hash"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

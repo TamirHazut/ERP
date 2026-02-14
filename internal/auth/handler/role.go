@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 
+	aggregation_auth "erp.localhost/auth/aggregation"
+	collection_auth "erp.localhost/auth/collection"
 	aggregation_mongo "erp.localhost/infra/db/mongo/aggregation"
 	collection_mongo "erp.localhost/infra/db/mongo/collection"
 	infra_error "erp.localhost/infra/error"
 	"erp.localhost/infra/logging/logger"
 	authv1 "erp.localhost/infra/model/auth/v1"
 	validator_auth "erp.localhost/infra/model/auth/validator"
-	aggregation_auth "erp.localhost/internal/auth/aggregation"
-	collection_auth "erp.localhost/internal/auth/collection"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

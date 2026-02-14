@@ -5,12 +5,12 @@ import (
 	"slices"
 	"strings"
 
+	"erp.localhost/auth/handler"
 	infra_error "erp.localhost/infra/error"
 	"erp.localhost/infra/logging/logger"
 	model_auth "erp.localhost/infra/model/auth"
 	authv1 "erp.localhost/infra/model/auth/v1"
 	validator_auth "erp.localhost/infra/model/auth/validator"
-	"erp.localhost/internal/auth/handler"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
