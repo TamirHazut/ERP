@@ -1,7 +1,7 @@
 package main
 
-import "erp.localhost/auth/cmd/utils"
+import "erp.localhost/auth/cmd/lib"
 
 func main() {
-	utils.Main()
+	lib.Main()
 }

@@ -1,8 +1,8 @@
 package main
 
 import (
-	server_auth "erp.localhost/auth/cmd/utils"
-	server_init "erp.localhost/init/cmd/utils"
+	server_auth "erp.localhost/auth/cmd/lib"
+	server_init "erp.localhost/init/cmd/lib"
 )
 
 func main() {
