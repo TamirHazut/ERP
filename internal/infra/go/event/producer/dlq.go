@@ -14,6 +14,7 @@ import (
 
 type DLQHandler interface {
 	Store(message *eventv1.Message, topic event.Topic, partionKey string, err error) error
+	Count() (int64, error) // Get the number of entries in DLQ
 }
 
 type BaseDLQHandler struct {
@@ -47,4 +48,12 @@ func (h *BaseDLQHandler) Store(message *eventv1.Message, topic event.Topic, part
 	}
 	_, storeErr := h.collection.Create(entry)
 	return storeErr
+}
+
+// Count returns the total number of entries in the DLQ.
+// TODO: Implement actual count when CollectionHandler supports Count() method
+func (h *BaseDLQHandler) Count() (int64, error) {
+	// For now, return 0 as the CollectionHandler doesn't have a Count method yet
+	// This will need to be implemented when we add Count support to CollectionHandler
+	return 0, nil
 }

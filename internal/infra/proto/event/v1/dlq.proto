@@ -10,17 +10,26 @@ import "tagger/tagger.proto";
 import "event/v1/message.proto";
 
 message DlqEntry {
-    string topic = 1 [(tagger.tags) = "bson:\"topic\" json:\"topic\""];
-    string partition_key = 2 [(tagger.tags) = "bson:\"partition_key\" json:\"partition_key\""];
-    event.v1.Message message = 3 [(tagger.tags) = "bson:\"message\" json:\"message\""];
+    string message_id = 1 [(tagger.tags) = "bson:\"message_id\" json:\"message_id\""]; // Extracted from message.Id for deduplication
+    string topic = 2 [(tagger.tags) = "bson:\"topic\" json:\"topic\""];
+    string partition_key = 3 [(tagger.tags) = "bson:\"partition_key\" json:\"partition_key\""];
+    event.v1.Message message = 4 [(tagger.tags) = "bson:\"message\" json:\"message\""];
 
     // Retry tracking
-    int32 retries = 4 [(tagger.tags) = "bson:\"retries\" json:\"retries\""];
-    int32 max_retries = 5 [(tagger.tags) = "bson:\"max_retries\" json:\"max_retries\""];
-    google.protobuf.Timestamp next_retry_at = 6 [(tagger.tags) = "bson:\"next_retry_at\" json:\"next_retry_at\""];
-    
+    int32 retries = 5 [(tagger.tags) = "bson:\"retries\" json:\"retries\""];
+    int32 max_retries = 6 [(tagger.tags) = "bson:\"max_retries\" json:\"max_retries\""];
+    google.protobuf.Timestamp next_retry_at = 7 [(tagger.tags) = "bson:\"next_retry_at\" json:\"next_retry_at\""];
+
     // Metadata
-    google.protobuf.Timestamp created_at = 7 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
-    google.protobuf.Timestamp updated_at = 8 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
-    string last_error = 9 [(tagger.tags) = "bson:\"last_error\" json:\"last_error\""];
+    google.protobuf.Timestamp created_at = 8 [(tagger.tags) = "bson:\"created_at\" json:\"created_at\""];
+    google.protobuf.Timestamp updated_at = 9 [(tagger.tags) = "bson:\"updated_at\" json:\"updated_at\""];
+    string last_error = 10 [(tagger.tags) = "bson:\"last_error\" json:\"last_error\""];
+
+    // WAL state tracking (for file deletion)
+    DlqEntryState state = 11 [(tagger.tags) = "bson:\"state,omitempty\" json:\"state,omitempty\""];
+}
+
+enum DlqEntryState {
+    DLQ_ENTRY_STATE_PENDING = 0;  // Not yet sent
+    DLQ_ENTRY_STATE_SENT = 1;     // Successfully delivered (can be deleted from WAL)
 }

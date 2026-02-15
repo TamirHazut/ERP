@@ -1,0 +1,78 @@
+// source: third_party/tagger/tagger.proto
+/**
+ * @fileoverview
+ * @enhanceable
+ * @suppress {missingRequire} reports error on implicit type usages.
+ * @suppress {messageConventions} JS Compiler reports an error if a variable or
+ *     field starts with 'MSG_' and isn't a translatable message.
+ * @public
+ */
+// GENERATED CODE -- DO NOT EDIT!
+/* eslint-disable */
+// @ts-nocheck
+
+var jspb = require('google-protobuf');
+var goog = jspb;
+var global =
+    (typeof globalThis !== 'undefined' && globalThis) ||
+    (typeof window !== 'undefined' && window) ||
+    (typeof global !== 'undefined' && global) ||
+    (typeof self !== 'undefined' && self) ||
+    (function () { return this; }).call(null) ||
+    Function('return this')();
+
+var google_protobuf_descriptor_pb = require('google-protobuf/google/protobuf/descriptor_pb.js');
+goog.object.extend(proto, google_protobuf_descriptor_pb);
+goog.exportSymbol('proto.tagger.oneofTags', null, global);
+goog.exportSymbol('proto.tagger.tags', null, global);
+
+/**
+ * A tuple of {field number, class constructor} for the extension
+ * field named `tags`.
+ * @type {!jspb.ExtensionFieldInfo<string>}
+ */
+proto.tagger.tags = new jspb.ExtensionFieldInfo(
+    847939,
+    {tags: 0},
+    null,
+     /** @type {?function((boolean|undefined),!jspb.Message=): !Object} */ (
+         null),
+    0);
+
+google_protobuf_descriptor_pb.FieldOptions.extensionsBinary[847939] = new jspb.ExtensionFieldBinaryInfo(
+    proto.tagger.tags,
+    jspb.BinaryReader.prototype.readString,
+    jspb.BinaryWriter.prototype.writeString,
+    undefined,
+    undefined,
+    false);
+// This registers the extension field with the extended class, so that
+// toObject() will function correctly.
+google_protobuf_descriptor_pb.FieldOptions.extensions[847939] = proto.tagger.tags;
+
+
+/**
+ * A tuple of {field number, class constructor} for the extension
+ * field named `oneofTags`.
+ * @type {!jspb.ExtensionFieldInfo<string>}
+ */
+proto.tagger.oneofTags = new jspb.ExtensionFieldInfo(
+    847939,
+    {oneofTags: 0},
+    null,
+     /** @type {?function((boolean|undefined),!jspb.Message=): !Object} */ (
+         null),
+    0);
+
+google_protobuf_descriptor_pb.OneofOptions.extensionsBinary[847939] = new jspb.ExtensionFieldBinaryInfo(
+    proto.tagger.oneofTags,
+    jspb.BinaryReader.prototype.readString,
+    jspb.BinaryWriter.prototype.writeString,
+    undefined,
+    undefined,
+    false);
+// This registers the extension field with the extended class, so that
+// toObject() will function correctly.
+google_protobuf_descriptor_pb.OneofOptions.extensions[847939] = proto.tagger.oneofTags;
+
+goog.object.extend(exports, proto.tagger);

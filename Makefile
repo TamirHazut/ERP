@@ -9,7 +9,8 @@
 		lint clean \
 		test-functional-setup test-functional-% test-functional-all test-functional-clean \
         docker-up docker-down docker-logs docker-ps \
-        certs certs-clean
+        certs certs-clean \
+		walctl walctl-install
 
 # Binary output directory
 BIN_DIR := ./bin
@@ -54,6 +55,10 @@ help: ## Show this help message
 	@echo "  make certs          	- Create CA and all module certificates"
 	@echo "  make certs-clean    	- Remove all certificates"
 	@echo ""
+	@echo "Tools:"
+	@echo "  make walctl         	- Build walctl debug CLI tool"
+	@echo "  make walctl-install 	- Build and install walctl to /usr/local/bin"
+	@echo ""
 	@echo "	 make help			 	- Display this menu"
 	@echo ""
 
@@ -63,7 +68,7 @@ help: ## Show this help message
 # ============================================================================
 
 generate: ## Generate all required files
-	@$(MAKE) -C internal/infra generate"
+	@$(MAKE) -C internal/infra generate
 
 
 generate-clean: ## Remove all generated files
@@ -217,3 +222,17 @@ certs-clean: ## Remove all certificates (CA and service certificates)
 		$(MAKE) -C internal/$$module certs-clean; \
 	done
 	@echo "✓ All certificates removed"
+
+# ============================================================================
+# TOOLS
+# ============================================================================
+
+walctl: ## Build walctl debug CLI tool
+	@echo "Building walctl..."
+	@$(MAKE) -C internal/infra/resources/tools/walctl build
+	@echo "✓ walctl built successfully at internal/infra/resources/tools/bin/walctl"
+
+walctl-install: walctl ## Build and install walctl to /usr/local/bin
+	@echo "Installing walctl..."
+	@$(MAKE) -C internal/infra/resources/tools/walctl install
+	@echo "✓ walctl installed to /usr/local/bin"

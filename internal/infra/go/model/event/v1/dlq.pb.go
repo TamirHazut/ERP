@@ -23,19 +23,68 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type DlqEntryState int32
+
+const (
+	DlqEntryState_DLQ_ENTRY_STATE_PENDING DlqEntryState = 0 // Not yet sent
+	DlqEntryState_DLQ_ENTRY_STATE_SENT    DlqEntryState = 1 // Successfully delivered (can be deleted from WAL)
+)
+
+// Enum value maps for DlqEntryState.
+var (
+	DlqEntryState_name = map[int32]string{
+		0: "DLQ_ENTRY_STATE_PENDING",
+		1: "DLQ_ENTRY_STATE_SENT",
+	}
+	DlqEntryState_value = map[string]int32{
+		"DLQ_ENTRY_STATE_PENDING": 0,
+		"DLQ_ENTRY_STATE_SENT":    1,
+	}
+)
+
+func (x DlqEntryState) Enum() *DlqEntryState {
+	p := new(DlqEntryState)
+	*p = x
+	return p
+}
+
+func (x DlqEntryState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DlqEntryState) Descriptor() protoreflect.EnumDescriptor {
+	return file_event_v1_dlq_proto_enumTypes[0].Descriptor()
+}
+
+func (DlqEntryState) Type() protoreflect.EnumType {
+	return &file_event_v1_dlq_proto_enumTypes[0]
+}
+
+func (x DlqEntryState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DlqEntryState.Descriptor instead.
+func (DlqEntryState) EnumDescriptor() ([]byte, []int) {
+	return file_event_v1_dlq_proto_rawDescGZIP(), []int{0}
+}
+
 type DlqEntry struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
-	Topic        string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic" bson:"topic"`
-	PartitionKey string                 `protobuf:"bytes,2,opt,name=partition_key,json=partitionKey,proto3" json:"partition_key" bson:"partition_key"`
-	Message      *Message               `protobuf:"bytes,3,opt,name=message,proto3" json:"message" bson:"message"`
+	MessageId    string                 `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id" bson:"message_id"` // Extracted from message.Id for deduplication
+	Topic        string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic" bson:"topic"`
+	PartitionKey string                 `protobuf:"bytes,3,opt,name=partition_key,json=partitionKey,proto3" json:"partition_key" bson:"partition_key"`
+	Message      *Message               `protobuf:"bytes,4,opt,name=message,proto3" json:"message" bson:"message"`
 	// Retry tracking
-	Retries     int32                  `protobuf:"varint,4,opt,name=retries,proto3" json:"retries" bson:"retries"`
-	MaxRetries  int32                  `protobuf:"varint,5,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries" bson:"max_retries"`
-	NextRetryAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=next_retry_at,json=nextRetryAt,proto3" json:"next_retry_at" bson:"next_retry_at"`
+	Retries     int32                  `protobuf:"varint,5,opt,name=retries,proto3" json:"retries" bson:"retries"`
+	MaxRetries  int32                  `protobuf:"varint,6,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries" bson:"max_retries"`
+	NextRetryAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=next_retry_at,json=nextRetryAt,proto3" json:"next_retry_at" bson:"next_retry_at"`
 	// Metadata
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
-	LastError     string                 `protobuf:"bytes,9,opt,name=last_error,json=lastError,proto3" json:"last_error" bson:"last_error"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
+	LastError string                 `protobuf:"bytes,10,opt,name=last_error,json=lastError,proto3" json:"last_error" bson:"last_error"`
+	// WAL state tracking (for file deletion)
+	State         DlqEntryState `protobuf:"varint,11,opt,name=state,proto3,enum=event.v1.DlqEntryState" json:"state,omitempty" bson:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -68,6 +117,13 @@ func (x *DlqEntry) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DlqEntry.ProtoReflect.Descriptor instead.
 func (*DlqEntry) Descriptor() ([]byte, []int) {
 	return file_event_v1_dlq_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *DlqEntry) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
 }
 
 func (x *DlqEntry) GetTopic() string {
@@ -133,25 +189,39 @@ func (x *DlqEntry) GetLastError() string {
 	return ""
 }
 
+func (x *DlqEntry) GetState() DlqEntryState {
+	if x != nil {
+		return x.State
+	}
+	return DlqEntryState_DLQ_ENTRY_STATE_PENDING
+}
+
 var File_event_v1_dlq_proto protoreflect.FileDescriptor
 
 const file_event_v1_dlq_proto_rawDesc = "" +
 	"\n" +
-	"\x12event/v1/dlq.proto\x12\bevent.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\x1a\x16event/v1/message.proto\"\xf4\x05\n" +
-	"\bDlqEntry\x124\n" +
-	"\x05topic\x18\x01 \x01(\tB\x1e\x9a\x84\x9e\x03\x19bson:\"topic\" json:\"topic\"R\x05topic\x12S\n" +
-	"\rpartition_key\x18\x02 \x01(\tB.\x9a\x84\x9e\x03)bson:\"partition_key\" json:\"partition_key\"R\fpartitionKey\x12O\n" +
-	"\amessage\x18\x03 \x01(\v2\x11.event.v1.MessageB\"\x9a\x84\x9e\x03\x1dbson:\"message\" json:\"message\"R\amessage\x12<\n" +
-	"\aretries\x18\x04 \x01(\x05B\"\x9a\x84\x9e\x03\x1dbson:\"retries\" json:\"retries\"R\aretries\x12K\n" +
-	"\vmax_retries\x18\x05 \x01(\x05B*\x9a\x84\x9e\x03%bson:\"max_retries\" json:\"max_retries\"R\n" +
+	"\x12event/v1/dlq.proto\x12\bevent.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\x1a\x16event/v1/message.proto\"\xa0\a\n" +
+	"\bDlqEntry\x12G\n" +
+	"\n" +
+	"message_id\x18\x01 \x01(\tB(\x9a\x84\x9e\x03#bson:\"message_id\" json:\"message_id\"R\tmessageId\x124\n" +
+	"\x05topic\x18\x02 \x01(\tB\x1e\x9a\x84\x9e\x03\x19bson:\"topic\" json:\"topic\"R\x05topic\x12S\n" +
+	"\rpartition_key\x18\x03 \x01(\tB.\x9a\x84\x9e\x03)bson:\"partition_key\" json:\"partition_key\"R\fpartitionKey\x12O\n" +
+	"\amessage\x18\x04 \x01(\v2\x11.event.v1.MessageB\"\x9a\x84\x9e\x03\x1dbson:\"message\" json:\"message\"R\amessage\x12<\n" +
+	"\aretries\x18\x05 \x01(\x05B\"\x9a\x84\x9e\x03\x1dbson:\"retries\" json:\"retries\"R\aretries\x12K\n" +
+	"\vmax_retries\x18\x06 \x01(\x05B*\x9a\x84\x9e\x03%bson:\"max_retries\" json:\"max_retries\"R\n" +
 	"maxRetries\x12n\n" +
-	"\rnext_retry_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampB.\x9a\x84\x9e\x03)bson:\"next_retry_at\" json:\"next_retry_at\"R\vnextRetryAt\x12c\n" +
+	"\rnext_retry_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB.\x9a\x84\x9e\x03)bson:\"next_retry_at\" json:\"next_retry_at\"R\vnextRetryAt\x12c\n" +
 	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"created_at\" json:\"created_at\"R\tcreatedAt\x12c\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"created_at\" json:\"created_at\"R\tcreatedAt\x12c\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"updated_at\" json:\"updated_at\"R\tupdatedAt\x12G\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"updated_at\" json:\"updated_at\"R\tupdatedAt\x12G\n" +
 	"\n" +
-	"last_error\x18\t \x01(\tB(\x9a\x84\x9e\x03#bson:\"last_error\" json:\"last_error\"R\tlastErrorB,Z*erp.localhost/infra/model/event/v1;eventv1b\x06proto3"
+	"last_error\x18\n" +
+	" \x01(\tB(\x9a\x84\x9e\x03#bson:\"last_error\" json:\"last_error\"R\tlastError\x12a\n" +
+	"\x05state\x18\v \x01(\x0e2\x17.event.v1.DlqEntryStateB2\x9a\x84\x9e\x03-bson:\"state,omitempty\" json:\"state,omitempty\"R\x05state*F\n" +
+	"\rDlqEntryState\x12\x1b\n" +
+	"\x17DLQ_ENTRY_STATE_PENDING\x10\x00\x12\x18\n" +
+	"\x14DLQ_ENTRY_STATE_SENT\x10\x01B,Z*erp.localhost/infra/model/event/v1;eventv1b\x06proto3"
 
 var (
 	file_event_v1_dlq_proto_rawDescOnce sync.Once
@@ -165,22 +235,25 @@ func file_event_v1_dlq_proto_rawDescGZIP() []byte {
 	return file_event_v1_dlq_proto_rawDescData
 }
 
+var file_event_v1_dlq_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_event_v1_dlq_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_event_v1_dlq_proto_goTypes = []any{
-	(*DlqEntry)(nil),              // 0: event.v1.DlqEntry
-	(*Message)(nil),               // 1: event.v1.Message
-	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
+	(DlqEntryState)(0),            // 0: event.v1.DlqEntryState
+	(*DlqEntry)(nil),              // 1: event.v1.DlqEntry
+	(*Message)(nil),               // 2: event.v1.Message
+	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
 }
 var file_event_v1_dlq_proto_depIdxs = []int32{
-	1, // 0: event.v1.DlqEntry.message:type_name -> event.v1.Message
-	2, // 1: event.v1.DlqEntry.next_retry_at:type_name -> google.protobuf.Timestamp
-	2, // 2: event.v1.DlqEntry.created_at:type_name -> google.protobuf.Timestamp
-	2, // 3: event.v1.DlqEntry.updated_at:type_name -> google.protobuf.Timestamp
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	2, // 0: event.v1.DlqEntry.message:type_name -> event.v1.Message
+	3, // 1: event.v1.DlqEntry.next_retry_at:type_name -> google.protobuf.Timestamp
+	3, // 2: event.v1.DlqEntry.created_at:type_name -> google.protobuf.Timestamp
+	3, // 3: event.v1.DlqEntry.updated_at:type_name -> google.protobuf.Timestamp
+	0, // 4: event.v1.DlqEntry.state:type_name -> event.v1.DlqEntryState
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_event_v1_dlq_proto_init() }
@@ -194,13 +267,14 @@ func file_event_v1_dlq_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_event_v1_dlq_proto_rawDesc), len(file_event_v1_dlq_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_event_v1_dlq_proto_goTypes,
 		DependencyIndexes: file_event_v1_dlq_proto_depIdxs,
+		EnumInfos:         file_event_v1_dlq_proto_enumTypes,
 		MessageInfos:      file_event_v1_dlq_proto_msgTypes,
 	}.Build()
 	File_event_v1_dlq_proto = out.File

@@ -55,6 +55,15 @@ type Producer struct {
 	// DLQ handler
 	dlq DLQHandler
 
+	// WAL queue handler (local persistent queue)
+	walQueue *WalQueueHandler
+
+	// WAL background worker
+	walWorker *WalWorker
+
+	// Circuit breaker for Kafka
+	circuitBreaker *CircuitBreaker
+
 	// Worker management
 	workerCount atomic.Int32
 	wg          sync.WaitGroup
@@ -97,6 +106,44 @@ func newProducer(cfg Config, dlq DLQHandler, logger logger.Logger) (*Producer, *
 		config: cfg,
 	}
 
+	// Initialize WAL queue if enabled
+	if cfg.WalEnabled {
+		walQueue, err := NewWalQueueHandler(cfg.WalDir, cfg.WalMaxFileSize, logger)
+		if err != nil {
+			return nil, infra_error.Internal(infra_error.InternalDatabaseError,
+				fmt.Errorf("failed to initialize WAL queue: %w", err))
+		}
+		p.walQueue = walQueue
+
+		// Initialize WAL worker (will be started in start())
+		p.walWorker = NewWalWorker(
+			walQueue,
+			p,
+			cfg.WalRetryInterval,
+			cfg.WalBatchSize,
+			cfg.WalDiskAlertThreshold,
+			logger,
+		)
+
+		logger.Info("WAL queue initialized",
+			"dir", cfg.WalDir,
+			"max_file_size_mb", cfg.WalMaxFileSize/(1024*1024))
+	}
+
+	// Initialize circuit breaker if enabled
+	if cfg.CircuitBreakerEnabled {
+		p.circuitBreaker = NewCircuitBreaker(
+			cfg.CircuitBreakerFailureThreshold,
+			cfg.CircuitBreakerSuccessThreshold,
+			cfg.CircuitBreakerTimeout,
+		)
+
+		logger.Info("Circuit breaker initialized",
+			"failure_threshold", cfg.CircuitBreakerFailureThreshold,
+			"success_threshold", cfg.CircuitBreakerSuccessThreshold,
+			"timeout", cfg.CircuitBreakerTimeout)
+	}
+
 	return p, nil
 }
 
@@ -105,9 +152,16 @@ func (p *Producer) start() *infra_error.AppError {
 		p.addWorker()
 	}
 
+	// Start WAL worker if enabled
+	if p.walWorker != nil {
+		p.walWorker.Start()
+	}
+
 	p.logger.Info("Producer started",
 		"workers", p.config.InitialWorkers,
 		"buffer", p.config.ChannelBuffer,
+		"wal_enabled", p.config.WalEnabled,
+		"circuit_breaker_enabled", p.config.CircuitBreakerEnabled,
 	)
 
 	return nil
@@ -139,6 +193,37 @@ func (p *Producer) getMetrics() Metrics {
 	}
 }
 
+// getEnhancedMetrics returns comprehensive metrics including WAL, DLQ, and circuit breaker.
+func (p *Producer) getEnhancedMetrics() EnhancedMetrics {
+	metrics := EnhancedMetrics{
+		Pending: p.pending.Load(),
+		Workers: p.workerCount.Load(),
+		Sent:    p.sent.Load(),
+		Failed:  p.failed.Load(),
+	}
+
+	// WAL metrics
+	if p.walQueue != nil {
+		if count, err := p.walQueue.Count(); err == nil {
+			metrics.WalFileCount = count
+		}
+		if size, err := p.walQueue.GetTotalSize(); err == nil {
+			metrics.WalTotalSize = size
+			metrics.WalTotalSizeGB = float64(size) / (1024 * 1024 * 1024)
+		}
+	}
+
+	// Circuit breaker metrics
+	if p.circuitBreaker != nil {
+		metrics.CircuitState = p.circuitBreaker.GetState().String()
+		metrics.CircuitFailures = p.circuitBreaker.GetFailureCount()
+	}
+
+	// Note: Health checks removed - watchdog system will handle dependency monitoring separately
+
+	return metrics
+}
+
 func (p *Producer) shutdown() *infra_error.AppError {
 	p.logger.Info("Shutting down producer...")
 
@@ -147,6 +232,11 @@ func (p *Producer) shutdown() *infra_error.AppError {
 
 	// Signal workers to stop
 	close(p.done)
+
+	// Stop WAL worker if enabled
+	if p.walWorker != nil {
+		p.walWorker.Stop()
+	}
 
 	// Wait with timeout from config
 	done := make(chan struct{})
@@ -162,6 +252,14 @@ func (p *Producer) shutdown() *infra_error.AppError {
 		pending := p.pending.Load()
 		p.logger.Warn("Shutdown timeout", "pending", pending)
 		return infra_error.Internal(infra_error.InternalUnexpectedError, fmt.Errorf("shutdown timeout: %d messages pending", pending))
+	}
+
+	// Close WAL queue if enabled
+	if p.walQueue != nil {
+		if err := p.walQueue.Close(); err != nil {
+			p.logger.Error("Error closing WAL queue", "error", err)
+			// Continue with shutdown even if WAL close fails
+		}
 	}
 
 	// Close Kafka writer
@@ -241,23 +339,45 @@ func (p *Producer) processMessage(msgWrapper *messageWrapper) {
 		Time: msg.Timestamp.AsTime(),
 	}
 
-	// Send to Kafka
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	// Send to Kafka with circuit breaker
+	partitionKey := string(kafkaMsg.Key)
+	err = p.sendToKafkaWithCircuitBreaker(kafkaMsg)
 
-	err = p.writer.WriteMessages(ctx, kafkaMsg)
 	if err != nil {
-		// Failed - write to DLQ
+		// Kafka failed - try MongoDB DLQ
 		p.logger.Error("Failed to send to Kafka, writing to DLQ",
 			"message_id", msg.Id,
 			"topic", topic,
 			"error", err,
 		)
-		if dlqErr := p.dlq.Store(msg, topic, string(kafkaMsg.Key), err); dlqErr != nil {
-			p.logger.Error("Failed to write to DLQ",
+
+		dlqErr := p.dlq.Store(msg, topic, partitionKey, err)
+		if dlqErr != nil {
+			// DLQ also failed - try WAL queue (local persistent storage)
+			p.logger.Error("Failed to write to DLQ, writing to WAL",
 				"message_id", msg.Id,
 				"error", dlqErr,
 			)
+
+			if p.walQueue != nil {
+				walErr := p.walQueue.Store(msg, topic, partitionKey, dlqErr)
+				if walErr != nil {
+					// All three layers failed - CRITICAL
+					p.logger.Error("ALL STORAGE LAYERS FAILED - CRITICAL",
+						"message_id", msg.Id,
+						"kafka_err", err,
+						"dlq_err", dlqErr,
+						"wal_err", walErr,
+					)
+				}
+			} else {
+				// WAL not enabled - only have Kafka + DLQ, both failed
+				p.logger.Error("Kafka and DLQ failed, WAL disabled - event lost",
+					"message_id", msg.Id,
+					"kafka_err", err,
+					"dlq_err", dlqErr,
+				)
+			}
 		}
 
 		p.failed.Add(1)
@@ -267,6 +387,22 @@ func (p *Producer) processMessage(msgWrapper *messageWrapper) {
 		p.sent.Add(1)
 		// metrics.MessagesSent.Inc()
 	}
+}
+
+// sendToKafkaWithCircuitBreaker sends a message to Kafka using the circuit breaker.
+func (p *Producer) sendToKafkaWithCircuitBreaker(kafkaMsg kafka.Message) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Use circuit breaker if enabled
+	if p.circuitBreaker != nil {
+		return p.circuitBreaker.Call(func() error {
+			return p.writer.WriteMessages(ctx, kafkaMsg)
+		})
+	}
+
+	// No circuit breaker - send directly
+	return p.writer.WriteMessages(ctx, kafkaMsg)
 }
 
 // Partition key
@@ -360,4 +496,33 @@ func GetMetrics() Metrics {
 	}
 
 	return defaultProducer.getMetrics()
+}
+
+// GetEnhancedMetrics returns comprehensive metrics including WAL, DLQ, and circuit breaker
+func GetEnhancedMetrics() EnhancedMetrics {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	if !initialized {
+		return EnhancedMetrics{}
+	}
+
+	return defaultProducer.getEnhancedMetrics()
+}
+
+// GetHealth returns health status of all dependencies
+func GetHealth() Health {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	if !initialized {
+		return Health{
+			Kafka:   HealthStatusDown,
+			MongoDB: HealthStatusDown,
+			Wal:     HealthStatusDown,
+			Overall: HealthStatusDown,
+		}
+	}
+
+	return defaultProducer.GetHealth()
 }

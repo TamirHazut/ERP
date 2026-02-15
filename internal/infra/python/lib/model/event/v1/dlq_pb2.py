@@ -27,7 +27,7 @@ from lib.model.tagger import tagger_pb2 as tagger_dot_tagger__pb2
 from lib.model.event.v1 import message_pb2 as event_dot_v1_dot_message__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12\x65vent/v1/dlq.proto\x12\x08\x65vent.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\x1a\x16\x65vent/v1/message.proto\"\x93\x05\n\x08\x44lqEntry\x12-\n\x05topic\x18\x01 \x01(\tB\x1e\x9a\x84\x9e\x03\x19\x62son:\"topic\" json:\"topic\"\x12\x45\n\rpartition_key\x18\x02 \x01(\tB.\x9a\x84\x9e\x03)bson:\"partition_key\" json:\"partition_key\"\x12\x46\n\x07message\x18\x03 \x01(\x0b\x32\x11.event.v1.MessageB\"\x9a\x84\x9e\x03\x1d\x62son:\"message\" json:\"message\"\x12\x33\n\x07retries\x18\x04 \x01(\x05\x42\"\x9a\x84\x9e\x03\x1d\x62son:\"retries\" json:\"retries\"\x12?\n\x0bmax_retries\x18\x05 \x01(\x05\x42*\x9a\x84\x9e\x03%bson:\"max_retries\" json:\"max_retries\"\x12\x61\n\rnext_retry_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampB.\x9a\x84\x9e\x03)bson:\"next_retry_at\" json:\"next_retry_at\"\x12X\n\ncreated_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"created_at\" json:\"created_at\"\x12X\n\nupdated_at\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"updated_at\" json:\"updated_at\"\x12<\n\nlast_error\x18\t \x01(\tB(\x9a\x84\x9e\x03#bson:\"last_error\" json:\"last_error\"B,Z*erp.localhost/infra/model/event/v1;eventv1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12\x65vent/v1/dlq.proto\x12\x08\x65vent.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13tagger/tagger.proto\x1a\x16\x65vent/v1/message.proto\"\xad\x06\n\x08\x44lqEntry\x12<\n\nmessage_id\x18\x01 \x01(\tB(\x9a\x84\x9e\x03#bson:\"message_id\" json:\"message_id\"\x12-\n\x05topic\x18\x02 \x01(\tB\x1e\x9a\x84\x9e\x03\x19\x62son:\"topic\" json:\"topic\"\x12\x45\n\rpartition_key\x18\x03 \x01(\tB.\x9a\x84\x9e\x03)bson:\"partition_key\" json:\"partition_key\"\x12\x46\n\x07message\x18\x04 \x01(\x0b\x32\x11.event.v1.MessageB\"\x9a\x84\x9e\x03\x1d\x62son:\"message\" json:\"message\"\x12\x33\n\x07retries\x18\x05 \x01(\x05\x42\"\x9a\x84\x9e\x03\x1d\x62son:\"retries\" json:\"retries\"\x12?\n\x0bmax_retries\x18\x06 \x01(\x05\x42*\x9a\x84\x9e\x03%bson:\"max_retries\" json:\"max_retries\"\x12\x61\n\rnext_retry_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampB.\x9a\x84\x9e\x03)bson:\"next_retry_at\" json:\"next_retry_at\"\x12X\n\ncreated_at\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"created_at\" json:\"created_at\"\x12X\n\nupdated_at\x18\t \x01(\x0b\x32\x1a.google.protobuf.TimestampB(\x9a\x84\x9e\x03#bson:\"updated_at\" json:\"updated_at\"\x12<\n\nlast_error\x18\n \x01(\tB(\x9a\x84\x9e\x03#bson:\"last_error\" json:\"last_error\"\x12Z\n\x05state\x18\x0b \x01(\x0e\x32\x17.event.v1.DlqEntryStateB2\x9a\x84\x9e\x03-bson:\"state,omitempty\" json:\"state,omitempty\"*F\n\rDlqEntryState\x12\x1b\n\x17\x44LQ_ENTRY_STATE_PENDING\x10\x00\x12\x18\n\x14\x44LQ_ENTRY_STATE_SENT\x10\x01\x42,Z*erp.localhost/infra/model/event/v1;eventv1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +35,8 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'event.v1.dlq_pb2', _globals
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z*erp.localhost/infra/model/event/v1;eventv1'
+  _globals['_DLQENTRY'].fields_by_name['message_id']._loaded_options = None
+  _globals['_DLQENTRY'].fields_by_name['message_id']._serialized_options = b'\232\204\236\003#bson:\"message_id\" json:\"message_id\"'
   _globals['_DLQENTRY'].fields_by_name['topic']._loaded_options = None
   _globals['_DLQENTRY'].fields_by_name['topic']._serialized_options = b'\232\204\236\003\031bson:\"topic\" json:\"topic\"'
   _globals['_DLQENTRY'].fields_by_name['partition_key']._loaded_options = None
@@ -53,6 +55,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_DLQENTRY'].fields_by_name['updated_at']._serialized_options = b'\232\204\236\003#bson:\"updated_at\" json:\"updated_at\"'
   _globals['_DLQENTRY'].fields_by_name['last_error']._loaded_options = None
   _globals['_DLQENTRY'].fields_by_name['last_error']._serialized_options = b'\232\204\236\003#bson:\"last_error\" json:\"last_error\"'
+  _globals['_DLQENTRY'].fields_by_name['state']._loaded_options = None
+  _globals['_DLQENTRY'].fields_by_name['state']._serialized_options = b'\232\204\236\003-bson:\"state,omitempty\" json:\"state,omitempty\"'
+  _globals['_DLQENTRYSTATE']._serialized_start=926
+  _globals['_DLQENTRYSTATE']._serialized_end=996
   _globals['_DLQENTRY']._serialized_start=111
-  _globals['_DLQENTRY']._serialized_end=770
+  _globals['_DLQENTRY']._serialized_end=924
 # @@protoc_insertion_point(module_scope)

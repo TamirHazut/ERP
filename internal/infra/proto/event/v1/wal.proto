@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package event.v1;
+
+option go_package = "erp.localhost/infra/model/event/v1;eventv1";
+
+import "google/protobuf/timestamp.proto";
+
+// WalEntry represents a single entry in the Write-Ahead Log.
+// Used as a local persistent queue when both Kafka and MongoDB are unavailable.
+message WalEntry {
+    // Original message ID (UUID) from the event producer
+    string message_id = 1;
+
+    // Kafka topic where this message should be sent
+    string topic = 2;
+
+    // Partition key for Kafka (ensures ordering within entity)
+    string partition_key = 3;
+
+    // Serialized protobuf bytes of the original event.v1.Message
+    bytes message_bytes = 4;
+
+    // When this entry was created
+    google.protobuf.Timestamp created_at = 5;
+
+    // Number of retry attempts (starts at 0)
+    int32 retries = 6;
+
+    // When to attempt the next retry (exponential backoff)
+    google.protobuf.Timestamp next_retry_at = 7;
+
+    // Last error message from failed send attempt
+    string last_error = 8;
+
+    // Current state of this WAL entry
+    WalEntryState state = 9;
+}
+
+// WalEntryState represents the lifecycle state of a WAL entry.
+enum WalEntryState {
+    // Entry has not been processed yet
+    WAL_ENTRY_STATE_PENDING = 0;
+
+    // Entry is currently being processed (sent to Kafka/DLQ)
+    WAL_ENTRY_STATE_PROCESSING = 1;
+
+    // Entry has been successfully sent and can be deleted
+    WAL_ENTRY_STATE_SENT = 2;
+}

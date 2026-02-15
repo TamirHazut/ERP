@@ -82,12 +82,12 @@ certs-clean: ## Remove all certificates (CA and module certificates)
 # MOCKS
 # ============================================================================
 
-mocks:
+generate-mocks:
 	@echo "Generating $(MODULE_NAME) mocks..."
 	@go generate ./go/...
 	@echo "✅ $(MODULE_NAME) mocks generated successfully"
 
-mocks-clean:
+generate-mocks-clean:
 	@echo "Cleaning generated $(MODULE_NAME) mocks..."
 	@find . -name "mock_*.go" -type f -delete
 	@echo "✅ $(MODULE_NAME) mocks cleaned"
@@ -97,14 +97,18 @@ mocks-clean:
 # ============================================================================
 
 generate-topics:
+	@echo "Generating Kafka topics"
 	@python ./resources/scripts/topics_generator.py \
 		--input ./resources/topics.yaml \
 		--go ./go/model/event/topics.go \
 		--py ./python/lib/model/event/topics.py \
 		--js ./js/model/event/topics.js
+	@echo "✅ Kafka topics generated successfully"
 
 generate-topics-clean:
+	@echo "Cleaning generated Kafka topics..."
 	@rm -f ./go/model/event/topics.go ./python/lib/model/event/topics.py ./js/model/event/topics.js
+	@echo "✅ Kafka topics cleaned"
 
 # ============================================================================
 # PROTO
@@ -138,9 +142,9 @@ PYTHON_GEN_FLAGS := --python_out=$(GENERATED_PYTHON_OUT) --grpc_python_out=$(GEN
 # --- 3. THE MACRO ---
 define generate_proto
     WORD=$(1); \
-    SERVICE_DIR="$(PROTO_IN)/$$WORD/v1"; \
+    SERVICE_DIR="$(PROTO_IN)/$$WORD"; \
     if [ -d "$$SERVICE_DIR" ]; then \
-        PROTO_FILES=$$(find $$SERVICE_DIR -maxdepth 2 -name "*.proto" -type f); \
+        PROTO_FILES=$$(find $$SERVICE_DIR -maxdepth 3 -name "*.proto" -type f); \
         if [ -n "$$PROTO_FILES" ]; then \
 			echo "--- Generating [$$WORD] ---"; \
 			echo "   > Go..."; \
@@ -165,7 +169,8 @@ define generate_proto
     fi
 endef
 
-proto:
+generate-proto:
+	@echo "Generating proto files"
 	@MODULES=$$(find $(PROTO_IN) -name "*.proto" -type f -exec dirname {} \; | cut -d'/' -f3 | sort -u); \
 	for module in $$MODULES; do \
 		$(call generate_proto,$$module); \
@@ -174,31 +179,25 @@ proto:
 	@cd $(THIRD_PARTY) && python -m grpc_tools.protoc -I=. --python_out=../../$(PYTHON_MODEL_DIR) --grpc_python_out=../../$(PYTHON_MODEL_DIR) tagger/tagger.proto
 	@find $(GENERATED_PYTHON_OUT) -type d -exec touch '{}/__init__.py' \;
 	@python $(INFRA_BASE)/resources/scripts/fix_proto_imports.py $(GENERATED_PYTHON_OUT)
-	@echo "✓ All proto files generated successfully"
+	@echo "✅ Proto files generated successfully"
 
-proto-clean: ## Surgically remove ONLY generated proto files
-	@echo "Cleaning generated files safely..."
-	@echo "Remove Go generated files"
+generate-proto-clean: ## Surgically remove ONLY generated proto files
+	@echo "Cleaning generated proto files..."
+	@echo "Remove Go generated proto files"
 	@if [ -d $$GENERATED_GO_OUT/model ]; then find $$GENERATED_GO_OUT/model -type f \( -name "*.pb.go" -o -name "*_grpc.pb.go" \) -delete; fi
-	@echo "Remove Python generated files"
+	@echo "Remove Python generated proto files"
 	@if [ -d $$GENERATED_PYTHON_OUT ]; then find $$GENERATED_PYTHON_OUT -type f -name "*_pb2.py" -delete; fi
-	@echo "Remove JS generated files"
+	@echo "Remove JS generated proto files"
 	@if [ -d $$GENERATED_JS_OUT ]; then find $$GENERATED_JS_OUT -type f -name "*_pb.js" -delete; fi
-	@echo "✓ Generated files removed. Manual files preserved."
+	@echo "✅ Generated proto cleaned"
 
 # ============================================================================
 # GENERATED
 # ============================================================================
 
-generate: generate-clean 
-	@echo "Generating proto files"
-	$(MAKE) proto 
-	@echo "Generating kafka topics"
-	$(MAKE) generate-topics
-	@echo "Generating go mocks"
-	$(MAKE) mocks
+generate: generate-clean generate-proto generate-topics generate-mocks
 
-generate-clean: proto-clean generate-topics-clean mocks-clean 
+generate-clean: generate-proto-clean generate-topics-clean generate-mocks-clean 
 
 # ============================================================================
 # FUNCTIONAL TESTS

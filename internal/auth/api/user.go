@@ -275,7 +275,6 @@ func (u *UserAPI) updateUser(user *authv1.User) (bool, *infra_error.AppError) {
 	if err != nil {
 		return false, err
 	}
-	// TODO: allow changes to some fields such as LoginHistory
 	user.Protected = currentUser.Protected
 	if currentUser.Protected {
 		return false, infra_error.Auth(infra_error.AuthPermissionDenied)
