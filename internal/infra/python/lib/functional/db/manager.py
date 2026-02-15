@@ -5,7 +5,7 @@ Handles test database setup, teardown, and cleanup.
 from pymongo import MongoClient
 import redis
 
-from infra.functional.config import TestConfig
+from lib.functional.config import TestConfig
 
 
 class DatabaseManager:

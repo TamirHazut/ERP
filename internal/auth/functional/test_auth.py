@@ -14,7 +14,7 @@ from lib.model.infra.v1 import infra_pb2
 from lib.functional.logger import get_logger
 from lib.functional.db.mongo_client import MongoDBClient
 from lib.functional.db.redis_client import RedisClient
-from seeders.system_seeder import SystemSeeder
+from lib.functional.seeders.system_seeder import SystemSeeder
 
 # Test logger
 logger = get_logger("tests.auth")

@@ -7,9 +7,9 @@ import pytest
 # No more os.path.join or sys.path.insert
 
 # Standard imports from your installed 'infra' package
-from infra.functional.db.manager import DatabaseManager
-from infra.functional.config import TestConfig
-from infra.functional.logger import setup_logging, get_log_config_from_env, get_logger
+from lib.functional.db.manager import DatabaseManager
+from lib.functional.config import TestConfig
+from lib.functional.logger import setup_logging, get_log_config_from_env, get_logger
 
 # Module logger
 logger = get_logger("fixtures")

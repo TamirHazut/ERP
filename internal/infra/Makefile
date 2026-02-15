@@ -118,8 +118,9 @@ THIRD_PARTY := $(PROTO_IN)/third_party
 
 # --- 1. DEFINE OUTPUT DIRECTORIES FIRST ---
 # (Must come before flags that use them)
+PYTHON_MODEL_DIR 	  	 := python/lib/model
 GENERATED_GO_OUT     := $(INFRA_BASE)/go
-GENERATED_PYTHON_OUT := $(INFRA_BASE)/python/lib/model
+GENERATED_PYTHON_OUT := $(INFRA_BASE)/$(PYTHON_MODEL_DIR)
 GENERATED_JS_OUT     := $(INFRA_BASE)/js/model
 
 PROTOC_COMMON_FLAGS := -I=$(PROTO_IN) -I=$(THIRD_PARTY)
@@ -131,6 +132,8 @@ GO_GEN_FLAGS := --go_out=$(GENERATED_GO_OUT) --go_opt=module=$(MODULE) \
 
 # Step 2: Inject Tags 
 GO_TAG_FLAGS := --gotag_out=module=$(MODULE):$(INFRA_BASE)
+
+PYTHON_GEN_FLAGS := --python_out=$(GENERATED_PYTHON_OUT) --grpc_python_out=$(GENERATED_PYTHON_OUT)
 
 # --- 3. THE MACRO ---
 define generate_proto
@@ -151,9 +154,9 @@ define generate_proto
 			echo "   > Python..."; \
 			cd $(CURDIR); \
 			mkdir -p $(GENERATED_PYTHON_OUT)/$(1); \
-            protoc $(PROTOC_COMMON_FLAGS) --python_out=$(GENERATED_PYTHON_OUT) $$PROTO_FILES; \
+            python -m grpc_tools.protoc $(PROTOC_COMMON_FLAGS) $(PYTHON_GEN_FLAGS) $$PROTO_FILES; \
 			\
-            echo "   > JS..."; \
+            echo "   > JS (messages only - use @grpc/proto-loader for services)..."; \
 			mkdir -p $(GENERATED_JS_OUT)/$(1); \
             protoc $(PROTOC_COMMON_FLAGS) --js_out=import_style=commonjs,binary:$(GENERATED_JS_OUT) $$PROTO_FILES; \
         fi; \
@@ -168,6 +171,8 @@ proto:
 	for module in $$MODULES; do \
 		$(call generate_proto,$$module); \
 	done;
+	@echo "Generating third_party proto (tagger)..."
+	@cd $(THIRD_PARTY) && python -m grpc_tools.protoc -I=. --python_out=../../$(PYTHON_MODEL_DIR) --grpc_python_out=../../$(PYTHON_MODEL_DIR) tagger/tagger.proto
 	@find $(GENERATED_PYTHON_OUT) -type d -exec touch '{}/__init__.py' \;
 	@python $(INFRA_BASE)/resources/scripts/fix_proto_imports.py $(GENERATED_PYTHON_OUT)
 	@echo "✓ All proto files generated successfully"

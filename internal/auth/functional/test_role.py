@@ -13,15 +13,15 @@ sys.path.insert(0, infra_functional_path)
 # Add proto path for proto imports
 sys.path.insert(0, os.path.join(infra_functional_path, 'proto'))
 
-from grpc_client import GrpcClient
+from lib.functional.grpc_client import GrpcClient
 from bson import ObjectId
-from config import TestConfig
-from auth.v1 import rbac_pb2, rbac_pb2_grpc, role_pb2
-from infra.v1 import infra_pb2
-from logger import get_logger
-from db.mongo_client import MongoDBClient
-from seeders.system_seeder import SystemSeeder
-from db.redis_client import RedisClient
+from lib.functional.config import TestConfig
+from lib.model.auth.v1 import rbac_pb2, rbac_pb2_grpc, role_pb2
+from lib.model.infra.v1 import infra_pb2
+from lib.functional.logger import get_logger
+from lib.functional.db.mongo_client import MongoDBClient
+from lib.functional.seeders.system_seeder import SystemSeeder
+from lib.functional.db.redis_client import RedisClient
 
 # Test logger
 logger = get_logger("tests.role")

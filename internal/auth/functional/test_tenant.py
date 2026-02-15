@@ -18,15 +18,15 @@ sys.path.insert(0, os.path.join(infra_functional_path, 'proto'))
 auth_functional_path = os.path.dirname(__file__)
 sys.path.insert(0, auth_functional_path)
 
-from grpc_client import GrpcClient
-from config import TestConfig
-from auth.v1 import tenant_pb2, tenant_pb2_grpc, user_pb2, role_pb2, permission_pb2
-from core.v1 import address_pb2
-from infra.v1 import infra_pb2
-from logger import get_logger
-from db.mongo_client import MongoDBClient
-from db.redis_client import RedisClient
-from seeders.system_seeder import SystemSeeder
+from lib.functional.grpc_client import GrpcClient
+from lib.functional.config import TestConfig
+from lib.model.auth.v1 import tenant_pb2, tenant_pb2_grpc, user_pb2, role_pb2, permission_pb2
+from lib.model.core.v1 import address_pb2
+from lib.model.infra.v1 import infra_pb2
+from lib.functional.logger import get_logger
+from lib.functional.db.mongo_client import MongoDBClient
+from lib.functional.db.redis_client import RedisClient
+from lib.functional.seeders.system_seeder import SystemSeeder
 from helpers.db_injection import inject_tenant, inject_tenant_with_defaults
 
 # Test logger
