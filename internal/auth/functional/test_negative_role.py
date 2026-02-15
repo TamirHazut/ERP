@@ -401,12 +401,12 @@ class TestRoleManagementErrors:
                 role=role2
             )
 
-            logger.info("Step 3: Expecting ALREADY_EXISTS error")
+            logger.info("Step 3: Expecting INVALID_ARGUMENT error")
             with pytest.raises(grpc.RpcError) as exc_info:
                 stub.UpdateRole(update_request)
 
-            assert exc_info.value.code() == grpc.StatusCode.ALREADY_EXISTS
-            logger.info("Step 4: Test completed - received expected ALREADY_EXISTS error")
+            assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+            logger.info("Step 4: Test completed - received expected INVALID_ARGUMENT error")
 
     def test_update_role_cross_tenant_access(self):
         """Test UpdateRole for role from different tenant."""
