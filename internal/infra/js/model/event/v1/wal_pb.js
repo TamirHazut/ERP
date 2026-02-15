@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -78,15 +78,15 @@ proto.event.v1.WalEntry.prototype.toObject = function(opt_includeInstance) {
  */
 proto.event.v1.WalEntry.toObject = function(includeInstance, msg) {
   var f, obj = {
-messageId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-topic: jspb.Message.getFieldWithDefault(msg, 2, ""),
-partitionKey: jspb.Message.getFieldWithDefault(msg, 3, ""),
-messageBytes: msg.getMessageBytes_asB64(),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-retries: jspb.Message.getFieldWithDefault(msg, 6, 0),
-nextRetryAt: (f = msg.getNextRetryAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-lastError: jspb.Message.getFieldWithDefault(msg, 8, ""),
-state: jspb.Message.getFieldWithDefault(msg, 9, 0)
+    messageId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    topic: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    partitionKey: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    messageBytes: msg.getMessageBytes_asB64(),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    retries: jspb.Message.getFieldWithDefault(msg, 6, 0),
+    nextRetryAt: (f = msg.getNextRetryAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    lastError: jspb.Message.getFieldWithDefault(msg, 8, ""),
+    state: jspb.Message.getFieldWithDefault(msg, 9, 0)
   };
 
   if (includeInstance) {

@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -80,19 +80,19 @@ proto.core.v1.Category.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.Category.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-categoryId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-name: jspb.Message.getFieldWithDefault(msg, 4, ""),
-slug: jspb.Message.getFieldWithDefault(msg, 5, ""),
-description: jspb.Message.getFieldWithDefault(msg, 6, ""),
-parentCategoryId: jspb.Message.getFieldWithDefault(msg, 7, ""),
-level: jspb.Message.getFieldWithDefault(msg, 8, 0),
-path: jspb.Message.getFieldWithDefault(msg, 9, ""),
-imageUrl: jspb.Message.getFieldWithDefault(msg, 10, ""),
-status: jspb.Message.getFieldWithDefault(msg, 11, 0),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    categoryId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    slug: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    description: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    parentCategoryId: jspb.Message.getFieldWithDefault(msg, 7, ""),
+    level: jspb.Message.getFieldWithDefault(msg, 8, 0),
+    path: jspb.Message.getFieldWithDefault(msg, 9, ""),
+    imageUrl: jspb.Message.getFieldWithDefault(msg, 10, ""),
+    status: jspb.Message.getFieldWithDefault(msg, 11, 0),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {

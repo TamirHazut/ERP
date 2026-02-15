@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -126,17 +126,17 @@ proto.core.v1.Warehouse.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.Warehouse.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-warehouseId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-name: jspb.Message.getFieldWithDefault(msg, 4, ""),
-code: jspb.Message.getFieldWithDefault(msg, 5, ""),
-address: (f = msg.getAddress()) && core_v1_address_pb.Address.toObject(includeInstance, f),
-contact: (f = msg.getContact()) && proto.core.v1.WarehouseContact.toObject(includeInstance, f),
-capacity: (f = msg.getCapacity()) && proto.core.v1.WarehouseCapacity.toObject(includeInstance, f),
-status: jspb.Message.getFieldWithDefault(msg, 9, 0),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    warehouseId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    code: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    address: (f = msg.getAddress()) && core_v1_address_pb.Address.toObject(includeInstance, f),
+    contact: (f = msg.getContact()) && proto.core.v1.WarehouseContact.toObject(includeInstance, f),
+    capacity: (f = msg.getCapacity()) && proto.core.v1.WarehouseCapacity.toObject(includeInstance, f),
+    status: jspb.Message.getFieldWithDefault(msg, 9, 0),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -661,9 +661,9 @@ proto.core.v1.WarehouseContact.prototype.toObject = function(opt_includeInstance
  */
 proto.core.v1.WarehouseContact.toObject = function(includeInstance, msg) {
   var f, obj = {
-manager: jspb.Message.getFieldWithDefault(msg, 1, ""),
-email: jspb.Message.getFieldWithDefault(msg, 2, ""),
-phone: jspb.Message.getFieldWithDefault(msg, 3, "")
+    manager: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    email: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    phone: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -851,9 +851,9 @@ proto.core.v1.WarehouseCapacity.prototype.toObject = function(opt_includeInstanc
  */
 proto.core.v1.WarehouseCapacity.toObject = function(includeInstance, msg) {
   var f, obj = {
-totalSpace: jspb.Message.getFieldWithDefault(msg, 1, 0),
-usedSpace: jspb.Message.getFieldWithDefault(msg, 2, 0),
-unit: jspb.Message.getFieldWithDefault(msg, 3, "")
+    totalSpace: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    usedSpace: jspb.Message.getFieldWithDefault(msg, 2, 0),
+    unit: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {

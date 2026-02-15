@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var tagger_tagger_pb = require('../../tagger/tagger_pb.js');
 goog.object.extend(proto, tagger_tagger_pb);
@@ -77,11 +77,11 @@ proto.core.v1.Address.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.Address.toObject = function(includeInstance, msg) {
   var f, obj = {
-street: jspb.Message.getFieldWithDefault(msg, 1, ""),
-city: jspb.Message.getFieldWithDefault(msg, 2, ""),
-state: jspb.Message.getFieldWithDefault(msg, 3, ""),
-zip: jspb.Message.getFieldWithDefault(msg, 4, ""),
-country: jspb.Message.getFieldWithDefault(msg, 5, "")
+    street: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    city: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    state: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    zip: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    country: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {

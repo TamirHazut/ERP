@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var infra_v1_infra_pb = require('../../infra/v1/infra_pb.js');
 goog.object.extend(proto, infra_v1_infra_pb);
@@ -437,20 +437,20 @@ proto.auth.v1.Tenant.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.Tenant.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-name: jspb.Message.getFieldWithDefault(msg, 2, ""),
-slug: jspb.Message.getFieldWithDefault(msg, 3, ""),
-domain: jspb.Message.getFieldWithDefault(msg, 4, ""),
-status: jspb.Message.getFieldWithDefault(msg, 5, 0),
-subscription: (f = msg.getSubscription()) && proto.auth.v1.Subscription.toObject(includeInstance, f),
-settings: (f = msg.getSettings()) && proto.auth.v1.TenantSettings.toObject(includeInstance, f),
-contact: (f = msg.getContact()) && proto.auth.v1.ContactInfo.toObject(includeInstance, f),
-branding: (f = msg.getBranding()) && proto.auth.v1.Branding.toObject(includeInstance, f),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-createdBy: jspb.Message.getFieldWithDefault(msg, 12, ""),
-metadata: (f = msg.getMetadata()) && proto.auth.v1.TenantMetadata.toObject(includeInstance, f),
-pb_protected: jspb.Message.getBooleanFieldWithDefault(msg, 14, false)
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    slug: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    domain: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    status: jspb.Message.getFieldWithDefault(msg, 5, 0),
+    subscription: (f = msg.getSubscription()) && proto.auth.v1.Subscription.toObject(includeInstance, f),
+    settings: (f = msg.getSettings()) && proto.auth.v1.TenantSettings.toObject(includeInstance, f),
+    contact: (f = msg.getContact()) && proto.auth.v1.ContactInfo.toObject(includeInstance, f),
+    branding: (f = msg.getBranding()) && proto.auth.v1.Branding.toObject(includeInstance, f),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    createdBy: jspb.Message.getFieldWithDefault(msg, 12, ""),
+    metadata: (f = msg.getMetadata()) && proto.auth.v1.TenantMetadata.toObject(includeInstance, f),
+    pb_protected: jspb.Message.getBooleanFieldWithDefault(msg, 14, false)
   };
 
   if (includeInstance) {
@@ -1111,11 +1111,11 @@ proto.auth.v1.Subscription.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.Subscription.toObject = function(includeInstance, msg) {
   var f, obj = {
-plan: jspb.Message.getFieldWithDefault(msg, 1, ""),
-startDate: (f = msg.getStartDate()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-endDate: (f = msg.getEndDate()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-featuresList: (f = jspb.Message.getRepeatedField(msg, 4)) == null ? undefined : f,
-limits: (f = msg.getLimits()) && proto.auth.v1.SubscriptionLimits.toObject(includeInstance, f)
+    plan: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    startDate: (f = msg.getStartDate()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    endDate: (f = msg.getEndDate()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    featuresList: (f = jspb.Message.getRepeatedField(msg, 4)) == null ? undefined : f,
+    limits: (f = msg.getLimits()) && proto.auth.v1.SubscriptionLimits.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -1443,10 +1443,10 @@ proto.auth.v1.SubscriptionLimits.prototype.toObject = function(opt_includeInstan
  */
 proto.auth.v1.SubscriptionLimits.toObject = function(includeInstance, msg) {
   var f, obj = {
-maxUsers: jspb.Message.getFieldWithDefault(msg, 1, 0),
-maxProducts: jspb.Message.getFieldWithDefault(msg, 2, 0),
-maxOrdersPerMonth: jspb.Message.getFieldWithDefault(msg, 3, 0),
-storageGb: jspb.Message.getFieldWithDefault(msg, 4, 0)
+    maxUsers: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    maxProducts: jspb.Message.getFieldWithDefault(msg, 2, 0),
+    maxOrdersPerMonth: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    storageGb: jspb.Message.getFieldWithDefault(msg, 4, 0)
   };
 
   if (includeInstance) {
@@ -1663,11 +1663,11 @@ proto.auth.v1.TenantSettings.prototype.toObject = function(opt_includeInstance) 
  */
 proto.auth.v1.TenantSettings.toObject = function(includeInstance, msg) {
   var f, obj = {
-timezone: jspb.Message.getFieldWithDefault(msg, 1, ""),
-currency: jspb.Message.getFieldWithDefault(msg, 2, ""),
-dateFormat: jspb.Message.getFieldWithDefault(msg, 3, ""),
-language: jspb.Message.getFieldWithDefault(msg, 4, ""),
-businessHoursMap: (f = msg.getBusinessHoursMap()) ? f.toObject(includeInstance, proto.auth.v1.Hours.toObject) : []
+    timezone: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    currency: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    dateFormat: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    language: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    businessHoursMap: (f = msg.getBusinessHoursMap()) ? f.toObject(includeInstance, proto.auth.v1.Hours.toObject) : []
   };
 
   if (includeInstance) {
@@ -1881,8 +1881,7 @@ proto.auth.v1.TenantSettings.prototype.getBusinessHoursMap = function(opt_noLazy
  */
 proto.auth.v1.TenantSettings.prototype.clearBusinessHoursMap = function() {
   this.getBusinessHoursMap().clear();
-  return this;
-};
+  return this;};
 
 
 
@@ -1917,8 +1916,8 @@ proto.auth.v1.Hours.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.Hours.toObject = function(includeInstance, msg) {
   var f, obj = {
-start: jspb.Message.getFieldWithDefault(msg, 1, ""),
-end: jspb.Message.getFieldWithDefault(msg, 2, "")
+    start: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    end: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -2077,9 +2076,9 @@ proto.auth.v1.ContactInfo.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.ContactInfo.toObject = function(includeInstance, msg) {
   var f, obj = {
-email: jspb.Message.getFieldWithDefault(msg, 1, ""),
-phone: jspb.Message.getFieldWithDefault(msg, 2, ""),
-address: (f = msg.getAddress()) && core_v1_address_pb.Address.toObject(includeInstance, f)
+    email: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    phone: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    address: (f = msg.getAddress()) && core_v1_address_pb.Address.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2288,9 +2287,9 @@ proto.auth.v1.Branding.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.Branding.toObject = function(includeInstance, msg) {
   var f, obj = {
-logoUrl: jspb.Message.getFieldWithDefault(msg, 1, ""),
-primaryColor: jspb.Message.getFieldWithDefault(msg, 2, ""),
-companyName: jspb.Message.getFieldWithDefault(msg, 3, "")
+    logoUrl: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    primaryColor: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    companyName: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -2478,9 +2477,9 @@ proto.auth.v1.TenantMetadata.prototype.toObject = function(opt_includeInstance) 
  */
 proto.auth.v1.TenantMetadata.toObject = function(includeInstance, msg) {
   var f, obj = {
-onboardingCompleted: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
-industry: jspb.Message.getFieldWithDefault(msg, 2, ""),
-companySize: jspb.Message.getFieldWithDefault(msg, 3, "")
+    onboardingCompleted: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
+    industry: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    companySize: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -2668,8 +2667,8 @@ proto.auth.v1.CreateTenantRequest.prototype.toObject = function(opt_includeInsta
  */
 proto.auth.v1.CreateTenantRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-tenant: (f = msg.getTenant()) && proto.auth.v1.Tenant.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    tenant: (f = msg.getTenant()) && proto.auth.v1.Tenant.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2870,7 +2869,7 @@ proto.auth.v1.CreateTenantResponse.prototype.toObject = function(opt_includeInst
  */
 proto.auth.v1.CreateTenantResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-tenantId: jspb.Message.getFieldWithDefault(msg, 1, "")
+    tenantId: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -3026,9 +3025,9 @@ proto.auth.v1.GetTenantRequest.prototype.toObject = function(opt_includeInstance
  */
 proto.auth.v1.GetTenantRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-tenantId: (f = jspb.Message.getField(msg, 2)) == null ? undefined : f,
-name: (f = jspb.Message.getField(msg, 3)) == null ? undefined : f
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -3273,9 +3272,9 @@ proto.auth.v1.ListTenantsRequest.prototype.toObject = function(opt_includeInstan
  */
 proto.auth.v1.ListTenantsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-status: (f = jspb.Message.getField(msg, 2)) == null ? undefined : f,
-pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationRequest.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    status: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationRequest.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -3530,9 +3529,9 @@ proto.auth.v1.ListTenantsResponse.prototype.toObject = function(opt_includeInsta
  */
 proto.auth.v1.ListTenantsResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-tenantsList: jspb.Message.toObjectList(msg.getTenantsList(),
+    tenantsList: jspb.Message.toObjectList(msg.getTenantsList(),
     proto.auth.v1.Tenant.toObject, includeInstance),
-pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationResponse.toObject(includeInstance, f)
+    pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationResponse.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -3734,8 +3733,8 @@ proto.auth.v1.UpdateTenantRequest.prototype.toObject = function(opt_includeInsta
  */
 proto.auth.v1.UpdateTenantRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-tenant: (f = msg.getTenant()) && proto.auth.v1.Tenant.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    tenant: (f = msg.getTenant()) && proto.auth.v1.Tenant.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -3936,7 +3935,7 @@ proto.auth.v1.UpdateTenantResponse.prototype.toObject = function(opt_includeInst
  */
 proto.auth.v1.UpdateTenantResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-updated: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+    updated: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
   };
 
   if (includeInstance) {
@@ -4066,8 +4065,8 @@ proto.auth.v1.DeleteTenantRequest.prototype.toObject = function(opt_includeInsta
  */
 proto.auth.v1.DeleteTenantRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, "")
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -4247,7 +4246,7 @@ proto.auth.v1.DeleteTenantResponse.prototype.toObject = function(opt_includeInst
  */
 proto.auth.v1.DeleteTenantResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-deleted: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+    deleted: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
   };
 
   if (includeInstance) {

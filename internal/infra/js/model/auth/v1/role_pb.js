@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -110,19 +110,19 @@ proto.auth.v1.Role.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.Role.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-name: jspb.Message.getFieldWithDefault(msg, 3, ""),
-description: jspb.Message.getFieldWithDefault(msg, 4, ""),
-type: jspb.Message.getFieldWithDefault(msg, 5, 0),
-permissionsList: (f = jspb.Message.getRepeatedField(msg, 6)) == null ? undefined : f,
-isDefault: jspb.Message.getBooleanFieldWithDefault(msg, 7, false),
-status: jspb.Message.getFieldWithDefault(msg, 8, 0),
-metadata: (f = msg.getMetadata()) && proto.auth.v1.RoleMetadata.toObject(includeInstance, f),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-createdBy: jspb.Message.getFieldWithDefault(msg, 12, ""),
-pb_protected: jspb.Message.getBooleanFieldWithDefault(msg, 13, false)
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    description: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    type: jspb.Message.getFieldWithDefault(msg, 5, 0),
+    permissionsList: (f = jspb.Message.getRepeatedField(msg, 6)) == null ? undefined : f,
+    isDefault: jspb.Message.getBooleanFieldWithDefault(msg, 7, false),
+    status: jspb.Message.getFieldWithDefault(msg, 8, 0),
+    metadata: (f = msg.getMetadata()) && proto.auth.v1.RoleMetadata.toObject(includeInstance, f),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    createdBy: jspb.Message.getFieldWithDefault(msg, 12, ""),
+    pb_protected: jspb.Message.getBooleanFieldWithDefault(msg, 13, false)
   };
 
   if (includeInstance) {
@@ -689,8 +689,8 @@ proto.auth.v1.RoleMetadata.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.RoleMetadata.toObject = function(includeInstance, msg) {
   var f, obj = {
-priority: jspb.Message.getFieldWithDefault(msg, 1, 0),
-inheritsFromList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
+    priority: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    inheritsFromList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
   };
 
   if (includeInstance) {

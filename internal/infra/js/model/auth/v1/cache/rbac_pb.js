@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -152,11 +152,11 @@ proto.auth.v1.cache.UserPermissionsCache.prototype.toObject = function(opt_inclu
  */
 proto.auth.v1.cache.UserPermissionsCache.toObject = function(includeInstance, msg) {
   var f, obj = {
-userId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-permissionsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
-cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-version: jspb.Message.getFieldWithDefault(msg, 5, 0)
+    userId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    permissionsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
+    cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    version: jspb.Message.getFieldWithDefault(msg, 5, 0)
   };
 
   if (includeInstance) {
@@ -449,12 +449,12 @@ proto.auth.v1.cache.UserRolesCache.prototype.toObject = function(opt_includeInst
  */
 proto.auth.v1.cache.UserRolesCache.toObject = function(includeInstance, msg) {
   var f, obj = {
-userId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-rolesList: jspb.Message.toObjectList(msg.getRolesList(),
+    userId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    rolesList: jspb.Message.toObjectList(msg.getRolesList(),
     proto.auth.v1.cache.RoleSummary.toObject, includeInstance),
-cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-version: jspb.Message.getFieldWithDefault(msg, 5, 0)
+    cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    version: jspb.Message.getFieldWithDefault(msg, 5, 0)
   };
 
   if (includeInstance) {
@@ -743,9 +743,9 @@ proto.auth.v1.cache.RoleSummary.prototype.toObject = function(opt_includeInstanc
  */
 proto.auth.v1.cache.RoleSummary.toObject = function(includeInstance, msg) {
   var f, obj = {
-roleId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-name: jspb.Message.getFieldWithDefault(msg, 2, ""),
-priority: jspb.Message.getFieldWithDefault(msg, 3, 0)
+    roleId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    priority: jspb.Message.getFieldWithDefault(msg, 3, 0)
   };
 
   if (includeInstance) {
@@ -940,11 +940,11 @@ proto.auth.v1.cache.RolePermissionsCache.prototype.toObject = function(opt_inclu
  */
 proto.auth.v1.cache.RolePermissionsCache.toObject = function(includeInstance, msg) {
   var f, obj = {
-roleId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-permissionsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
-cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-version: jspb.Message.getFieldWithDefault(msg, 5, 0)
+    roleId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    permissionsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
+    cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    version: jspb.Message.getFieldWithDefault(msg, 5, 0)
   };
 
   if (includeInstance) {

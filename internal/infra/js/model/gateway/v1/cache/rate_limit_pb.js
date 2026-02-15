@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -125,19 +125,19 @@ proto.gateway.v1.cache.RateLimitBucket.prototype.toObject = function(opt_include
  */
 proto.gateway.v1.cache.RateLimitBucket.toObject = function(includeInstance, msg) {
   var f, obj = {
-bucketId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-userId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-ipAddress: jspb.Message.getFieldWithDefault(msg, 4, ""),
-endpoint: jspb.Message.getFieldWithDefault(msg, 5, ""),
-method: jspb.Message.getFieldWithDefault(msg, 6, ""),
-tokensUsed: jspb.Message.getFieldWithDefault(msg, 7, 0),
-tokensLimit: jspb.Message.getFieldWithDefault(msg, 8, 0),
-windowStart: (f = msg.getWindowStart()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-windowEnd: (f = msg.getWindowEnd()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-resetAt: (f = msg.getResetAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-blocked: jspb.Message.getBooleanFieldWithDefault(msg, 12, false),
-blockedAt: (f = msg.getBlockedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    bucketId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    userId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    ipAddress: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    endpoint: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    method: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    tokensUsed: jspb.Message.getFieldWithDefault(msg, 7, 0),
+    tokensLimit: jspb.Message.getFieldWithDefault(msg, 8, 0),
+    windowStart: (f = msg.getWindowStart()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    windowEnd: (f = msg.getWindowEnd()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    resetAt: (f = msg.getResetAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    blocked: jspb.Message.getBooleanFieldWithDefault(msg, 12, false),
+    blockedAt: (f = msg.getBlockedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -699,17 +699,17 @@ proto.gateway.v1.cache.RateLimitRule.prototype.toObject = function(opt_includeIn
  */
 proto.gateway.v1.cache.RateLimitRule.toObject = function(includeInstance, msg) {
   var f, obj = {
-ruleId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-name: jspb.Message.getFieldWithDefault(msg, 3, ""),
-endpoint: jspb.Message.getFieldWithDefault(msg, 4, ""),
-method: jspb.Message.getFieldWithDefault(msg, 5, ""),
-limit: jspb.Message.getFieldWithDefault(msg, 6, 0),
-window: (f = msg.getWindow()) && google_protobuf_duration_pb.Duration.toObject(includeInstance, f),
-scope: jspb.Message.getFieldWithDefault(msg, 8, ""),
-priority: jspb.Message.getFieldWithDefault(msg, 9, 0),
-enabled: jspb.Message.getBooleanFieldWithDefault(msg, 10, false),
-cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    ruleId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    endpoint: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    method: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    limit: jspb.Message.getFieldWithDefault(msg, 6, 0),
+    window: (f = msg.getWindow()) && google_protobuf_duration_pb.Duration.toObject(includeInstance, f),
+    scope: jspb.Message.getFieldWithDefault(msg, 8, ""),
+    priority: jspb.Message.getFieldWithDefault(msg, 9, 0),
+    enabled: jspb.Message.getBooleanFieldWithDefault(msg, 10, false),
+    cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -1171,15 +1171,15 @@ proto.gateway.v1.cache.RateLimitViolation.prototype.toObject = function(opt_incl
  */
 proto.gateway.v1.cache.RateLimitViolation.toObject = function(includeInstance, msg) {
   var f, obj = {
-violationId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-userId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-ipAddress: jspb.Message.getFieldWithDefault(msg, 4, ""),
-endpoint: jspb.Message.getFieldWithDefault(msg, 5, ""),
-method: jspb.Message.getFieldWithDefault(msg, 6, ""),
-ruleId: jspb.Message.getFieldWithDefault(msg, 7, ""),
-timestamp: (f = msg.getTimestamp()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-requestId: jspb.Message.getFieldWithDefault(msg, 9, "")
+    violationId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    userId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    ipAddress: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    endpoint: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    method: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    ruleId: jspb.Message.getFieldWithDefault(msg, 7, ""),
+    timestamp: (f = msg.getTimestamp()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    requestId: jspb.Message.getFieldWithDefault(msg, 9, "")
   };
 
   if (includeInstance) {

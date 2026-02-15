@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -175,22 +175,22 @@ proto.core.v1.Product.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.Product.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-productId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-sku: jspb.Message.getFieldWithDefault(msg, 4, ""),
-name: jspb.Message.getFieldWithDefault(msg, 5, ""),
-description: jspb.Message.getFieldWithDefault(msg, 6, ""),
-categoryId: jspb.Message.getFieldWithDefault(msg, 7, ""),
-pricing: (f = msg.getPricing()) && proto.core.v1.ProductPricing.toObject(includeInstance, f),
-inventory: (f = msg.getInventory()) && proto.core.v1.ProductInventory.toObject(includeInstance, f),
-dimensions: (f = msg.getDimensions()) && proto.core.v1.ProductDimensions.toObject(includeInstance, f),
-imagesList: (f = jspb.Message.getRepeatedField(msg, 11)) == null ? undefined : f,
-status: jspb.Message.getFieldWithDefault(msg, 12, 0),
-metadata: (f = msg.getMetadata()) && proto.core.v1.ProductMetadata.toObject(includeInstance, f),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-createdBy: jspb.Message.getFieldWithDefault(msg, 16, "")
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    productId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    sku: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    description: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    categoryId: jspb.Message.getFieldWithDefault(msg, 7, ""),
+    pricing: (f = msg.getPricing()) && proto.core.v1.ProductPricing.toObject(includeInstance, f),
+    inventory: (f = msg.getInventory()) && proto.core.v1.ProductInventory.toObject(includeInstance, f),
+    dimensions: (f = msg.getDimensions()) && proto.core.v1.ProductDimensions.toObject(includeInstance, f),
+    imagesList: (f = jspb.Message.getRepeatedField(msg, 11)) == null ? undefined : f,
+    status: jspb.Message.getFieldWithDefault(msg, 12, 0),
+    metadata: (f = msg.getMetadata()) && proto.core.v1.ProductMetadata.toObject(includeInstance, f),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    createdBy: jspb.Message.getFieldWithDefault(msg, 16, "")
   };
 
   if (includeInstance) {
@@ -900,10 +900,10 @@ proto.core.v1.ProductPricing.prototype.toObject = function(opt_includeInstance) 
  */
 proto.core.v1.ProductPricing.toObject = function(includeInstance, msg) {
   var f, obj = {
-cost: jspb.Message.getFloatingPointFieldWithDefault(msg, 1, 0.0),
-price: jspb.Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
-currency: jspb.Message.getFieldWithDefault(msg, 3, ""),
-taxRate: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0)
+    cost: jspb.Message.getFloatingPointFieldWithDefault(msg, 1, 0.0),
+    price: jspb.Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
+    currency: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    taxRate: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0)
   };
 
   if (includeInstance) {
@@ -1120,12 +1120,12 @@ proto.core.v1.ProductInventory.prototype.toObject = function(opt_includeInstance
  */
 proto.core.v1.ProductInventory.toObject = function(includeInstance, msg) {
   var f, obj = {
-trackInventory: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
-quantity: jspb.Message.getFieldWithDefault(msg, 2, 0),
-reserved: jspb.Message.getFieldWithDefault(msg, 3, 0),
-available: jspb.Message.getFieldWithDefault(msg, 4, 0),
-reorderPoint: jspb.Message.getFieldWithDefault(msg, 5, 0),
-reorderQuantity: jspb.Message.getFieldWithDefault(msg, 6, 0)
+    trackInventory: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
+    quantity: jspb.Message.getFieldWithDefault(msg, 2, 0),
+    reserved: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    available: jspb.Message.getFieldWithDefault(msg, 4, 0),
+    reorderPoint: jspb.Message.getFieldWithDefault(msg, 5, 0),
+    reorderQuantity: jspb.Message.getFieldWithDefault(msg, 6, 0)
   };
 
   if (includeInstance) {
@@ -1400,12 +1400,12 @@ proto.core.v1.ProductDimensions.prototype.toObject = function(opt_includeInstanc
  */
 proto.core.v1.ProductDimensions.toObject = function(includeInstance, msg) {
   var f, obj = {
-weight: jspb.Message.getFloatingPointFieldWithDefault(msg, 1, 0.0),
-weightUnit: jspb.Message.getFieldWithDefault(msg, 2, ""),
-length: jspb.Message.getFloatingPointFieldWithDefault(msg, 3, 0.0),
-width: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
-height: jspb.Message.getFloatingPointFieldWithDefault(msg, 5, 0.0),
-dimensionUnit: jspb.Message.getFieldWithDefault(msg, 6, "")
+    weight: jspb.Message.getFloatingPointFieldWithDefault(msg, 1, 0.0),
+    weightUnit: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    length: jspb.Message.getFloatingPointFieldWithDefault(msg, 3, 0.0),
+    width: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
+    height: jspb.Message.getFloatingPointFieldWithDefault(msg, 5, 0.0),
+    dimensionUnit: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
   if (includeInstance) {
@@ -1687,10 +1687,10 @@ proto.core.v1.ProductMetadata.prototype.toObject = function(opt_includeInstance)
  */
 proto.core.v1.ProductMetadata.toObject = function(includeInstance, msg) {
   var f, obj = {
-barcode: jspb.Message.getFieldWithDefault(msg, 1, ""),
-manufacturer: jspb.Message.getFieldWithDefault(msg, 2, ""),
-brand: jspb.Message.getFieldWithDefault(msg, 3, ""),
-tagsList: (f = jspb.Message.getRepeatedField(msg, 4)) == null ? undefined : f
+    barcode: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    manufacturer: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    brand: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    tagsList: (f = jspb.Message.getRepeatedField(msg, 4)) == null ? undefined : f
   };
 
   if (includeInstance) {

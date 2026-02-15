@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -125,16 +125,16 @@ proto.gateway.v1.cache.GraphQLQueryCache.prototype.toObject = function(opt_inclu
  */
 proto.gateway.v1.cache.GraphQLQueryCache.toObject = function(includeInstance, msg) {
   var f, obj = {
-queryHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-userId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-query: jspb.Message.getFieldWithDefault(msg, 4, ""),
-variables: (f = msg.getVariables()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
-response: (f = msg.getResponse()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f),
-cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-hitCount: jspb.Message.getFieldWithDefault(msg, 9, 0),
-lastAccessAt: (f = msg.getLastAccessAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    queryHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    userId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    query: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    variables: (f = msg.getVariables()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
+    response: (f = msg.getResponse()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f),
+    cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    hitCount: jspb.Message.getFieldWithDefault(msg, 9, 0),
+    lastAccessAt: (f = msg.getLastAccessAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -630,13 +630,13 @@ proto.gateway.v1.cache.PersistedQuery.prototype.toObject = function(opt_includeI
  */
 proto.gateway.v1.cache.PersistedQuery.toObject = function(includeInstance, msg) {
   var f, obj = {
-queryHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
-queryText: jspb.Message.getFieldWithDefault(msg, 2, ""),
-operationName: jspb.Message.getFieldWithDefault(msg, 3, ""),
-storedAt: (f = msg.getStoredAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-lastUsedAt: (f = msg.getLastUsedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-useCount: jspb.Message.getFieldWithDefault(msg, 6, 0),
-version: jspb.Message.getFieldWithDefault(msg, 7, 0)
+    queryHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    queryText: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    operationName: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    storedAt: (f = msg.getStoredAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    lastUsedAt: (f = msg.getLastUsedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    useCount: jspb.Message.getFieldWithDefault(msg, 6, 0),
+    version: jspb.Message.getFieldWithDefault(msg, 7, 0)
   };
 
   if (includeInstance) {
@@ -982,16 +982,16 @@ proto.gateway.v1.cache.ResolverCache.prototype.toObject = function(opt_includeIn
  */
 proto.gateway.v1.cache.ResolverCache.toObject = function(includeInstance, msg) {
   var f, obj = {
-cacheKey: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-typeName: jspb.Message.getFieldWithDefault(msg, 3, ""),
-fieldName: jspb.Message.getFieldWithDefault(msg, 4, ""),
-parentId: jspb.Message.getFieldWithDefault(msg, 5, ""),
-arguments: (f = msg.getArguments()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
-result: (f = msg.getResult()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f),
-cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-invalidated: jspb.Message.getBooleanFieldWithDefault(msg, 10, false)
+    cacheKey: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    typeName: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    fieldName: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    parentId: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    arguments: (f = msg.getArguments()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
+    result: (f = msg.getResult()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f),
+    cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    invalidated: jspb.Message.getBooleanFieldWithDefault(msg, 10, false)
   };
 
   if (includeInstance) {

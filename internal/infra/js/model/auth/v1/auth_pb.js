@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var infra_v1_infra_pb = require('../../infra/v1/infra_pb.js');
 goog.object.extend(proto, infra_v1_infra_pb);
@@ -346,10 +346,10 @@ proto.auth.v1.LoginRequest.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.LoginRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-tenantId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-email: (f = jspb.Message.getField(msg, 2)) == null ? undefined : f,
-username: (f = jspb.Message.getField(msg, 3)) == null ? undefined : f,
-password: jspb.Message.getFieldWithDefault(msg, 4, "")
+    tenantId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    email: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    username: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    password: jspb.Message.getFieldWithDefault(msg, 4, "")
   };
 
   if (includeInstance) {
@@ -602,7 +602,7 @@ proto.auth.v1.LogoutRequest.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.LogoutRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -753,7 +753,7 @@ proto.auth.v1.LogoutResponse.prototype.toObject = function(opt_includeInstance) 
  */
 proto.auth.v1.LogoutResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-message: jspb.Message.getFieldWithDefault(msg, 1, "")
+    message: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -883,8 +883,8 @@ proto.auth.v1.Token.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.Token.toObject = function(includeInstance, msg) {
   var f, obj = {
-token: jspb.Message.getFieldWithDefault(msg, 1, ""),
-expiresAt: jspb.Message.getFieldWithDefault(msg, 2, 0)
+    token: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    expiresAt: jspb.Message.getFieldWithDefault(msg, 2, 0)
   };
 
   if (includeInstance) {
@@ -1043,8 +1043,8 @@ proto.auth.v1.Tokens.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.Tokens.toObject = function(includeInstance, msg) {
   var f, obj = {
-token: (f = msg.getToken()) && proto.auth.v1.Token.toObject(includeInstance, f),
-refreshToken: (f = msg.getRefreshToken()) && proto.auth.v1.Token.toObject(includeInstance, f)
+    token: (f = msg.getToken()) && proto.auth.v1.Token.toObject(includeInstance, f),
+    refreshToken: (f = msg.getRefreshToken()) && proto.auth.v1.Token.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -1245,7 +1245,7 @@ proto.auth.v1.VerifyTokenRequest.prototype.toObject = function(opt_includeInstan
  */
 proto.auth.v1.VerifyTokenRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-token: jspb.Message.getFieldWithDefault(msg, 1, "")
+    token: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -1375,7 +1375,7 @@ proto.auth.v1.VerifyTokenResponse.prototype.toObject = function(opt_includeInsta
  */
 proto.auth.v1.VerifyTokenResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-valid: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+    valid: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
   };
 
   if (includeInstance) {
@@ -1505,8 +1505,8 @@ proto.auth.v1.RefreshTokenRequest.prototype.toObject = function(opt_includeInsta
  */
 proto.auth.v1.RefreshTokenRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-refreshToken: jspb.Message.getFieldWithDefault(msg, 2, "")
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    refreshToken: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -1686,7 +1686,7 @@ proto.auth.v1.RevokeTokenRequest.prototype.toObject = function(opt_includeInstan
  */
 proto.auth.v1.RevokeTokenRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -1837,7 +1837,7 @@ proto.auth.v1.RevokeTokenResponse.prototype.toObject = function(opt_includeInsta
  */
 proto.auth.v1.RevokeTokenResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-revoked: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+    revoked: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
   };
 
   if (includeInstance) {
@@ -1967,8 +1967,8 @@ proto.auth.v1.RevokeAllTenantTokensRequest.prototype.toObject = function(opt_inc
  */
 proto.auth.v1.RevokeAllTenantTokensRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-targetTenantId: jspb.Message.getFieldWithDefault(msg, 2, "")
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    targetTenantId: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -2148,9 +2148,9 @@ proto.auth.v1.RevokeAllTenantTokensResponse.prototype.toObject = function(opt_in
  */
 proto.auth.v1.RevokeAllTenantTokensResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-revoked: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
-accessTokensRevoked: jspb.Message.getFieldWithDefault(msg, 2, 0),
-refreshTokensRevoked: jspb.Message.getFieldWithDefault(msg, 3, 0)
+    revoked: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
+    accessTokensRevoked: jspb.Message.getFieldWithDefault(msg, 2, 0),
+    refreshTokensRevoked: jspb.Message.getFieldWithDefault(msg, 3, 0)
   };
 
   if (includeInstance) {

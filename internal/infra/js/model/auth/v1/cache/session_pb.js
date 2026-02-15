@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -108,20 +108,20 @@ proto.auth.v1.cache.Session.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.cache.Session.toObject = function(includeInstance, msg) {
   var f, obj = {
-sessionId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-userId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-email: jspb.Message.getFieldWithDefault(msg, 4, ""),
-username: jspb.Message.getFieldWithDefault(msg, 5, ""),
-rolesList: (f = jspb.Message.getRepeatedField(msg, 6)) == null ? undefined : f,
-permissionsList: (f = jspb.Message.getRepeatedField(msg, 7)) == null ? undefined : f,
-expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-lastActivity: (f = msg.getLastActivity()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-ipAddress: jspb.Message.getFieldWithDefault(msg, 11, ""),
-userAgent: jspb.Message.getFieldWithDefault(msg, 12, ""),
-deviceInfo: (f = msg.getDeviceInfo()) && proto.auth.v1.cache.DeviceInfo.toObject(includeInstance, f),
-metadataMap: (f = msg.getMetadataMap()) ? f.toObject(includeInstance, undefined) : []
+    sessionId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    userId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    email: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    username: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    rolesList: (f = jspb.Message.getRepeatedField(msg, 6)) == null ? undefined : f,
+    permissionsList: (f = jspb.Message.getRepeatedField(msg, 7)) == null ? undefined : f,
+    expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    lastActivity: (f = msg.getLastActivity()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    ipAddress: jspb.Message.getFieldWithDefault(msg, 11, ""),
+    userAgent: jspb.Message.getFieldWithDefault(msg, 12, ""),
+    deviceInfo: (f = msg.getDeviceInfo()) && proto.auth.v1.cache.DeviceInfo.toObject(includeInstance, f),
+    metadataMap: (f = msg.getMetadataMap()) ? f.toObject(includeInstance, undefined) : []
   };
 
   if (includeInstance) {
@@ -718,8 +718,7 @@ proto.auth.v1.cache.Session.prototype.getMetadataMap = function(opt_noLazyCreate
  */
 proto.auth.v1.cache.Session.prototype.clearMetadataMap = function() {
   this.getMetadataMap().clear();
-  return this;
-};
+  return this;};
 
 
 
@@ -754,10 +753,10 @@ proto.auth.v1.cache.DeviceInfo.prototype.toObject = function(opt_includeInstance
  */
 proto.auth.v1.cache.DeviceInfo.toObject = function(includeInstance, msg) {
   var f, obj = {
-deviceId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-deviceType: jspb.Message.getFieldWithDefault(msg, 2, ""),
-os: jspb.Message.getFieldWithDefault(msg, 3, ""),
-browser: jspb.Message.getFieldWithDefault(msg, 4, "")
+    deviceId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    deviceType: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    os: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    browser: jspb.Message.getFieldWithDefault(msg, 4, "")
   };
 
   if (includeInstance) {

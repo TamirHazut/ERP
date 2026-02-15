@@ -127,6 +127,41 @@ GENERATED_GO_OUT     := $(INFRA_BASE)/go
 GENERATED_PYTHON_OUT := $(INFRA_BASE)/$(PYTHON_MODEL_DIR)
 GENERATED_JS_OUT     := $(INFRA_BASE)/js/model
 
+
+# --- NOTE FOR WINDOWS USERS ---
+# JavaScript gRPC code generation requires grpc_tools_node_protoc, which has
+# a broken native plugin on Windows. This Makefile automatically uses WSL
+# (Windows Subsystem for Linux) when running on Windows.
+#
+# WSL Setup (one-time):
+#   1. Install WSL: wsl --install
+#   2. Install Node.js in WSL: (in WSL) sudo apt update && sudo apt install nodejs npm
+#   3. Install grpc-tools in WSL: (in WSL) npm install -g grpc-tools
+#   4. Verify: wsl grpc_tools_node_protoc --version
+#
+# After setup, 'make generate-proto' will work automatically on Windows.
+# Linux/macOS users don't need WSL - grpc_tools_node_protoc works natively.
+# Detect operating system for gRPC plugin selection
+# Windows (Cygwin/MSYS) requires WSL for working grpc_tools_node_protoc
+UNAME_S := $(shell uname -s)
+ifeq ($(findstring CYGWIN,$(UNAME_S)),CYGWIN)
+    # Windows (Cygwin) - use WSL
+    GRPC_NODE_PROTOC := wsl grpc_tools_node_protoc
+    JS_OUT_PATH := $(shell wslpath -u '$(shell cygpath -w $(GENERATED_JS_OUT))')
+else ifeq ($(findstring MINGW,$(UNAME_S)),MINGW)
+    # Windows (MinGW) - use WSL
+    GRPC_NODE_PROTOC := wsl grpc_tools_node_protoc
+    JS_OUT_PATH := $(GENERATED_JS_OUT)
+else ifeq ($(findstring MSYS,$(UNAME_S)),MSYS)
+    # Windows (MSYS) - use WSL
+    GRPC_NODE_PROTOC := wsl grpc_tools_node_protoc
+    JS_OUT_PATH := $(GENERATED_JS_OUT)
+else
+    # Linux/macOS - use native grpc_tools_node_protoc
+    GRPC_NODE_PROTOC := grpc_tools_node_protoc
+    JS_OUT_PATH := $(GENERATED_JS_OUT)
+endif
+
 PROTOC_COMMON_FLAGS := -I=$(PROTO_IN) -I=$(THIRD_PARTY)
 
 # --- 2. DEFINE FLAGS ---
@@ -138,6 +173,8 @@ GO_GEN_FLAGS := --go_out=$(GENERATED_GO_OUT) --go_opt=module=$(MODULE) \
 GO_TAG_FLAGS := --gotag_out=module=$(MODULE):$(INFRA_BASE)
 
 PYTHON_GEN_FLAGS := --python_out=$(GENERATED_PYTHON_OUT) --grpc_python_out=$(GENERATED_PYTHON_OUT)
+
+JS_GEN_FLAGS := --js_out=import_style=commonjs,binary:$(JS_OUT_PATH) --grpc_out=grpc_js:$(JS_OUT_PATH)
 
 # --- 3. THE MACRO ---
 define generate_proto
@@ -160,9 +197,9 @@ define generate_proto
 			mkdir -p $(GENERATED_PYTHON_OUT)/$(1); \
             python -m grpc_tools.protoc $(PROTOC_COMMON_FLAGS) $(PYTHON_GEN_FLAGS) $$PROTO_FILES; \
 			\
-            echo "   > JS (messages only - use @grpc/proto-loader for services)..."; \
+            echo "   > JS..."; \
 			mkdir -p $(GENERATED_JS_OUT)/$(1); \
-            protoc $(PROTOC_COMMON_FLAGS) --js_out=import_style=commonjs,binary:$(GENERATED_JS_OUT) $$PROTO_FILES; \
+            $(GRPC_NODE_PROTOC) $(PROTOC_COMMON_FLAGS) $(JS_GEN_FLAGS) $$PROTO_FILES; \
         fi; \
     else \
         echo "Skipping $$WORD: directory $$SERVICE_DIR not found"; \
@@ -171,12 +208,16 @@ endef
 
 generate-proto:
 	@echo "Generating proto files"
-	@MODULES=$$(find $(PROTO_IN) -name "*.proto" -type f -exec dirname {} \; | cut -d'/' -f3 | sort -u); \
+	@MODULES=$$(find $(PROTO_IN) -name "*.proto" -type f -exec dirname {} \; | cut -d'/' -f3 | sort -u | grep -v third_party); \
 	for module in $$MODULES; do \
 		$(call generate_proto,$$module); \
 	done;
 	@echo "Generating third_party proto (tagger)..."
+	@echo "   > Python..."
 	@cd $(THIRD_PARTY) && python -m grpc_tools.protoc -I=. --python_out=../../$(PYTHON_MODEL_DIR) --grpc_python_out=../../$(PYTHON_MODEL_DIR) tagger/tagger.proto
+	@echo "   > JS..."
+	@cd $(THIRD_PARTY) && $(GRPC_NODE_PROTOC) -I=. --js_out=import_style=commonjs,binary:../../$(GENERATED_JS_OUT) --grpc_out=grpc_js:../../$(GENERATED_JS_OUT) tagger/tagger.proto
+	@echo "   > Go (skipped - using vendor package)..."
 	@find $(GENERATED_PYTHON_OUT) -type d -exec touch '{}/__init__.py' \;
 	@python $(INFRA_BASE)/resources/scripts/fix_proto_imports.py $(GENERATED_PYTHON_OUT)
 	@echo "✅ Proto files generated successfully"
@@ -188,7 +229,7 @@ generate-proto-clean: ## Surgically remove ONLY generated proto files
 	@echo "Remove Python generated proto files"
 	@if [ -d $$GENERATED_PYTHON_OUT ]; then find $$GENERATED_PYTHON_OUT -type f -name "*_pb2.py" -delete; fi
 	@echo "Remove JS generated proto files"
-	@if [ -d $$GENERATED_JS_OUT ]; then find $$GENERATED_JS_OUT -type f -name "*_pb.js" -delete; fi
+	@if [ -d $$GENERATED_JS_OUT ]; then find $$GENERATED_JS_OUT -type f \( -name "*_pb.js" -o -name "*_grpc_pb.js" \) -delete; fi
 	@echo "✅ Generated proto cleaned"
 
 # ============================================================================

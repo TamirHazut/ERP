@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -123,16 +123,16 @@ proto.config.v1.FeatureFlag.prototype.toObject = function(opt_includeInstance) {
  */
 proto.config.v1.FeatureFlag.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-flagId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-name: jspb.Message.getFieldWithDefault(msg, 3, ""),
-key: jspb.Message.getFieldWithDefault(msg, 4, ""),
-description: jspb.Message.getFieldWithDefault(msg, 5, ""),
-enabled: jspb.Message.getBooleanFieldWithDefault(msg, 6, false),
-rollout: (f = msg.getRollout()) && proto.config.v1.FeatureRollout.toObject(includeInstance, f),
-metadata: (f = msg.getMetadata()) && proto.config.v1.FeatureFlagMetadata.toObject(includeInstance, f),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    flagId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    key: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    description: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    enabled: jspb.Message.getBooleanFieldWithDefault(msg, 6, false),
+    rollout: (f = msg.getRollout()) && proto.config.v1.FeatureRollout.toObject(includeInstance, f),
+    metadata: (f = msg.getMetadata()) && proto.config.v1.FeatureFlagMetadata.toObject(includeInstance, f),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -614,9 +614,9 @@ proto.config.v1.FeatureRollout.prototype.toObject = function(opt_includeInstance
  */
 proto.config.v1.FeatureRollout.toObject = function(includeInstance, msg) {
   var f, obj = {
-percentage: jspb.Message.getFieldWithDefault(msg, 1, 0),
-tenantIdsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
-userIdsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
+    percentage: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    tenantIdsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
+    userIdsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -842,9 +842,9 @@ proto.config.v1.FeatureFlagMetadata.prototype.toObject = function(opt_includeIns
  */
 proto.config.v1.FeatureFlagMetadata.toObject = function(includeInstance, msg) {
   var f, obj = {
-category: jspb.Message.getFieldWithDefault(msg, 1, ""),
-ownerTeam: jspb.Message.getFieldWithDefault(msg, 2, ""),
-documentationUrl: jspb.Message.getFieldWithDefault(msg, 3, "")
+    category: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    ownerTeam: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    documentationUrl: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {

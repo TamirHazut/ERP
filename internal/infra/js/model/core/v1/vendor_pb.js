@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -155,21 +155,21 @@ proto.core.v1.Vendor.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.Vendor.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-vendorId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-name: jspb.Message.getFieldWithDefault(msg, 4, ""),
-code: jspb.Message.getFieldWithDefault(msg, 5, ""),
-contact: (f = msg.getContact()) && proto.core.v1.VendorContact.toObject(includeInstance, f),
-address: (f = msg.getAddress()) && core_v1_address_pb.Address.toObject(includeInstance, f),
-paymentTerms: (f = msg.getPaymentTerms()) && proto.core.v1.PaymentTerms.toObject(includeInstance, f),
-rating: jspb.Message.getFloatingPointFieldWithDefault(msg, 9, 0.0),
-status: jspb.Message.getFieldWithDefault(msg, 10, 0),
-productsSuppliedList: (f = jspb.Message.getRepeatedField(msg, 11)) == null ? undefined : f,
-metadata: (f = msg.getMetadata()) && proto.core.v1.VendorMetadata.toObject(includeInstance, f),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-createdBy: jspb.Message.getFieldWithDefault(msg, 15, "")
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    vendorId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    code: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    contact: (f = msg.getContact()) && proto.core.v1.VendorContact.toObject(includeInstance, f),
+    address: (f = msg.getAddress()) && core_v1_address_pb.Address.toObject(includeInstance, f),
+    paymentTerms: (f = msg.getPaymentTerms()) && proto.core.v1.PaymentTerms.toObject(includeInstance, f),
+    rating: jspb.Message.getFloatingPointFieldWithDefault(msg, 9, 0.0),
+    status: jspb.Message.getFieldWithDefault(msg, 10, 0),
+    productsSuppliedList: (f = jspb.Message.getRepeatedField(msg, 11)) == null ? undefined : f,
+    metadata: (f = msg.getMetadata()) && proto.core.v1.VendorMetadata.toObject(includeInstance, f),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    createdBy: jspb.Message.getFieldWithDefault(msg, 15, "")
   };
 
   if (includeInstance) {
@@ -850,10 +850,10 @@ proto.core.v1.VendorContact.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.VendorContact.toObject = function(includeInstance, msg) {
   var f, obj = {
-email: jspb.Message.getFieldWithDefault(msg, 1, ""),
-phone: jspb.Message.getFieldWithDefault(msg, 2, ""),
-website: jspb.Message.getFieldWithDefault(msg, 3, ""),
-contactPerson: jspb.Message.getFieldWithDefault(msg, 4, "")
+    email: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    phone: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    website: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    contactPerson: jspb.Message.getFieldWithDefault(msg, 4, "")
   };
 
   if (includeInstance) {
@@ -1070,9 +1070,9 @@ proto.core.v1.PaymentTerms.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.PaymentTerms.toObject = function(includeInstance, msg) {
   var f, obj = {
-terms: jspb.Message.getFieldWithDefault(msg, 1, ""),
-creditLimit: jspb.Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
-currency: jspb.Message.getFieldWithDefault(msg, 3, "")
+    terms: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    creditLimit: jspb.Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
+    currency: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -1260,9 +1260,9 @@ proto.core.v1.VendorMetadata.prototype.toObject = function(opt_includeInstance) 
  */
 proto.core.v1.VendorMetadata.toObject = function(includeInstance, msg) {
   var f, obj = {
-taxId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-businessType: jspb.Message.getFieldWithDefault(msg, 2, ""),
-notes: jspb.Message.getFieldWithDefault(msg, 3, "")
+    taxId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    businessType: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    notes: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {

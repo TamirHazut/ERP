@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -81,17 +81,17 @@ proto.config.v1.ServiceConfig.prototype.toObject = function(opt_includeInstance)
  */
 proto.config.v1.ServiceConfig.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-configId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-serviceName: jspb.Message.getFieldWithDefault(msg, 3, ""),
-environment: jspb.Message.getFieldWithDefault(msg, 4, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 5, ""),
-config: (f = msg.getConfig()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
-version: jspb.Message.getFieldWithDefault(msg, 7, 0),
-isActive: jspb.Message.getBooleanFieldWithDefault(msg, 8, false),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedBy: jspb.Message.getFieldWithDefault(msg, 11, "")
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    configId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    serviceName: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    environment: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    config: (f = msg.getConfig()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
+    version: jspb.Message.getFieldWithDefault(msg, 7, 0),
+    isActive: jspb.Message.getBooleanFieldWithDefault(msg, 8, false),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedBy: jspb.Message.getFieldWithDefault(msg, 11, "")
   };
 
   if (includeInstance) {

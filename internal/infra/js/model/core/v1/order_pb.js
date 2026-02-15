@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -202,25 +202,25 @@ proto.core.v1.Order.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.Order.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-orderId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-orderNumber: jspb.Message.getFieldWithDefault(msg, 4, ""),
-orderType: jspb.Message.getFieldWithDefault(msg, 5, 0),
-customerId: jspb.Message.getFieldWithDefault(msg, 6, ""),
-vendorId: jspb.Message.getFieldWithDefault(msg, 7, ""),
-status: jspb.Message.getFieldWithDefault(msg, 8, 0),
-itemsList: (f = jspb.Message.getRepeatedField(msg, 9)) == null ? undefined : f,
-totals: (f = msg.getTotals()) && proto.core.v1.OrderTotals.toObject(includeInstance, f),
-shippingAddress: (f = msg.getShippingAddress()) && core_v1_address_pb.Address.toObject(includeInstance, f),
-billingAddress: (f = msg.getBillingAddress()) && core_v1_address_pb.Address.toObject(includeInstance, f),
-payment: (f = msg.getPayment()) && proto.core.v1.PaymentInfo.toObject(includeInstance, f),
-fulfillment: (f = msg.getFulfillment()) && proto.core.v1.FulfillmentInfo.toObject(includeInstance, f),
-notes: jspb.Message.getFieldWithDefault(msg, 15, ""),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-createdBy: jspb.Message.getFieldWithDefault(msg, 18, ""),
-timelineList: jspb.Message.toObjectList(msg.getTimelineList(),
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    orderId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    orderNumber: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    orderType: jspb.Message.getFieldWithDefault(msg, 5, 0),
+    customerId: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    vendorId: jspb.Message.getFieldWithDefault(msg, 7, ""),
+    status: jspb.Message.getFieldWithDefault(msg, 8, 0),
+    itemsList: (f = jspb.Message.getRepeatedField(msg, 9)) == null ? undefined : f,
+    totals: (f = msg.getTotals()) && proto.core.v1.OrderTotals.toObject(includeInstance, f),
+    shippingAddress: (f = msg.getShippingAddress()) && core_v1_address_pb.Address.toObject(includeInstance, f),
+    billingAddress: (f = msg.getBillingAddress()) && core_v1_address_pb.Address.toObject(includeInstance, f),
+    payment: (f = msg.getPayment()) && proto.core.v1.PaymentInfo.toObject(includeInstance, f),
+    fulfillment: (f = msg.getFulfillment()) && proto.core.v1.FulfillmentInfo.toObject(includeInstance, f),
+    notes: jspb.Message.getFieldWithDefault(msg, 15, ""),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    createdBy: jspb.Message.getFieldWithDefault(msg, 18, ""),
+    timelineList: jspb.Message.toObjectList(msg.getTimelineList(),
     proto.core.v1.OrderTimelineEvent.toObject, includeInstance)
   };
 
@@ -1061,12 +1061,12 @@ proto.core.v1.OrderTotals.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.OrderTotals.toObject = function(includeInstance, msg) {
   var f, obj = {
-subtotal: jspb.Message.getFloatingPointFieldWithDefault(msg, 1, 0.0),
-tax: jspb.Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
-shipping: jspb.Message.getFloatingPointFieldWithDefault(msg, 3, 0.0),
-discount: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
-total: jspb.Message.getFloatingPointFieldWithDefault(msg, 5, 0.0),
-currency: jspb.Message.getFieldWithDefault(msg, 6, "")
+    subtotal: jspb.Message.getFloatingPointFieldWithDefault(msg, 1, 0.0),
+    tax: jspb.Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
+    shipping: jspb.Message.getFloatingPointFieldWithDefault(msg, 3, 0.0),
+    discount: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
+    total: jspb.Message.getFloatingPointFieldWithDefault(msg, 5, 0.0),
+    currency: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
   if (includeInstance) {
@@ -1341,10 +1341,10 @@ proto.core.v1.PaymentInfo.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.PaymentInfo.toObject = function(includeInstance, msg) {
   var f, obj = {
-method: jspb.Message.getFieldWithDefault(msg, 1, ""),
-status: jspb.Message.getFieldWithDefault(msg, 2, 0),
-paidAt: (f = msg.getPaidAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-transactionId: jspb.Message.getFieldWithDefault(msg, 4, "")
+    method: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    status: jspb.Message.getFieldWithDefault(msg, 2, 0),
+    paidAt: (f = msg.getPaidAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    transactionId: jspb.Message.getFieldWithDefault(msg, 4, "")
   };
 
   if (includeInstance) {
@@ -1582,11 +1582,11 @@ proto.core.v1.FulfillmentInfo.prototype.toObject = function(opt_includeInstance)
  */
 proto.core.v1.FulfillmentInfo.toObject = function(includeInstance, msg) {
   var f, obj = {
-warehouseId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-shippedAt: (f = msg.getShippedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-deliveredAt: (f = msg.getDeliveredAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-trackingNumber: jspb.Message.getFieldWithDefault(msg, 4, ""),
-carrier: jspb.Message.getFieldWithDefault(msg, 5, "")
+    warehouseId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    shippedAt: (f = msg.getShippedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    deliveredAt: (f = msg.getDeliveredAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    trackingNumber: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    carrier: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -1874,10 +1874,10 @@ proto.core.v1.OrderTimelineEvent.prototype.toObject = function(opt_includeInstan
  */
 proto.core.v1.OrderTimelineEvent.toObject = function(includeInstance, msg) {
   var f, obj = {
-status: jspb.Message.getFieldWithDefault(msg, 1, ""),
-timestamp: (f = msg.getTimestamp()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-userId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-notes: jspb.Message.getFieldWithDefault(msg, 4, "")
+    status: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    timestamp: (f = msg.getTimestamp()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    userId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    notes: jspb.Message.getFieldWithDefault(msg, 4, "")
   };
 
   if (includeInstance) {
@@ -2115,22 +2115,22 @@ proto.core.v1.OrderItem.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.OrderItem.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-itemId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-orderId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 4, ""),
-productId: jspb.Message.getFieldWithDefault(msg, 5, ""),
-sku: jspb.Message.getFieldWithDefault(msg, 6, ""),
-name: jspb.Message.getFieldWithDefault(msg, 7, ""),
-quantity: jspb.Message.getFieldWithDefault(msg, 8, 0),
-unitPrice: jspb.Message.getFloatingPointFieldWithDefault(msg, 9, 0.0),
-taxRate: jspb.Message.getFloatingPointFieldWithDefault(msg, 10, 0.0),
-discount: jspb.Message.getFloatingPointFieldWithDefault(msg, 11, 0.0),
-subtotal: jspb.Message.getFloatingPointFieldWithDefault(msg, 12, 0.0),
-tax: jspb.Message.getFloatingPointFieldWithDefault(msg, 13, 0.0),
-total: jspb.Message.getFloatingPointFieldWithDefault(msg, 14, 0.0),
-status: jspb.Message.getFieldWithDefault(msg, 15, 0),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    itemId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    orderId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    productId: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    sku: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 7, ""),
+    quantity: jspb.Message.getFieldWithDefault(msg, 8, 0),
+    unitPrice: jspb.Message.getFloatingPointFieldWithDefault(msg, 9, 0.0),
+    taxRate: jspb.Message.getFloatingPointFieldWithDefault(msg, 10, 0.0),
+    discount: jspb.Message.getFloatingPointFieldWithDefault(msg, 11, 0.0),
+    subtotal: jspb.Message.getFloatingPointFieldWithDefault(msg, 12, 0.0),
+    tax: jspb.Message.getFloatingPointFieldWithDefault(msg, 13, 0.0),
+    total: jspb.Message.getFloatingPointFieldWithDefault(msg, 14, 0.0),
+    status: jspb.Message.getFieldWithDefault(msg, 15, 0),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {

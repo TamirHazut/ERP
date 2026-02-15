@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -103,14 +103,14 @@ proto.config.v1.cache.ServiceConfigCache.prototype.toObject = function(opt_inclu
  */
 proto.config.v1.cache.ServiceConfigCache.toObject = function(includeInstance, msg) {
   var f, obj = {
-configId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-serviceName: jspb.Message.getFieldWithDefault(msg, 2, ""),
-environment: jspb.Message.getFieldWithDefault(msg, 3, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 4, ""),
-config: (f = msg.getConfig()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
-version: jspb.Message.getFieldWithDefault(msg, 6, 0),
-cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    configId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    serviceName: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    environment: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    config: (f = msg.getConfig()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
+    version: jspb.Message.getFieldWithDefault(msg, 6, 0),
+    cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -506,11 +506,11 @@ proto.config.v1.cache.ConfigVersionCache.prototype.toObject = function(opt_inclu
  */
 proto.config.v1.cache.ConfigVersionCache.toObject = function(includeInstance, msg) {
   var f, obj = {
-serviceName: jspb.Message.getFieldWithDefault(msg, 1, ""),
-environment: jspb.Message.getFieldWithDefault(msg, 2, ""),
-latestVersion: jspb.Message.getFieldWithDefault(msg, 3, 0),
-tenantVersionsMap: (f = msg.getTenantVersionsMap()) ? f.toObject(includeInstance, undefined) : [],
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    serviceName: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    environment: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    latestVersion: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    tenantVersionsMap: (f = msg.getTenantVersionsMap()) ? f.toObject(includeInstance, undefined) : [],
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -708,8 +708,7 @@ proto.config.v1.cache.ConfigVersionCache.prototype.getTenantVersionsMap = functi
  */
 proto.config.v1.cache.ConfigVersionCache.prototype.clearTenantVersionsMap = function() {
   this.getTenantVersionsMap().clear();
-  return this;
-};
+  return this;};
 
 
 /**

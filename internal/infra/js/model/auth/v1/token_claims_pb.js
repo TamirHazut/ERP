@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -86,14 +86,14 @@ proto.auth.v1.AccessTokenClaims.prototype.toObject = function(opt_includeInstanc
  */
 proto.auth.v1.AccessTokenClaims.toObject = function(includeInstance, msg) {
   var f, obj = {
-userId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-username: jspb.Message.getFieldWithDefault(msg, 3, ""),
-email: jspb.Message.getFieldWithDefault(msg, 4, ""),
-rolesList: (f = jspb.Message.getRepeatedField(msg, 5)) == null ? undefined : f,
-permissionsList: (f = jspb.Message.getRepeatedField(msg, 6)) == null ? undefined : f,
-issuedAt: (f = msg.getIssuedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    userId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    username: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    email: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    rolesList: (f = jspb.Message.getRepeatedField(msg, 5)) == null ? undefined : f,
+    permissionsList: (f = jspb.Message.getRepeatedField(msg, 6)) == null ? undefined : f,
+    issuedAt: (f = msg.getIssuedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {

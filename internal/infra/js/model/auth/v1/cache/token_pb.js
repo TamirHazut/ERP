@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -86,14 +86,14 @@ proto.auth.v1.cache.TokenMetadata.prototype.toObject = function(opt_includeInsta
  */
 proto.auth.v1.cache.TokenMetadata.toObject = function(includeInstance, msg) {
   var f, obj = {
-jti: jspb.Message.getFieldWithDefault(msg, 1, ""),
-userId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-issuedAt: (f = msg.getIssuedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-ipAddress: jspb.Message.getFieldWithDefault(msg, 6, ""),
-userAgent: jspb.Message.getFieldWithDefault(msg, 7, ""),
-scopesList: (f = jspb.Message.getRepeatedField(msg, 8)) == null ? undefined : f
+    jti: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    userId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    issuedAt: (f = msg.getIssuedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    ipAddress: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    userAgent: jspb.Message.getFieldWithDefault(msg, 7, ""),
+    scopesList: (f = jspb.Message.getRepeatedField(msg, 8)) == null ? undefined : f
   };
 
   if (includeInstance) {

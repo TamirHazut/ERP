@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_struct_pb = require('google-protobuf/google/protobuf/struct_pb.js');
 goog.object.extend(proto, google_protobuf_struct_pb);
@@ -187,9 +187,9 @@ proto.config.v1.ConfigRequest.prototype.toObject = function(opt_includeInstance)
  */
 proto.config.v1.ConfigRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-tenantId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-userId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-module: jspb.Message.getFieldWithDefault(msg, 3, "")
+    tenantId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    userId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    module: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -377,7 +377,7 @@ proto.config.v1.ConfigResponse.prototype.toObject = function(opt_includeInstance
  */
 proto.config.v1.ConfigResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-data: (f = msg.getData()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f)
+    data: (f = msg.getData()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f)
   };
 
   if (includeInstance) {

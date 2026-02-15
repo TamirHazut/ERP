@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -169,16 +169,16 @@ proto.config.v1.cache.FeatureFlagCache.prototype.toObject = function(opt_include
  */
 proto.config.v1.cache.FeatureFlagCache.toObject = function(includeInstance, msg) {
   var f, obj = {
-flagKey: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-enabled: jspb.Message.getBooleanFieldWithDefault(msg, 3, false),
-value: (f = msg.getValue()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f),
-rollout: (f = msg.getRollout()) && proto.config.v1.cache.RolloutConfig.toObject(includeInstance, f),
-targeting: (f = msg.getTargeting()) && proto.config.v1.cache.TargetingRules.toObject(includeInstance, f),
-environment: jspb.Message.getFieldWithDefault(msg, 7, ""),
-cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-version: jspb.Message.getFieldWithDefault(msg, 10, 0)
+    flagKey: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    enabled: jspb.Message.getBooleanFieldWithDefault(msg, 3, false),
+    value: (f = msg.getValue()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f),
+    rollout: (f = msg.getRollout()) && proto.config.v1.cache.RolloutConfig.toObject(includeInstance, f),
+    targeting: (f = msg.getTargeting()) && proto.config.v1.cache.TargetingRules.toObject(includeInstance, f),
+    environment: jspb.Message.getFieldWithDefault(msg, 7, ""),
+    cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    version: jspb.Message.getFieldWithDefault(msg, 10, 0)
   };
 
   if (includeInstance) {
@@ -681,8 +681,8 @@ proto.config.v1.cache.RolloutConfig.prototype.toObject = function(opt_includeIns
  */
 proto.config.v1.cache.RolloutConfig.toObject = function(includeInstance, msg) {
   var f, obj = {
-percentage: jspb.Message.getFieldWithDefault(msg, 1, 0),
-bucketsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
+    percentage: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    bucketsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -867,9 +867,9 @@ proto.config.v1.cache.TargetingRules.prototype.toObject = function(opt_includeIn
  */
 proto.config.v1.cache.TargetingRules.toObject = function(includeInstance, msg) {
   var f, obj = {
-userIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
-groupIdsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
-rulesList: jspb.Message.toObjectList(msg.getRulesList(),
+    userIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    groupIdsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
+    rulesList: jspb.Message.toObjectList(msg.getRulesList(),
     proto.config.v1.cache.TargetingRule.toObject, includeInstance)
   };
 
@@ -1118,9 +1118,9 @@ proto.config.v1.cache.TargetingRule.prototype.toObject = function(opt_includeIns
  */
 proto.config.v1.cache.TargetingRule.toObject = function(includeInstance, msg) {
   var f, obj = {
-attribute: jspb.Message.getFieldWithDefault(msg, 1, ""),
-operator: jspb.Message.getFieldWithDefault(msg, 2, ""),
-value: (f = msg.getValue()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f)
+    attribute: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    operator: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    value: (f = msg.getValue()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -1329,11 +1329,11 @@ proto.config.v1.cache.TenantFeatureFlagsCache.prototype.toObject = function(opt_
  */
 proto.config.v1.cache.TenantFeatureFlagsCache.toObject = function(includeInstance, msg) {
   var f, obj = {
-tenantId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-environment: jspb.Message.getFieldWithDefault(msg, 2, ""),
-flagsMap: (f = msg.getFlagsMap()) ? f.toObject(includeInstance, proto.config.v1.cache.FeatureFlagCache.toObject) : [],
-cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    tenantId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    environment: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    flagsMap: (f = msg.getFlagsMap()) ? f.toObject(includeInstance, proto.config.v1.cache.FeatureFlagCache.toObject) : [],
+    cachedAt: (f = msg.getCachedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -1515,8 +1515,7 @@ proto.config.v1.cache.TenantFeatureFlagsCache.prototype.getFlagsMap = function(o
  */
 proto.config.v1.cache.TenantFeatureFlagsCache.prototype.clearFlagsMap = function() {
   this.getFlagsMap().clear();
-  return this;
-};
+  return this;};
 
 
 /**

@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -153,24 +153,24 @@ proto.event.v1.AuditLog.prototype.toObject = function(opt_includeInstance) {
  */
 proto.event.v1.AuditLog.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-timestamp: (f = msg.getTimestamp()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-category: jspb.Message.getFieldWithDefault(msg, 4, ""),
-action: jspb.Message.getFieldWithDefault(msg, 5, ""),
-severity: jspb.Message.getFieldWithDefault(msg, 6, ""),
-actorId: jspb.Message.getFieldWithDefault(msg, 7, ""),
-actorType: jspb.Message.getFieldWithDefault(msg, 8, ""),
-actorName: jspb.Message.getFieldWithDefault(msg, 9, ""),
-targetId: jspb.Message.getFieldWithDefault(msg, 10, ""),
-targetType: jspb.Message.getFieldWithDefault(msg, 11, ""),
-targetName: jspb.Message.getFieldWithDefault(msg, 12, ""),
-changes: (f = msg.getChanges()) && proto.event.v1.Changes.toObject(includeInstance, f),
-context: (f = msg.getContext()) && proto.event.v1.AuditContext.toObject(includeInstance, f),
-result: jspb.Message.getFieldWithDefault(msg, 15, ""),
-message: jspb.Message.getFieldWithDefault(msg, 16, ""),
-error: jspb.Message.getFieldWithDefault(msg, 17, ""),
-metadata: (f = msg.getMetadata()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f)
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    timestamp: (f = msg.getTimestamp()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    category: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    action: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    severity: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    actorId: jspb.Message.getFieldWithDefault(msg, 7, ""),
+    actorType: jspb.Message.getFieldWithDefault(msg, 8, ""),
+    actorName: jspb.Message.getFieldWithDefault(msg, 9, ""),
+    targetId: jspb.Message.getFieldWithDefault(msg, 10, ""),
+    targetType: jspb.Message.getFieldWithDefault(msg, 11, ""),
+    targetName: jspb.Message.getFieldWithDefault(msg, 12, ""),
+    changes: (f = msg.getChanges()) && proto.event.v1.Changes.toObject(includeInstance, f),
+    context: (f = msg.getContext()) && proto.event.v1.AuditContext.toObject(includeInstance, f),
+    result: jspb.Message.getFieldWithDefault(msg, 15, ""),
+    message: jspb.Message.getFieldWithDefault(msg, 16, ""),
+    error: jspb.Message.getFieldWithDefault(msg, 17, ""),
+    metadata: (f = msg.getMetadata()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -884,11 +884,11 @@ proto.event.v1.Changes.prototype.toObject = function(opt_includeInstance) {
  */
 proto.event.v1.Changes.toObject = function(includeInstance, msg) {
   var f, obj = {
-fieldsMap: (f = msg.getFieldsMap()) ? f.toObject(includeInstance, proto.event.v1.FieldChange.toObject) : [],
-addedList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
-removedList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
-statusFrom: jspb.Message.getFieldWithDefault(msg, 4, ""),
-statusTo: jspb.Message.getFieldWithDefault(msg, 5, "")
+    fieldsMap: (f = msg.getFieldsMap()) ? f.toObject(includeInstance, proto.event.v1.FieldChange.toObject) : [],
+    addedList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
+    removedList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
+    statusFrom: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    statusTo: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -1030,8 +1030,7 @@ proto.event.v1.Changes.prototype.getFieldsMap = function(opt_noLazyCreate) {
  */
 proto.event.v1.Changes.prototype.clearFieldsMap = function() {
   this.getFieldsMap().clear();
-  return this;
-};
+  return this;};
 
 
 /**
@@ -1176,8 +1175,8 @@ proto.event.v1.FieldChange.prototype.toObject = function(opt_includeInstance) {
  */
 proto.event.v1.FieldChange.toObject = function(includeInstance, msg) {
   var f, obj = {
-oldValue: (f = msg.getOldValue()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f),
-newValue: (f = msg.getNewValue()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f)
+    oldValue: (f = msg.getOldValue()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f),
+    newValue: (f = msg.getNewValue()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -1378,13 +1377,13 @@ proto.event.v1.AuditContext.prototype.toObject = function(opt_includeInstance) {
  */
 proto.event.v1.AuditContext.toObject = function(includeInstance, msg) {
   var f, obj = {
-ipAddress: jspb.Message.getFieldWithDefault(msg, 1, ""),
-userAgent: jspb.Message.getFieldWithDefault(msg, 2, ""),
-location: jspb.Message.getFieldWithDefault(msg, 3, ""),
-sessionId: jspb.Message.getFieldWithDefault(msg, 4, ""),
-requestId: jspb.Message.getFieldWithDefault(msg, 5, ""),
-apiEndpoint: jspb.Message.getFieldWithDefault(msg, 6, ""),
-extra: (f = msg.getExtra()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f)
+    ipAddress: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    userAgent: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    location: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    sessionId: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    requestId: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    apiEndpoint: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    extra: (f = msg.getExtra()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f)
   };
 
   if (includeInstance) {

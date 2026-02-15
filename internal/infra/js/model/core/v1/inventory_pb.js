@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -108,21 +108,21 @@ proto.core.v1.Inventory.prototype.toObject = function(opt_includeInstance) {
  */
 proto.core.v1.Inventory.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-inventoryId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-productId: jspb.Message.getFieldWithDefault(msg, 4, ""),
-warehouseId: jspb.Message.getFieldWithDefault(msg, 5, ""),
-quantity: jspb.Message.getFieldWithDefault(msg, 6, 0),
-reserved: jspb.Message.getFieldWithDefault(msg, 7, 0),
-available: jspb.Message.getFieldWithDefault(msg, 8, 0),
-location: (f = msg.getLocation()) && proto.core.v1.InventoryLocation.toObject(includeInstance, f),
-batchNumber: jspb.Message.getFieldWithDefault(msg, 10, ""),
-serialNumbersList: (f = jspb.Message.getRepeatedField(msg, 11)) == null ? undefined : f,
-expiryDate: (f = msg.getExpiryDate()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-receivedDate: (f = msg.getReceivedDate()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-cost: jspb.Message.getFloatingPointFieldWithDefault(msg, 14, 0.0),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    inventoryId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    productId: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    warehouseId: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    quantity: jspb.Message.getFieldWithDefault(msg, 6, 0),
+    reserved: jspb.Message.getFieldWithDefault(msg, 7, 0),
+    available: jspb.Message.getFieldWithDefault(msg, 8, 0),
+    location: (f = msg.getLocation()) && proto.core.v1.InventoryLocation.toObject(includeInstance, f),
+    batchNumber: jspb.Message.getFieldWithDefault(msg, 10, ""),
+    serialNumbersList: (f = jspb.Message.getRepeatedField(msg, 11)) == null ? undefined : f,
+    expiryDate: (f = msg.getExpiryDate()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    receivedDate: (f = msg.getReceivedDate()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    cost: jspb.Message.getFloatingPointFieldWithDefault(msg, 14, 0.0),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -761,9 +761,9 @@ proto.core.v1.InventoryLocation.prototype.toObject = function(opt_includeInstanc
  */
 proto.core.v1.InventoryLocation.toObject = function(includeInstance, msg) {
   var f, obj = {
-aisle: jspb.Message.getFieldWithDefault(msg, 1, ""),
-shelf: jspb.Message.getFieldWithDefault(msg, 2, ""),
-bin: jspb.Message.getFieldWithDefault(msg, 3, "")
+    aisle: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    shelf: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    bin: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {

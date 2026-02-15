@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 goog.exportSymbol('proto.infra.v1.Error', null, global);
 goog.exportSymbol('proto.infra.v1.ErrorCategory', null, global);
@@ -164,10 +164,10 @@ proto.infra.v1.Error.prototype.toObject = function(opt_includeInstance) {
  */
 proto.infra.v1.Error.toObject = function(includeInstance, msg) {
   var f, obj = {
-code: jspb.Message.getFieldWithDefault(msg, 1, ""),
-message: jspb.Message.getFieldWithDefault(msg, 2, ""),
-category: jspb.Message.getFieldWithDefault(msg, 3, 0),
-detailsMap: (f = msg.getDetailsMap()) ? f.toObject(includeInstance, undefined) : []
+    code: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    message: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    category: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    detailsMap: (f = msg.getDetailsMap()) ? f.toObject(includeInstance, undefined) : []
   };
 
   if (includeInstance) {
@@ -352,8 +352,7 @@ proto.infra.v1.Error.prototype.getDetailsMap = function(opt_noLazyCreate) {
  */
 proto.infra.v1.Error.prototype.clearDetailsMap = function() {
   this.getDetailsMap().clear();
-  return this;
-};
+  return this;};
 
 
 
@@ -388,8 +387,8 @@ proto.infra.v1.Response.prototype.toObject = function(opt_includeInstance) {
  */
 proto.infra.v1.Response.toObject = function(includeInstance, msg) {
   var f, obj = {
-success: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
-error: (f = msg.getError()) && proto.infra.v1.Error.toObject(includeInstance, f)
+    success: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
+    error: (f = msg.getError()) && proto.infra.v1.Error.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -569,8 +568,8 @@ proto.infra.v1.PaginationRequest.prototype.toObject = function(opt_includeInstan
  */
 proto.infra.v1.PaginationRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-page: jspb.Message.getFieldWithDefault(msg, 1, 0),
-pageSize: jspb.Message.getFieldWithDefault(msg, 2, 0)
+    page: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    pageSize: jspb.Message.getFieldWithDefault(msg, 2, 0)
   };
 
   if (includeInstance) {
@@ -729,12 +728,12 @@ proto.infra.v1.PaginationResponse.prototype.toObject = function(opt_includeInsta
  */
 proto.infra.v1.PaginationResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-page: jspb.Message.getFieldWithDefault(msg, 1, 0),
-pageSize: jspb.Message.getFieldWithDefault(msg, 2, 0),
-totalItems: jspb.Message.getFieldWithDefault(msg, 3, 0),
-totalPages: jspb.Message.getFieldWithDefault(msg, 4, 0),
-hasNext: jspb.Message.getBooleanFieldWithDefault(msg, 5, false),
-hasPrev: jspb.Message.getBooleanFieldWithDefault(msg, 6, false)
+    page: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    pageSize: jspb.Message.getFieldWithDefault(msg, 2, 0),
+    totalItems: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    totalPages: jspb.Message.getFieldWithDefault(msg, 4, 0),
+    hasNext: jspb.Message.getBooleanFieldWithDefault(msg, 5, false),
+    hasPrev: jspb.Message.getBooleanFieldWithDefault(msg, 6, false)
   };
 
   if (includeInstance) {
@@ -1009,8 +1008,8 @@ proto.infra.v1.UserIdentifier.prototype.toObject = function(opt_includeInstance)
  */
 proto.infra.v1.UserIdentifier.toObject = function(includeInstance, msg) {
   var f, obj = {
-tenantId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-userId: jspb.Message.getFieldWithDefault(msg, 2, "")
+    tenantId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    userId: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {

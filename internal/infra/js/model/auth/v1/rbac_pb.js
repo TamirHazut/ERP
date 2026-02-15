@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var infra_v1_infra_pb = require('../../infra/v1/infra_pb.js');
 goog.object.extend(proto, infra_v1_infra_pb);
@@ -550,9 +550,9 @@ proto.auth.v1.AssignRolesRequest.prototype.toObject = function(opt_includeInstan
  */
 proto.auth.v1.AssignRolesRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-roleIdsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
-assignedBy: jspb.Message.getFieldWithDefault(msg, 3, "")
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    roleIdsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
+    assignedBy: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -787,9 +787,9 @@ proto.auth.v1.RemoveRolesRequest.prototype.toObject = function(opt_includeInstan
  */
 proto.auth.v1.RemoveRolesRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-roleIdsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
-removedBy: jspb.Message.getFieldWithDefault(msg, 3, "")
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    roleIdsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
+    removedBy: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -1017,8 +1017,8 @@ proto.auth.v1.CreateRoleRequest.prototype.toObject = function(opt_includeInstanc
  */
 proto.auth.v1.CreateRoleRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-role: (f = msg.getRole()) && auth_v1_role_pb.Role.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    role: (f = msg.getRole()) && auth_v1_role_pb.Role.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -1219,7 +1219,7 @@ proto.auth.v1.CreateRoleResponse.prototype.toObject = function(opt_includeInstan
  */
 proto.auth.v1.CreateRoleResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-roleId: jspb.Message.getFieldWithDefault(msg, 1, "")
+    roleId: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -1349,8 +1349,8 @@ proto.auth.v1.UpdateRoleRequest.prototype.toObject = function(opt_includeInstanc
  */
 proto.auth.v1.UpdateRoleRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-role: (f = msg.getRole()) && auth_v1_role_pb.Role.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    role: (f = msg.getRole()) && auth_v1_role_pb.Role.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -1551,9 +1551,9 @@ proto.auth.v1.GetRoleRequest.prototype.toObject = function(opt_includeInstance) 
  */
 proto.auth.v1.GetRoleRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-roleId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-targetTenantId: jspb.Message.getFieldWithDefault(msg, 3, "")
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    roleId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    targetTenantId: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -1762,9 +1762,9 @@ proto.auth.v1.ListRolesRequest.prototype.toObject = function(opt_includeInstance
  */
 proto.auth.v1.ListRolesRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-targetTenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationRequest.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    targetTenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationRequest.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2001,9 +2001,9 @@ proto.auth.v1.ListRolesResponse.prototype.toObject = function(opt_includeInstanc
  */
 proto.auth.v1.ListRolesResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-rolesList: jspb.Message.toObjectList(msg.getRolesList(),
+    rolesList: jspb.Message.toObjectList(msg.getRolesList(),
     auth_v1_role_pb.Role.toObject, includeInstance),
-pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationResponse.toObject(includeInstance, f)
+    pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationResponse.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2205,9 +2205,9 @@ proto.auth.v1.DeleteRoleRequest.prototype.toObject = function(opt_includeInstanc
  */
 proto.auth.v1.DeleteRoleRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-roleId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-targetTenantId: jspb.Message.getFieldWithDefault(msg, 3, "")
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    roleId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    targetTenantId: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -2416,9 +2416,9 @@ proto.auth.v1.GetPermissionRequest.prototype.toObject = function(opt_includeInst
  */
 proto.auth.v1.GetPermissionRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-permissionId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-targetTenantId: jspb.Message.getFieldWithDefault(msg, 3, "")
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    permissionId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    targetTenantId: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -2627,9 +2627,9 @@ proto.auth.v1.ListPermissionsRequest.prototype.toObject = function(opt_includeIn
  */
 proto.auth.v1.ListPermissionsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-targetTenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationRequest.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    targetTenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationRequest.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2866,9 +2866,9 @@ proto.auth.v1.ListPermissionsResponse.prototype.toObject = function(opt_includeI
  */
 proto.auth.v1.ListPermissionsResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-permissionsList: jspb.Message.toObjectList(msg.getPermissionsList(),
+    permissionsList: jspb.Message.toObjectList(msg.getPermissionsList(),
     auth_v1_permission_pb.Permission.toObject, includeInstance),
-pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationResponse.toObject(includeInstance, f)
+    pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationResponse.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -3077,8 +3077,8 @@ proto.auth.v1.CheckPermissionsRequest.prototype.toObject = function(opt_includeI
  */
 proto.auth.v1.CheckPermissionsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-permissionsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    permissionsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -3277,7 +3277,7 @@ proto.auth.v1.CheckPermissionsResponse.prototype.toObject = function(opt_include
  */
 proto.auth.v1.CheckPermissionsResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-permissionsMap: (f = msg.getPermissionsMap()) ? f.toObject(includeInstance, undefined) : []
+    permissionsMap: (f = msg.getPermissionsMap()) ? f.toObject(includeInstance, undefined) : []
   };
 
   if (includeInstance) {
@@ -3375,8 +3375,7 @@ proto.auth.v1.CheckPermissionsResponse.prototype.getPermissionsMap = function(op
  */
 proto.auth.v1.CheckPermissionsResponse.prototype.clearPermissionsMap = function() {
   this.getPermissionsMap().clear();
-  return this;
-};
+  return this;};
 
 
 
@@ -3411,9 +3410,9 @@ proto.auth.v1.HasPermissionRequest.prototype.toObject = function(opt_includeInst
  */
 proto.auth.v1.HasPermissionRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-permission: jspb.Message.getFieldWithDefault(msg, 2, ""),
-targetTenantId: jspb.Message.getFieldWithDefault(msg, 3, "")
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    permission: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    targetTenantId: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -3622,7 +3621,7 @@ proto.auth.v1.HasPermissionResponse.prototype.toObject = function(opt_includeIns
  */
 proto.auth.v1.HasPermissionResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-hasPermission: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+    hasPermission: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
   };
 
   if (includeInstance) {
@@ -3752,7 +3751,7 @@ proto.auth.v1.GetUserPermissionsRequest.prototype.toObject = function(opt_includ
  */
 proto.auth.v1.GetUserPermissionsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -3903,7 +3902,7 @@ proto.auth.v1.GetUserPermissionsResponse.prototype.toObject = function(opt_inclu
  */
 proto.auth.v1.GetUserPermissionsResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-permissionsMap: (f = msg.getPermissionsMap()) ? f.toObject(includeInstance, undefined) : []
+    permissionsMap: (f = msg.getPermissionsMap()) ? f.toObject(includeInstance, undefined) : []
   };
 
   if (includeInstance) {
@@ -4001,8 +4000,7 @@ proto.auth.v1.GetUserPermissionsResponse.prototype.getPermissionsMap = function(
  */
 proto.auth.v1.GetUserPermissionsResponse.prototype.clearPermissionsMap = function() {
   this.getPermissionsMap().clear();
-  return this;
-};
+  return this;};
 
 
 
@@ -4037,7 +4035,7 @@ proto.auth.v1.GetUserRolesRequest.prototype.toObject = function(opt_includeInsta
  */
 proto.auth.v1.GetUserRolesRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -4195,7 +4193,7 @@ proto.auth.v1.GetUserRolesResponse.prototype.toObject = function(opt_includeInst
  */
 proto.auth.v1.GetUserRolesResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-roleIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f
+    roleIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -4344,7 +4342,7 @@ proto.auth.v1.IsSystemTenantUserRequest.prototype.toObject = function(opt_includ
  */
 proto.auth.v1.IsSystemTenantUserRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-tenantId: jspb.Message.getFieldWithDefault(msg, 1, "")
+    tenantId: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -4474,7 +4472,7 @@ proto.auth.v1.IsSystemTenantUserResponse.prototype.toObject = function(opt_inclu
  */
 proto.auth.v1.IsSystemTenantUserResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-isSystemTenant: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+    isSystemTenant: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
   };
 
   if (includeInstance) {

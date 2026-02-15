@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var infra_v1_infra_pb = require('../../infra/v1/infra_pb.js');
 goog.object.extend(proto, infra_v1_infra_pb);
@@ -399,33 +399,33 @@ proto.auth.v1.User.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.User.toObject = function(includeInstance, msg) {
   var f, obj = {
-id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-email: jspb.Message.getFieldWithDefault(msg, 3, ""),
-username: jspb.Message.getFieldWithDefault(msg, 4, ""),
-password: jspb.Message.getFieldWithDefault(msg, 5, ""),
-profile: (f = msg.getProfile()) && proto.auth.v1.UserProfile.toObject(includeInstance, f),
-rolesList: jspb.Message.toObjectList(msg.getRolesList(),
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    email: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    username: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    password: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    profile: (f = msg.getProfile()) && proto.auth.v1.UserProfile.toObject(includeInstance, f),
+    rolesList: jspb.Message.toObjectList(msg.getRolesList(),
     proto.auth.v1.UserRole.toObject, includeInstance),
-additionalPermissionsList: (f = jspb.Message.getRepeatedField(msg, 8)) == null ? undefined : f,
-revokedPermissionsList: (f = jspb.Message.getRepeatedField(msg, 9)) == null ? undefined : f,
-status: jspb.Message.getFieldWithDefault(msg, 10, 0),
-emailVerified: jspb.Message.getBooleanFieldWithDefault(msg, 11, false),
-phoneVerified: jspb.Message.getBooleanFieldWithDefault(msg, 12, false),
-mfaEnabled: jspb.Message.getBooleanFieldWithDefault(msg, 13, false),
-mfaSecret: jspb.Message.getFieldWithDefault(msg, 14, ""),
-lastLogin: (f = msg.getLastLogin()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-lastPasswordChange: (f = msg.getLastPasswordChange()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-passwordResetToken: jspb.Message.getFieldWithDefault(msg, 17, ""),
-passwordResetExpires: (f = msg.getPasswordResetExpires()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-preferences: (f = msg.getPreferences()) && proto.auth.v1.UserPreferences.toObject(includeInstance, f),
-createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-createdBy: jspb.Message.getFieldWithDefault(msg, 22, ""),
-lastActivity: (f = msg.getLastActivity()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-loginHistoryList: jspb.Message.toObjectList(msg.getLoginHistoryList(),
+    additionalPermissionsList: (f = jspb.Message.getRepeatedField(msg, 8)) == null ? undefined : f,
+    revokedPermissionsList: (f = jspb.Message.getRepeatedField(msg, 9)) == null ? undefined : f,
+    status: jspb.Message.getFieldWithDefault(msg, 10, 0),
+    emailVerified: jspb.Message.getBooleanFieldWithDefault(msg, 11, false),
+    phoneVerified: jspb.Message.getBooleanFieldWithDefault(msg, 12, false),
+    mfaEnabled: jspb.Message.getBooleanFieldWithDefault(msg, 13, false),
+    mfaSecret: jspb.Message.getFieldWithDefault(msg, 14, ""),
+    lastLogin: (f = msg.getLastLogin()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    lastPasswordChange: (f = msg.getLastPasswordChange()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    passwordResetToken: jspb.Message.getFieldWithDefault(msg, 17, ""),
+    passwordResetExpires: (f = msg.getPasswordResetExpires()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    preferences: (f = msg.getPreferences()) && proto.auth.v1.UserPreferences.toObject(includeInstance, f),
+    createdAt: (f = msg.getCreatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    updatedAt: (f = msg.getUpdatedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    createdBy: jspb.Message.getFieldWithDefault(msg, 22, ""),
+    lastActivity: (f = msg.getLastActivity()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    loginHistoryList: jspb.Message.toObjectList(msg.getLoginHistoryList(),
     proto.auth.v1.LoginRecord.toObject, includeInstance),
-pb_protected: jspb.Message.getBooleanFieldWithDefault(msg, 25, false)
+    pb_protected: jspb.Message.getBooleanFieldWithDefault(msg, 25, false)
   };
 
   if (includeInstance) {
@@ -1501,13 +1501,13 @@ proto.auth.v1.UserProfile.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.UserProfile.toObject = function(includeInstance, msg) {
   var f, obj = {
-firstName: jspb.Message.getFieldWithDefault(msg, 1, ""),
-lastName: jspb.Message.getFieldWithDefault(msg, 2, ""),
-displayName: jspb.Message.getFieldWithDefault(msg, 3, ""),
-avatarUrl: jspb.Message.getFieldWithDefault(msg, 4, ""),
-phone: jspb.Message.getFieldWithDefault(msg, 5, ""),
-title: jspb.Message.getFieldWithDefault(msg, 6, ""),
-department: jspb.Message.getFieldWithDefault(msg, 7, "")
+    firstName: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    lastName: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    displayName: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    avatarUrl: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    phone: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    title: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    department: jspb.Message.getFieldWithDefault(msg, 7, "")
   };
 
   if (includeInstance) {
@@ -1811,11 +1811,11 @@ proto.auth.v1.UserRole.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.UserRole.toObject = function(includeInstance, msg) {
   var f, obj = {
-roleId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-assignedAt: (f = msg.getAssignedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-assignedBy: jspb.Message.getFieldWithDefault(msg, 4, ""),
-expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    roleId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    assignedAt: (f = msg.getAssignedAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    assignedBy: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    expiresAt: (f = msg.getExpiresAt()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2103,11 +2103,11 @@ proto.auth.v1.UserPreferences.prototype.toObject = function(opt_includeInstance)
  */
 proto.auth.v1.UserPreferences.toObject = function(includeInstance, msg) {
   var f, obj = {
-language: jspb.Message.getFieldWithDefault(msg, 1, ""),
-timezone: jspb.Message.getFieldWithDefault(msg, 2, ""),
-theme: jspb.Message.getFieldWithDefault(msg, 3, ""),
-notifications: (f = msg.getNotifications()) && proto.auth.v1.NotificationSettings.toObject(includeInstance, f),
-dashboardLayout: (f = msg.getDashboardLayout()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f)
+    language: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    timezone: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    theme: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    notifications: (f = msg.getNotifications()) && proto.auth.v1.NotificationSettings.toObject(includeInstance, f),
+    dashboardLayout: (f = msg.getDashboardLayout()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2395,9 +2395,9 @@ proto.auth.v1.NotificationSettings.prototype.toObject = function(opt_includeInst
  */
 proto.auth.v1.NotificationSettings.toObject = function(includeInstance, msg) {
   var f, obj = {
-email: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
-push: jspb.Message.getBooleanFieldWithDefault(msg, 2, false),
-sms: jspb.Message.getBooleanFieldWithDefault(msg, 3, false)
+    email: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
+    push: jspb.Message.getBooleanFieldWithDefault(msg, 2, false),
+    sms: jspb.Message.getBooleanFieldWithDefault(msg, 3, false)
   };
 
   if (includeInstance) {
@@ -2585,10 +2585,10 @@ proto.auth.v1.LoginRecord.prototype.toObject = function(opt_includeInstance) {
  */
 proto.auth.v1.LoginRecord.toObject = function(includeInstance, msg) {
   var f, obj = {
-timestamp: (f = msg.getTimestamp()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-ipAddress: jspb.Message.getFieldWithDefault(msg, 2, ""),
-userAgent: jspb.Message.getFieldWithDefault(msg, 3, ""),
-success: jspb.Message.getBooleanFieldWithDefault(msg, 4, false)
+    timestamp: (f = msg.getTimestamp()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    ipAddress: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    userAgent: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    success: jspb.Message.getBooleanFieldWithDefault(msg, 4, false)
   };
 
   if (includeInstance) {
@@ -2826,8 +2826,8 @@ proto.auth.v1.CreateUserRequest.prototype.toObject = function(opt_includeInstanc
  */
 proto.auth.v1.CreateUserRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-user: (f = msg.getUser()) && proto.auth.v1.User.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    user: (f = msg.getUser()) && proto.auth.v1.User.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -3028,7 +3028,7 @@ proto.auth.v1.CreateUserResponse.prototype.toObject = function(opt_includeInstan
  */
 proto.auth.v1.CreateUserResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-userId: jspb.Message.getFieldWithDefault(msg, 1, "")
+    userId: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -3158,9 +3158,9 @@ proto.auth.v1.GetUserRequest.prototype.toObject = function(opt_includeInstance) 
  */
 proto.auth.v1.GetUserRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-targetTenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-accountId: jspb.Message.getFieldWithDefault(msg, 3, "")
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    targetTenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    accountId: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -3369,9 +3369,9 @@ proto.auth.v1.ListUsersRequest.prototype.toObject = function(opt_includeInstance
  */
 proto.auth.v1.ListUsersRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-targetTenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-roleId: (f = jspb.Message.getField(msg, 3)) == null ? undefined : f
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    targetTenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    roleId: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -3605,9 +3605,9 @@ proto.auth.v1.ListUsersResponse.prototype.toObject = function(opt_includeInstanc
  */
 proto.auth.v1.ListUsersResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-usersList: jspb.Message.toObjectList(msg.getUsersList(),
+    usersList: jspb.Message.toObjectList(msg.getUsersList(),
     proto.auth.v1.User.toObject, includeInstance),
-pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationResponse.toObject(includeInstance, f)
+    pagination: (f = msg.getPagination()) && infra_v1_infra_pb.PaginationResponse.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -3809,8 +3809,8 @@ proto.auth.v1.UpdateUserRequest.prototype.toObject = function(opt_includeInstanc
  */
 proto.auth.v1.UpdateUserRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-user: (f = msg.getUser()) && proto.auth.v1.User.toObject(includeInstance, f)
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    user: (f = msg.getUser()) && proto.auth.v1.User.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -4011,7 +4011,7 @@ proto.auth.v1.UpdateUserResponse.prototype.toObject = function(opt_includeInstan
  */
 proto.auth.v1.UpdateUserResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-updated: jspb.Message.getBooleanFieldWithDefault(msg, 2, false)
+    updated: jspb.Message.getBooleanFieldWithDefault(msg, 2, false)
   };
 
   if (includeInstance) {
@@ -4141,9 +4141,9 @@ proto.auth.v1.DeleteUserRequest.prototype.toObject = function(opt_includeInstanc
  */
 proto.auth.v1.DeleteUserRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
-targetTenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-accountId: (f = jspb.Message.getField(msg, 2)) == null ? undefined : f
+    identifier: (f = msg.getIdentifier()) && infra_v1_infra_pb.UserIdentifier.toObject(includeInstance, f),
+    targetTenantId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    accountId: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -4370,7 +4370,7 @@ proto.auth.v1.DeleteUserResponse.prototype.toObject = function(opt_includeInstan
  */
 proto.auth.v1.DeleteUserResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-deleted: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+    deleted: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
   };
 
   if (includeInstance) {

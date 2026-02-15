@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = (function() {
+  if (this) { return this; }
+  if (typeof window !== 'undefined') { return window; }
+  if (typeof global !== 'undefined') { return global; }
+  if (typeof self !== 'undefined') { return self; }
+  return Function('return this')();
+}.call(null));
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -79,11 +79,11 @@ proto.auth.v1.cache.ActiveUser.prototype.toObject = function(opt_includeInstance
  */
 proto.auth.v1.cache.ActiveUser.toObject = function(includeInstance, msg) {
   var f, obj = {
-userId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-sessionId: jspb.Message.getFieldWithDefault(msg, 3, ""),
-lastActivity: (f = msg.getLastActivity()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-status: jspb.Message.getFieldWithDefault(msg, 5, "")
+    userId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    tenantId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    sessionId: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    lastActivity: (f = msg.getLastActivity()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    status: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
