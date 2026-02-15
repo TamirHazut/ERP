@@ -271,7 +271,16 @@ func (u *UserAPI) hasPermission(tenantID, userID, action, targetTenantID string)
 func (u *UserAPI) updateUser(user *authv1.User) (bool, *infra_error.AppError) {
 	tenantID := user.GetTenantId()
 	userID := user.GetId()
-	err := u.userHandler.UpdateUser(user)
+	currentUser, err := u.userHandler.GetUserByID(user.TenantId, user.Id)
+	if err != nil {
+		return false, err
+	}
+	// TODO: allow changes to some fields such as LoginHistory
+	user.Protected = currentUser.Protected
+	if currentUser.Protected {
+		return false, infra_error.Auth(infra_error.AuthPermissionDenied)
+	}
+	err = u.userHandler.UpdateUser(user)
 	success := err == nil
 	if success {
 		u.logger.Debug("user updated successfuly", "tenant_id", tenantID, "user_id", userID, "target_tenant_id")
