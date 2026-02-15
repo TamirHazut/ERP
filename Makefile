@@ -1,152 +1,107 @@
 # ERP System Root Makefile
 # Delegates to service-specific Makefiles
 
-.PHONY: proto $(addprefix proto-,$(MODULES)) proto-clean \
-		run $(addprefix run-,$(SERVICES)) \
-        build $(addprefix build-,$(SERVICES)) \
+.PHONY: help \
+		generate generate-clean \
+        build $(addprefix build-,$(MODULES)) \
+		run $(addprefix run-,$(MODULES)) \
         test $(addprefix test-,$(MODULES)) test-coverage \
-		lint clean tidy help \
+		lint clean \
+		test-functional-setup test-functional-% test-functional-all test-functional-clean \
         docker-up docker-down docker-logs docker-ps \
         certs certs-clean
 
 # Binary output directory
-BIN_DIR := bin
+BIN_DIR := ./bin
 
-# Define services
-SERVICES := auth config core gateway event
+CMD_DIR := ./cmd
 
 # Define entire system modules including non services (including shared for proto generation)
-MODULES := infra $(SERVICES) init #shared
+MODULES := $(shell ls ./internal/ | cut -d'/' -f3 | sort -u)
 
 help: ## Show this help message
 	@echo "ERP System - Available targets:"
 	@echo ""
-	@echo "Proto Generation:"
-	@echo "  make proto          	- Generate all proto files"
-	@echo "  make proto-infra     	- Generate infra service proto files"
-	@echo "  make proto-<module>	- Generate module proto files (modules: infra, auth, config, core, gateway, event)"
+	@echo "Generation:"
+	@echo "  make generate          	- Generate all required files"
+	@echo "  make generate-clean		- Clean all generated files"
 	@echo ""
 	@echo "Build:"
-	@echo "  make build          	- Build all services"
-	@echo "  make build-<service>   - Build service (services: auth, config, core, gateway, event)"
-	@echo ""	
-	@echo "Run:"	
-	@echo "  make run           	- Run all services"
-	@echo "  make run-<service>     - Run service (services: auth, config, core, gateway, event)"
-	@echo ""	
-	@echo "Test & Quality:"	
+	@echo "  make build          	- Build all modules (with cmd/ directory)"
+	@echo "  make build-<module>    - Build specific module (modules: auth, config, core, init)"
+	@echo ""
+	@echo "Run:"
+	@echo "  make run           	- Run all modules"
+	@echo "  make run-<module>      - Run specific module (modules: auth, config, core, init)"
+	@echo ""
+	@echo "Test & Quality:"
 	@echo "  make test           	- Run all tests"
-	@echo "  make test-<module>		- Run module tests (modules: infra, auth, config, core, gateway, event)"
+	@echo "  make test-<module>		- Run module tests (modules: auth, config, core, gateway, event, infra, init)"
 	@echo "  make test-coverage  	- Run tests with coverage"
-	@echo "  make lint           	- Run linter on all services"
-	@echo ""	
-	@echo "Docker:"	
+	@echo "  make lint           	- Run linter on all modules"
+	@echo ""
+	@echo "Docker:"
 	@echo "  make docker-up      	- Start MongoDB and Redis containers"
 	@echo "  make docker-down    	- Stop and remove containers"
 	@echo "  make docker-logs    	- View container logs"
 	@echo "  make docker-ps      	- List running containers"
-	@echo ""	
-	@echo "Utilities:"	
+	@echo ""
+	@echo "Utilities:"
 	@echo "  make tidy           	- Run go mod tidy"
-	@echo "  make clean          	- Clean build artifacts from all services"
-	@echo ""	
-	@echo "Certificates (mTLS):"	
-	@echo "  make certs          	- Create CA and all service certificates"
+	@echo "  make clean          	- Clean build artifacts from all modules"
+	@echo ""
+	@echo "Certificates (mTLS):"
+	@echo "  make certs          	- Create CA and all module certificates"
 	@echo "  make certs-clean    	- Remove all certificates"
+	@echo ""
+	@echo "	 make help			 	- Display this menu"
+	@echo ""
 
 
 # ============================================================================
 # PROTO GENERATION TARGETS
 # ============================================================================
 
-proto: ## Generate all proto files
-	@echo "Generating proto files for: infra $(SERVICES) init shared"
-	@$(MAKE) -C internal/infra proto MODULES="infra $(SERVICES) init shared"
-	@echo "✓ All proto files generated successfully"
-
-proto-%:
-	@$(MAKE) -C internal/infra proto MODULES="$*"
+generate: ## Generate all required files
+	@$(MAKE) -C internal/infra generate"
 
 
-proto-clean: ## Remove all generated proto files
-	@$(MAKE) -C internal/infra proto-clean
-
-# Python proto generation directory
-PYTHON_PROTO_OUT := internal/infra/functional/proto
-
-proto-python: proto-python-clean ## Generate Python gRPC stubs from proto files
-	@echo "Generating Python proto files..."
-	@mkdir -p $(PYTHON_PROTO_OUT)
-	@# Generate third_party stubs (tagger) required by all service protos.
-	@# -I points at THIRD_PARTY so output path resolves to tagger/ (matching the
-	@# "from tagger import tagger_pb2" that protoc emits in service stubs).
-	@echo "Generating third_party stubs..."; \
-	python -m grpc_tools.protoc \
-		-I=$(THIRD_PARTY) \
-		--python_out=$(PYTHON_PROTO_OUT) \
-		--grpc_python_out=$(PYTHON_PROTO_OUT) \
-		$(THIRD_PARTY)/tagger/tagger.proto
-	@# Generate for each module
-	@for module in $(MODULES); do \
-		MODULE_DIR="$(PROTO_IN)/$$module/v1"; \
-		if [ -d "$$MODULE_DIR" ]; then \
-			echo "Generating Python stubs for $$module..."; \
-			for dir in $$MODULE_DIR $$MODULE_DIR/cache; do \
-				if [ -d "$$dir" ]; then \
-					PROTO_FILES=$$(find $$dir -maxdepth 1 -name "*.proto" -type f); \
-					if [ -n "$$PROTO_FILES" ]; then \
-						python -m grpc_tools.protoc \
-							-I=$(PROTO_IN) \
-							-I=$(THIRD_PARTY) \
-							--python_out=$(PYTHON_PROTO_OUT) \
-							--grpc_python_out=$(PYTHON_PROTO_OUT) \
-							$$PROTO_FILES; \
-					fi; \
-				fi; \
-			done; \
-		fi; \
-	done
-	@echo "✓ Python proto files generated in $(PYTHON_PROTO_OUT)"
-
-proto-python-clean: ## Clean generated Python proto files
-	@echo "Cleaning Python proto files..."
-	@rm -rf $(PYTHON_PROTO_OUT)
-	@echo "✓ Python proto files cleaned"
+generate-clean: ## Remove all generated files
+	@$(MAKE) -C internal/infra generate-clean
 
 # ============================================================================
 # BUILD TARGETS
 # ============================================================================
 
-define build_service
-	@echo "Building $(1) ..."
-	@$(MAKE) -C internal/$$service build;
-	@echo "✓ $(1) build successfully"
-endef
-
-build: ## Build all services
-	@echo "Building all services..."
-	@for service in $(SERVICES); do \
-		$(MAKE) build-$$service; \
+build: ## Build all modules
+	@echo "Building all modules..."
+	@for module in $(MODULES); do \
+		$(MAKE) build-$$module; \
 	done
-	@echo "✓ All services built"
+	@echo "✓ All modules processed"
 
 build-%:
-	$(call run build_service,$*)
+	@if [ -d "internal/$*/cmd" ]; then \
+		echo "Building $* module..."; \
+		$(MAKE) -C internal/$* build; \
+		echo "✓ $* built successfully"; \
+	else \
+		echo "⚠️  Skipping $* (no cmd/ directory)"; \
+	fi
 
 # ============================================================================
 # RUN TARGETS
 # ============================================================================
 
-# Function to generate proto for any service
-define run_service
-	@$(MAKE) -C internal/$(1) run
-endef
-
-run: 
-	@LOG_FILE_PATH=./logs go run ./cmd/
+run:
+	@LOG_FILE_PATH=./logs go run $(CMD_DIR)
 
 run-%:
-	$(call run_service,$*)
+	@if [ -d "internal/$*/cmd" ]; then \
+		$(MAKE) -C internal/$* run; \
+	else \
+		echo "⚠️  Cannot run $* (no cmd/ directory)"; \
+	fi
 
 # ============================================================================
 # TEST TARGETS
@@ -182,33 +137,23 @@ test-coverage: ## Run tests with coverage for all services
 # FUNCTIONAL TEST TARGETS
 # ============================================================================
 
-.PHONY: test-functional-setup test-functional-% test-functional-all test-functional-clean
+test-functional-setup: 
+	$(MAKE) -C internal/infra test-functional-setup
 
-test-functional-setup: proto-python ## Setup Python test environment
-	@echo "Setting up Python functional test environment..."
-	@cd internal/infra/functional && python -m pip install -r requirements.txt
-	@echo "✓ Python dependencies installed"
-
-test-functional-%: test-functional-setup ## Run functional tests for a specific service
+test-functional-%:
 	@echo "Running $* service functional tests..."
-	@cd internal/$*/functional && LOG_LEVEL=DEBUG python -m pytest -v -s --tb=short
+	@$(MAKE) -C internal/$* test-functional
 	@echo "✓ $* functional tests completed"
 
-test-functional-all: test-functional-setup ## Run all functional tests
+test-functional:
 	@echo "Running all functional tests..."
-	@for service in $(SERVICES); do \
-		if [ -d "internal/$$service/functional" ]; then \
-			$(MAKE) test-functional-$$service; \
+	@for module in $(MODULES); do \
+		if [ -d "internal/$$module/functional" ]; then \
+			$(MAKE) test-functional-$$module; \
+			$(MAKE) test-functional-clean; \
 		fi; \
 	done
 	@echo "✓ All functional tests completed"
-
-test-functional-clean: proto-python-clean ## Clean functional test artifacts
-	@echo "Cleaning functional test artifacts..."
-	@find internal -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	@find internal -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-	@find internal -type f -name "*.pyc" -delete 2>/dev/null || true
-	@echo "✓ Functional test artifacts cleaned"
 
 # ============================================================================
 # QUALITY TARGETS
@@ -224,11 +169,6 @@ lint: ## Run linter on all services
 # ============================================================================
 # UTILITY TARGETS
 # ============================================================================
-
-tidy: ## Run go mod tidy
-	@echo "Running go mod tidy..."
-	@go mod tidy
-	@echo "✓ Dependencies updated"
 
 clean: ## Clean build artifacts from all services
 	@echo "Cleaning all build artifacts..."
@@ -247,10 +187,6 @@ docker-up: ## Start MongoDB and Redis containers
 	@echo "Starting Docker containers..."
 	@docker compose up -d
 	@echo "✓ Containers started"
-	@echo ""
-	@echo "Services:"
-	@echo "  MongoDB: mongodb://root:secret@localhost:27017"
-	@echo "  Redis:   redis://:supersecretredis@localhost:6379"
 
 docker-down: ## Stop and remove containers
 	@echo "Stopping Docker containers..."
@@ -262,38 +198,6 @@ docker-logs: ## View container logs
 
 docker-ps: ## List running containers
 	@docker compose ps
-
-# ============================================================================
-# Mock Generation
-# ============================================================================
-
-.PHONY: mocks
-mocks: mocks-clean
-	@echo "Generating mocks..."
-	@for module in $(MODULES); do \
-		$(MAKE) -C internal/$$module mocks; \
-	done
-	@echo "✅ Mocks generated successfully"
-
-.PHONY: mocks-clean
-mocks-clean:
-	@echo "Cleaning generated mocks..."
-	@for module in $(MODULES); do \
-		echo "Cleaning $$module mocks..." && \
-		$(MAKE) -C internal/$$module mocks-clean; \
-	done
-	@echo "✅ Mocks cleaned"
-
-.PHONY: mocks-verify
-mocks-verify: mocks
-	@echo "Verifying mocks are up to date..."
-	@if [ -n "$$(git status --porcelain | grep 'mock_')" ]; then \
-		echo "❌ Generated mocks are out of date. Run 'make mocks' and commit changes."; \
-		git status --porcelain | grep 'mock_'; \
-		exit 1; \
-	else \
-		echo "✅ Mocks are up to date"; \
-	fi
 
 # ============================================================================
 # CERTIFICATE GENERATION (mTLS)

@@ -1,7 +1,7 @@
 # infra Module Makefile
 
 .PHONY: help \
-		lint test test-coverage test-clean \
+		lint test test-coverage clean \
 		certs certs-clean \
 		generate generate-clean
 
@@ -15,7 +15,7 @@ help: ## Show this help message
 	@echo "  make lint           		- Run linter on $(MODULE_NAME) module"
 	@echo "  make test           		- Run $(MODULE_NAME) module tests"
 	@echo "  make test-coverage  		- Run tests with coverage"
-	@echo "  make test-clean     		- Clean tests artifacts"
+	@echo "  make clean     			- Clean tests artifacts"
 	@echo "	 make certs		 			- Generate all required certificates"
 	@echo "	 make certs-clean		 	- Clean all certificates"
 	@echo "	 make generate		 		- Generate all required files"
@@ -25,25 +25,24 @@ help: ## Show this help message
 
 test: generate ## Run infra module tests
 	@echo "Running $(MODULE_NAME) module tests..."
-	@go test -v -count=1 ./...
+	@go test -v -count=1 ./go/...
 	@echo "✓ $(MODULE_NAME) tests complete"
 
 test-coverage: generate ## Run tests with coverage
 	@echo "Running $(MODULE_NAME) module tests with coverage..."
-	@go test -v -coverprofile=$(INTERNAL_DIR)/coverage.out ./...
+	@go test -v -coverprofile=$(INTERNAL_DIR)/coverage.out ./go/...
 	@go tool cover -html=$(INTERNAL_DIR)/coverage.out -o $(INTERNAL_DIR)/coverage.html
 	@echo "✓ Coverage report generated: $(INTERNAL_DIR)/coverage.html"
 
 lint: ## Run linter on infra module
 	@echo "Running linter on $(MODULE_NAME) module..."
-	@golangci-lint run ./...
+	@golangci-lint run ./go/...
 	@echo "✓ Linting complete"
 
-test-clean: ## Clean build artifacts
+clean: ## Clean artifacts
 	@echo "Cleaning $(MODULE_NAME) module artifacts..."
 	@rm -f $(INTERNAL_DIR)/coverage.out $(INTERNAL_DIR)/coverage.html
 	@echo "✓ Clean complete"
-
 
 # ============================================================================
 # CERTIFICATE GENERATION (mTLS)
@@ -118,7 +117,8 @@ THIRD_PARTY := $(PROTO_IN)/third_party
 
 # --- 1. DEFINE OUTPUT DIRECTORIES FIRST ---
 # (Must come before flags that use them)
-PYTHON_MODEL_DIR 	  	 := python/lib/model
+PYTHON_LIB_DIR 	 := python/lib
+PYTHON_MODEL_DIR 	 := $(PYTHON_LIB_DIR)/model
 GENERATED_GO_OUT     := $(INFRA_BASE)/go
 GENERATED_PYTHON_OUT := $(INFRA_BASE)/$(PYTHON_MODEL_DIR)
 GENERATED_JS_OUT     := $(INFRA_BASE)/js/model
@@ -165,7 +165,6 @@ define generate_proto
     fi
 endef
 
-.PHONY: proto
 proto:
 	@MODULES=$$(find $(PROTO_IN) -name "*.proto" -type f -exec dirname {} \; | cut -d'/' -f3 | sort -u); \
 	for module in $$MODULES; do \
@@ -200,3 +199,11 @@ generate: generate-clean
 	$(MAKE) mocks
 
 generate-clean: proto-clean generate-topics-clean mocks-clean 
+
+# ============================================================================
+# FUNCTIONAL TESTS
+# ============================================================================
+test-functional-setup: 
+	@echo "Setting up Python functional test environment..."
+	@cd $(PYTHON_LIB_DIR)/functional && python -m pip install -r requirements.txt
+	@echo "✓ Python dependencies installed"
